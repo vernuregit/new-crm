@@ -1,6 +1,7 @@
 import React, { useState, useEffect } from 'react'
 import { useUserStore } from '../../stores/userStore'
 import { useProjectStore } from '../projects/stores/projectStore'
+import { ClockInOverviewWidget } from './components/ClockInOverviewWidget'
 import { Card } from '../../components/ui/Card'
 import { Badge } from '../../components/ui/Badge'
 import { Button } from '../../components/ui/Button'
@@ -111,15 +112,13 @@ export const EmployeeDashboard = () => {
               <p className="text-slate-500 dark:text-slate-400 text-sm mt-0.5">{today}</p>
             </div>
           </div>
-          <p className="text-slate-700 dark:text-slate-300 text-sm mt-4 max-w-xl">
-            Welcome to your staff workspace. Manage your sprint deliverables, log hours, coordinate attendance, and collaborate with your team.
-          </p>
-          <div className="flex items-center gap-3 mt-5">
-            <Badge variant="brand">Staff Portal</Badge>
-            <Badge variant="success">Production Ready</Badge>
-          </div>
+          
+         
         </div>
       </div>
+
+      {/* Clock-In & Attendance Command Widget */}
+      <ClockInOverviewWidget />
 
       {/* Stats Strip */}
       <div className="grid grid-cols-1 sm:grid-cols-3 gap-4">

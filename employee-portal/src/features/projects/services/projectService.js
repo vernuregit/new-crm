@@ -159,6 +159,20 @@ export const logHoursToTaskInDb = async (taskId, additionalHours, currentHours =
   }
 }
 
+// ─── Update Task Subtasks & Status ─────────────────────────────────────────────
+export const updateTaskSubtasksInDb = async (taskId, subtasks, status = null) => {
+  try {
+    if (!taskId) return
+    const payload = { subtasks }
+    if (status) payload.status = status
+    payload.updatedAt = serverTimestamp()
+
+    await setDoc(doc(db, 'tasks', taskId), payload, { merge: true })
+  } catch (err) {
+    console.error('Error updating task subtasks in Firestore:', err)
+  }
+}
+
 // ─── Delete Task ───────────────────────────────────────────────────────────────
 export const deleteTaskFromDb = async (taskId) => {
   try {
@@ -168,3 +182,4 @@ export const deleteTaskFromDb = async (taskId) => {
     console.error('Error deleting task from Firestore:', err)
   }
 }
+

@@ -13,27 +13,6 @@ const DEMO_CLIENT_PROJECTS = [
   },
 ]
 
-const DEMO_CLIENT_INVOICES = [
-  {
-    invoiceId: 'inv_301',
-    invoiceNumber: 'INV-2024-001',
-    issueDate: '2024-07-01',
-    dueDate: '2024-07-15',
-    total: 11000,
-    status: 'paid',
-    downloadUrl: '#',
-  },
-  {
-    invoiceId: 'inv_302',
-    invoiceNumber: 'INV-2024-002',
-    issueDate: '2024-07-10',
-    dueDate: '2024-07-24',
-    total: 8800,
-    status: 'sent',
-    downloadUrl: '#',
-  },
-]
-
 const DEMO_CLIENT_FILES = [
   {
     fileId: 'file_901',
@@ -64,9 +43,11 @@ const DEMO_APPROVALS = [
 
 export const usePortalStore = create((set) => ({
   projects: DEMO_CLIENT_PROJECTS,
-  invoices: DEMO_CLIENT_INVOICES,
+  invoices: [],
   files: DEMO_CLIENT_FILES,
   approvals: DEMO_APPROVALS,
+
+  setInvoices: (invoices) => set({ invoices: Array.isArray(invoices) ? invoices : [] }),
 
   approveDeliverable: (approvalId) =>
     set((state) => ({

@@ -1,11 +1,9 @@
 import {
   collection,
-  doc,
   getDocs,
   addDoc,
   deleteDoc,
-  query,
-  orderBy,
+  doc,
 } from 'firebase/firestore'
 import { db } from '../../../shared/services/firebaseService'
 
@@ -18,8 +16,8 @@ export const getArticles = async () => {
     const primaryDocs = primarySnap.docs.map((d) => {
       const data = d.data()
       return {
-        articleId: d.id,
         id: d.id,
+        articleId: d.id,
         ...data,
         updatedAt: data.updatedAt || data.createdAt || new Date().toISOString(),
       }
@@ -31,8 +29,8 @@ export const getArticles = async () => {
       fallbackDocs = fallbackSnap.docs.map((d) => {
         const data = d.data()
         return {
-          articleId: d.id,
           id: d.id,
+          articleId: d.id,
           ...data,
           updatedAt: data.updatedAt || data.createdAt || new Date().toISOString(),
         }
@@ -53,7 +51,7 @@ export const getArticles = async () => {
     allArticles.sort((a, b) => new Date(b.updatedAt || 0) - new Date(a.updatedAt || 0))
     return allArticles
   } catch (err) {
-    console.error('Error fetching articles from Firestore:', err)
+    console.error('Error fetching knowledge articles from Firestore:', err)
     return []
   }
 }
@@ -65,25 +63,25 @@ export const createArticle = async (articleData) => {
   try {
     const payload = {
       title: articleData.title || '',
-      category: articleData.category || 'General SOP',
+      category: articleData.category || 'SOPs',
       summary: articleData.summary || articleData.content?.substring(0, 150) || '',
       content: articleData.content || '',
-      author: articleData.author || 'Admin',
-      createdByRole: articleData.createdByRole || 'Admin',
+      author: articleData.author || 'Employee',
+      createdByRole: articleData.createdByRole || 'Employee',
       createdAt: new Date().toISOString(),
       updatedAt: new Date().toISOString(),
     }
     const docRef = await addDoc(collection(db, 'knowledgeArticles'), payload)
-    return { articleId: docRef.id, id: docRef.id, ...payload }
+    return { id: docRef.id, articleId: docRef.id, ...payload }
   } catch (err) {
     console.error('Error creating article in Firestore:', err)
     const fallbackId = `art_${Date.now()}`
     return {
-      articleId: fallbackId,
       id: fallbackId,
+      articleId: fallbackId,
       ...articleData,
-      author: articleData.author || 'Admin',
-      createdByRole: articleData.createdByRole || 'Admin',
+      author: articleData.author || 'Employee',
+      createdByRole: articleData.createdByRole || 'Employee',
       createdAt: new Date().toISOString(),
       updatedAt: new Date().toISOString(),
     }
@@ -102,4 +100,3 @@ export const deleteArticleFromDb = async (articleId) => {
     console.error('Error deleting article from Firestore:', err)
   }
 }
-

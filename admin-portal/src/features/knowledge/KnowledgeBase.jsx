@@ -62,7 +62,9 @@ export const KnowledgeBase = () => {
       title: title.trim(),
       category,
       content: content.trim(),
+      summary: content.trim().substring(0, 150),
       author: author.trim() || 'Admin',
+      createdByRole: 'Admin',
     }
 
     const newDoc = await createArticle(payload)
@@ -88,7 +90,8 @@ export const KnowledgeBase = () => {
     (a) =>
       a.title?.toLowerCase().includes(searchQuery.toLowerCase()) ||
       a.category?.toLowerCase().includes(searchQuery.toLowerCase()) ||
-      a.content?.toLowerCase().includes(searchQuery.toLowerCase())
+      a.content?.toLowerCase().includes(searchQuery.toLowerCase()) ||
+      a.author?.toLowerCase().includes(searchQuery.toLowerCase())
   )
 
   const selectClass =
@@ -156,7 +159,7 @@ export const KnowledgeBase = () => {
         <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
           {filteredArticles.map((art) => (
             <Card
-              key={art.articleId}
+              key={art.articleId || art.id}
               hover
               onClick={() => setSelectedArticle(art)}
               className="space-y-3 cursor-pointer border-slate-200 dark:border-slate-800 relative group flex flex-col justify-between bg-white dark:bg-[#181C27]"
@@ -167,7 +170,7 @@ export const KnowledgeBase = () => {
                     <BookOpen className="w-4 h-4" />
                   </div>
                   <button
-                    onClick={(e) => handleDelete(e, art.articleId)}
+                    onClick={(e) => handleDelete(e, art.articleId || art.id)}
                     className="p-1 text-slate-400 hover:text-rose-500 rounded-lg hover:bg-slate-100 dark:hover:bg-slate-800 transition-colors"
                     title="Delete Article"
                   >
@@ -175,15 +178,26 @@ export const KnowledgeBase = () => {
                   </button>
                 </div>
 
-                <div className="space-y-1">
-                  <Badge variant="brand">{art.category || 'General SOP'}</Badge>
+                <div className="space-y-1.5">
+                  <div className="flex items-center gap-1.5 flex-wrap">
+                    <Badge variant="brand">{art.category || 'General SOP'}</Badge>
+                    {art.createdByRole === 'Employee' || art.author?.toLowerCase().includes('employee') || art.author?.toLowerCase().includes('staff') ? (
+                      <span className="px-2 py-0.5 rounded-md text-[10px] font-semibold bg-emerald-500/10 text-emerald-600 dark:text-emerald-400 border border-emerald-500/20">
+                        Employee Post
+                      </span>
+                    ) : (
+                      <span className="px-2 py-0.5 rounded-md text-[10px] font-semibold bg-indigo-500/10 text-indigo-600 dark:text-indigo-400 border border-indigo-500/20">
+                        Admin Post
+                      </span>
+                    )}
+                  </div>
                   <h4 className="font-bold text-slate-900 dark:text-slate-100 text-sm group-hover:text-indigo-600 dark:group-hover:text-indigo-400 transition-colors line-clamp-2">
                     {art.title}
                   </h4>
                 </div>
 
                 <p className="text-xs text-slate-600 dark:text-slate-400 line-clamp-3 leading-relaxed">
-                  {art.content}
+                  {art.summary || art.content}
                 </p>
               </div>
 

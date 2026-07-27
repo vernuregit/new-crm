@@ -1,5 +1,5 @@
 import React, { useState, useEffect } from 'react'
-import { NavLink } from 'react-router-dom'
+import { NavLink, useNavigate } from 'react-router-dom'
 import { PageHeader } from '../../components/layout/PageHeader'
 import { Card } from '../../components/ui/Card'
 import { Badge } from '../../components/ui/Badge'
@@ -21,11 +21,14 @@ import {
   X,
   TrendingUp,
   Layers,
-  Trash2
+  Trash2,
+  ArrowRight
 } from 'lucide-react'
 
 export const ProjectList = () => {
-  const { projects, setProjects, addProject, deleteProject } = useProjectStore()
+  const navigate = useNavigate()
+  const { projects, setProjects, addProject, deleteProject, setSelectedProjectId } = useProjectStore()
+
 
   const [searchQuery, setSearchQuery] = useState('')
   const [statusFilter, setStatusFilter] = useState('all')
@@ -96,6 +99,12 @@ export const ProjectList = () => {
     setBudget('')
     setDescription('')
     setShowAddModal(false)
+  }
+
+  const handleProjectClick = (proj) => {
+    const pId = proj.projectId || proj.id
+    setSelectedProjectId(pId)
+    navigate(`/projects/tasks?projectId=${pId}`)
   }
 
   const handleDeleteProject = async (id, e) => {
@@ -245,17 +254,22 @@ export const ProjectList = () => {
       ) : (
         <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-5">
           {filtered.map((proj) => (
-            <Card key={proj.projectId || proj.id} hover className="space-y-4 border-slate-200 dark:border-slate-800">
+            <Card
+              key={proj.projectId || proj.id}
+              hover
+              className="space-y-4 border-slate-200 dark:border-slate-800 cursor-pointer group"
+              onClick={() => handleProjectClick(proj)}
+            >
               <div className="flex items-start justify-between">
                 <div>
-                  <h3 className="font-bold text-slate-900 dark:text-slate-100 text-sm hover:text-indigo-600 dark:hover:text-indigo-400 transition-colors">
+                  <h3 className="font-bold text-slate-900 dark:text-slate-100 text-sm group-hover:text-indigo-600 dark:group-hover:text-indigo-400 transition-colors flex items-center gap-1.5">
                     {proj.name}
                   </h3>
                   <p className="text-xs text-slate-500 dark:text-slate-400 flex items-center gap-1 mt-0.5">
                     <Building className="w-3 h-3 text-slate-400 dark:text-slate-500" /> {proj.clientName}
                   </p>
                 </div>
-                <div className="flex items-center gap-2">
+                <div className="flex items-center gap-2" onClick={(e) => e.stopPropagation()}>
                   <Badge
                     variant={
                       proj.status === 'active'
@@ -297,9 +311,15 @@ export const ProjectList = () => {
                 <span className="flex items-center gap-1 text-slate-700 dark:text-slate-300 font-semibold">
                   <CheckCircle2 className="w-3.5 h-3.5 text-emerald-600 dark:text-emerald-400" /> {proj.completedTaskCount} / {proj.totalTaskCount} tasks
                 </span>
-                <span className="flex items-center gap-1 text-emerald-600 dark:text-emerald-400 font-semibold">
-                  <IndianRupee className="w-3.5 h-3.5" /> ₹{proj.budget?.toLocaleString('en-IN')}
-                </span>
+                <button
+                  onClick={(e) => {
+                    e.stopPropagation()
+                    handleProjectClick(proj)
+                  }}
+                  className="flex items-center gap-1 text-xs font-semibold text-indigo-600 dark:text-indigo-400 hover:underline"
+                >
+                  View Tasks <ArrowRight className="w-3 h-3" />
+                </button>
               </div>
             </Card>
           ))}

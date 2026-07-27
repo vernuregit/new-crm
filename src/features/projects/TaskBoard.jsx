@@ -1,66 +1,148 @@
-import React, { useState } from 'react'
-import { NavLink } from 'react-router-dom'
+import React, { useState, useEffect } from 'react'
+import { NavLink, useSearchParams } from 'react-router-dom'
 import { PageHeader } from '../../shared/components/layout/PageHeader'
 import { Card } from '../../shared/components/ui/Card'
 import { Badge } from '../../shared/components/ui/Badge'
 import { Button } from '../../shared/components/ui/Button'
 import { Input } from '../../shared/components/ui/Input'
-import { useProjectStore } from './stores/projectStore'
+import { SubtaskStepper } from './components/SubtaskStepper'
+import { useProjectStore, DEFAULT_TASK_STATUSES } from './stores/projectStore'
+import { getProjects, getTasks, getTaskStatusesFromDb, createTask, updateTaskStatusInDb, deleteTaskFromDb } from './services/projectService'
 import {
   FolderKanban,
   Kanban,
   Clock,
   Plus,
-  CheckCircle2,
-  AlertCircle,
   User,
   X,
   Trash2,
-  Calendar
+  Filter
 } from 'lucide-react'
 
-const TASK_STATUSES = [
-  { id: 'todo', name: 'To Do', color: 'blue' },
-  { id: 'in_progress', name: 'In Progress', color: 'indigo' },
-  { id: 'in_review', name: 'In Review', color: 'amber' },
-  { id: 'done', name: 'Done', color: 'emerald' },
-]
-
 export const TaskBoard = () => {
-  const { tasks, projects, addTask, updateTaskStatus, deleteTask, logHoursToTask } = useProjectStore()
+  const [searchParams, setSearchParams] = useSearchParams()
+  const urlProjectId = searchParams.get('projectId')
+
+  const {
+    tasks,
+    projects,
+    statuses,
+    setTasks,
+    setProjects,
+    setStatuses,
+    addTask,
+    updateTaskStatus,
+    deleteTask,
+    logHoursToTask,
+    selectedProjectId,
+    setSelectedProjectId
+  } = useProjectStore()
 
   const [showAddModal, setShowAddModal] = useState(false)
   const [selectedTask, setSelectedTask] = useState(null)
   const [hoursToLog, setHoursToLog] = useState('')
 
+  // Sync URL search param with selectedProjectId
+  useEffect(() => {
+    if (urlProjectId) {
+      setSelectedProjectId(urlProjectId)
+    }
+  }, [urlProjectId, setSelectedProjectId])
+
+  // Fetch Firestore data on mount if needed
+  useEffect(() => {
+    const fetchData = async () => {
+      const [tasksData, projectsData, statusesData] = await Promise.all([
+        getTasks(),
+        getProjects(),
+        getTaskStatusesFromDb(),
+      ])
+      if (tasksData && tasksData.length > 0) setTasks(tasksData)
+      if (projectsData && projectsData.length > 0) setProjects(projectsData)
+      if (statusesData && statusesData.length > 0) setStatuses(statusesData)
+    }
+    fetchData()
+  }, [setTasks, setProjects, setStatuses])
+
   // New task form state
+  const currentProjId = selectedProjectId && selectedProjectId !== 'all'
+    ? selectedProjectId
+    : projects[0]?.projectId || projects[0]?.id || ''
+
   const [taskTitle, setTaskTitle] = useState('')
   const [taskDesc, setTaskDesc] = useState('')
-  const [projectId, setProjectId] = useState(projects[0]?.projectId || '')
+  const [projectId, setProjectId] = useState(currentProjId)
   const [priority, setPriority] = useState('medium')
   const [assignee, setAssignee] = useState('Sarah Jenkins')
   const [estimatedHours, setEstimatedHours] = useState('10')
 
-  const handleCreateTask = (e) => {
+  useEffect(() => {
+    if (showAddModal) {
+      setProjectId(currentProjId)
+    }
+  }, [showAddModal, currentProjId])
+
+  const handleProjectFilterChange = (pId) => {
+    if (pId === 'all') {
+      setSelectedProjectId(null)
+      setSearchParams({})
+    } else {
+      setSelectedProjectId(pId)
+      setSearchParams({ projectId: pId })
+    }
+  }
+
+  const activeProject = projects.find(
+    (p) => p.projectId === selectedProjectId || p.id === selectedProjectId
+  )
+
+  const filteredTasks = selectedProjectId && selectedProjectId !== 'all'
+    ? tasks.filter(
+        (t) =>
+          t.projectId === selectedProjectId ||
+          (activeProject && t.projectName && t.projectName.toLowerCase() === activeProject.name.toLowerCase())
+      )
+    : tasks
+
+  const activeStatuses = statuses || DEFAULT_TASK_STATUSES
+
+  const liveSelectedTask = selectedTask ? tasks.find((t) => t.taskId === selectedTask.taskId) || selectedTask : null
+
+  const handleCreateTask = async (e) => {
     e.preventDefault()
     if (!taskTitle.trim()) return
 
-    const proj = projects.find((p) => p.projectId === projectId)
+    const proj = projects.find((p) => p.projectId === projectId || p.id === projectId)
 
-    addTask({
+    const payload = {
       title: taskTitle,
       description: taskDesc,
-      projectId,
+      projectId: projectId || 'proj_default',
       projectName: proj?.name || 'Project Work',
       priority,
       assigneeName: assignee,
       estimatedHours: Number(estimatedHours) || 0,
+      loggedHours: 0,
+      status: 'todo',
       dueDate: new Date(Date.now() + 86400000 * 7).toISOString().split('T')[0],
-    })
+    }
+
+    const created = await createTask(payload)
+    addTask(created)
 
     setTaskTitle('')
     setTaskDesc('')
     setShowAddModal(false)
+  }
+
+  const handleStatusChange = async (taskId, newStatus) => {
+    updateTaskStatus(taskId, newStatus)
+    await updateTaskStatusInDb(taskId, newStatus)
+  }
+
+  const handleDeleteTask = async (taskId) => {
+    deleteTask(taskId)
+    await deleteTaskFromDb(taskId)
   }
 
   const handleLogHours = (e) => {
@@ -69,7 +151,6 @@ export const TaskBoard = () => {
 
     logHoursToTask(selectedTask.taskId, Number(hoursToLog))
     setHoursToLog('')
-    setSelectedTask(null)
   }
 
   return (
@@ -78,7 +159,7 @@ export const TaskBoard = () => {
       <div className="space-y-4">
         <PageHeader
           title="Task Sprint Board"
-          description="Track cross-project task assignments, sprint statuses, and logged work hours"
+          description="Track cross-project task assignments, sprint statuses, and subtask execution timelines"
           actions={
             <Button icon={Plus} variant="primary" onClick={() => setShowAddModal(true)}>
               New Task
@@ -86,50 +167,90 @@ export const TaskBoard = () => {
           }
         />
 
-        <div className="flex items-center gap-2 border-b border-slate-200 dark:border-slate-800 pb-3">
-          <NavLink
-            to="/projects/list"
-            className={({ isActive }) =>
-              `flex items-center gap-2 px-3 py-1.5 rounded-xl text-xs font-semibold transition-colors ${
-                isActive
-                  ? 'bg-indigo-50 dark:bg-indigo-600/20 text-indigo-600 dark:text-indigo-400 border border-indigo-200 dark:border-indigo-500/30'
-                  : 'text-slate-600 dark:text-slate-400 hover:text-slate-900 dark:hover:text-slate-200 hover:bg-slate-100 dark:hover:bg-slate-800'
-              }`
-            }
-          >
-            <FolderKanban className="w-3.5 h-3.5" /> All Projects
-          </NavLink>
-          <NavLink
-            to="/projects/tasks"
-            className={({ isActive }) =>
-              `flex items-center gap-2 px-3 py-1.5 rounded-xl text-xs font-semibold transition-colors ${
-                isActive
-                  ? 'bg-indigo-50 dark:bg-indigo-600/20 text-indigo-600 dark:text-indigo-400 border border-indigo-200 dark:border-indigo-500/30'
-                  : 'text-slate-600 dark:text-slate-400 hover:text-slate-900 dark:hover:text-slate-200 hover:bg-slate-100 dark:hover:bg-slate-800'
-              }`
-            }
-          >
-            <Kanban className="w-3.5 h-3.5" /> Task Board
-          </NavLink>
-          <NavLink
-            to="/projects/time"
-            className={({ isActive }) =>
-              `flex items-center gap-2 px-3 py-1.5 rounded-xl text-xs font-semibold transition-colors ${
-                isActive
-                  ? 'bg-indigo-50 dark:bg-indigo-600/20 text-indigo-600 dark:text-indigo-400 border border-indigo-200 dark:border-indigo-500/30'
-                  : 'text-slate-600 dark:text-slate-400 hover:text-slate-900 dark:hover:text-slate-200 hover:bg-slate-100 dark:hover:bg-slate-800'
-              }`
-            }
-          >
-            <Clock className="w-3.5 h-3.5" /> Time Tracking
-          </NavLink>
+        <div className="flex flex-wrap items-center justify-between gap-3 border-b border-slate-200 dark:border-slate-800 pb-3">
+          <div className="flex items-center gap-2">
+            <NavLink
+              to="/projects/list"
+              className={({ isActive }) =>
+                `flex items-center gap-2 px-3 py-1.5 rounded-xl text-xs font-semibold transition-colors ${
+                  isActive
+                    ? 'bg-indigo-50 dark:bg-indigo-600/20 text-indigo-600 dark:text-indigo-400 border border-indigo-200 dark:border-indigo-500/30'
+                    : 'text-slate-600 dark:text-slate-400 hover:text-slate-900 dark:hover:text-slate-200 hover:bg-slate-100 dark:hover:bg-slate-800'
+                }`
+              }
+            >
+              <FolderKanban className="w-3.5 h-3.5" /> All Projects
+            </NavLink>
+            <NavLink
+              to="/projects/tasks"
+              className={({ isActive }) =>
+                `flex items-center gap-2 px-3 py-1.5 rounded-xl text-xs font-semibold transition-colors ${
+                  isActive
+                    ? 'bg-indigo-50 dark:bg-indigo-600/20 text-indigo-600 dark:text-indigo-400 border border-indigo-200 dark:border-indigo-500/30'
+                    : 'text-slate-600 dark:text-slate-400 hover:text-slate-900 dark:hover:text-slate-200 hover:bg-slate-100 dark:hover:bg-slate-800'
+                }`
+              }
+            >
+              <Kanban className="w-3.5 h-3.5" /> Task Board
+            </NavLink>
+            <NavLink
+              to="/projects/time"
+              className={({ isActive }) =>
+                `flex items-center gap-2 px-3 py-1.5 rounded-xl text-xs font-semibold transition-colors ${
+                  isActive
+                    ? 'bg-indigo-50 dark:bg-indigo-600/20 text-indigo-600 dark:text-indigo-400 border border-indigo-200 dark:border-indigo-500/30'
+                    : 'text-slate-600 dark:text-slate-400 hover:text-slate-900 dark:hover:text-slate-200 hover:bg-slate-100 dark:hover:bg-slate-800'
+                }`
+              }
+            >
+              <Clock className="w-3.5 h-3.5" /> Time Tracking
+            </NavLink>
+          </div>
+
+          {/* Project Filter Dropdown */}
+          <div className="flex items-center gap-2">
+            <span className="text-xs font-medium text-slate-500 dark:text-slate-400 flex items-center gap-1">
+              <Filter className="w-3.5 h-3.5 text-indigo-500" /> Filter Project:
+            </span>
+            <select
+              value={selectedProjectId || 'all'}
+              onChange={(e) => handleProjectFilterChange(e.target.value)}
+              className="bg-slate-100 dark:bg-[#181C27] border border-slate-300 dark:border-slate-800 text-xs text-slate-900 dark:text-slate-100 font-semibold rounded-xl px-3 py-1.5 focus:outline-none focus:border-indigo-500 cursor-pointer transition-colors"
+            >
+              <option value="all">All Projects ({projects.length})</option>
+              {projects.map((p) => (
+                <option key={p.projectId || p.id} value={p.projectId || p.id}>
+                  {p.name}
+                </option>
+              ))}
+            </select>
+          </div>
         </div>
       </div>
 
+      {/* Active Project Filter Alert Banner */}
+      {selectedProjectId && selectedProjectId !== 'all' && (
+        <div className="flex items-center justify-between bg-indigo-50 dark:bg-indigo-950/40 border border-indigo-200 dark:border-indigo-800/60 rounded-xl px-4 py-2.5 text-xs text-indigo-900 dark:text-indigo-200">
+          <div className="flex items-center gap-2">
+            <span className="font-medium text-slate-600 dark:text-slate-300">Showing tasks for:</span>
+            <span className="bg-indigo-600 text-white px-2.5 py-0.5 rounded-lg font-bold">
+              {activeProject ? activeProject.name : selectedProjectId}
+            </span>
+            <span className="text-slate-500 dark:text-slate-400">({filteredTasks.length} {filteredTasks.length === 1 ? 'task' : 'tasks'} found)</span>
+          </div>
+          <button
+            onClick={() => handleProjectFilterChange('all')}
+            className="flex items-center gap-1 text-xs font-semibold text-indigo-600 dark:text-indigo-400 hover:underline"
+          >
+            <X className="w-3.5 h-3.5" /> Show All Projects
+          </button>
+        </div>
+      )}
+
       {/* Task Kanban Columns */}
       <div className="grid grid-cols-1 md:grid-cols-4 gap-4 items-start min-h-[500px]">
-        {TASK_STATUSES.map((status) => {
-          const colTasks = tasks.filter((t) => t.status === status.id)
+        {activeStatuses.map((status) => {
+          const colTasks = filteredTasks.filter((t) => t.status === status.id)
 
           return (
             <div
@@ -169,7 +290,10 @@ export const TaskBoard = () => {
                         </Badge>
                       </div>
 
-                      <p className="text-[11px] text-slate-500 dark:text-slate-400 truncate">{t.projectName}</p>
+                      <p className="text-[11px] text-indigo-600 dark:text-indigo-400 font-medium truncate">{t.projectName}</p>
+
+                      {/* Subtask Mini Stepper Bar on Kanban Card */}
+                      <SubtaskStepper taskId={t.taskId} subtasks={t.subtasks || []} compact={true} />
 
                       <div className="flex items-center justify-between text-xs pt-2 border-t border-slate-200 dark:border-slate-800/60">
                         <span className="flex items-center gap-1 text-[11px] text-slate-500 dark:text-slate-400">
@@ -187,10 +311,10 @@ export const TaskBoard = () => {
                         <span>Status:</span>
                         <select
                           value={t.status}
-                          onChange={(e) => updateTaskStatus(t.taskId, e.target.value)}
-                          className="bg-slate-100 dark:bg-slate-900 border border-slate-300 dark:border-slate-800 text-[10px] text-slate-800 dark:text-slate-300 rounded px-1.5 py-0.5 focus:outline-none"
+                          onChange={(e) => handleStatusChange(t.taskId, e.target.value)}
+                          className="bg-slate-100 dark:bg-slate-900 border border-slate-300 dark:border-slate-800 text-[10px] text-slate-800 dark:text-slate-300 rounded px-1.5 py-0.5 focus:outline-none cursor-pointer"
                         >
-                          {TASK_STATUSES.map((s) => (
+                          {activeStatuses.map((s) => (
                             <option key={s.id} value={s.id}>
                               {s.name}
                             </option>
@@ -209,12 +333,12 @@ export const TaskBoard = () => {
       {/* New Task Modal */}
       {showAddModal && (
         <div className="fixed inset-0 z-50 bg-black/70 backdrop-blur-sm flex items-center justify-center p-4">
-          <Card className="w-full max-w-lg p-6 space-y-4 border-slate-800 shadow-2xl relative">
-            <div className="flex items-center justify-between pb-3 border-b border-slate-800">
-              <h3 className="font-bold text-slate-100 text-sm">Create Task</h3>
+          <Card className="w-full max-w-lg p-6 space-y-4 border-slate-200 dark:border-slate-800 shadow-2xl relative bg-white dark:bg-[#181C27]">
+            <div className="flex items-center justify-between pb-3 border-b border-slate-200 dark:border-slate-800">
+              <h3 className="font-bold text-slate-900 dark:text-slate-100 text-sm">Create Task</h3>
               <button
                 onClick={() => setShowAddModal(false)}
-                className="text-slate-400 hover:text-white p-1 rounded-lg hover:bg-slate-800"
+                className="text-slate-400 hover:text-slate-600 dark:hover:text-white p-1 rounded-lg hover:bg-slate-100 dark:hover:bg-slate-800 transition-colors"
               >
                 <X className="w-4 h-4" />
               </button>
@@ -230,14 +354,14 @@ export const TaskBoard = () => {
               />
 
               <div className="space-y-1.5 text-left">
-                <label className="block text-xs font-medium text-slate-300">Target Project</label>
+                <label className="block text-xs font-medium text-slate-700 dark:text-slate-300">Target Project</label>
                 <select
                   value={projectId}
                   onChange={(e) => setProjectId(e.target.value)}
-                  className="w-full bg-[#11141E] border border-slate-800 text-slate-100 text-sm rounded-xl py-2.5 px-3.5 focus:outline-none focus:border-indigo-500"
+                  className="w-full bg-slate-100/80 dark:bg-[#11141E] border border-slate-300 dark:border-slate-800 text-slate-900 dark:text-slate-100 text-sm rounded-xl py-2.5 px-3.5 focus:outline-none focus:border-indigo-500 focus:ring-1 focus:ring-indigo-500 transition-all cursor-pointer"
                 >
                   {projects.map((p) => (
-                    <option key={p.projectId} value={p.projectId}>
+                    <option key={p.projectId || p.id} value={p.projectId || p.id} className="bg-white dark:bg-[#11141E] text-slate-900 dark:text-slate-100">
                       {p.name}
                     </option>
                   ))}
@@ -246,29 +370,29 @@ export const TaskBoard = () => {
 
               <div className="grid grid-cols-2 gap-3">
                 <div className="space-y-1.5 text-left">
-                  <label className="block text-xs font-medium text-slate-300">Priority</label>
+                  <label className="block text-xs font-medium text-slate-700 dark:text-slate-300">Priority</label>
                   <select
                     value={priority}
                     onChange={(e) => setPriority(e.target.value)}
-                    className="w-full bg-[#11141E] border border-slate-800 text-slate-100 text-sm rounded-xl py-2.5 px-3.5 focus:outline-none focus:border-indigo-500"
+                    className="w-full bg-slate-100/80 dark:bg-[#11141E] border border-slate-300 dark:border-slate-800 text-slate-900 dark:text-slate-100 text-sm rounded-xl py-2.5 px-3.5 focus:outline-none focus:border-indigo-500 focus:ring-1 focus:ring-indigo-500 transition-all cursor-pointer"
                   >
-                    <option value="low">Low</option>
-                    <option value="medium">Medium</option>
-                    <option value="high">High</option>
-                    <option value="critical">Critical</option>
+                    <option value="low" className="bg-white dark:bg-[#11141E] text-slate-900 dark:text-slate-100">Low</option>
+                    <option value="medium" className="bg-white dark:bg-[#11141E] text-slate-900 dark:text-slate-100">Medium</option>
+                    <option value="high" className="bg-white dark:bg-[#11141E] text-slate-900 dark:text-slate-100">High</option>
+                    <option value="critical" className="bg-white dark:bg-[#11141E] text-slate-900 dark:text-slate-100">Critical</option>
                   </select>
                 </div>
 
                 <div className="space-y-1.5 text-left">
-                  <label className="block text-xs font-medium text-slate-300">Assignee</label>
+                  <label className="block text-xs font-medium text-slate-700 dark:text-slate-300">Assignee</label>
                   <select
                     value={assignee}
                     onChange={(e) => setAssignee(e.target.value)}
-                    className="w-full bg-[#11141E] border border-slate-800 text-slate-100 text-sm rounded-xl py-2.5 px-3.5 focus:outline-none focus:border-indigo-500"
+                    className="w-full bg-slate-100/80 dark:bg-[#11141E] border border-slate-300 dark:border-slate-800 text-slate-900 dark:text-slate-100 text-sm rounded-xl py-2.5 px-3.5 focus:outline-none focus:border-indigo-500 focus:ring-1 focus:ring-indigo-500 transition-all cursor-pointer"
                   >
-                    <option value="Sarah Jenkins">Sarah Jenkins</option>
-                    <option value="Alex Rivera">Alex Rivera</option>
-                    <option value="David Chen">David Chen</option>
+                    <option value="Sarah Jenkins" className="bg-white dark:bg-[#11141E] text-slate-900 dark:text-slate-100">Sarah Jenkins</option>
+                    <option value="Alex Rivera" className="bg-white dark:bg-[#11141E] text-slate-900 dark:text-slate-100">Alex Rivera</option>
+                    <option value="David Chen" className="bg-white dark:bg-[#11141E] text-slate-900 dark:text-slate-100">David Chen</option>
                   </select>
                 </div>
               </div>
@@ -293,52 +417,55 @@ export const TaskBoard = () => {
         </div>
       )}
 
-      {/* Task Log Hours Modal */}
-      {selectedTask && (
-        <div className="fixed inset-0 z-50 bg-black/70 backdrop-blur-sm flex items-center justify-center p-4">
-          <Card className="w-full max-w-md p-6 space-y-4 border-slate-800 shadow-2xl relative">
-            <div className="flex items-center justify-between pb-3 border-b border-slate-800">
+      {/* Task Log Hours & Subtask Timeline Detail Modal */}
+      {liveSelectedTask && (
+        <div className="fixed inset-0 z-50 bg-black/70 backdrop-blur-sm flex items-center justify-center p-4 overflow-y-auto">
+          <Card className="w-full max-w-2xl p-6 space-y-6 border-slate-200 dark:border-slate-800 shadow-2xl relative bg-white dark:bg-[#181C27] max-h-[90vh] overflow-y-auto">
+            <div className="flex items-center justify-between pb-3 border-b border-slate-200 dark:border-slate-800">
               <div>
-                <h3 className="font-bold text-slate-100 text-sm">{selectedTask.title}</h3>
-                <p className="text-xs text-indigo-400">{selectedTask.projectName}</p>
+                <h3 className="font-bold text-slate-900 dark:text-slate-100 text-base">{liveSelectedTask.title}</h3>
+                <p className="text-xs text-indigo-600 dark:text-indigo-400 font-medium">{liveSelectedTask.projectName}</p>
               </div>
               <button
                 onClick={() => setSelectedTask(null)}
-                className="text-slate-400 hover:text-white p-1 rounded-lg hover:bg-slate-800"
+                className="text-slate-400 hover:text-slate-900 dark:hover:text-white p-1 rounded-lg hover:bg-slate-100 dark:hover:bg-slate-800 transition-colors"
               >
-                <X className="w-4 h-4" />
+                <X className="w-5 h-5" />
               </button>
             </div>
 
-            <div className="space-y-2 text-xs text-slate-400">
-              <div className="flex justify-between py-1 border-b border-slate-800">
-                <span>Assignee:</span>
-                <span className="text-slate-200 font-medium">{selectedTask.assigneeName}</span>
+            <div className="grid grid-cols-2 gap-4 text-xs bg-slate-50 dark:bg-slate-900/40 p-3 rounded-2xl border border-slate-200 dark:border-slate-800">
+              <div className="space-y-1">
+                <span className="text-slate-500 dark:text-slate-400 block">Assignee</span>
+                <span className="text-slate-900 dark:text-slate-100 font-bold">{liveSelectedTask.assigneeName}</span>
               </div>
-              <div className="flex justify-between py-1 border-b border-slate-800">
-                <span>Logged Work:</span>
-                <span className="text-emerald-400 font-bold">{selectedTask.loggedHours} / {selectedTask.estimatedHours} hrs</span>
+              <div className="space-y-1">
+                <span className="text-slate-500 dark:text-slate-400 block">Logged / Target Work</span>
+                <span className="text-emerald-600 dark:text-emerald-400 font-bold">{liveSelectedTask.loggedHours} / {liveSelectedTask.estimatedHours} hrs</span>
               </div>
             </div>
 
-            <form onSubmit={handleLogHours} className="space-y-4 pt-2">
+            {/* Interactive Vertical Subtask Timeline */}
+            <SubtaskStepper taskId={liveSelectedTask.taskId} subtasks={liveSelectedTask.subtasks || []} />
+
+            {/* Quick Log Additional Hours */}
+            <form onSubmit={handleLogHours} className="space-y-3 pt-3 border-t border-slate-200 dark:border-slate-800">
               <Input
                 label="Log Additional Hours"
                 type="number"
                 placeholder="e.g. 4"
                 value={hoursToLog}
                 onChange={(e) => setHoursToLog(e.target.value)}
-                required
               />
 
-              <div className="flex gap-3">
+              <div className="flex gap-3 pt-1">
                 <Button
                   type="button"
                   variant="danger"
                   size="sm"
                   icon={Trash2}
-                  onClick={() => {
-                    deleteTask(selectedTask.taskId)
+                  onClick={async () => {
+                    await handleDeleteTask(liveSelectedTask.taskId)
                     setSelectedTask(null)
                   }}
                 >

@@ -182,9 +182,9 @@ export const WorkflowBuilder = () => {
               className={selectClass}
             >
               <option value="send_email" className="bg-white dark:bg-[#11141E] text-slate-900 dark:text-slate-100">Send Email Template (via Nodemailer)</option>
-              <option value="create_client_portal_user" className="bg-white dark:bg-[#11141E] text-slate-900 dark:text-slate-100">Create Client Portal User Profile</option>
-              <option value="send_in_app_notification" className="bg-white dark:bg-[#11141E] text-slate-900 dark:text-slate-100">Send In-App Notification</option>
-              <option value="send_slack_alert" className="bg-white dark:bg-[#11141E] text-slate-900 dark:text-slate-100">Post Slack Alert</option>
+              <option value="create_client_portal_user" disabled className="bg-white dark:bg-[#11141E] text-slate-400">Create Client Portal User Profile (Coming Soon)</option>
+              <option value="send_in_app_notification" disabled className="bg-white dark:bg-[#11141E] text-slate-400">Send In-App Notification (Coming Soon)</option>
+              <option value="send_slack_alert" disabled className="bg-white dark:bg-[#11141E] text-slate-400">Post Slack Alert (Coming Soon)</option>
             </select>
           </div>
 

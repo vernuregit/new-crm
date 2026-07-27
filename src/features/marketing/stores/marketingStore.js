@@ -23,6 +23,13 @@ export const useMarketingStore = create((set) => ({
       ],
     })),
 
+  updateCampaign: (campaignId, updatedFields) =>
+    set((state) => ({
+      campaigns: state.campaigns.map((c) =>
+        c.campaignId === campaignId ? { ...c, ...updatedFields } : c
+      ),
+    })),
+
   deleteCampaign: (campaignId) =>
     set((state) => ({
       campaigns: state.campaigns.filter((c) => c.campaignId !== campaignId),
@@ -38,6 +45,13 @@ export const useMarketingStore = create((set) => ({
         },
         ...state.contentItems,
       ],
+    })),
+
+  updateContentItem: (contentId, updatedFields) =>
+    set((state) => ({
+      contentItems: state.contentItems.map((i) =>
+        i.contentId === contentId ? { ...i, ...updatedFields } : i
+      ),
     })),
 
   deleteContentItem: (contentId) =>

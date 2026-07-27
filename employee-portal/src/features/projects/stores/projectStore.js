@@ -1,4 +1,5 @@
 import { create } from 'zustand'
+import { persist } from 'zustand/middleware'
 import {
   getProjectsFromDb,
   getTasksFromDb,
@@ -7,6 +8,7 @@ import {
   createProjectInDb,
   createTaskInDb,
   updateTaskStatusInDb,
+  updateTaskSubtasksInDb,
   logHoursToTaskInDb,
   deleteTaskFromDb,
   DEFAULT_TASK_STATUSES,
@@ -40,6 +42,24 @@ const DEMO_PROJECTS = [
 const DEMO_TASKS = [
   {
     taskId: 'task_101',
+    title: 'Daily Engineering & Architecture Sprint',
+    description: 'Complete core engineering deliverables, architecture syncs, and client handoffs',
+    projectId: 'proj_201',
+    projectName: 'SaaS Platform Redesign',
+    priority: 'high',
+    status: 'in_progress',
+    loggedHours: 12,
+    estimatedHours: 14,
+    dueDate: '2024-07-28',
+    subtasks: [
+      { id: 'sub_1', title: 'Daily Engineering Standup', isCompleted: true },
+      { id: 'sub_2', title: 'AWS Cloud Architecture Sync', isCompleted: true },
+      { id: 'sub_3', title: 'Sprint Review & Code Walkthrough', isCompleted: false },
+      { id: 'sub_4', title: 'Client Deliverable Handoff', isCompleted: false },
+    ],
+  },
+  {
+    taskId: 'task_102',
     title: 'Implement Dark Mode Theme Toggle',
     description: 'Ensure dark class applies to html root and persists to localStorage',
     projectId: 'proj_201',
@@ -49,9 +69,14 @@ const DEMO_TASKS = [
     loggedHours: 12,
     estimatedHours: 14,
     dueDate: '2024-07-28',
+    subtasks: [
+      { id: 'sub_101', title: 'Setup CSS Variables & Color Tokens', isCompleted: true },
+      { id: 'sub_102', title: 'Create Theme Switcher Component', isCompleted: true },
+      { id: 'sub_103', title: 'Test Across Browsers & LocalStorage', isCompleted: true },
+    ],
   },
   {
-    taskId: 'task_102',
+    taskId: 'task_103',
     title: 'Design Component Design System',
     description: 'Create reusable Card, Badge, Button, and Modal components',
     projectId: 'proj_201',
@@ -61,9 +86,14 @@ const DEMO_TASKS = [
     loggedHours: 24,
     estimatedHours: 30,
     dueDate: '2024-08-05',
+    subtasks: [
+      { id: 'sub_201', title: 'Figma UI Wireframe Sync', isCompleted: true },
+      { id: 'sub_202', title: 'Build Atomic UI Components in React', isCompleted: false },
+      { id: 'sub_203', title: 'Team Accessibility & Theme Review', isCompleted: false },
+    ],
   },
   {
-    taskId: 'task_103',
+    taskId: 'task_104',
     title: 'Audit API Rate Limits & Auth Tokens',
     description: 'Check Bearer token expiration and token refresh flow',
     projectId: 'proj_202',
@@ -73,167 +103,295 @@ const DEMO_TASKS = [
     loggedHours: 4,
     estimatedHours: 10,
     dueDate: '2024-08-10',
+    subtasks: [
+      { id: 'sub_301', title: 'Review Token Refresh Security SOP', isCompleted: false },
+      { id: 'sub_302', title: 'Benchmark API Middleware Rate Limiter', isCompleted: false },
+    ],
   },
 ]
 
-export const useProjectStore = create((set, get) => ({
-  projects: DEMO_PROJECTS,
-  tasks: DEMO_TASKS,
-  statuses: DEFAULT_TASK_STATUSES,
-  loading: false,
-  selectedProjectId: null,
-  taskFilterStatus: 'all',
+export const useProjectStore = create(
+  persist(
+    (set, get) => ({
+      projects: DEMO_PROJECTS,
+      tasks: DEMO_TASKS,
+      statuses: DEFAULT_TASK_STATUSES,
+      loading: false,
+      selectedProjectId: null,
+      taskFilterStatus: 'all',
 
-  setProjects: (projects) => set({ projects }),
-  setTasks: (tasks) => set({ tasks }),
-  setStatuses: (statuses) => set({ statuses }),
-  setSelectedProjectId: (selectedProjectId) => set({ selectedProjectId }),
-  setTaskFilterStatus: (taskFilterStatus) => set({ taskFilterStatus }),
+      setProjects: (projects) => set({ projects }),
+      setTasks: (tasks) => set({ tasks }),
+      setStatuses: (statuses) => set({ statuses }),
+      setSelectedProjectId: (selectedProjectId) => set({ selectedProjectId }),
+      setTaskFilterStatus: (taskFilterStatus) => set({ taskFilterStatus }),
 
-  fetchProjectsAndTasks: async () => {
-    set({ loading: true })
-    try {
-      const [projectsData, tasksData, statusesData] = await Promise.all([
-        getProjectsFromDb(),
-        getTasksFromDb(),
-        getTaskStatusesFromDb(),
-      ])
-      set({
-        projects: projectsData && projectsData.length > 0 ? projectsData : DEMO_PROJECTS,
-        tasks: tasksData && tasksData.length > 0 ? tasksData : DEMO_TASKS,
-        statuses: statusesData && statusesData.length > 0 ? statusesData : DEFAULT_TASK_STATUSES,
-        loading: false,
-      })
-    } catch (err) {
-      console.error('Error fetching project store data from Firestore:', err)
-      set({ loading: false })
-    }
-  },
+      fetchProjectsAndTasks: async () => {
+        set({ loading: true })
+        try {
+          const [projectsData, tasksData, statusesData] = await Promise.all([
+            getProjectsFromDb(),
+            getTasksFromDb(),
+            getTaskStatusesFromDb(),
+          ])
 
-  addCustomStatus: async (statusObj) => {
-    const id = statusObj.id || statusObj.name.toLowerCase().replace(/[^a-z0-9]/g, '_')
-    const payload = {
-      id,
-      name: statusObj.name,
-      color: statusObj.color || 'purple',
-    }
+          const currentTasks = get().tasks || DEMO_TASKS
 
-    set((state) => {
-      if (state.statuses.some((s) => s.id === id)) return state
-      return { statuses: [...state.statuses, payload] }
-    })
-
-    await createTaskStatusInDb(payload)
-  },
-
-  addProject: async (newProj) => {
-    const payload = {
-      projectId: `proj_${Date.now()}`,
-      status: 'active',
-      type: 'client',
-      completionPercent: 0,
-      totalTaskCount: 0,
-      completedTaskCount: 0,
-      totalHoursLogged: 0,
-      createdAt: new Date().toISOString(),
-      ...newProj,
-    }
-
-    set((state) => ({
-      projects: [payload, ...state.projects],
-    }))
-
-    await createProjectInDb(payload)
-  },
-
-  addTask: async (newTask) => {
-    const taskId = `task_${Date.now()}`
-    const payload = {
-      taskId,
-      status: 'todo',
-      priority: 'medium',
-      loggedHours: 0,
-      ...newTask,
-    }
-
-    set((state) => {
-      const updatedTasks = [payload, ...state.tasks]
-
-      // Recalculate parent project task counts
-      const projTasks = updatedTasks.filter((t) => t.projectId === newTask.projectId)
-      const completedCount = projTasks.filter((t) => t.status === 'done').length
-      const totalCount = projTasks.length
-      const completionPercent = totalCount > 0 ? Math.round((completedCount / totalCount) * 100) : 0
-
-      const updatedProjects = state.projects.map((p) =>
-        p.projectId === newTask.projectId
-          ? {
-              ...p,
-              totalTaskCount: totalCount,
-              completedTaskCount: completedCount,
-              completionPercent,
+          // Merge fetched tasks with existing local tasks so subtasks/status edits aren't wiped
+          const mergedTasks = (tasksData && tasksData.length > 0 ? tasksData : currentTasks).map((dbTask) => {
+            const localMatch = currentTasks.find((ct) => ct.taskId === dbTask.taskId)
+            return {
+              ...dbTask,
+              subtasks: dbTask.subtasks || localMatch?.subtasks || [],
+              status: dbTask.status || localMatch?.status || 'todo',
             }
-          : p
-      )
+          })
 
-      return { tasks: updatedTasks, projects: updatedProjects }
-    })
+          set({
+            projects: projectsData && projectsData.length > 0 ? projectsData : get().projects || DEMO_PROJECTS,
+            tasks: mergedTasks.length > 0 ? mergedTasks : currentTasks,
+            statuses: statusesData && statusesData.length > 0 ? statusesData : DEFAULT_TASK_STATUSES,
+            loading: false,
+          })
+        } catch (err) {
+          console.error('Error fetching project store data from Firestore:', err)
+          set({ loading: false })
+        }
+      },
 
-    await createTaskInDb(payload)
-  },
+      addCustomStatus: async (statusObj) => {
+        const id = statusObj.id || statusObj.name.toLowerCase().replace(/[^a-z0-9]/g, '_')
+        const payload = {
+          id,
+          name: statusObj.name,
+          color: statusObj.color || 'purple',
+        }
 
-  updateTaskStatus: async (taskId, newStatus) => {
-    set((state) => {
-      const updatedTasks = state.tasks.map((t) =>
-        t.taskId === taskId ? { ...t, status: newStatus } : t
-      )
+        set((state) => {
+          if (state.statuses.some((s) => s.id === id)) return state
+          return { statuses: [...state.statuses, payload] }
+        })
 
-      const targetTask = state.tasks.find((t) => t.taskId === taskId)
-      if (!targetTask) return { tasks: updatedTasks }
+        await createTaskStatusInDb(payload)
+      },
 
-      // Recalculate parent project
-      const projTasks = updatedTasks.filter((t) => t.projectId === targetTask.projectId)
-      const completedCount = projTasks.filter((t) => t.status === 'done').length
-      const totalCount = projTasks.length
-      const completionPercent = totalCount > 0 ? Math.round((completedCount / totalCount) * 100) : 0
+      addProject: async (newProj) => {
+        const payload = {
+          projectId: `proj_${Date.now()}`,
+          status: 'active',
+          type: 'client',
+          completionPercent: 0,
+          totalTaskCount: 0,
+          completedTaskCount: 0,
+          totalHoursLogged: 0,
+          createdAt: new Date().toISOString(),
+          ...newProj,
+        }
 
-      const updatedProjects = state.projects.map((p) =>
-        p.projectId === targetTask.projectId
-          ? {
-              ...p,
-              completedTaskCount: completedCount,
-              completionPercent,
+        set((state) => ({
+          projects: [payload, ...state.projects],
+        }))
+
+        await createProjectInDb(payload)
+      },
+
+      addTask: async (newTask) => {
+        const taskId = `task_${Date.now()}`
+        const payload = {
+          taskId,
+          status: 'todo',
+          priority: 'medium',
+          loggedHours: 0,
+          subtasks: newTask.subtasks || [],
+          ...newTask,
+        }
+
+        set((state) => {
+          const updatedTasks = [payload, ...state.tasks]
+
+          const projTasks = updatedTasks.filter((t) => t.projectId === newTask.projectId)
+          const completedCount = projTasks.filter((t) => t.status === 'done').length
+          const totalCount = projTasks.length
+          const completionPercent = totalCount > 0 ? Math.round((completedCount / totalCount) * 100) : 0
+
+          const updatedProjects = state.projects.map((p) =>
+            p.projectId === newTask.projectId
+              ? {
+                  ...p,
+                  totalTaskCount: totalCount,
+                  completedTaskCount: completedCount,
+                  completionPercent,
+                }
+              : p
+          )
+
+          return { tasks: updatedTasks, projects: updatedProjects }
+        })
+
+        await createTaskInDb(payload)
+      },
+
+      updateTaskStatus: async (taskId, newStatus) => {
+        let targetSubtasks = []
+        set((state) => {
+          const updatedTasks = state.tasks.map((t) => {
+            if (t.taskId !== taskId) return t
+            targetSubtasks = t.subtasks || []
+            return { ...t, status: newStatus }
+          })
+
+          const targetTask = state.tasks.find((t) => t.taskId === taskId)
+          if (!targetTask) return { tasks: updatedTasks }
+
+          const projTasks = updatedTasks.filter((t) => t.projectId === targetTask.projectId)
+          const completedCount = projTasks.filter((t) => t.status === 'done').length
+          const totalCount = projTasks.length
+          const completionPercent = totalCount > 0 ? Math.round((completedCount / totalCount) * 100) : 0
+
+          const updatedProjects = state.projects.map((p) =>
+            p.projectId === targetTask.projectId
+              ? {
+                  ...p,
+                  completedTaskCount: completedCount,
+                  completionPercent,
+                }
+              : p
+          )
+
+          return { tasks: updatedTasks, projects: updatedProjects }
+        })
+
+        await updateTaskStatusInDb(taskId, newStatus)
+        await updateTaskSubtasksInDb(taskId, targetSubtasks, newStatus)
+      },
+
+      logHoursToTask: async (taskId, hours) => {
+        const state = get()
+        const targetTask = state.tasks.find((t) => t.taskId === taskId)
+        const currentHours = targetTask ? Number(targetTask.loggedHours) || 0 : 0
+
+        set((state) => ({
+          tasks: state.tasks.map((t) =>
+            t.taskId === taskId
+              ? { ...t, loggedHours: (Number(t.loggedHours) || 0) + Number(hours) }
+              : t
+          ),
+        }))
+
+        await logHoursToTaskInDb(taskId, hours, currentHours)
+      },
+
+      deleteTask: async (taskId) => {
+        set((state) => ({
+          tasks: state.tasks.filter((t) => t.taskId !== taskId),
+        }))
+
+        await deleteTaskFromDb(taskId)
+      },
+
+      // Subtask Store Actions with Firestore Persistence
+      addSubtask: async (taskId, newSubtask) => {
+        let updatedSubtasks = []
+        let currentTaskStatus = 'todo'
+
+        set((state) => ({
+          tasks: state.tasks.map((t) => {
+            if (t.taskId !== taskId) return t
+            const existingSubtasks = t.subtasks || []
+            const createdSubtask = {
+              id: `sub_${Date.now()}_${Math.random().toString(36).substr(2, 4)}`,
+              title: newSubtask.title,
+              isCompleted: false,
             }
-          : p
-      )
+            updatedSubtasks = [...existingSubtasks, createdSubtask]
+            currentTaskStatus = t.status
+            return {
+              ...t,
+              subtasks: updatedSubtasks,
+            }
+          }),
+        }))
 
-      return { tasks: updatedTasks, projects: updatedProjects }
-    })
+        await updateTaskSubtasksInDb(taskId, updatedSubtasks, currentTaskStatus)
+      },
 
-    await updateTaskStatusInDb(taskId, newStatus)
-  },
+      toggleSubtask: async (taskId, subtaskId) => {
+        let updatedSubtasks = []
+        let nextStatus = 'todo'
 
-  logHoursToTask: async (taskId, hours) => {
-    const state = get()
-    const targetTask = state.tasks.find((t) => t.taskId === taskId)
-    const currentHours = targetTask ? Number(targetTask.loggedHours) || 0 : 0
+        set((state) => ({
+          tasks: state.tasks.map((t) => {
+            if (t.taskId !== taskId) return t
+            updatedSubtasks = (t.subtasks || []).map((st) =>
+              st.id === subtaskId ? { ...st, isCompleted: !st.isCompleted } : st
+            )
 
-    set((state) => ({
-      tasks: state.tasks.map((t) =>
-        t.taskId === taskId
-          ? { ...t, loggedHours: (Number(t.loggedHours) || 0) + Number(hours) }
-          : t
-      ),
-    }))
+            // Check if all subtasks completed
+            const allDone = updatedSubtasks.length > 0 && updatedSubtasks.every((st) => st.isCompleted)
+            nextStatus = allDone ? 'done' : t.status === 'done' ? 'in_progress' : t.status
 
-    await logHoursToTaskInDb(taskId, hours, currentHours)
-  },
+            return {
+              ...t,
+              subtasks: updatedSubtasks,
+              status: nextStatus,
+            }
+          }),
+        }))
 
-  deleteTask: async (taskId) => {
-    set((state) => ({
-      tasks: state.tasks.filter((t) => t.taskId !== taskId),
-    }))
+        await updateTaskSubtasksInDb(taskId, updatedSubtasks, nextStatus)
+        await updateTaskStatusInDb(taskId, nextStatus)
+      },
 
-    await deleteTaskFromDb(taskId)
-  },
-}))
+      deleteSubtask: async (taskId, subtaskId) => {
+        let updatedSubtasks = []
+        let currentTaskStatus = 'todo'
+
+        set((state) => ({
+          tasks: state.tasks.map((t) => {
+            if (t.taskId !== taskId) return t
+            updatedSubtasks = (t.subtasks || []).filter((st) => st.id !== subtaskId)
+            currentTaskStatus = t.status
+            return {
+              ...t,
+              subtasks: updatedSubtasks,
+            }
+          }),
+        }))
+
+        await updateTaskSubtasksInDb(taskId, updatedSubtasks, currentTaskStatus)
+      },
+
+      autoDecomposeTask: async (taskId) => {
+        let generatedSubtasks = []
+        let currentTaskStatus = 'todo'
+
+        set((state) => ({
+          tasks: state.tasks.map((t) => {
+            if (t.taskId !== taskId) return t
+            generatedSubtasks = [
+              { id: `sub_auto_1_${Date.now()}`, title: `Kickoff & Scope Alignment: ${t.title}`, isCompleted: false },
+              { id: `sub_auto_2_${Date.now()}`, title: `Technical Core Implementation`, isCompleted: false },
+              { id: `sub_auto_3_${Date.now()}`, title: `Peer Review & Integration Test`, isCompleted: false },
+              { id: `sub_auto_4_${Date.now()}`, title: `Client Handoff & Documentation`, isCompleted: false },
+            ]
+            currentTaskStatus = t.status
+            return {
+              ...t,
+              subtasks: generatedSubtasks,
+            }
+          }),
+        }))
+
+        await updateTaskSubtasksInDb(taskId, generatedSubtasks, currentTaskStatus)
+      },
+    }),
+    {
+      name: 'crm_employee_project_store',
+      partialize: (state) => ({
+        tasks: state.tasks,
+        projects: state.projects,
+        statuses: state.statuses,
+      }),
+    }
+  )
+)

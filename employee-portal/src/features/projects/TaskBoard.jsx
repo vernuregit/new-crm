@@ -5,6 +5,7 @@ import { Card } from '../../components/ui/Card'
 import { Badge } from '../../components/ui/Badge'
 import { Button } from '../../components/ui/Button'
 import { Input } from '../../components/ui/Input'
+import { SubtaskStepper } from './components/SubtaskStepper'
 import { useProjectStore } from './stores/projectStore'
 import { useTeamStore } from '../team/stores/teamStore'
 import { getEmployees } from '../team/services/teamService'
@@ -13,22 +14,11 @@ import {
   Kanban,
   Clock,
   Plus,
-  CheckCircle2,
-  AlertCircle,
   User,
   X,
   Trash2,
-  Calendar,
   Search,
-  Filter
 } from 'lucide-react'
-
-const TASK_STATUSES = [
-  { id: 'todo', name: 'To Do', color: 'blue' },
-  { id: 'in_progress', name: 'In Progress', color: 'indigo' },
-  { id: 'in_review', name: 'In Review', color: 'amber' },
-  { id: 'done', name: 'Done', color: 'emerald' },
-]
 
 export const TaskBoard = () => {
   const {
@@ -91,6 +81,8 @@ export const TaskBoard = () => {
     return matchesSearch && matchesAssignee
   })
 
+  const liveSelectedTask = selectedTask ? tasks.find((t) => t.taskId === selectedTask.taskId) || selectedTask : null
+
   const handleCreateTask = (e) => {
     e.preventDefault()
     if (!taskTitle.trim()) return
@@ -132,7 +124,6 @@ export const TaskBoard = () => {
 
     logHoursToTask(selectedTask.taskId, Number(hoursToLog))
     setHoursToLog('')
-    setSelectedTask(null)
   }
 
   return (
@@ -141,7 +132,7 @@ export const TaskBoard = () => {
       <div className="space-y-4">
         <PageHeader
           title="Task Sprint Board"
-          description="Track cross-project task assignments, sprint statuses, and logged work hours"
+          description="Track cross-project task assignments, sprint statuses, and subtask execution timelines"
           actions={
             <Button icon={Plus} variant="primary" onClick={() => setShowAddModal(true)}>
               New Task
@@ -264,6 +255,9 @@ export const TaskBoard = () => {
                       </div>
 
                       <p className="text-[11px] text-slate-500 dark:text-slate-400 truncate">{t.projectName}</p>
+
+                      {/* Subtask Mini Stepper Bar on Kanban Card */}
+                      <SubtaskStepper taskId={t.taskId} subtasks={t.subtasks || []} compact={true} />
 
                       <div className="flex items-center justify-between text-xs pt-2 border-t border-slate-200 dark:border-slate-800/60">
                         <span className="flex items-center gap-1 text-[11px] text-slate-500 dark:text-slate-400">
@@ -401,52 +395,55 @@ export const TaskBoard = () => {
         </div>
       )}
 
-      {/* Task Log Hours Modal */}
-      {selectedTask && (
-        <div className="fixed inset-0 z-50 bg-black/70 backdrop-blur-sm flex items-center justify-center p-4">
-          <Card className="w-full max-w-md p-6 space-y-4 border-slate-200 dark:border-slate-800 shadow-2xl relative bg-white dark:bg-[#181C27]">
+      {/* Task Log Hours & Subtask Timeline Detail Modal */}
+      {liveSelectedTask && (
+        <div className="fixed inset-0 z-50 bg-black/70 backdrop-blur-sm flex items-center justify-center p-4 overflow-y-auto">
+          <Card className="w-full max-w-2xl p-6 space-y-6 border-slate-200 dark:border-slate-800 shadow-2xl relative bg-white dark:bg-[#181C27] max-h-[90vh] overflow-y-auto">
             <div className="flex items-center justify-between pb-3 border-b border-slate-200 dark:border-slate-800">
               <div>
-                <h3 className="font-bold text-slate-900 dark:text-slate-100 text-sm">{selectedTask.title}</h3>
-                <p className="text-xs text-indigo-600 dark:text-indigo-400 font-medium">{selectedTask.projectName}</p>
+                <h3 className="font-bold text-slate-900 dark:text-slate-100 text-base">{liveSelectedTask.title}</h3>
+                <p className="text-xs text-indigo-600 dark:text-indigo-400 font-medium">{liveSelectedTask.projectName}</p>
               </div>
               <button
                 onClick={() => setSelectedTask(null)}
                 className="text-slate-400 hover:text-slate-900 dark:hover:text-white p-1 rounded-lg hover:bg-slate-100 dark:hover:bg-slate-800 transition-colors"
               >
-                <X className="w-4 h-4" />
+                <X className="w-5 h-5" />
               </button>
             </div>
 
-            <div className="space-y-2 text-xs text-slate-500 dark:text-slate-400">
-              <div className="flex justify-between py-1 border-b border-slate-200 dark:border-slate-800">
-                <span>Assignee:</span>
-                <span className="text-slate-800 dark:text-slate-200 font-medium">{selectedTask.assigneeName}</span>
+            <div className="grid grid-cols-2 gap-4 text-xs bg-slate-50 dark:bg-slate-900/40 p-3 rounded-2xl border border-slate-200 dark:border-slate-800">
+              <div className="space-y-1">
+                <span className="text-slate-500 dark:text-slate-400 block">Assignee</span>
+                <span className="text-slate-900 dark:text-slate-100 font-bold">{liveSelectedTask.assigneeName}</span>
               </div>
-              <div className="flex justify-between py-1 border-b border-slate-200 dark:border-slate-800">
-                <span>Logged Work:</span>
-                <span className="text-emerald-600 dark:text-emerald-400 font-bold">{selectedTask.loggedHours} / {selectedTask.estimatedHours} hrs</span>
+              <div className="space-y-1">
+                <span className="text-slate-500 dark:text-slate-400 block">Logged / Target Work</span>
+                <span className="text-emerald-600 dark:text-emerald-400 font-bold">{liveSelectedTask.loggedHours} / {liveSelectedTask.estimatedHours} hrs</span>
               </div>
             </div>
 
-            <form onSubmit={handleLogHours} className="space-y-4 pt-2">
+            {/* Interactive Vertical Subtask Timeline */}
+            <SubtaskStepper taskId={liveSelectedTask.taskId} subtasks={liveSelectedTask.subtasks || []} />
+
+            {/* Quick Log Additional Hours */}
+            <form onSubmit={handleLogHours} className="space-y-3 pt-3 border-t border-slate-200 dark:border-slate-800">
               <Input
                 label="Log Additional Hours"
                 type="number"
                 placeholder="e.g. 4"
                 value={hoursToLog}
                 onChange={(e) => setHoursToLog(e.target.value)}
-                required
               />
 
-              <div className="flex gap-3">
+              <div className="flex gap-3 pt-1">
                 <Button
                   type="button"
                   variant="danger"
                   size="sm"
                   icon={Trash2}
                   onClick={() => {
-                    deleteTask(selectedTask.taskId)
+                    deleteTask(liveSelectedTask.taskId)
                     setSelectedTask(null)
                   }}
                 >
