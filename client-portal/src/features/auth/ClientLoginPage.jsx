@@ -1,0 +1,114 @@
+import React, { useState } from 'react'
+import { useNavigate } from 'react-router-dom'
+import { Layers, Mail, Lock, ArrowRight, AlertCircle } from 'lucide-react'
+import { Button } from '../../components/ui/Button'
+import { Input } from '../../components/ui/Input'
+import { Card } from '../../components/ui/Card'
+import { useUserStore } from '../../stores/userStore'
+import { loginWithEmail, signupWithEmail, fetchCustomClaims } from '../../shared/services/authService'
+
+export const ClientLoginPage = () => {
+  const navigate = useNavigate()
+  const { setUser } = useUserStore()
+
+  const [email, setEmail] = useState('')
+  const [password, setPassword] = useState('')
+  const [error, setError] = useState('')
+  const [loading, setLoading] = useState(false)
+
+  const handleRealLogin = async (e) => {
+    e.preventDefault()
+    if (!email || !password) {
+      setError('Please enter both client email and password.')
+      return
+    }
+
+    setLoading(true)
+    setError('')
+
+    try {
+      let firebaseUser
+      try {
+        firebaseUser = await loginWithEmail(email, password)
+      } catch (authErr) {
+        if (authErr.code === 'auth/user-not-found' || authErr.code === 'auth/invalid-credential') {
+          try {
+            firebaseUser = await signupWithEmail(email, password, 'Client Rep')
+          } catch (signupErr) {
+            throw authErr
+          }
+        } else {
+          throw authErr
+        }
+      }
+
+      const claims = await fetchCustomClaims(firebaseUser)
+      setUser(
+        firebaseUser,
+        null,
+        claims || { orgId: 'org_real', role: 'client', tier: 'client', clientId: firebaseUser.uid }
+      )
+      navigate('/portal')
+    } catch (err) {
+      console.error('Firebase Auth error:', err)
+      if (err.code === 'auth/wrong-password') {
+        setError('Incorrect password. Please try again.')
+      } else if (err.code === 'auth/invalid-email') {
+        setError('Invalid email address format.')
+      } else {
+        setError(err.message || 'Authentication failed. Please check credentials.')
+      }
+    } finally {
+      setLoading(false)
+    }
+  }
+
+  return (
+    <div className="min-h-screen bg-[#0F1117] flex items-center justify-center p-4 relative overflow-hidden">
+      <div className="absolute top-1/4 left-1/2 -translate-x-1/2 w-96 h-96 bg-emerald-600/15 blur-[120px] rounded-full pointer-events-none" />
+
+      <Card className="w-full max-w-md p-8 relative z-10 border-emerald-500/30 shadow-2xl space-y-6">
+        <div className="text-center space-y-2">
+          <div className="inline-flex w-12 h-12 rounded-2xl bg-emerald-600/20 text-emerald-400 items-center justify-center border border-emerald-500/30 mb-1">
+            <Layers className="w-6 h-6" />
+          </div>
+          <h2 className="text-2xl font-bold text-slate-100 tracking-tight">Client Portal Sign In</h2>
+          <p className="text-xs text-slate-400">Isolated Deliverables, Invoices & Sign-off Workspace</p>
+        </div>
+
+        {error && (
+          <div className="p-3 rounded-xl bg-rose-500/10 border border-rose-500/20 text-rose-400 text-xs flex items-center gap-2">
+            <AlertCircle className="w-4 h-4 shrink-0" />
+            <span>{error}</span>
+          </div>
+        )}
+
+        <form onSubmit={handleRealLogin} className="space-y-4">
+          <Input
+            label="Client Account Email"
+            type="email"
+            placeholder="client@company.com"
+            icon={Mail}
+            value={email}
+            onChange={(e) => setEmail(e.target.value)}
+            required
+          />
+
+          <Input
+            label="Password"
+            type="password"
+            placeholder="••••••••"
+            icon={Lock}
+            value={password}
+            onChange={(e) => setPassword(e.target.value)}
+            required
+          />
+
+          <Button type="submit" variant="primary" className="w-full mt-2 bg-emerald-600 hover:bg-emerald-500" disabled={loading} icon={ArrowRight}>
+            {loading ? 'Authenticating Client...' : 'Sign In with Firebase'}
+          </Button>
+        </form>
+      </Card>
+    </div>
+  )
+}

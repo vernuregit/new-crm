@@ -1,0 +1,42 @@
+rules_version = '2';
+service cloud.firestore {
+  match /databases/{database}/documents {
+
+    // Helper functions for security and role checks
+    function isAuthenticated() {
+      return request.auth != null;
+    }
+
+    function isOrgMember(orgId) {
+      return isAuthenticated() && (
+        request.auth.token.orgId == orgId ||
+        request.auth.token.tier == 'superadmin' ||
+        request.auth.token.tier == 'company'
+      );
+    }
+
+    function isClient(clientId) {
+      return isAuthenticated() && (
+        request.auth.token.tier == 'client' &&
+        request.auth.token.clientId == clientId
+      );
+    }
+
+    // Default document security: Require authentication
+    match /{document=**} {
+      allow read, write: if isAuthenticated();
+    }
+
+    // Client-specific deliverables and invoices
+    match /deliverables/{deliverableId} {
+      allow read: if isAuthenticated();
+      allow write: if isAuthenticated() && request.auth.token.tier != 'client';
+    }
+
+    match /invoices/{invoiceId} {
+      allow read: if isAuthenticated();
+      allow write: if isAuthenticated() && request.auth.token.tier != 'client';
+    }
+  }
+}
+
