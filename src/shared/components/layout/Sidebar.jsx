@@ -20,7 +20,8 @@ import {
   Download,
   FolderKanban,
   CheckCircle2,
-  Crown
+  Crown,
+  User
 } from 'lucide-react'
 import { useUIStore } from '../../stores/uiStore'
 import { useUserStore } from '../../stores/userStore'
@@ -41,6 +42,7 @@ export const Sidebar = () => {
         { name: 'My Projects', path: '/portal/projects', icon: Briefcase },
         { name: 'Invoices & Receipts', path: '/portal/invoices', icon: FileText },
         { name: 'Deliverables & Files', path: '/portal/files', icon: Download },
+        { name: 'My Profile', path: '/portal/profile', icon: User },
       ]
     }
 
@@ -53,6 +55,7 @@ export const Sidebar = () => {
         { name: 'Team Directory', path: '/team/employees', icon: Users },
         { name: 'Attendance', path: '/team/attendance', icon: CheckCircle2 },
         { name: 'Knowledge Base', path: '/knowledge', icon: BookOpen },
+        { name: 'My Profile', path: '/employee/profile', icon: User },
       ]
     }
 
@@ -69,6 +72,7 @@ export const Sidebar = () => {
       { name: 'Knowledge Base', path: '/knowledge', icon: BookOpen },
       { name: 'Client Portal View', path: '/portal', icon: Layers },
       { name: 'Settings', path: '/settings', icon: Settings },
+      { name: 'My Profile', path: '/settings/profile', icon: User },
     ]
   }
 

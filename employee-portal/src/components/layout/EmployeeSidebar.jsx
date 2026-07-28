@@ -12,7 +12,8 @@ import {
   ChevronLeft,
   ChevronRight,
   LogOut,
-  UserCheck
+  UserCheck,
+  User
 } from 'lucide-react'
 import { useUIStore } from '../../stores/uiStore'
 import { useUserStore } from '../../stores/userStore'
@@ -26,6 +27,7 @@ const NAV_ITEMS = [
   { name: 'Attendance', path: '/attendance', icon: CheckCircle2 },
   { name: 'Leave & PTO', path: '/team/leave', icon: Calendar },
   { name: 'Knowledge Base', path: '/knowledge', icon: BookOpen },
+  { name: 'My Profile', path: '/profile', icon: User },
 ]
 
 export const EmployeeSidebar = () => {

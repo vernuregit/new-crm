@@ -144,16 +144,16 @@ export const DEMO_TASKS = [
 ]
 
 export const useProjectStore = create((set) => ({
-  projects: DEMO_PROJECTS,
-  tasks: DEMO_TASKS,
+  projects: [],
+  tasks: [],
   statuses: DEFAULT_TASK_STATUSES,
   selectedProjectId: null,
   taskFilterStatus: 'all',
 
   setProjects: (projects) =>
-    set({ projects: projects && projects.length > 0 ? projects : DEMO_PROJECTS }),
+    set({ projects: projects || [] }),
   setTasks: (tasks) =>
-    set({ tasks: tasks && tasks.length > 0 ? tasks : DEMO_TASKS }),
+    set({ tasks: tasks || [] }),
   setStatuses: (statuses) => set({ statuses }),
   setSelectedProjectId: (selectedProjectId) => set({ selectedProjectId }),
   setTaskFilterStatus: (taskFilterStatus) => set({ taskFilterStatus }),

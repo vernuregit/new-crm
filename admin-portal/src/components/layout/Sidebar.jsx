@@ -20,14 +20,15 @@ import {
   Download,
   FolderKanban,
   CheckCircle2,
-  Crown
+  Crown,
+  User
 } from 'lucide-react'
 import { useUIStore } from '../../stores/uiStore'
 import { useUserStore } from '../../stores/userStore'
 
 export const Sidebar = () => {
   const { sidebarOpen, toggleSidebar } = useUIStore()
-  const { claims, user } = useUserStore()
+  const { claims, user, userDoc } = useUserStore()
 
   const userRole = claims?.role || 'owner'
   const userTier = claims?.tier || 'company'
@@ -67,7 +68,7 @@ export const Sidebar = () => {
       { name: 'KPIs & Health', path: '/kpi', icon: Activity },
       { name: 'Workflows', path: '/workflows', icon: GitBranch },
       { name: 'Knowledge Base', path: '/knowledge', icon: BookOpen },
-      { name: 'Settings', path: '/settings', icon: Settings },
+      { name: 'My Profile', path: '/settings/profile', icon: User },
     ]
   }
 
@@ -140,11 +141,11 @@ export const Sidebar = () => {
       <div className="p-3 border-t border-slate-200 dark:border-slate-800/80">
         <div className={`flex items-center gap-3 p-2 rounded-xl bg-slate-50 dark:bg-slate-800/40 border border-slate-200 dark:border-slate-800 ${!sidebarOpen && 'justify-center'}`}>
           <div className="w-8 h-8 rounded-lg bg-indigo-100 dark:bg-indigo-500/20 text-indigo-600 dark:text-indigo-400 flex items-center justify-center font-bold text-xs shrink-0">
-            {userRole.charAt(0).toUpperCase()}
+            {(userDoc?.displayName || user?.displayName || userRole).charAt(0).toUpperCase()}
           </div>
           {sidebarOpen && (
             <div className="flex flex-col min-w-0">
-              <span className="text-xs font-semibold text-slate-800 dark:text-slate-200 truncate">{user?.displayName || 'Acme Executive'}</span>
+              <span className="text-xs font-semibold text-slate-800 dark:text-slate-200 truncate">{userDoc?.displayName || user?.displayName || 'Acme Executive'}</span>
               <span className={`text-[10px] font-bold px-1.5 py-0.5 rounded-md border mt-0.5 ${roleMeta.color} truncate`}>
                 {roleMeta.label}
               </span>

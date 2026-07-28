@@ -3,23 +3,11 @@ import { NavLink } from 'react-router-dom'
 import { PageHeader } from '../../components/layout/PageHeader'
 import { Card } from '../../components/ui/Card'
 import { Badge } from '../../components/ui/Badge'
-import { Button } from '../../components/ui/Button'
 import { useTeamStore } from './stores/teamStore'
-import { recordAttendanceInDb } from './services/teamService'
-import { Users, CheckCircle2, Calendar, Clock, LogIn, LogOut } from 'lucide-react'
+import { Users, CheckCircle2, Calendar } from 'lucide-react'
 
 export const AttendancePage = () => {
-  const { employees, clockedIn, clockInTime, toggleClockIn } = useTeamStore()
-
-  const handleClockAction = async () => {
-    toggleClockIn()
-    await recordAttendanceInDb({
-      userEmail: 'user@company.com',
-      action: clockedIn ? 'clock_out' : 'clock_in',
-      date: new Date().toISOString().split('T')[0],
-      time: new Date().toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' }),
-    })
-  }
+  const { employees } = useTeamStore()
 
   return (
     <div className="space-y-6">
@@ -28,15 +16,6 @@ export const AttendancePage = () => {
         <PageHeader
           title="Attendance & Daily Presence Tracker"
           description="Real-time employee clock-in/out tracking, shift logs, and presence status"
-          actions={
-            <Button
-              icon={clockedIn ? LogOut : LogIn}
-              variant={clockedIn ? 'danger' : 'primary'}
-              onClick={handleClockAction}
-            >
-              {clockedIn ? `Clock Out (${clockInTime})` : 'Clock In Now'}
-            </Button>
-          }
         />
 
         <div className="flex items-center gap-2 border-b border-slate-800 pb-3">

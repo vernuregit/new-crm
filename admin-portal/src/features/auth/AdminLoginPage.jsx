@@ -74,34 +74,34 @@ export const AdminLoginPage = () => {
   }
 
   return (
-    <div className="min-h-screen bg-[#0F1117] flex items-center justify-center p-4 relative overflow-hidden">
-      <div className="absolute top-1/4 left-1/2 -translate-x-1/2 w-96 h-96 bg-indigo-600/15 blur-[120px] rounded-full pointer-events-none" />
+    <div className="min-h-screen bg-slate-50 dark:bg-[#0F1117] flex items-center justify-center p-4 relative overflow-hidden text-slate-900 dark:text-slate-100 transition-colors duration-200">
+      <div className="absolute top-1/4 left-1/2 -translate-x-1/2 w-96 h-96 bg-indigo-500/10 dark:bg-indigo-600/15 blur-[120px] rounded-full pointer-events-none" />
 
-      <Card className="w-full max-w-md p-8 relative z-10 border-indigo-500/30 shadow-2xl space-y-6">
+      <Card className="w-full max-w-md p-8 relative z-10 border-indigo-200/80 dark:border-indigo-500/30 shadow-xl dark:shadow-2xl space-y-6">
         <div className="text-center space-y-2">
-          <div className="inline-flex w-12 h-12 rounded-2xl bg-indigo-600/20 text-indigo-400 items-center justify-center border border-indigo-500/30 mb-1">
+          <div className="inline-flex w-12 h-12 rounded-2xl bg-indigo-50 dark:bg-indigo-600/20 text-indigo-600 dark:text-indigo-400 items-center justify-center border border-indigo-200 dark:border-indigo-500/30 mb-1">
             <Crown className="w-6 h-6" />
           </div>
-          <h2 className="text-2xl font-bold text-slate-100 tracking-tight">
+          <h2 className="text-2xl font-bold text-slate-900 dark:text-slate-100 tracking-tight">
             {isRegisterMode ? 'Register New Admin Account' : 'Founder & Admin Login'}
           </h2>
-          <p className="text-xs text-slate-400">
+          <p className="text-xs text-slate-500 dark:text-slate-400">
             {isRegisterMode ? 'Create executive account in Firebase' : 'Executive Workspace & Operations Management'}
           </p>
         </div>
 
         {/* Mode Toggle Tabs */}
-        <div className="grid grid-cols-2 p-1 bg-slate-900/80 rounded-xl border border-slate-800 text-xs">
+        <div className="grid grid-cols-2 p-1 bg-slate-100 dark:bg-slate-900/80 rounded-xl border border-slate-200 dark:border-slate-800 text-xs">
           <button
             type="button"
-            className={`py-2 rounded-lg font-medium transition-colors ${!isRegisterMode ? 'bg-indigo-600 text-white shadow-sm' : 'text-slate-400 hover:text-slate-200'}`}
+            className={`py-2 rounded-lg font-medium transition-colors ${!isRegisterMode ? 'bg-indigo-600 text-white shadow-sm' : 'text-slate-600 dark:text-slate-400 hover:text-slate-900 dark:hover:text-slate-200'}`}
             onClick={() => { setIsRegisterMode(false); setError(''); }}
           >
             Sign In
           </button>
           <button
             type="button"
-            className={`py-2 rounded-lg font-medium transition-colors ${isRegisterMode ? 'bg-indigo-600 text-white shadow-sm' : 'text-slate-400 hover:text-slate-200'}`}
+            className={`py-2 rounded-lg font-medium transition-colors ${isRegisterMode ? 'bg-indigo-600 text-white shadow-sm' : 'text-slate-600 dark:text-slate-400 hover:text-slate-900 dark:hover:text-slate-200'}`}
             onClick={() => { setIsRegisterMode(true); setError(''); }}
           >
             Register Account
@@ -109,7 +109,7 @@ export const AdminLoginPage = () => {
         </div>
 
         {error && (
-          <div className="p-3 rounded-xl bg-rose-500/10 border border-rose-500/20 text-rose-400 text-xs flex items-center gap-2">
+          <div className="p-3 rounded-xl bg-rose-50 dark:bg-rose-500/10 border border-rose-200 dark:border-rose-500/20 text-rose-600 dark:text-rose-400 text-xs flex items-center gap-2">
             <AlertCircle className="w-4 h-4 shrink-0" />
             <span>{error}</span>
           </div>
@@ -138,7 +138,7 @@ export const AdminLoginPage = () => {
           />
 
           <Input
-            label="Password (min 6 chars)"
+            label="Password"
             type="password"
             placeholder="••••••••"
             icon={Lock}
@@ -156,7 +156,7 @@ export const AdminLoginPage = () => {
           >
             {loading
               ? isRegisterMode ? 'Creating Account in Firebase...' : 'Authenticating...'
-              : isRegisterMode ? 'Register Admin Account' : 'Sign In with Firebase'}
+              : isRegisterMode ? 'Register Admin Account' : 'Sign In'}
           </Button>
         </form>
       </Card>

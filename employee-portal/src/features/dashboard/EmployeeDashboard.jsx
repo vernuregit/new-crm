@@ -112,8 +112,6 @@ export const EmployeeDashboard = () => {
               <p className="text-slate-500 dark:text-slate-400 text-sm mt-0.5">{today}</p>
             </div>
           </div>
-          
-         
         </div>
       </div>
 

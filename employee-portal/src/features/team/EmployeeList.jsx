@@ -72,9 +72,9 @@ export const EmployeeList = () => {
   const avgUtilization =
     employees.length > 0
       ? Math.round(
-          employees.reduce((sum, e) => sum + (e.utilizationRate || 0), 0) /
-            employees.length
-        )
+        employees.reduce((sum, e) => sum + (e.utilizationRate || 0), 0) /
+        employees.length
+      )
       : 0
 
   const handleInviteMember = async (e) => {
@@ -90,7 +90,7 @@ export const EmployeeList = () => {
       email,
       roleName: roleName || 'Software Specialist',
       departmentName,
-      phoneNumber: phone || '+1 (555) 000-0000',
+      phoneNumber: phone || ' ',
       skills: parsedSkills,
       status: 'active',
       joinedAt: new Date().toISOString().split('T')[0],
@@ -141,10 +141,9 @@ export const EmployeeList = () => {
             <NavLink
               to="/directory"
               className={({ isActive }) =>
-                `flex items-center gap-2 px-3 py-1.5 rounded-xl text-xs font-semibold transition-colors ${
-                  isActive
-                    ? 'bg-indigo-50 dark:bg-indigo-600/20 text-indigo-600 dark:text-indigo-400 border border-indigo-200 dark:border-indigo-500/30'
-                    : 'text-slate-600 dark:text-slate-400 hover:text-slate-900 dark:hover:text-slate-200 hover:bg-slate-100 dark:hover:bg-slate-800'
+                `flex items-center gap-2 px-3 py-1.5 rounded-xl text-xs font-semibold transition-colors ${isActive
+                  ? 'bg-indigo-50 dark:bg-indigo-600/20 text-indigo-600 dark:text-indigo-400 border border-indigo-200 dark:border-indigo-500/30'
+                  : 'text-slate-600 dark:text-slate-400 hover:text-slate-900 dark:hover:text-slate-200 hover:bg-slate-100 dark:hover:bg-slate-800'
                 }`
               }
             >
@@ -153,10 +152,9 @@ export const EmployeeList = () => {
             <NavLink
               to="/attendance"
               className={({ isActive }) =>
-                `flex items-center gap-2 px-3 py-1.5 rounded-xl text-xs font-semibold transition-colors ${
-                  isActive
-                    ? 'bg-indigo-50 dark:bg-indigo-600/20 text-indigo-600 dark:text-indigo-400 border border-indigo-200 dark:border-indigo-500/30'
-                    : 'text-slate-600 dark:text-slate-400 hover:text-slate-900 dark:hover:text-slate-200 hover:bg-slate-100 dark:hover:bg-slate-800'
+                `flex items-center gap-2 px-3 py-1.5 rounded-xl text-xs font-semibold transition-colors ${isActive
+                  ? 'bg-indigo-50 dark:bg-indigo-600/20 text-indigo-600 dark:text-indigo-400 border border-indigo-200 dark:border-indigo-500/30'
+                  : 'text-slate-600 dark:text-slate-400 hover:text-slate-900 dark:hover:text-slate-200 hover:bg-slate-100 dark:hover:bg-slate-800'
                 }`
               }
             >
@@ -165,10 +163,9 @@ export const EmployeeList = () => {
             <NavLink
               to="/team/leave"
               className={({ isActive }) =>
-                `flex items-center gap-2 px-3 py-1.5 rounded-xl text-xs font-semibold transition-colors ${
-                  isActive
-                    ? 'bg-indigo-50 dark:bg-indigo-600/20 text-indigo-600 dark:text-indigo-400 border border-indigo-200 dark:border-indigo-500/30'
-                    : 'text-slate-600 dark:text-slate-400 hover:text-slate-900 dark:hover:text-slate-200 hover:bg-slate-100 dark:hover:bg-slate-800'
+                `flex items-center gap-2 px-3 py-1.5 rounded-xl text-xs font-semibold transition-colors ${isActive
+                  ? 'bg-indigo-50 dark:bg-indigo-600/20 text-indigo-600 dark:text-indigo-400 border border-indigo-200 dark:border-indigo-500/30'
+                  : 'text-slate-600 dark:text-slate-400 hover:text-slate-900 dark:hover:text-slate-200 hover:bg-slate-100 dark:hover:bg-slate-800'
                 }`
               }
             >
@@ -205,44 +202,7 @@ export const EmployeeList = () => {
       </div>
 
       {/* Summary Metrics */}
-      <div className="grid grid-cols-1 sm:grid-cols-3 gap-4">
-        <Card className="p-4 flex items-center justify-between border-slate-200 dark:border-slate-800/80">
-          <div>
-            <span className="text-[11px] font-medium text-slate-500 dark:text-slate-400 uppercase tracking-wider">
-              Total Headcount
-            </span>
-            <p className="text-xl font-bold text-slate-900 dark:text-slate-100 mt-1">{totalHeadcount} Members</p>
-          </div>
-          <div className="w-9 h-9 rounded-xl bg-indigo-50 dark:bg-indigo-500/10 text-indigo-600 dark:text-indigo-400 flex items-center justify-center">
-            <Users className="w-5 h-5" />
-          </div>
-        </Card>
-
-        <Card className="p-4 flex items-center justify-between border-slate-200 dark:border-slate-800/80">
-          <div>
-            <span className="text-[11px] font-medium text-slate-500 dark:text-slate-400 uppercase tracking-wider">
-              Active Presence
-            </span>
-            <p className="text-xl font-bold text-emerald-600 dark:text-emerald-400 mt-1">{activeCount} / {totalHeadcount}</p>
-          </div>
-          <div className="w-9 h-9 rounded-xl bg-emerald-50 dark:bg-emerald-500/10 text-emerald-600 dark:text-emerald-400 flex items-center justify-center">
-            <CheckCircle2 className="w-5 h-5" />
-          </div>
-        </Card>
-
-        <Card className="p-4 flex items-center justify-between border-slate-200 dark:border-slate-800/80">
-          <div>
-            <span className="text-[11px] font-medium text-slate-500 dark:text-slate-400 uppercase tracking-wider">
-              Avg Utilization Rate
-            </span>
-            <p className="text-xl font-bold text-purple-600 dark:text-purple-400 mt-1">{avgUtilization}%</p>
-          </div>
-          <div className="w-9 h-9 rounded-xl bg-purple-50 dark:bg-purple-500/10 text-purple-600 dark:text-purple-400 flex items-center justify-center">
-            <TrendingUp className="w-5 h-5" />
-          </div>
-        </Card>
-      </div>
-
+      
       {/* Employee Cards Grid */}
       <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-5">
         {filtered.map((emp) => (

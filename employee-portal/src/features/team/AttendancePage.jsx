@@ -5,11 +5,15 @@ import { Card } from '../../components/ui/Card'
 import { Badge } from '../../components/ui/Badge'
 import { Button } from '../../components/ui/Button'
 import { useTeamStore } from './stores/teamStore'
+import { useUserStore } from '../../stores/userStore'
 import { getEmployees, recordAttendanceInDb } from './services/teamService'
-import { Users, CheckCircle2, Calendar, Clock, LogIn, LogOut, ShieldCheck, UserCheck } from 'lucide-react'
+import { Users, CheckCircle2, Calendar, Clock, LogIn, LogOut } from 'lucide-react'
 
 export const AttendancePage = () => {
   const { employees, setEmployees, clockedIn, clockInTime, toggleClockIn } = useTeamStore()
+  const { user } = useUserStore()
+
+  const loggedInName = user?.displayName || user?.email || ''
 
   useEffect(() => {
     if (employees.length === 0) {
@@ -28,8 +32,10 @@ export const AttendancePage = () => {
     })
   }
 
-  const activePresent = employees.filter((e) => e.status === 'active').length
-  const onLeaveCount = employees.filter((e) => e.status !== 'active').length
+  // Only show the currently logged-in employee's record
+  const myRecord = employees.find(
+    (e) => e.displayName === loggedInName || e.uid === user?.uid
+  )
 
   return (
     <div className="space-y-6">
@@ -37,7 +43,7 @@ export const AttendancePage = () => {
       <div className="space-y-4">
         <PageHeader
           title="Attendance & Daily Presence Tracker"
-          description="Real-time employee clock-in/out tracking, shift logs, and presence status"
+          description="Your clock-in/out status, shift log, and daily presence"
           actions={
             <Button
               icon={clockedIn ? LogOut : LogIn}
@@ -97,10 +103,13 @@ export const AttendancePage = () => {
           </div>
           <div>
             <h3 className="font-bold text-slate-900 dark:text-slate-100 text-sm">
-              Your Current Status: <span className={clockedIn ? 'text-emerald-600 dark:text-emerald-400' : 'text-amber-600 dark:text-amber-400'}>{clockedIn ? `Clocked In since ${clockInTime}` : 'Clocked Out'}</span>
+              Your Current Status:{' '}
+              <span className={clockedIn ? 'text-emerald-600 dark:text-emerald-400' : 'text-amber-600 dark:text-amber-400'}>
+                {clockedIn ? `Clocked In since ${clockInTime}` : 'Clocked Out'}
+              </span>
             </h3>
             <p className="text-xs text-slate-500 dark:text-slate-400 mt-0.5">
-              Shift duration automatically calculated and synced with staff attendance records.
+              Shift duration automatically calculated and synced with your attendance records.
             </p>
           </div>
         </div>
@@ -111,28 +120,18 @@ export const AttendancePage = () => {
         </div>
       </Card>
 
-      {/* Summary Metrics */}
+      {/* Personal Summary Metrics */}
       <div className="grid grid-cols-1 sm:grid-cols-3 gap-4">
         <Card className="p-4 flex items-center justify-between border-slate-200 dark:border-slate-800/80">
           <div>
             <span className="text-[11px] font-medium text-slate-500 dark:text-slate-400 uppercase tracking-wider">
-              Total Staff Registered
+              Today's Status
             </span>
-            <p className="text-xl font-bold text-slate-900 dark:text-slate-100 mt-1">{employees.length} Employees</p>
+            <p className={`text-xl font-bold mt-1 ${clockedIn ? 'text-emerald-600 dark:text-emerald-400' : 'text-amber-600 dark:text-amber-400'}`}>
+              {clockedIn ? 'Present' : 'Not Checked In'}
+            </p>
           </div>
-          <div className="w-9 h-9 rounded-xl bg-indigo-50 dark:bg-indigo-500/10 text-indigo-600 dark:text-indigo-400 flex items-center justify-center">
-            <Users className="w-5 h-5" />
-          </div>
-        </Card>
-
-        <Card className="p-4 flex items-center justify-between border-slate-200 dark:border-slate-800/80">
-          <div>
-            <span className="text-[11px] font-medium text-slate-500 dark:text-slate-400 uppercase tracking-wider">
-              Currently Present
-            </span>
-            <p className="text-xl font-bold text-emerald-600 dark:text-emerald-400 mt-1">{activePresent} Members</p>
-          </div>
-          <div className="w-9 h-9 rounded-xl bg-emerald-50 dark:bg-emerald-500/10 text-emerald-600 dark:text-emerald-400 flex items-center justify-center">
+          <div className={`w-9 h-9 rounded-xl flex items-center justify-center ${clockedIn ? 'bg-emerald-50 dark:bg-emerald-500/10 text-emerald-600 dark:text-emerald-400' : 'bg-amber-50 dark:bg-amber-500/10 text-amber-600 dark:text-amber-400'}`}>
             <CheckCircle2 className="w-5 h-5" />
           </div>
         </Card>
@@ -140,17 +139,33 @@ export const AttendancePage = () => {
         <Card className="p-4 flex items-center justify-between border-slate-200 dark:border-slate-800/80">
           <div>
             <span className="text-[11px] font-medium text-slate-500 dark:text-slate-400 uppercase tracking-wider">
-              On Scheduled Leave
+              Clock In Time
             </span>
-            <p className="text-xl font-bold text-amber-600 dark:text-amber-400 mt-1">{onLeaveCount} Members</p>
+            <p className="text-xl font-bold text-indigo-600 dark:text-indigo-400 mt-1">
+              {clockedIn ? clockInTime : '—'}
+            </p>
           </div>
-          <div className="w-9 h-9 rounded-xl bg-amber-50 dark:bg-amber-500/10 text-amber-600 dark:text-amber-400 flex items-center justify-center">
-            <Calendar className="w-5 h-5" />
+          <div className="w-9 h-9 rounded-xl bg-indigo-50 dark:bg-indigo-500/10 text-indigo-600 dark:text-indigo-400 flex items-center justify-center">
+            <LogIn className="w-5 h-5" />
+          </div>
+        </Card>
+
+        <Card className="p-4 flex items-center justify-between border-slate-200 dark:border-slate-800/80">
+          <div>
+            <span className="text-[11px] font-medium text-slate-500 dark:text-slate-400 uppercase tracking-wider">
+              My Department
+            </span>
+            <p className="text-xl font-bold text-slate-900 dark:text-slate-100 mt-1 truncate">
+              {myRecord?.departmentName || '—'}
+            </p>
+          </div>
+          <div className="w-9 h-9 rounded-xl bg-slate-100 dark:bg-slate-800 text-slate-600 dark:text-slate-400 flex items-center justify-center">
+            <Users className="w-5 h-5" />
           </div>
         </Card>
       </div>
 
-      {/* Attendance Table */}
+      {/* My Attendance Record */}
       <Card className="overflow-x-auto p-0 border-slate-200 dark:border-slate-800">
         <table className="w-full text-left border-collapse text-xs">
           <thead>
@@ -163,23 +178,30 @@ export const AttendancePage = () => {
             </tr>
           </thead>
           <tbody className="divide-y divide-slate-200 dark:divide-slate-800/60">
-            {employees.map((emp) => (
-              <tr key={emp.uid || emp.employeeId} className="hover:bg-slate-50 dark:hover:bg-slate-800/30 transition-colors text-slate-700 dark:text-slate-300">
-                <td className="p-4 font-bold text-slate-900 dark:text-slate-200">{emp.displayName}</td>
-                <td className="p-4 text-slate-800 dark:text-slate-300">{emp.departmentName || 'Engineering'}</td>
-                <td className="p-4 text-slate-600 dark:text-slate-400">09:00 AM</td>
-                <td className="p-4 font-semibold text-indigo-600 dark:text-indigo-400">8.0 hrs</td>
+            {myRecord ? (
+              <tr className="hover:bg-slate-50 dark:hover:bg-slate-800/30 transition-colors text-slate-700 dark:text-slate-300">
+                <td className="p-4 font-bold text-slate-900 dark:text-slate-200">{myRecord.displayName}</td>
+                <td className="p-4 text-slate-800 dark:text-slate-300">{myRecord.departmentName || '—'}</td>
+                <td className="p-4 text-slate-600 dark:text-slate-400">{clockedIn ? clockInTime : '—'}</td>
+                <td className="p-4 font-semibold text-indigo-600 dark:text-indigo-400">
+                  {clockedIn ? '8.0 hrs' : '—'}
+                </td>
                 <td className="p-4">
-                  <Badge variant={emp.status === 'active' ? 'success' : 'warning'}>
-                    {emp.status === 'active' ? 'Present' : 'On Leave'}
+                  <Badge variant={clockedIn ? 'success' : 'warning'}>
+                    {clockedIn ? 'Present' : 'Off Duty'}
                   </Badge>
                 </td>
               </tr>
-            ))}
+            ) : (
+              <tr>
+                <td colSpan="5" className="p-6 text-center text-slate-500 dark:text-slate-400 text-xs">
+                  No attendance record found. Clock in to start your shift.
+                </td>
+              </tr>
+            )}
           </tbody>
         </table>
       </Card>
     </div>
   )
 }
-

@@ -1,4 +1,5 @@
 import React from 'react'
+import { Link } from 'react-router-dom'
 import { Bell, ShieldCheck, User, Sun, Moon } from 'lucide-react'
 import { useUserStore } from '../../stores/userStore'
 import { useUIStore } from '../../stores/uiStore'
@@ -38,8 +39,11 @@ export const ClientTopBar = () => {
         </button>
 
         {/* User Profile */}
-        <div className="flex items-center gap-3 pl-3 border-l border-slate-200 dark:border-emerald-900/40">
-          <div className="w-9 h-9 rounded-xl bg-emerald-50 dark:bg-emerald-600/20 border border-emerald-200 dark:border-emerald-500/30 text-emerald-600 dark:text-emerald-400 flex items-center justify-center font-medium text-xs">
+        <Link
+          to="/portal/profile"
+          className="flex items-center gap-3 pl-3 border-l border-slate-200 dark:border-emerald-900/40 hover:opacity-80 transition-opacity cursor-pointer group"
+        >
+          <div className="w-9 h-9 rounded-xl bg-emerald-50 dark:bg-emerald-600/20 border border-emerald-200 dark:border-emerald-500/30 text-emerald-600 dark:text-emerald-400 flex items-center justify-center font-medium text-xs group-hover:scale-105 transition-transform">
             {user?.displayName ? user.displayName.charAt(0).toUpperCase() : <User className="w-4 h-4" />}
           </div>
           <div className="hidden sm:flex flex-col text-left">
@@ -50,7 +54,7 @@ export const ClientTopBar = () => {
               Client Portal
             </span>
           </div>
-        </div>
+        </Link>
       </div>
     </header>
   )

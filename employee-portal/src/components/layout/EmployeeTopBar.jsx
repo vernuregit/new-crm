@@ -1,4 +1,5 @@
 import React from 'react'
+import { Link } from 'react-router-dom'
 import { Bell, UserCheck, User, Search, Sun, Moon } from 'lucide-react'
 import { useUserStore } from '../../stores/userStore'
 import { useUIStore } from '../../stores/uiStore'
@@ -49,8 +50,11 @@ export const EmployeeTopBar = () => {
         </button>
 
         {/* User Profile */}
-        <div className="flex items-center gap-3 pl-3 border-l border-slate-200 dark:border-purple-900/40">
-          <div className="w-9 h-9 rounded-xl bg-purple-50 dark:bg-purple-600/20 border border-purple-200 dark:border-purple-500/30 text-purple-600 dark:text-purple-400 flex items-center justify-center font-medium text-xs">
+        <Link
+          to="/profile"
+          className="flex items-center gap-3 pl-3 border-l border-slate-200 dark:border-purple-900/40 hover:opacity-80 transition-opacity cursor-pointer group"
+        >
+          <div className="w-9 h-9 rounded-xl bg-purple-50 dark:bg-purple-600/20 border border-purple-200 dark:border-purple-500/30 text-purple-600 dark:text-purple-400 flex items-center justify-center font-medium text-xs group-hover:scale-105 transition-transform">
             {user?.displayName ? user.displayName.charAt(0).toUpperCase() : <User className="w-4 h-4" />}
           </div>
           <div className="hidden sm:flex flex-col text-left">
@@ -61,9 +65,8 @@ export const EmployeeTopBar = () => {
               Staff Member
             </span>
           </div>
-        </div>
+        </Link>
       </div>
     </header>
   )
 }
-

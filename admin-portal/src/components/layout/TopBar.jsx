@@ -1,4 +1,5 @@
 import React from 'react'
+import { Link } from 'react-router-dom'
 import { Bell, Search, User, Command, LogOut, Sun, Moon } from 'lucide-react'
 import { useUserStore } from '../../stores/userStore'
 import { useOrgStore } from '../../stores/orgStore'
@@ -7,7 +8,7 @@ import { useNotificationStore } from '../../features/notifications/stores/notifi
 import { NotificationCenter } from '../../features/notifications/NotificationCenter'
 
 export const TopBar = () => {
-  const { user, clearUser } = useUserStore()
+  const { user, userDoc, clearUser } = useUserStore()
   const { org } = useOrgStore()
   const { theme, toggleTheme } = useUIStore()
   const { notifications, toggleOpen } = useNotificationStore()
@@ -62,17 +63,22 @@ export const TopBar = () => {
 
         {/* User Profile Menu & Logout */}
         <div className="flex items-center gap-3 pl-3 border-l border-slate-200 dark:border-slate-800">
-          <div className="w-9 h-9 rounded-xl bg-slate-100 dark:bg-slate-800 border border-slate-200 dark:border-slate-700 text-slate-700 dark:text-slate-300 flex items-center justify-center font-medium text-xs">
-            {user?.displayName ? user.displayName.charAt(0).toUpperCase() : <User className="w-4 h-4" />}
-          </div>
-          <div className="hidden sm:flex flex-col text-left">
-            <span className="text-xs font-semibold text-slate-800 dark:text-slate-200">
-              {user?.displayName || 'Demo Executive'}
-            </span>
-            <span className="text-[10px] text-slate-500 dark:text-slate-400">
-              {user?.email || 'admin@businessos.io'}
-            </span>
-          </div>
+          <Link
+            to="/settings/profile"
+            className="flex items-center gap-3 hover:opacity-80 transition-opacity cursor-pointer group"
+          >
+            <div className="w-9 h-9 rounded-xl bg-slate-100 dark:bg-slate-800 border border-slate-200 dark:border-slate-700 text-slate-700 dark:text-slate-300 flex items-center justify-center font-medium text-xs group-hover:scale-105 transition-transform">
+              {(userDoc?.displayName || user?.displayName) ? (userDoc?.displayName || user?.displayName).charAt(0).toUpperCase() : <User className="w-4 h-4" />}
+            </div>
+            <div className="hidden sm:flex flex-col text-left">
+              <span className="text-xs font-semibold text-slate-800 dark:text-slate-200">
+                {userDoc?.displayName || user?.displayName || 'Demo Executive'}
+              </span>
+              <span className="text-[10px] text-slate-500 dark:text-slate-400">
+                {user?.email || 'admin@businessos.io'}
+              </span>
+            </div>
+          </Link>
 
           <button
             onClick={clearUser}

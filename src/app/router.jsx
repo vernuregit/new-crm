@@ -14,6 +14,7 @@ import { FounderDashboard } from '../features/dashboard/FounderDashboard'
 import { Pipeline } from '../features/crm/Pipeline'
 import { LeadList } from '../features/crm/LeadList'
 import { ContactList } from '../features/crm/ContactList'
+import { ClientProfileView } from '../features/crm/ClientProfileView'
 
 import { ProjectList } from '../features/projects/ProjectList'
 import { TaskBoard } from '../features/projects/TaskBoard'
@@ -35,6 +36,8 @@ import { ClientPortal } from '../features/portal/ClientPortal'
 import { ClientProjects } from '../features/portal/ClientProjects'
 import { ClientInvoices } from '../features/portal/ClientInvoices'
 import { ClientFiles } from '../features/portal/ClientFiles'
+import { ClientProfile } from '../features/portal/ClientProfile'
+import { EmployeeProfile } from '../features/portal/EmployeeProfile'
 
 import { SalesReport } from '../features/reports/SalesReport'
 import { FinanceReport } from '../features/reports/FinanceReport'
@@ -52,6 +55,7 @@ import { KnowledgeBase } from '../features/knowledge/KnowledgeBase'
 import { OrgSettings } from '../features/settings/OrgSettings'
 import { RoleManager } from '../features/settings/RoleManager'
 import { IntegrationsPage } from '../features/settings/IntegrationsPage'
+import { AdminProfile } from '../features/settings/AdminProfile'
 
 export const router = createBrowserRouter([
   // Public Login route
@@ -96,6 +100,7 @@ export const router = createBrowserRouter([
                   { path: 'crm/pipeline', element: <Pipeline /> },
                   { path: 'crm/leads', element: <LeadList /> },
                   { path: 'crm/contacts', element: <ContactList /> },
+                  { path: 'crm/client/:clientId', element: <ClientProfileView /> },
                 ],
               },
               // Projects Module Sub-Routes
@@ -162,6 +167,14 @@ export const router = createBrowserRouter([
                 path: 'portal/files',
                 element: <ClientFiles />,
               },
+              {
+                path: 'portal/profile',
+                element: <ClientProfile />,
+              },
+              {
+                path: 'employee/profile',
+                element: <EmployeeProfile />,
+              },
               // Reports & Analytics Sub-Routes
               {
                 path: 'reports',
@@ -222,6 +235,10 @@ export const router = createBrowserRouter([
               {
                 path: 'settings/integrations',
                 element: <IntegrationsPage />,
+              },
+              {
+                path: 'settings/profile',
+                element: <AdminProfile />,
               },
             ],
           },

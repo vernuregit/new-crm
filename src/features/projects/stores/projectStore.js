@@ -125,22 +125,20 @@ export const DEMO_TASKS = [
 export const useProjectStore = create(
   persist(
     (set, get) => ({
-      projects: DEMO_PROJECTS,
-      tasks: DEMO_TASKS,
+      projects: [],
+      tasks: [],
       statuses: DEFAULT_TASK_STATUSES,
       selectedProjectId: null,
       taskFilterStatus: 'all',
 
       setProjects: (projects) =>
-        set({ projects: projects && projects.length > 0 ? projects : get().projects || DEMO_PROJECTS }),
+        set({ projects: projects || [] }),
       setTasks: (tasks) => {
-        const currentTasks = get().tasks || DEMO_TASKS
-        const merged = (tasks && tasks.length > 0 ? tasks : currentTasks).map((dbTask) => {
-          const localMatch = currentTasks.find((ct) => ct.taskId === dbTask.taskId)
+        const merged = (tasks || []).map((dbTask) => {
           return {
             ...dbTask,
-            subtasks: dbTask.subtasks || localMatch?.subtasks || [],
-            status: dbTask.status || localMatch?.status || 'todo',
+            subtasks: dbTask.subtasks || [],
+            status: dbTask.status || 'todo',
           }
         })
         set({ tasks: merged })

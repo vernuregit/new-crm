@@ -6,7 +6,9 @@ import { Badge } from '../../components/ui/Badge'
 import { Button } from '../../components/ui/Button'
 import { Input } from '../../components/ui/Input'
 import { useTeamStore } from './stores/teamStore'
-import { getEmployees, getDepartments, createEmployee, deleteEmployeeFromDb } from './services/teamService'
+import { useSettingsStore } from '../settings/stores/settingsStore'
+import { getEmployees, getDepartments, createEmployee, deleteEmployeeFromDb, createDepartment, updateEmployeeInDb } from './services/teamService'
+import { createEmployeeAccount } from '../../shared/services/authService'
 import {
   Users,
   UserPlus,
@@ -20,23 +22,39 @@ import {
   X,
   Trash2,
   TrendingUp,
-  Award
+  Award,
+  Eye,
+  EyeOff,
+  Edit
 } from 'lucide-react'
 
 export const EmployeeList = () => {
-  const { employees, departments, setEmployees, setDepartments, addEmployee, deleteEmployee } = useTeamStore()
+  const { employees, departments, setEmployees, setDepartments, addEmployee, deleteEmployee, updateEmployee } = useTeamStore()
+  const { customRoles } = useSettingsStore()
 
   const [searchQuery, setSearchQuery] = useState('')
   const [selectedDept, setSelectedDept] = useState('all')
+  const [selectedRole, setSelectedRole] = useState('all')
   const [showAddModal, setShowAddModal] = useState(false)
+  const [showEditModal, setShowEditModal] = useState(false)
+  const [editingEmployee, setEditingEmployee] = useState(null)
 
   // New member form
   const [name, setName] = useState('')
   const [email, setEmail] = useState('')
   const [roleName, setRoleName] = useState('')
   const [departmentName, setDepartmentName] = useState('Engineering & Product')
+  const [customDept, setCustomDept] = useState('')
+  const [isCustomDept, setIsCustomDept] = useState(false)
   const [phone, setPhone] = useState('')
-  const [skillsInput, setSkillsInput] = useState('')
+  const [password, setPassword] = useState('')
+  const [showPassword, setShowPassword] = useState(false)
+  const [utilizationRate, setUtilizationRate] = useState(85)
+  const [loading, setLoading] = useState(false)
+  const [error, setError] = useState('')
+  const [success, setSuccess] = useState('')
+
+  const createdRoles = customRoles.filter((r) => !r.isSystem)
 
   useEffect(() => {
     const fetchRealEmployees = async () => {
@@ -47,14 +65,32 @@ export const EmployeeList = () => {
     fetchRealEmployees()
   }, [setEmployees, setDepartments])
 
+  const uniqueDepartments = Array.from(
+    new Set(employees.map((emp) => emp.departmentName || emp.department).filter(Boolean))
+  )
+
+  const uniqueRoles = Array.from(
+    new Set([
+      ...createdRoles.map((r) => r.name),
+      ...employees.map((emp) => emp.roleName || emp.role).filter(Boolean),
+    ])
+  )
+
   const filtered = employees.filter((emp) => {
     const matchesSearch =
       !searchQuery ||
       (emp.displayName && emp.displayName.toLowerCase().includes(searchQuery.toLowerCase())) ||
       (emp.roleName && emp.roleName.toLowerCase().includes(searchQuery.toLowerCase())) ||
+      (emp.role && emp.role.toLowerCase().includes(searchQuery.toLowerCase())) ||
       (emp.email && emp.email.toLowerCase().includes(searchQuery.toLowerCase()))
-    const matchesDept = selectedDept === 'all' || emp.departmentName === selectedDept
-    return matchesSearch && matchesDept
+
+    const empDept = emp.departmentName || emp.department || ''
+    const matchesDept = selectedDept === 'all' || empDept.trim().toLowerCase() === selectedDept.trim().toLowerCase()
+
+    const empRole = emp.roleName || emp.role || ''
+    const matchesRole = selectedRole === 'all' || empRole.trim().toLowerCase() === selectedRole.trim().toLowerCase()
+
+    return matchesSearch && matchesDept && matchesRole
   })
 
   // Team Metrics
@@ -63,40 +99,149 @@ export const EmployeeList = () => {
   const avgUtilization =
     employees.length > 0
       ? Math.round(
-          employees.reduce((sum, e) => sum + (e.utilizationRate || 0), 0) /
-            employees.length
-        )
+        employees.reduce((sum, e) => sum + (e.utilizationRate || 0), 0) /
+        employees.length
+      )
       : 0
 
   const handleInviteMember = async (e) => {
     e.preventDefault()
-    if (!name.trim() || !email.trim()) return
-
-    const parsedSkills = skillsInput
-      ? skillsInput.split(',').map((s) => s.trim())
-      : ['Productivity']
-
-    const payload = {
-      displayName: name,
-      email,
-      roleName: roleName || 'Software Specialist',
-      departmentName,
-      phoneNumber: phone || '+1 (555) 000-0000',
-      skills: parsedSkills,
-      status: 'active',
-      joinedAt: new Date().toISOString().split('T')[0],
-      utilizationRate: 85,
+    if (!name.trim() || !email.trim() || !password.trim()) {
+      setError('Please fill in all required fields.')
+      return
     }
 
-    const created = await createEmployee(payload)
-    addEmployee(created)
+    if (password.length < 6) {
+      setError('Password must be at least 6 characters.')
+      return
+    }
 
-    setName('')
-    setEmail('')
-    setRoleName('')
-    setPhone('')
-    setSkillsInput('')
-    setShowAddModal(false)
+    let finalDept = departmentName
+    if (isCustomDept) {
+      if (!customDept.trim()) {
+        setError('Please fill in all required fields.')
+        return
+      }
+      finalDept = customDept.trim()
+    }
+
+    setLoading(true)
+    setError('')
+    setSuccess('')
+
+    try {
+      if (isCustomDept) {
+        const createdDept = await createDepartment(finalDept)
+        setDepartments([...departments, createdDept])
+      }
+
+      const created = await createEmployeeAccount(
+        email,
+        password,
+        name,
+        roleName,
+        finalDept,
+        phone
+      )
+      addEmployee(created)
+      setSuccess(`Employee account created successfully for ${email}!`)
+
+      setName('')
+      setEmail('')
+      setRoleName('')
+      setPhone('')
+      setPassword('')
+      setCustomDept('')
+      setIsCustomDept(false)
+
+      setTimeout(() => {
+        setShowAddModal(false)
+        setSuccess('')
+      }, 1500)
+    } catch (err) {
+      console.error(err)
+      setError(err.message || 'Failed to create employee account.')
+    } finally {
+      setLoading(false)
+    }
+  }
+
+  const handleEditClick = (emp) => {
+    setEditingEmployee(emp)
+    setName(emp.displayName || '')
+    setEmail(emp.email || '')
+    setRoleName(emp.roleName || '')
+    setPhone(emp.phoneNumber || emp.phone || '')
+    setUtilizationRate(emp.utilizationRate || 85)
+
+    const isCustom = !departments.some((d) => d.name === emp.departmentName)
+    if (isCustom && emp.departmentName) {
+      setIsCustomDept(true)
+      setCustomDept(emp.departmentName)
+      setDepartmentName('')
+    } else {
+      setIsCustomDept(false)
+      setCustomDept('')
+      setDepartmentName(emp.departmentName || departments[0]?.name || '')
+    }
+    setError('')
+    setSuccess('')
+    setShowEditModal(true)
+  }
+
+  const handleUpdateMember = async (e) => {
+    e.preventDefault()
+    if (!name.trim() || !email.trim()) {
+      setError('Please fill in all required fields.')
+      return
+    }
+
+    let finalDept = departmentName
+    if (isCustomDept) {
+      if (!customDept.trim()) {
+        setError('Please fill in all required fields.')
+        return
+      }
+      finalDept = customDept.trim()
+    }
+
+    setLoading(true)
+    setError('')
+    setSuccess('')
+
+    try {
+      if (isCustomDept) {
+        const createdDept = await createDepartment(finalDept)
+        setDepartments([...departments, createdDept])
+      }
+
+      const updatedFields = {
+        displayName: name,
+        email,
+        roleName,
+        departmentName: finalDept,
+        phoneNumber: phone,
+        phone,
+        utilizationRate: Number(utilizationRate)
+      }
+
+      const uid = editingEmployee.uid || editingEmployee.employeeId
+      await updateEmployeeInDb(uid, updatedFields)
+      updateEmployee(uid, updatedFields)
+
+      setSuccess(`Employee details updated successfully!`)
+
+      setTimeout(() => {
+        setShowEditModal(false)
+        setSuccess('')
+        setEditingEmployee(null)
+      }, 1500)
+    } catch (err) {
+      console.error(err)
+      setError(err.message || 'Failed to update employee details.')
+    } finally {
+      setLoading(false)
+    }
   }
 
   const handleDeleteEmployee = async (uid) => {
@@ -123,10 +268,9 @@ export const EmployeeList = () => {
             <NavLink
               to="/team/employees"
               className={({ isActive }) =>
-                `flex items-center gap-2 px-3 py-1.5 rounded-xl text-xs font-semibold transition-colors ${
-                  isActive
-                    ? 'bg-indigo-50 dark:bg-indigo-600/20 text-indigo-600 dark:text-indigo-400 border border-indigo-200 dark:border-indigo-500/30'
-                    : 'text-slate-600 dark:text-slate-400 hover:text-slate-900 dark:hover:text-slate-200 hover:bg-slate-100 dark:hover:bg-slate-800'
+                `flex items-center gap-2 px-3 py-1.5 rounded-xl text-xs font-semibold transition-colors ${isActive
+                  ? 'bg-indigo-50 dark:bg-indigo-600/20 text-indigo-600 dark:text-indigo-400 border border-indigo-200 dark:border-indigo-500/30'
+                  : 'text-slate-600 dark:text-slate-400 hover:text-slate-900 dark:hover:text-slate-200 hover:bg-slate-100 dark:hover:bg-slate-800'
                 }`
               }
             >
@@ -135,10 +279,9 @@ export const EmployeeList = () => {
             <NavLink
               to="/team/attendance"
               className={({ isActive }) =>
-                `flex items-center gap-2 px-3 py-1.5 rounded-xl text-xs font-semibold transition-colors ${
-                  isActive
-                    ? 'bg-indigo-50 dark:bg-indigo-600/20 text-indigo-600 dark:text-indigo-400 border border-indigo-200 dark:border-indigo-500/30'
-                    : 'text-slate-600 dark:text-slate-400 hover:text-slate-900 dark:hover:text-slate-200 hover:bg-slate-100 dark:hover:bg-slate-800'
+                `flex items-center gap-2 px-3 py-1.5 rounded-xl text-xs font-semibold transition-colors ${isActive
+                  ? 'bg-indigo-50 dark:bg-indigo-600/20 text-indigo-600 dark:text-indigo-400 border border-indigo-200 dark:border-indigo-500/30'
+                  : 'text-slate-600 dark:text-slate-400 hover:text-slate-900 dark:hover:text-slate-200 hover:bg-slate-100 dark:hover:bg-slate-800'
                 }`
               }
             >
@@ -147,10 +290,9 @@ export const EmployeeList = () => {
             <NavLink
               to="/team/leave"
               className={({ isActive }) =>
-                `flex items-center gap-2 px-3 py-1.5 rounded-xl text-xs font-semibold transition-colors ${
-                  isActive
-                    ? 'bg-indigo-50 dark:bg-indigo-600/20 text-indigo-600 dark:text-indigo-400 border border-indigo-200 dark:border-indigo-500/30'
-                    : 'text-slate-600 dark:text-slate-400 hover:text-slate-900 dark:hover:text-slate-200 hover:bg-slate-100 dark:hover:bg-slate-800'
+                `flex items-center gap-2 px-3 py-1.5 rounded-xl text-xs font-semibold transition-colors ${isActive
+                  ? 'bg-indigo-50 dark:bg-indigo-600/20 text-indigo-600 dark:text-indigo-400 border border-indigo-200 dark:border-indigo-500/30'
+                  : 'text-slate-600 dark:text-slate-400 hover:text-slate-900 dark:hover:text-slate-200 hover:bg-slate-100 dark:hover:bg-slate-800'
                 }`
               }
             >
@@ -165,9 +307,22 @@ export const EmployeeList = () => {
               className="bg-slate-100 dark:bg-[#181C27] border border-slate-300 dark:border-slate-800 text-xs text-slate-800 dark:text-slate-200 rounded-xl px-3 py-1.5 focus:outline-none"
             >
               <option value="all">All Departments</option>
-              {departments.map((d) => (
-                <option key={d.deptId} value={d.name}>
-                  {d.name}
+              {uniqueDepartments.map((deptName) => (
+                <option key={deptName} value={deptName}>
+                  {deptName}
+                </option>
+              ))}
+            </select>
+
+            <select
+              value={selectedRole}
+              onChange={(e) => setSelectedRole(e.target.value)}
+              className="bg-slate-100 dark:bg-[#181C27] border border-slate-300 dark:border-slate-800 text-xs text-slate-800 dark:text-slate-200 rounded-xl px-3 py-1.5 focus:outline-none cursor-pointer"
+            >
+              <option value="all">All Roles</option>
+              {uniqueRoles.map((roleName) => (
+                <option key={roleName} value={roleName}>
+                  {roleName}
                 </option>
               ))}
             </select>
@@ -283,13 +438,22 @@ export const EmployeeList = () => {
                   />
                 </div>
               </div>
-              <button
-                onClick={() => handleDeleteEmployee(emp.uid || emp.employeeId)}
-                className="p-1.5 text-slate-400 dark:text-slate-500 hover:text-rose-600 dark:hover:text-rose-400 rounded-lg hover:bg-slate-100 dark:hover:bg-slate-800 transition-colors"
-                title="Remove Member"
-              >
-                <Trash2 className="w-4 h-4" />
-              </button>
+              <div className="flex items-center gap-1">
+                <button
+                  onClick={() => handleEditClick(emp)}
+                  className="p-1.5 text-slate-400 dark:text-slate-500 hover:text-indigo-600 dark:hover:text-indigo-400 rounded-lg hover:bg-slate-100 dark:hover:bg-slate-800 transition-colors"
+                  title="Edit Member"
+                >
+                  <Edit className="w-4 h-4" />
+                </button>
+                <button
+                  onClick={() => handleDeleteEmployee(emp.uid || emp.employeeId)}
+                  className="p-1.5 text-slate-400 dark:text-slate-500 hover:text-rose-600 dark:hover:text-rose-400 rounded-lg hover:bg-slate-100 dark:hover:bg-slate-800 transition-colors"
+                  title="Remove Member"
+                >
+                  <Trash2 className="w-4 h-4" />
+                </button>
+              </div>
             </div>
           </Card>
         ))}
@@ -309,9 +473,21 @@ export const EmployeeList = () => {
               </button>
             </div>
 
+            {error && (
+              <div className="p-3 text-xs bg-rose-500/10 text-rose-500 rounded-xl border border-rose-500/20">
+                {error}
+              </div>
+            )}
+
+            {success && (
+              <div className="p-3 text-xs bg-emerald-500/10 text-emerald-500 rounded-xl border border-emerald-500/20">
+                {success}
+              </div>
+            )}
+
             <form onSubmit={handleInviteMember} className="space-y-4">
               <Input
-                label="Full Name"
+                label="Full Name *"
                 placeholder="e.g. Alex Rivera"
                 value={name}
                 onChange={(e) => setName(e.target.value)}
@@ -319,7 +495,169 @@ export const EmployeeList = () => {
               />
 
               <Input
-                label="Work Email"
+                label="Work Email *"
+                type="email"
+                placeholder="alex@company.com"
+                value={email}
+                onChange={(e) => setEmail(e.target.value)}
+                required
+              />
+
+              {/* Password field */}
+              <div className="relative">
+                <Input
+                  label="Account Password *"
+                  type={showPassword ? 'text' : 'password'}
+                  placeholder="••••••••"
+                  value={password}
+                  onChange={(e) => setPassword(e.target.value)}
+                  required
+                />
+                <button
+                  type="button"
+                  onClick={() => setShowPassword(!showPassword)}
+                  className="absolute right-3 top-[32px] text-slate-400 hover:text-slate-600 dark:hover:text-slate-200"
+                >
+                  {showPassword ? <EyeOff className="w-4 h-4" /> : <Eye className="w-4 h-4" />}
+                </button>
+              </div>
+
+              <div className="grid grid-cols-2 gap-3">
+                {createdRoles.length > 0 ? (
+                  <div className="space-y-1.5 text-left">
+                    <label className="block text-xs font-medium text-slate-700 dark:text-slate-300">Role Title *</label>
+                    <select
+                      value={roleName}
+                      onChange={(e) => setRoleName(e.target.value)}
+                      className="w-full bg-slate-100/80 dark:bg-[#11141E] border border-slate-300 dark:border-slate-800 text-slate-900 dark:text-slate-100 text-sm rounded-xl py-2.5 px-3.5 focus:outline-none focus:border-indigo-500 focus:ring-1 focus:ring-indigo-500 transition-all cursor-pointer"
+                      required
+                    >
+                      <option value="">Select Role</option>
+                      {createdRoles.map((role) => (
+                        <option key={role.roleId} value={role.name} className="bg-white dark:bg-[#11141E] text-slate-900 dark:text-slate-100">
+                          {role.name}
+                        </option>
+                      ))}
+                    </select>
+                  </div>
+                ) : (
+                  <Input
+                    label="Role Title"
+                    placeholder="e.g. Senior Frontend Engineer"
+                    value={roleName}
+                    onChange={(e) => setRoleName(e.target.value)}
+                  />
+                )}
+                {isCustomDept ? (
+                  <div className="space-y-1.5 text-left">
+                    <div className="flex justify-between items-center">
+                      <label className="block text-xs font-medium text-slate-700 dark:text-slate-300">Custom Department *</label>
+                      <button
+                        type="button"
+                        onClick={() => {
+                          setIsCustomDept(false)
+                          setDepartmentName(departments[0]?.name || '')
+                        }}
+                        className="text-[10px] text-indigo-500 hover:text-indigo-600 dark:text-indigo-400 dark:hover:text-indigo-300 font-bold"
+                      >
+                        Choose Existing
+                      </button>
+                    </div>
+                    <Input
+                      placeholder="e.g. Quality Assurance"
+                      value={customDept}
+                      onChange={(e) => setCustomDept(e.target.value)}
+                      required
+                    />
+                  </div>
+                ) : (
+                  <div className="space-y-1.5 text-left">
+                    <label className="block text-xs font-medium text-slate-700 dark:text-slate-300">Department</label>
+                    <select
+                      value={departmentName}
+                      onChange={(e) => {
+                        if (e.target.value === 'ADD_CUSTOM') {
+                          setIsCustomDept(true)
+                          setDepartmentName('')
+                        } else {
+                          setDepartmentName(e.target.value)
+                        }
+                      }}
+                      className="w-full bg-slate-100/80 dark:bg-[#11141E] border border-slate-300 dark:border-slate-800 text-slate-900 dark:text-slate-100 text-sm rounded-xl py-2.5 px-3.5 focus:outline-none focus:border-indigo-500 focus:ring-1 focus:ring-indigo-500 transition-all cursor-pointer"
+                    >
+                      {departments.map((d) => (
+                        <option key={d.deptId} value={d.name} className="bg-white dark:bg-[#11141E] text-slate-900 dark:text-slate-100">
+                          {d.name}
+                        </option>
+                      ))}
+                      <option value="ADD_CUSTOM" className="bg-white dark:bg-[#11141E] text-indigo-600 dark:text-indigo-400 font-semibold">
+                        + Add Custom Department
+                      </option>
+                    </select>
+                  </div>
+                )}
+              </div>
+
+              <Input
+                label="Phone Number"
+                placeholder=" "
+                value={phone}
+                onChange={(e) => setPhone(e.target.value)}
+              />
+
+              <div className="flex gap-3 pt-2">
+                <Button type="button" variant="secondary" onClick={() => setShowAddModal(false)} className="w-1/3" disabled={loading}>
+                  Cancel
+                </Button>
+                <Button type="submit" variant="primary" className="w-2/3 animate-pulse-subtle" icon={UserPlus} disabled={loading}>
+                  {loading ? 'Creating Account...' : 'Create Employee Account'}
+                </Button>
+              </div>
+            </form>
+          </Card>
+        </div>
+      )}
+
+      {/* Edit Member Modal */}
+      {showEditModal && editingEmployee && (
+        <div className="fixed inset-0 z-50 bg-black/70 backdrop-blur-sm flex items-center justify-center p-4">
+          <Card className="w-full max-w-lg p-6 space-y-4 border-slate-200 dark:border-slate-800 shadow-2xl relative bg-white dark:bg-[#181C27]">
+            <div className="flex items-center justify-between pb-3 border-b border-slate-200 dark:border-slate-800">
+              <h3 className="font-bold text-slate-900 dark:text-slate-100 text-sm">Edit Team Member</h3>
+              <button
+                onClick={() => {
+                  setShowEditModal(false)
+                  setEditingEmployee(null)
+                }}
+                className="text-slate-400 hover:text-slate-600 dark:hover:text-white p-1 rounded-lg hover:bg-slate-100 dark:hover:bg-slate-800 transition-colors"
+              >
+                <X className="w-4 h-4" />
+              </button>
+            </div>
+
+            {error && (
+              <div className="p-3 text-xs bg-rose-500/10 text-rose-500 rounded-xl border border-rose-500/20">
+                {error}
+              </div>
+            )}
+
+            {success && (
+              <div className="p-3 text-xs bg-emerald-500/10 text-emerald-500 rounded-xl border border-emerald-500/20">
+                {success}
+              </div>
+            )}
+
+            <form onSubmit={handleUpdateMember} className="space-y-4">
+              <Input
+                label="Full Name *"
+                placeholder="e.g. Alex Rivera"
+                value={name}
+                onChange={(e) => setName(e.target.value)}
+                required
+              />
+
+              <Input
+                label="Work Email *"
                 type="email"
                 placeholder="alex@company.com"
                 value={email}
@@ -328,41 +666,119 @@ export const EmployeeList = () => {
               />
 
               <div className="grid grid-cols-2 gap-3">
+                {createdRoles.length > 0 ? (
+                  <div className="space-y-1.5 text-left">
+                    <label className="block text-xs font-medium text-slate-700 dark:text-slate-300">Role Title *</label>
+                    <select
+                      value={roleName}
+                      onChange={(e) => setRoleName(e.target.value)}
+                      className="w-full bg-slate-100/80 dark:bg-[#11141E] border border-slate-300 dark:border-slate-800 text-slate-900 dark:text-slate-100 text-sm rounded-xl py-2.5 px-3.5 focus:outline-none focus:border-indigo-500 focus:ring-1 focus:ring-indigo-500 transition-all cursor-pointer"
+                      required
+                    >
+                      <option value="">Select Role</option>
+                      {createdRoles.map((role) => (
+                        <option key={role.roleId} value={role.name} className="bg-white dark:bg-[#11141E] text-slate-900 dark:text-slate-100">
+                          {role.name}
+                        </option>
+                      ))}
+                    </select>
+                  </div>
+                ) : (
+                  <Input
+                    label="Role Title"
+                    placeholder="e.g. Senior Frontend Engineer"
+                    value={roleName}
+                    onChange={(e) => setRoleName(e.target.value)}
+                  />
+                )}
+                {isCustomDept ? (
+                  <div className="space-y-1.5 text-left">
+                    <div className="flex justify-between items-center">
+                      <label className="block text-xs font-medium text-slate-700 dark:text-slate-300">Custom Department *</label>
+                      <button
+                        type="button"
+                        onClick={() => {
+                          setIsCustomDept(false)
+                          setDepartmentName(departments[0]?.name || '')
+                        }}
+                        className="text-[10px] text-indigo-500 hover:text-indigo-600 dark:text-indigo-400 dark:hover:text-indigo-300 font-bold"
+                      >
+                        Choose Existing
+                      </button>
+                    </div>
+                    <Input
+                      placeholder="e.g. Quality Assurance"
+                      value={customDept}
+                      onChange={(e) => setCustomDept(e.target.value)}
+                      required
+                    />
+                  </div>
+                ) : (
+                  <div className="space-y-1.5 text-left">
+                    <label className="block text-xs font-medium text-slate-700 dark:text-slate-300">Department</label>
+                    <select
+                      value={departmentName}
+                      onChange={(e) => {
+                        if (e.target.value === 'ADD_CUSTOM') {
+                          setIsCustomDept(true)
+                          setDepartmentName('')
+                        } else {
+                          setDepartmentName(e.target.value)
+                        }
+                      }}
+                      className="w-full bg-slate-100/80 dark:bg-[#11141E] border border-slate-300 dark:border-slate-800 text-slate-900 dark:text-slate-100 text-sm rounded-xl py-2.5 px-3.5 focus:outline-none focus:border-indigo-500 focus:ring-1 focus:ring-indigo-500 transition-all cursor-pointer"
+                    >
+                      {departments.map((d) => (
+                        <option key={d.deptId} value={d.name} className="bg-white dark:bg-[#11141E] text-slate-900 dark:text-slate-100">
+                          {d.name}
+                        </option>
+                      ))}
+                      <option value="ADD_CUSTOM" className="bg-white dark:bg-[#11141E] text-indigo-600 dark:text-indigo-400 font-semibold">
+                        + Add Custom Department
+                      </option>
+                    </select>
+                  </div>
+                )}
+              </div>
+
+              <div className="grid grid-cols-2 gap-3">
                 <Input
-                  label="Role Title"
-                  placeholder="e.g. Senior Frontend Engineer"
-                  value={roleName}
-                  onChange={(e) => setRoleName(e.target.value)}
+                  label="Phone Number"
+                  placeholder="+1 (555) 000-0000"
+                  value={phone}
+                  onChange={(e) => setPhone(e.target.value)}
                 />
                 <div className="space-y-1.5 text-left">
-                  <label className="block text-xs font-medium text-slate-700 dark:text-slate-300">Department</label>
-                  <select
-                    value={departmentName}
-                    onChange={(e) => setDepartmentName(e.target.value)}
-                    className="w-full bg-slate-100/80 dark:bg-[#11141E] border border-slate-300 dark:border-slate-800 text-slate-900 dark:text-slate-100 text-sm rounded-xl py-2.5 px-3.5 focus:outline-none focus:border-indigo-500 focus:ring-1 focus:ring-indigo-500 transition-all cursor-pointer"
-                  >
-                    {departments.map((d) => (
-                      <option key={d.deptId} value={d.name} className="bg-white dark:bg-[#11141E] text-slate-900 dark:text-slate-100">
-                        {d.name}
-                      </option>
-                    ))}
-                  </select>
+                  <div className="flex justify-between items-center text-xs">
+                    <label className="font-medium text-slate-700 dark:text-slate-300">Utilization Rate</label>
+                    <span className="font-bold text-indigo-600 dark:text-indigo-400">{utilizationRate}%</span>
+                  </div>
+                  <input
+                    type="range"
+                    min="0"
+                    max="100"
+                    value={utilizationRate}
+                    onChange={(e) => setUtilizationRate(e.target.value)}
+                    className="w-full accent-indigo-600 dark:accent-indigo-500 bg-slate-100 dark:bg-[#11141E] border border-slate-300 dark:border-slate-800 rounded-xl h-2 cursor-pointer mt-2"
+                  />
                 </div>
               </div>
 
-              <Input
-                label="Skills (comma separated)"
-                placeholder="e.g. React, Node.js, Design Systems"
-                value={skillsInput}
-                onChange={(e) => setSkillsInput(e.target.value)}
-              />
-
               <div className="flex gap-3 pt-2">
-                <Button type="button" variant="secondary" onClick={() => setShowAddModal(false)} className="w-1/3">
+                <Button
+                  type="button"
+                  variant="secondary"
+                  onClick={() => {
+                    setShowEditModal(false)
+                    setEditingEmployee(null)
+                  }}
+                  className="w-1/3"
+                  disabled={loading}
+                >
                   Cancel
                 </Button>
-                <Button type="submit" variant="primary" className="w-2/3" icon={UserPlus}>
-                  Send Invitation
+                <Button type="submit" variant="primary" className="w-2/3 animate-pulse-subtle" icon={Edit} disabled={loading}>
+                  {loading ? 'Saving Changes...' : 'Save Changes'}
                 </Button>
               </div>
             </form>

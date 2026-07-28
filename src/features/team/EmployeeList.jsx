@@ -6,6 +6,7 @@ import { Badge } from '../../shared/components/ui/Badge'
 import { Button } from '../../shared/components/ui/Button'
 import { Input } from '../../shared/components/ui/Input'
 import { useTeamStore } from './stores/teamStore'
+import { createEmployeeAccount } from '../../shared/services/authService'
 import {
   Users,
   UserPlus,
@@ -19,7 +20,9 @@ import {
   X,
   Trash2,
   TrendingUp,
-  Award
+  Award,
+  Eye,
+  EyeOff
 } from 'lucide-react'
 
 export const EmployeeList = () => {
@@ -36,13 +39,18 @@ export const EmployeeList = () => {
   const [departmentName, setDepartmentName] = useState('Engineering & Product')
   const [phone, setPhone] = useState('')
   const [skillsInput, setSkillsInput] = useState('')
+  const [password, setPassword] = useState('')
+  const [showPassword, setShowPassword] = useState(false)
+  const [loading, setLoading] = useState(false)
+  const [error, setError] = useState('')
+  const [success, setSuccess] = useState('')
 
   const filtered = employees.filter((emp) => {
     const matchesSearch =
       !searchQuery ||
-      emp.displayName.toLowerCase().includes(searchQuery.toLowerCase()) ||
-      emp.roleName.toLowerCase().includes(searchQuery.toLowerCase()) ||
-      emp.email.toLowerCase().includes(searchQuery.toLowerCase())
+      (emp.displayName && emp.displayName.toLowerCase().includes(searchQuery.toLowerCase())) ||
+      (emp.roleName && emp.roleName.toLowerCase().includes(searchQuery.toLowerCase())) ||
+      (emp.email && emp.email.toLowerCase().includes(searchQuery.toLowerCase()))
     const matchesDept = selectedDept === 'all' || emp.departmentName === selectedDept
     return matchesSearch && matchesDept
   })
@@ -53,34 +61,56 @@ export const EmployeeList = () => {
   const avgUtilization =
     employees.length > 0
       ? Math.round(
-          employees.reduce((sum, e) => sum + (e.utilizationRate || 0), 0) /
-            employees.length
-        )
+        employees.reduce((sum, e) => sum + (e.utilizationRate || 0), 0) /
+        employees.length
+      )
       : 0
 
-  const handleInviteMember = (e) => {
+  const handleInviteMember = async (e) => {
     e.preventDefault()
-    if (!name.trim() || !email.trim()) return
+    if (!name.trim() || !email.trim() || !password.trim()) {
+      setError('Please fill in all required fields.')
+      return
+    }
 
-    const parsedSkills = skillsInput
-      ? skillsInput.split(',').map((s) => s.trim())
-      : ['Productivity']
+    if (password.length < 6) {
+      setError('Password must be at least 6 characters.')
+      return
+    }
 
-    addEmployee({
-      displayName: name,
-      email,
-      roleName: roleName || 'Software Specialist',
-      departmentName,
-      phoneNumber: phone || '+1 (555) 000-0000',
-      skills: parsedSkills,
-    })
+    setLoading(true)
+    setError('')
+    setSuccess('')
 
-    setName('')
-    setEmail('')
-    setRoleName('')
-    setPhone('')
-    setSkillsInput('')
-    setShowAddModal(false)
+    try {
+      const created = await createEmployeeAccount(
+        email,
+        password,
+        name,
+        roleName,
+        departmentName,
+        phone
+      )
+      addEmployee(created)
+      setSuccess(`Employee account created successfully for ${email}!`)
+
+      setName('')
+      setEmail('')
+      setRoleName('')
+      setPhone('')
+      setPassword('')
+      setSkillsInput('')
+
+      setTimeout(() => {
+        setShowAddModal(false)
+        setSuccess('')
+      }, 1500)
+    } catch (err) {
+      console.error(err)
+      setError(err.message || 'Failed to create employee account.')
+    } finally {
+      setLoading(false)
+    }
   }
 
   return (
@@ -102,10 +132,9 @@ export const EmployeeList = () => {
             <NavLink
               to="/team/employees"
               className={({ isActive }) =>
-                `flex items-center gap-2 px-3 py-1.5 rounded-xl text-xs font-semibold transition-colors ${
-                  isActive
-                    ? 'bg-indigo-600/20 text-indigo-400 border border-indigo-500/30'
-                    : 'text-slate-400 hover:text-slate-200 hover:bg-slate-800'
+                `flex items-center gap-2 px-3 py-1.5 rounded-xl text-xs font-semibold transition-colors ${isActive
+                  ? 'bg-indigo-600/20 text-indigo-400 border border-indigo-500/30'
+                  : 'text-slate-400 hover:text-slate-200 hover:bg-slate-800'
                 }`
               }
             >
@@ -114,10 +143,9 @@ export const EmployeeList = () => {
             <NavLink
               to="/team/attendance"
               className={({ isActive }) =>
-                `flex items-center gap-2 px-3 py-1.5 rounded-xl text-xs font-semibold transition-colors ${
-                  isActive
-                    ? 'bg-indigo-600/20 text-indigo-400 border border-indigo-500/30'
-                    : 'text-slate-400 hover:text-slate-200 hover:bg-slate-800'
+                `flex items-center gap-2 px-3 py-1.5 rounded-xl text-xs font-semibold transition-colors ${isActive
+                  ? 'bg-indigo-600/20 text-indigo-400 border border-indigo-500/30'
+                  : 'text-slate-400 hover:text-slate-200 hover:bg-slate-800'
                 }`
               }
             >
@@ -126,10 +154,9 @@ export const EmployeeList = () => {
             <NavLink
               to="/team/leave"
               className={({ isActive }) =>
-                `flex items-center gap-2 px-3 py-1.5 rounded-xl text-xs font-semibold transition-colors ${
-                  isActive
-                    ? 'bg-indigo-600/20 text-indigo-400 border border-indigo-500/30'
-                    : 'text-slate-400 hover:text-slate-200 hover:bg-slate-800'
+                `flex items-center gap-2 px-3 py-1.5 rounded-xl text-xs font-semibold transition-colors ${isActive
+                  ? 'bg-indigo-600/20 text-indigo-400 border border-indigo-500/30'
+                  : 'text-slate-400 hover:text-slate-200 hover:bg-slate-800'
                 }`
               }
             >
@@ -288,9 +315,21 @@ export const EmployeeList = () => {
               </button>
             </div>
 
+            {error && (
+              <div className="p-3 text-xs bg-rose-500/10 text-rose-500 rounded-xl border border-rose-500/20">
+                {error}
+              </div>
+            )}
+
+            {success && (
+              <div className="p-3 text-xs bg-emerald-500/10 text-emerald-500 rounded-xl border border-emerald-500/20">
+                {success}
+              </div>
+            )}
+
             <form onSubmit={handleInviteMember} className="space-y-4">
               <Input
-                label="Full Name"
+                label="Full Name *"
                 placeholder="e.g. Alex Rivera"
                 value={name}
                 onChange={(e) => setName(e.target.value)}
@@ -298,13 +337,32 @@ export const EmployeeList = () => {
               />
 
               <Input
-                label="Work Email"
+                label="Work Email *"
                 type="email"
                 placeholder="alex@company.com"
                 value={email}
                 onChange={(e) => setEmail(e.target.value)}
                 required
               />
+
+              {/* Password field */}
+              <div className="relative">
+                <Input
+                  label="Account Password *"
+                  type={showPassword ? 'text' : 'password'}
+                  placeholder="••••••••"
+                  value={password}
+                  onChange={(e) => setPassword(e.target.value)}
+                  required
+                />
+                <button
+                  type="button"
+                  onClick={() => setShowPassword(!showPassword)}
+                  className="absolute right-3 top-[32px] text-slate-400 hover:text-slate-600 dark:hover:text-slate-200"
+                >
+                  {showPassword ? <EyeOff className="w-4 h-4" /> : <Eye className="w-4 h-4" />}
+                </button>
+              </div>
 
               <div className="grid grid-cols-2 gap-3">
                 <Input
@@ -329,19 +387,27 @@ export const EmployeeList = () => {
                 </div>
               </div>
 
-              <Input
-                label="Skills (comma separated)"
-                placeholder="e.g. React, Node.js, Design Systems"
-                value={skillsInput}
-                onChange={(e) => setSkillsInput(e.target.value)}
-              />
+              <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
+                <Input
+                  label="Phone Number"
+                  placeholder=" "
+                  value={phone}
+                  onChange={(e) => setPhone(e.target.value)}
+                />
+                <Input
+                  label="Skills (comma separated)"
+                  placeholder="e.g. React, Node.js, Design Systems"
+                  value={skillsInput}
+                  onChange={(e) => setSkillsInput(e.target.value)}
+                />
+              </div>
 
               <div className="flex gap-3 pt-2">
-                <Button type="button" variant="secondary" onClick={() => setShowAddModal(false)} className="w-1/3">
+                <Button type="button" variant="secondary" onClick={() => setShowAddModal(false)} className="w-1/3" disabled={loading}>
                   Cancel
                 </Button>
-                <Button type="submit" variant="primary" className="w-2/3" icon={UserPlus}>
-                  Send Invitation
+                <Button type="submit" variant="primary" className="w-2/3" icon={UserPlus} disabled={loading}>
+                  {loading ? 'Creating Account...' : 'Create Employee Account'}
                 </Button>
               </div>
             </form>

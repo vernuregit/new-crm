@@ -1,5 +1,7 @@
 import React, { useState, useEffect } from 'react'
 import { NavLink, useNavigate } from 'react-router-dom'
+import { collection, getDocs, query, where } from 'firebase/firestore'
+import { db } from '../../shared/services/firebaseService'
 import { PageHeader } from '../../components/layout/PageHeader'
 import { Card } from '../../components/ui/Card'
 import { Badge } from '../../components/ui/Badge'
@@ -20,9 +22,10 @@ import {
   FolderKanban,
   X,
   TrendingUp,
-  Layers,
   Trash2,
-  ArrowRight
+  ArrowRight,
+  ChevronDown,
+  Loader2
 } from 'lucide-react'
 
 export const ProjectList = () => {
@@ -37,10 +40,15 @@ export const ProjectList = () => {
 
   // Form fields for new project
   const [projName, setProjName] = useState('')
-  const [clientName, setClientName] = useState('')
+  const [selectedClientId, setSelectedClientId] = useState('')
+  const [selectedEmployeeId, setSelectedEmployeeId] = useState('')
   const [budget, setBudget] = useState('')
   const [description, setDescription] = useState('')
-  const [owner, setOwner] = useState('Sarah Jenkins')
+
+  // Dropdown data from Firestore
+  const [clients, setClients] = useState([])
+  const [employees, setEmployees] = useState([])
+  const [dropdownLoading, setDropdownLoading] = useState(false)
 
   useEffect(() => {
     const fetchRealProjects = async () => {
@@ -51,6 +59,51 @@ export const ProjectList = () => {
     }
     fetchRealProjects()
   }, [setProjects])
+
+  // Fetch clients & employees when modal opens
+  useEffect(() => {
+    if (!showAddModal) return
+    const fetchDropdowns = async () => {
+      setDropdownLoading(true)
+      try {
+        const [usersSnap, empSnap] = await Promise.all([
+          getDocs(query(collection(db, 'users'), where('role', '==', 'client'))),
+          getDocs(collection(db, 'employees')),
+        ])
+
+        const clientCompaniesMap = new Map()
+
+        // Map registered clients (users collection where role == 'client')
+        usersSnap.docs.forEach((d) => {
+          const data = d.data()
+          if (data.companyName) {
+            clientCompaniesMap.set(data.companyName.trim().toLowerCase(), {
+              id: d.id,
+              name: data.companyName,
+            })
+          }
+        })
+
+        const clientList = Array.from(clientCompaniesMap.values())
+
+        const empList = empSnap.docs.map((d) => ({
+          id: d.id,
+          name: d.data().name || d.data().fullName || d.data().displayName || 'Unknown',
+          role: d.data().role || d.data().roleName || d.data().jobTitle || d.data().department || '',
+        }))
+
+        setClients(clientList)
+        setEmployees(empList)
+        if (clientList.length > 0) setSelectedClientId(clientList[0].id)
+        if (empList.length > 0) setSelectedEmployeeId(empList[0].id)
+      } catch (err) {
+        console.error('Error fetching dropdown data:', err)
+      } finally {
+        setDropdownLoading(false)
+      }
+    }
+    fetchDropdowns()
+  }, [showAddModal])
 
   const filtered = projects.filter((p) => {
     const matchesSearch =
@@ -78,12 +131,18 @@ export const ProjectList = () => {
     e.preventDefault()
     if (!projName.trim()) return
 
+    const selectedClient = clients.find((c) => c.id === selectedClientId)
+    const selectedEmployee = employees.find((emp) => emp.id === selectedEmployeeId)
+
     const payload = {
       name: projName,
-      clientName: clientName || 'Internal Platform',
+      clientId: selectedClientId || '',
+      clientName: selectedClient?.name || '',
+      employeeId: selectedEmployeeId || '',
+      ownerName: selectedEmployee?.name || '',
+      ownerRole: selectedEmployee?.role || '',
       budget: Number(budget) || 0,
       description,
-      ownerName: owner,
       status: 'active',
       completionPercent: 0,
       totalTaskCount: 0,
@@ -95,7 +154,8 @@ export const ProjectList = () => {
     addProject(created)
 
     setProjName('')
-    setClientName('')
+    setSelectedClientId('')
+    setSelectedEmployeeId('')
     setBudget('')
     setDescription('')
     setShowAddModal(false)
@@ -350,12 +410,32 @@ export const ProjectList = () => {
               />
 
               <div className="grid grid-cols-2 gap-3">
-                <Input
-                  label="Client Name"
-                  placeholder="e.g. Acme Corp"
-                  value={clientName}
-                  onChange={(e) => setClientName(e.target.value)}
-                />
+                {/* Client dropdown from Firestore leads */}
+                <div className="space-y-1.5 text-left">
+                  <label className="block text-xs font-medium text-slate-700 dark:text-slate-300 flex items-center gap-1.5">
+                    <Building className="w-3 h-3" /> Client
+                  </label>
+                  {dropdownLoading ? (
+                    <div className="flex items-center gap-2 py-2.5 px-3.5 text-xs text-slate-400">
+                      <Loader2 className="w-3.5 h-3.5 animate-spin" /> Loading clients...
+                    </div>
+                  ) : clients.length === 0 ? (
+                    <p className="text-xs text-slate-400 dark:text-slate-500 py-2.5 px-3.5 border border-slate-300 dark:border-slate-800 rounded-xl">
+                      No clients in Firestore yet
+                    </p>
+                  ) : (
+                    <select
+                      value={selectedClientId}
+                      onChange={(e) => setSelectedClientId(e.target.value)}
+                      className="w-full bg-slate-100/80 dark:bg-[#11141E] border border-slate-300 dark:border-slate-800 text-slate-900 dark:text-slate-100 text-xs rounded-xl py-2.5 px-3.5 focus:outline-none focus:border-indigo-500 focus:ring-1 focus:ring-indigo-500 transition-all cursor-pointer"
+                    >
+                      {clients.map((c) => (
+                        <option key={c.id} value={c.id} className="bg-white dark:bg-[#11141E]">{c.name}</option>
+                      ))}
+                    </select>
+                  )}
+                </div>
+
                 <Input
                   label="Project Budget (₹ INR)"
                   type="number"
@@ -375,17 +455,32 @@ export const ProjectList = () => {
                 />
               </div>
 
+              {/* Employee dropdown from Firestore employees */}
               <div className="space-y-1.5 text-left">
-                <label className="block text-xs font-medium text-slate-700 dark:text-slate-300">Project Owner</label>
-                <select
-                  value={owner}
-                  onChange={(e) => setOwner(e.target.value)}
-                  className="w-full bg-slate-100/80 dark:bg-[#11141E] border border-slate-300 dark:border-slate-800 text-slate-900 dark:text-slate-100 text-sm rounded-xl py-2.5 px-3.5 focus:outline-none focus:border-indigo-500 focus:ring-1 focus:ring-indigo-500 transition-all cursor-pointer"
-                >
-                  <option value="Sarah Jenkins" className="bg-white dark:bg-[#11141E] text-slate-900 dark:text-slate-100">Sarah Jenkins (Engineering Lead)</option>
-                  <option value="Alex Rivera" className="bg-white dark:bg-[#11141E] text-slate-900 dark:text-slate-100">Alex Rivera (Design Lead)</option>
-                  <option value="David Chen" className="bg-white dark:bg-[#11141E] text-slate-900 dark:text-slate-100">David Chen (DevOps Architect)</option>
-                </select>
+                <label className="block text-xs font-medium text-slate-700 dark:text-slate-300 flex items-center gap-1.5">
+                  <User className="w-3 h-3" /> Employee
+                </label>
+                {dropdownLoading ? (
+                  <div className="flex items-center gap-2 py-2.5 px-3.5 text-xs text-slate-400">
+                    <Loader2 className="w-3.5 h-3.5 animate-spin" /> Loading employees...
+                  </div>
+                ) : employees.length === 0 ? (
+                  <p className="text-xs text-slate-400 dark:text-slate-500 py-2.5 px-3.5 border border-slate-300 dark:border-slate-800 rounded-xl">
+                    No employees in Firestore yet
+                  </p>
+                ) : (
+                  <select
+                    value={selectedEmployeeId}
+                    onChange={(e) => setSelectedEmployeeId(e.target.value)}
+                    className="w-full bg-slate-100/80 dark:bg-[#11141E] border border-slate-300 dark:border-slate-800 text-slate-900 dark:text-slate-100 text-sm rounded-xl py-2.5 px-3.5 focus:outline-none focus:border-indigo-500 focus:ring-1 focus:ring-indigo-500 transition-all cursor-pointer"
+                  >
+                    {employees.map((emp) => (
+                      <option key={emp.id} value={emp.id} className="bg-white dark:bg-[#11141E]">
+                        {emp.name}{emp.role ? ` (${emp.role})` : ''}
+                      </option>
+                    ))}
+                  </select>
+                )}
               </div>
 
               <div className="flex gap-3 pt-2">

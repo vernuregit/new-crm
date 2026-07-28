@@ -31,7 +31,7 @@ const DEMO_NOTIFICATIONS = [
 ]
 
 export const useNotificationStore = create((set) => ({
-  notifications: DEMO_NOTIFICATIONS,
+  notifications: [],
   isOpen: false,
 
   setIsOpen: (isOpen) => set({ isOpen }),

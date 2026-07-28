@@ -34,6 +34,13 @@ export const useTeamStore = create(
           employees: state.employees.filter((e) => e.uid !== uid),
         })),
 
+      updateEmployee: (uid, updatedFields) =>
+        set((state) => ({
+          employees: state.employees.map((e) =>
+            e.uid === uid || e.employeeId === uid ? { ...e, ...updatedFields } : e
+          ),
+        })),
+
       addLeaveRequest: (newLeave) =>
         set((state) => ({
           leaveRequests: [

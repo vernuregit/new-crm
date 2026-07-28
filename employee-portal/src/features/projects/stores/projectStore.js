@@ -113,15 +113,15 @@ const DEMO_TASKS = [
 export const useProjectStore = create(
   persist(
     (set, get) => ({
-      projects: DEMO_PROJECTS,
-      tasks: DEMO_TASKS,
+      projects: [],
+      tasks: [],
       statuses: DEFAULT_TASK_STATUSES,
       loading: false,
       selectedProjectId: null,
       taskFilterStatus: 'all',
 
-      setProjects: (projects) => set({ projects }),
-      setTasks: (tasks) => set({ tasks }),
+      setProjects: (projects) => set({ projects: projects || [] }),
+      setTasks: (tasks) => set({ tasks: tasks || [] }),
       setStatuses: (statuses) => set({ statuses }),
       setSelectedProjectId: (selectedProjectId) => set({ selectedProjectId }),
       setTaskFilterStatus: (taskFilterStatus) => set({ taskFilterStatus }),
@@ -135,21 +135,17 @@ export const useProjectStore = create(
             getTaskStatusesFromDb(),
           ])
 
-          const currentTasks = get().tasks || DEMO_TASKS
-
-          // Merge fetched tasks with existing local tasks so subtasks/status edits aren't wiped
-          const mergedTasks = (tasksData && tasksData.length > 0 ? tasksData : currentTasks).map((dbTask) => {
-            const localMatch = currentTasks.find((ct) => ct.taskId === dbTask.taskId)
+          const mergedTasks = (tasksData || []).map((dbTask) => {
             return {
               ...dbTask,
-              subtasks: dbTask.subtasks || localMatch?.subtasks || [],
-              status: dbTask.status || localMatch?.status || 'todo',
+              subtasks: dbTask.subtasks || [],
+              status: dbTask.status || 'todo',
             }
           })
 
           set({
-            projects: projectsData && projectsData.length > 0 ? projectsData : get().projects || DEMO_PROJECTS,
-            tasks: mergedTasks.length > 0 ? mergedTasks : currentTasks,
+            projects: projectsData || [],
+            tasks: mergedTasks,
             statuses: statusesData && statusesData.length > 0 ? statusesData : DEFAULT_TASK_STATUSES,
             loading: false,
           })

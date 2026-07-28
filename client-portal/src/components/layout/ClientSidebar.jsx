@@ -8,7 +8,8 @@ import {
   ChevronLeft,
   ChevronRight,
   LogOut,
-  Building2
+  Building2,
+  User
 } from 'lucide-react'
 import { useUIStore } from '../../stores/uiStore'
 import { useUserStore } from '../../stores/userStore'
@@ -18,6 +19,7 @@ const NAV_ITEMS = [
   { name: 'My Projects', path: '/portal/projects', icon: Briefcase },
   { name: 'Invoices & Receipts', path: '/portal/invoices', icon: FileText },
   { name: 'Deliverables & Files', path: '/portal/files', icon: Download },
+  { name: 'My Profile', path: '/portal/profile', icon: User },
 ]
 
 export const ClientSidebar = () => {

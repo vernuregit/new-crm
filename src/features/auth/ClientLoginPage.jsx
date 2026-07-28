@@ -4,7 +4,7 @@ import { Layers, Mail, Lock, ArrowRight, AlertCircle } from 'lucide-react'
 import { Button } from '../../shared/components/ui/Button'
 import { Input } from '../../shared/components/ui/Input'
 import { Card } from '../../shared/components/ui/Card'
-import { loginWithEmail } from '../../shared/services/authService'
+import { loginWithEmail, fetchCustomClaims } from '../../shared/services/authService'
 import { useUserStore } from '../../shared/stores/userStore'
 
 export const ClientLoginPage = () => {
@@ -34,21 +34,25 @@ export const ClientLoginPage = () => {
     }
 
     try {
-      await loginWithEmail(loginEmail, password)
+      const firebaseUser = await loginWithEmail(loginEmail, password)
+      const claims = await fetchCustomClaims(firebaseUser)
       setUser(
-        { uid: `client_${Date.now()}`, email: loginEmail, displayName: 'Acme Client Rep' },
+        firebaseUser,
         null,
-        { orgId: 'org_demo', role: 'client', tier: 'client', clientId: 'client_01' }
+        claims || { orgId: 'org_demo', role: 'client', tier: 'client', clientId: firebaseUser.uid }
       )
       navigate('/portal')
     } catch (err) {
-      console.warn('Real Firebase Auth failed, falling back to instant Dev Demo login:', err.message)
-      setUser(
-        { uid: `client_${Date.now()}`, email: loginEmail, displayName: 'Acme Client Rep' },
-        null,
-        { orgId: 'org_demo', role: 'client', tier: 'client', clientId: 'client_01' }
-      )
-      navigate('/portal')
+      console.error('Firebase Auth error:', err)
+      if (err.code === 'auth/wrong-password') {
+        setError('Incorrect password. Please try again.')
+      } else if (err.code === 'auth/user-not-found' || err.code === 'auth/invalid-credential') {
+        setError('Account does not exist or credentials are invalid. Please contact the administrator.')
+      } else if (err.code === 'auth/invalid-email') {
+        setError('Invalid email address format.')
+      } else {
+        setError(err.message || 'Authentication failed. Please check credentials.')
+      }
     } finally {
       setLoading(false)
     }
@@ -64,20 +68,20 @@ export const ClientLoginPage = () => {
   }
 
   return (
-    <div className="min-h-screen bg-[#0F1117] flex items-center justify-center p-4 relative overflow-hidden">
-      <div className="absolute top-1/4 left-1/2 -translate-x-1/2 w-96 h-96 bg-emerald-600/15 blur-[120px] rounded-full pointer-events-none" />
+    <div className="min-h-screen bg-slate-50 dark:bg-[#0F1117] flex items-center justify-center p-4 relative overflow-hidden text-slate-900 dark:text-slate-100 transition-colors duration-200">
+      <div className="absolute top-1/4 left-1/2 -translate-x-1/2 w-96 h-96 bg-emerald-500/10 dark:bg-emerald-600/15 blur-[120px] rounded-full pointer-events-none" />
 
-      <Card className="w-full max-w-md p-8 relative z-10 border-emerald-500/30 shadow-2xl space-y-6">
+      <Card className="w-full max-w-md p-8 relative z-10 border-emerald-200/80 dark:border-emerald-500/30 shadow-xl dark:shadow-2xl space-y-6">
         <div className="text-center space-y-2">
-          <div className="inline-flex w-12 h-12 rounded-2xl bg-emerald-600/20 text-emerald-400 items-center justify-center border border-emerald-500/30 mb-1">
+          <div className="inline-flex w-12 h-12 rounded-2xl bg-emerald-50 dark:bg-emerald-600/20 text-emerald-600 dark:text-emerald-400 items-center justify-center border border-emerald-200 dark:border-emerald-500/30 mb-1">
             <Layers className="w-6 h-6" />
           </div>
-          <h2 className="text-2xl font-bold text-slate-100 tracking-tight">Client Portal Sign In</h2>
-          <p className="text-xs text-slate-400">Isolated Deliverables, Invoices & Sign-off Approvals</p>
+          <h2 className="text-2xl font-bold text-slate-900 dark:text-slate-100 tracking-tight">Client Portal Sign In</h2>
+          <p className="text-xs text-slate-500 dark:text-slate-400">Isolated Deliverables, Invoices & Sign-off Approvals</p>
         </div>
 
         {error && (
-          <div className="p-3 rounded-xl bg-rose-500/10 border border-rose-500/20 text-rose-400 text-xs flex items-center gap-2">
+          <div className="p-3 rounded-xl bg-rose-50 dark:bg-rose-500/10 border border-rose-200 dark:border-rose-500/20 text-rose-600 dark:text-rose-400 text-xs flex items-center gap-2">
             <AlertCircle className="w-4 h-4 shrink-0" />
             <span>{error}</span>
           </div>
@@ -110,9 +114,9 @@ export const ClientLoginPage = () => {
 
         <div className="relative text-center">
           <div className="absolute inset-0 flex items-center">
-            <div className="w-full border-t border-slate-800" />
+            <div className="w-full border-t border-slate-200 dark:border-slate-800" />
           </div>
-          <span className="relative bg-[#181C27] px-3 text-[11px] text-slate-500 uppercase tracking-wider">
+          <span className="relative bg-white dark:bg-[#181C27] px-3 text-[11px] text-slate-500 dark:text-slate-400 uppercase tracking-wider">
             Or Client SSO
           </span>
         </div>
@@ -126,9 +130,9 @@ export const ClientLoginPage = () => {
           Sign In with Client Google SSO
         </Button>
 
-        <div className="pt-2 text-center text-xs text-slate-500 flex justify-between">
-          <Link to="/login/admin" className="hover:text-indigo-400">Admin Login →</Link>
-          <Link to="/login/employee" className="hover:text-purple-400">Employee Login →</Link>
+        <div className="pt-2 text-center text-xs text-slate-500 dark:text-slate-400 flex justify-between">
+          <Link to="/login/admin" className="hover:text-indigo-600 dark:hover:text-indigo-400 font-medium">Admin Login →</Link>
+          <Link to="/login/employee" className="hover:text-purple-600 dark:hover:text-purple-400 font-medium">Employee Login →</Link>
         </div>
       </Card>
     </div>

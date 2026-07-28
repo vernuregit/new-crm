@@ -6,6 +6,7 @@ import { Badge } from '../../components/ui/Badge'
 import { Button } from '../../components/ui/Button'
 import { Input } from '../../components/ui/Input'
 import { useTeamStore } from './stores/teamStore'
+import { useUserStore } from '../../stores/userStore'
 import { getLeaveRequests, createLeaveRequest, updateLeaveStatusInDb } from './services/teamService'
 import { collection, onSnapshot } from 'firebase/firestore'
 import { db } from '../../shared/services/firebaseService'
@@ -13,6 +14,8 @@ import { Users, CheckCircle2, Calendar, Plus, Check, X, AlertTriangle } from 'lu
 
 export const LeaveManagement = () => {
   const { employees, leaveRequests, setLeaveRequests, addLeaveRequest, updateLeaveStatus } = useTeamStore()
+  const { user } = useUserStore()
+  const adminName = user?.displayName || user?.email || 'Admin'
 
   const [showAddModal, setShowAddModal] = useState(false)
   const [employeeName, setEmployeeName] = useState('')
@@ -88,7 +91,7 @@ export const LeaveManagement = () => {
 
   const handleUpdateLeaveStatus = async (leaveId, newStatus) => {
     updateLeaveStatus(leaveId, newStatus)
-    await updateLeaveStatusInDb(leaveId, newStatus)
+    await updateLeaveStatusInDb(leaveId, newStatus, adminName)
   }
 
   return (
@@ -98,11 +101,6 @@ export const LeaveManagement = () => {
         <PageHeader
           title="Leave & PTO Management"
           description="Employee leave requests, PTO balances, annual holidays, and manager approvals"
-          actions={
-            <Button icon={Plus} variant="primary" onClick={() => setShowAddModal(true)}>
-              Request Leave
-            </Button>
-          }
         />
 
         <div className="flex items-center gap-2 border-b border-slate-200 dark:border-slate-800 pb-3">
@@ -168,17 +166,24 @@ export const LeaveManagement = () => {
                 </td>
                 <td className="p-4 text-slate-600 dark:text-slate-400 max-w-xs truncate">{req.reason}</td>
                 <td className="p-4">
-                  <Badge
-                    variant={
-                      req.status === 'approved'
-                        ? 'success'
-                        : req.status === 'rejected'
-                        ? 'danger'
-                        : 'warning'
-                    }
-                  >
-                    {req.status}
-                  </Badge>
+                  <div className="flex flex-col gap-1">
+                    <Badge
+                      variant={
+                        req.status === 'approved'
+                          ? 'success'
+                          : req.status === 'rejected'
+                          ? 'danger'
+                          : 'warning'
+                      }
+                    >
+                      {req.status}
+                    </Badge>
+                    {req.reviewedBy && req.status !== 'pending' && (
+                      <span className="text-[10px] text-slate-500 dark:text-slate-400 font-medium">
+                        by {req.reviewedBy}
+                      </span>
+                    )}
+                  </div>
                 </td>
                 <td className="p-4 text-right space-x-2">
                   {req.status === 'pending' && (

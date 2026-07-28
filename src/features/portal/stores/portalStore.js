@@ -42,11 +42,14 @@ const DEMO_APPROVALS = [
 ]
 
 export const usePortalStore = create((set) => ({
-  projects: DEMO_CLIENT_PROJECTS,
+  projects: [],
   invoices: [],
-  files: DEMO_CLIENT_FILES,
-  approvals: DEMO_APPROVALS,
+  files: [],
+  approvals: [],
 
+  setProjects: (projects) => set({ projects: projects || [] }),
+  setFiles: (files) => set({ files: files || [] }),
+  setApprovals: (approvals) => set({ approvals: approvals || [] }),
   setInvoices: (invoices) => set({ invoices: Array.isArray(invoices) ? invoices : [] }),
 
   approveDeliverable: (approvalId) =>

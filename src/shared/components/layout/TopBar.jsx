@@ -1,4 +1,5 @@
 import React from 'react'
+import { Link } from 'react-router-dom'
 import { Bell, Search, User, Command, LogOut, Sun, Moon } from 'lucide-react'
 import { useUserStore } from '../../stores/userStore'
 import { useOrgStore } from '../../stores/orgStore'
@@ -7,7 +8,7 @@ import { useNotificationStore } from '../../../features/notifications/stores/not
 import { NotificationCenter } from '../../../features/notifications/NotificationCenter'
 
 export const TopBar = () => {
-  const { user, clearUser } = useUserStore()
+  const { user, userDoc, claims, clearUser } = useUserStore()
   const { org } = useOrgStore()
   const { theme, toggleTheme } = useUIStore()
   const { notifications, toggleOpen } = useNotificationStore()
@@ -62,17 +63,58 @@ export const TopBar = () => {
 
         {/* User Profile Menu & Logout */}
         <div className="flex items-center gap-3 pl-3 border-l border-slate-200 dark:border-slate-800">
-          <div className="w-9 h-9 rounded-xl bg-slate-100 dark:bg-slate-800 border border-slate-200 dark:border-slate-700 text-slate-700 dark:text-slate-300 flex items-center justify-center font-medium text-xs">
-            {user?.displayName ? user.displayName.charAt(0).toUpperCase() : <User className="w-4 h-4" />}
-          </div>
-          <div className="hidden sm:flex flex-col text-left">
-            <span className="text-xs font-semibold text-slate-800 dark:text-slate-200">
-              {user?.displayName || 'Demo Executive'}
-            </span>
-            <span className="text-[10px] text-slate-500 dark:text-slate-400">
-              {user?.email || 'admin@businessos.io'}
-            </span>
-          </div>
+          {userDoc?.role === 'client' || claims?.role === 'client' ? (
+            <Link
+              to="/portal/profile"
+              className="flex items-center gap-3 hover:opacity-80 transition-opacity cursor-pointer group"
+            >
+              <div className="w-9 h-9 rounded-xl bg-emerald-50 dark:bg-emerald-600/20 border border-emerald-200 dark:border-emerald-500/30 text-emerald-600 dark:text-emerald-400 flex items-center justify-center font-medium text-xs group-hover:scale-105 transition-transform">
+                {user?.displayName ? user.displayName.charAt(0).toUpperCase() : <User className="w-4 h-4" />}
+              </div>
+              <div className="hidden sm:flex flex-col text-left">
+                <span className="text-xs font-semibold text-slate-800 dark:text-slate-200">
+                  {user?.displayName || 'Client User'}
+                </span>
+                <span className="text-[10px] text-emerald-600 dark:text-emerald-400 font-medium">
+                  Client Portal
+                </span>
+              </div>
+            </Link>
+          ) : userDoc?.role === 'employee' || claims?.role === 'employee' ? (
+            <Link
+              to="/employee/profile"
+              className="flex items-center gap-3 hover:opacity-80 transition-opacity cursor-pointer group"
+            >
+              <div className="w-9 h-9 rounded-xl bg-purple-50 dark:bg-purple-600/20 border border-purple-200 dark:border-purple-500/30 text-purple-600 dark:text-purple-400 flex items-center justify-center font-medium text-xs group-hover:scale-105 transition-transform">
+                {user?.displayName ? user.displayName.charAt(0).toUpperCase() : <User className="w-4 h-4" />}
+              </div>
+              <div className="hidden sm:flex flex-col text-left">
+                <span className="text-xs font-semibold text-slate-800 dark:text-slate-200">
+                  {user?.displayName || 'Employee'}
+                </span>
+                <span className="text-[10px] text-purple-600 dark:text-purple-400 font-medium">
+                  Employee Portal
+                </span>
+              </div>
+            </Link>
+          ) : (
+            <Link
+              to="/settings/profile"
+              className="flex items-center gap-3 hover:opacity-80 transition-opacity cursor-pointer group"
+            >
+              <div className="w-9 h-9 rounded-xl bg-indigo-50 dark:bg-indigo-600/20 border border-indigo-200 dark:border-indigo-500/30 text-indigo-600 dark:text-indigo-400 flex items-center justify-center font-medium text-xs group-hover:scale-105 transition-transform">
+                {user?.displayName ? user.displayName.charAt(0).toUpperCase() : <User className="w-4 h-4" />}
+              </div>
+              <div className="hidden sm:flex flex-col text-left">
+                <span className="text-xs font-semibold text-slate-800 dark:text-slate-200">
+                  {user?.displayName || 'Administrator'}
+                </span>
+                <span className="text-[10px] text-indigo-600 dark:text-indigo-400 font-medium">
+                  Admin Settings
+                </span>
+              </div>
+            </Link>
+          )}
 
           <button
             onClick={clearUser}

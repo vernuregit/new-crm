@@ -261,9 +261,14 @@ export const LeaveManagement = () => {
     return () => unsub()
   }, [setLeaveRequests, setEmployees])
 
-  const pendingRequests = leaveRequests.filter((l) => l.status === 'pending').length
-  const approvedRequests = leaveRequests.filter((l) => l.status === 'approved')
-  const rejectedRequests = leaveRequests.filter((l) => l.status === 'rejected')
+  // Only show this employee's own leave requests
+  const myLeaveRequests = leaveRequests.filter(
+    (l) => l.employeeName === loggedInEmployeeName
+  )
+
+  const pendingRequests = myLeaveRequests.filter((l) => l.status === 'pending').length
+  const approvedRequests = myLeaveRequests.filter((l) => l.status === 'approved')
+  const rejectedRequests = myLeaveRequests.filter((l) => l.status === 'rejected')
 
   // Dynamic PTO and Allowance calculations based on approved leave requests
   const approvedAnnualDays = approvedRequests
@@ -407,7 +412,8 @@ export const LeaveManagement = () => {
                 Your leave is granted!
               </h4>
               <p className="text-xs text-emerald-800 dark:text-slate-300 mt-0.5">
-                {approvedRequests[0].leaveType} ({approvedRequests[0].startDate} to {approvedRequests[0].endDate}) for {approvedRequests[0].employeeName} has been approved by management.
+                {approvedRequests[0].leaveType} ({approvedRequests[0].startDate} to {approvedRequests[0].endDate}) for {approvedRequests[0].employeeName} has been approved
+                {approvedRequests[0].reviewedBy ? ` by ${approvedRequests[0].reviewedBy}` : ' by management'}.
               </p>
             </div>
           </div>
@@ -427,7 +433,8 @@ export const LeaveManagement = () => {
                 Leave Request Notice
               </h4>
               <p className="text-xs text-slate-300 mt-0.5">
-                {rejectedRequests[0].leaveType} request for {rejectedRequests[0].employeeName} was declined by administrator.
+                {rejectedRequests[0].leaveType} request for {rejectedRequests[0].employeeName} was declined
+                {rejectedRequests[0].reviewedBy ? ` by ${rejectedRequests[0].reviewedBy}` : ' by administrator'}.
               </p>
             </div>
           </div>
@@ -491,7 +498,6 @@ export const LeaveManagement = () => {
         <table className="w-full text-left border-collapse text-xs">
           <thead>
             <tr className="bg-slate-100 dark:bg-slate-900/80 border-b border-slate-200 dark:border-slate-800 text-slate-700 dark:text-slate-400 font-semibold">
-              <th className="p-4 font-semibold">Employee</th>
               <th className="p-4 font-semibold">Leave Type</th>
               <th className="p-4 font-semibold">Duration</th>
               <th className="p-4 font-semibold">Reason</th>
@@ -499,33 +505,39 @@ export const LeaveManagement = () => {
             </tr>
           </thead>
           <tbody className="divide-y divide-slate-200 dark:divide-slate-800/60">
-            {leaveRequests.length === 0 ? (
+            {myLeaveRequests.length === 0 ? (
               <tr>
-                <td colSpan="5" className="p-6 text-center text-slate-500 dark:text-slate-400 text-xs">
+                <td colSpan="4" className="p-6 text-center text-slate-500 dark:text-slate-400 text-xs">
                   No leave requests submitted yet. Click "Request Leave" above to apply.
                 </td>
               </tr>
             ) : (
-              leaveRequests.map((req) => (
+              myLeaveRequests.map((req) => (
                 <tr key={req.leaveId} className="hover:bg-slate-50 dark:hover:bg-slate-800/30 transition-colors text-slate-700 dark:text-slate-300">
-                  <td className="p-4 font-bold text-slate-900 dark:text-slate-200">{req.employeeName}</td>
                   <td className="p-4 text-slate-800 dark:text-slate-300 font-medium">{req.leaveType}</td>
                   <td className="p-4 text-slate-600 dark:text-slate-400">
                     {req.startDate} to {req.endDate} ({req.days} days)
                   </td>
                   <td className="p-4 text-slate-600 dark:text-slate-400 max-w-xs truncate">{req.reason}</td>
                   <td className="p-4 text-right">
-                    <Badge
-                      variant={
-                        req.status === 'approved'
-                          ? 'success'
-                          : req.status === 'rejected'
-                          ? 'danger'
-                          : 'warning'
-                      }
-                    >
-                      {req.status === 'approved' ? 'Granted' : req.status === 'rejected' ? 'Declined' : 'Pending Review'}
-                    </Badge>
+                    <div className="flex flex-col items-end gap-1">
+                      <Badge
+                        variant={
+                          req.status === 'approved'
+                            ? 'success'
+                            : req.status === 'rejected'
+                            ? 'danger'
+                            : 'warning'
+                        }
+                      >
+                        {req.status === 'approved' ? 'Granted' : req.status === 'rejected' ? 'Declined' : 'Pending Review'}
+                      </Badge>
+                      {req.reviewedBy && req.status !== 'pending' && (
+                        <span className="text-[10px] text-slate-500 dark:text-slate-400 font-medium">
+                          by {req.reviewedBy}
+                        </span>
+                      )}
+                    </div>
                   </td>
                 </tr>
               ))
@@ -559,16 +571,7 @@ export const LeaveManagement = () => {
             )}
 
             <form onSubmit={handleRequestLeave} className="space-y-4">
-              <div className="space-y-1.5 text-left">
-                <label className="block text-xs font-medium text-slate-700 dark:text-slate-300">Employee Name</label>
-                <div className="w-full bg-slate-100 dark:bg-slate-900 border border-slate-300 dark:border-slate-800 text-slate-800 dark:text-slate-100 text-sm font-semibold rounded-xl py-2.5 px-3.5 flex items-center justify-between">
-                  <span className="flex items-center gap-2">
-                    <User className="w-4 h-4 text-indigo-600 dark:text-indigo-400" />
-                    {loggedInEmployeeName}
-                  </span>
-                  <Badge variant="brand">Current Staff</Badge>
-                </div>
-              </div>
+
 
               <div className="space-y-1.5 text-left">
                 <label className="block text-xs font-medium text-slate-700 dark:text-slate-300">Leave Type</label>
@@ -591,12 +594,11 @@ export const LeaveManagement = () => {
                 <label className="block text-xs font-medium text-slate-700 dark:text-slate-300">Select Date Range</label>
                 <InteractiveCalendarPicker
                   startDate={startDate}
+                  setStartDate={setStartDate}
                   endDate={endDate}
-                  onChangeRange={(start, end) => {
-                    setStartDate(start)
-                    setEndDate(end)
-                    setValidationError('')
-                  }}
+                  setEndDate={setEndDate}
+                  leaveType={leaveType}
+                  setValidationError={setValidationError}
                 />
               </div>
 

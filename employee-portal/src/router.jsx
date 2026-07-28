@@ -10,6 +10,7 @@ import { EmployeeList } from './features/team/EmployeeList'
 import { AttendancePage } from './features/team/AttendancePage'
 import { LeaveManagement } from './features/team/LeaveManagement'
 import { KnowledgeBase } from './features/knowledge/KnowledgeBase'
+import { EmployeeProfile } from './features/profile/EmployeeProfile'
 
 export const router = createBrowserRouter([
   {
@@ -42,6 +43,9 @@ export const router = createBrowserRouter([
 
       // Knowledge Base
       { path: 'knowledge/*', element: <KnowledgeBase /> },
+
+      // Profile
+      { path: 'profile', element: <EmployeeProfile /> },
     ],
   },
   { path: '*', element: <Navigate to="/dashboard" replace /> },

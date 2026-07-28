@@ -89,7 +89,7 @@ export const ProfessionalInvoiceModal = ({ invoice, onClose, onSendClient }) => 
                 <p className="font-medium text-slate-700 dark:text-slate-300">HQ Headquarters Inc.</p>
                 <p>100 Innovation Boulevard, Suite 500</p>
                 <p>Tech City, CA 94107 | Tax ID: US-987654321</p>
-                <p>support@nextgencrm.io | +1 (800) 555-0199</p>
+                <p>support@nextgencrm.io </p>
               </div>
             </div>
 
