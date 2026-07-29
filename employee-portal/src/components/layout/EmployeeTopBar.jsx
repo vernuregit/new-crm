@@ -5,8 +5,10 @@ import { useUserStore } from '../../stores/userStore'
 import { useUIStore } from '../../stores/uiStore'
 
 export const EmployeeTopBar = () => {
-  const { user } = useUserStore()
+  const { user, userDoc } = useUserStore()
   const { theme, toggleTheme } = useUIStore()
+
+  const displayName = userDoc?.displayName || user?.displayName || 'Employee Staff'
 
   return (
     <header className="h-16 bg-white/90 dark:bg-[#12151E]/90 backdrop-blur-md border-b border-slate-200 dark:border-purple-900/40 px-6 flex items-center justify-between sticky top-0 z-30 transition-colors">
@@ -55,11 +57,11 @@ export const EmployeeTopBar = () => {
           className="flex items-center gap-3 pl-3 border-l border-slate-200 dark:border-purple-900/40 hover:opacity-80 transition-opacity cursor-pointer group"
         >
           <div className="w-9 h-9 rounded-xl bg-purple-50 dark:bg-purple-600/20 border border-purple-200 dark:border-purple-500/30 text-purple-600 dark:text-purple-400 flex items-center justify-center font-medium text-xs group-hover:scale-105 transition-transform">
-            {user?.displayName ? user.displayName.charAt(0).toUpperCase() : <User className="w-4 h-4" />}
+            {displayName ? displayName.charAt(0).toUpperCase() : <User className="w-4 h-4" />}
           </div>
           <div className="hidden sm:flex flex-col text-left">
-            <span className="text-xs font-semibold text-slate-800 dark:text-slate-200">
-              {user?.displayName || 'Employee Staff'}
+            <span className="text-xs font-semibold text-slate-800 dark:text-slate-200 truncate max-w-[120px]">
+              {displayName}
             </span>
             <span className="text-[10px] text-purple-600 dark:text-purple-400 font-medium">
               Staff Member

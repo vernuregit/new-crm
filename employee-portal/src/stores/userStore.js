@@ -8,7 +8,13 @@ export const useUserStore = create(
       userDoc: null,
       claims: null,
       isLoading: false,
-      setUser: (user, userDoc, claims) => set({ user, userDoc, claims, isLoading: false }),
+      setUser: (user, userDoc, claims) =>
+        set((state) => ({
+          user,
+          userDoc,
+          claims: claims !== null && claims !== undefined ? claims : state.claims,
+          isLoading: false,
+        })),
       clearUser: () => set({ user: null, userDoc: null, claims: null, isLoading: false }),
     }),
     {

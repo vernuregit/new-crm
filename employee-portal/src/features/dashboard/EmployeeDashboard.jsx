@@ -16,7 +16,9 @@ import {
   ArrowRight,
   Users,
   FolderKanban,
-  Plus
+  Plus,
+  Sun,
+  Moon
 } from 'lucide-react'
 import { NavLink } from 'react-router-dom'
 
@@ -39,18 +41,29 @@ const colorMap = {
 }
 
 export const EmployeeDashboard = () => {
-  const { user } = useUserStore()
+  const { user, userDoc } = useUserStore()
   const { tasks, projects, updateTaskStatus, addTask, fetchProjectsAndTasks } = useProjectStore()
 
-  const displayName = user?.displayName || 'Team Member'
+  const displayName = userDoc?.displayName || user?.displayName || 'Team Member'
   const firstName = displayName.split(' ')[0]
 
   const [newFocusTitle, setNewFocusTitle] = useState('')
   const [showAddFocus, setShowAddFocus] = useState(false)
+  const [currentHour, setCurrentHour] = useState(() => new Date().getHours())
 
   useEffect(() => {
     fetchProjectsAndTasks()
   }, [fetchProjectsAndTasks])
+
+  useEffect(() => {
+    const timer = setInterval(() => {
+      setCurrentHour(new Date().getHours())
+    }, 60000)
+    return () => clearInterval(timer)
+  }, [])
+
+  // Time-based condition: 10 AM to 6 PM (10:00 - 17:59) is bright sun; after 6 PM (18:00+) & early morning is moon
+  const isBrightSun = currentHour >= 10 && currentHour < 18
 
   // Filter tasks assigned to logged-in user or open team tasks
   const userTasks = tasks.filter((t) => !t.assigneeName || t.assigneeName === displayName)
@@ -100,17 +113,36 @@ export const EmployeeDashboard = () => {
       {/* Welcome Header */}
       <div className="relative overflow-hidden rounded-2xl bg-gradient-to-r from-indigo-50 via-purple-50 to-blue-50 dark:from-indigo-600/20 dark:via-purple-600/10 dark:to-blue-600/20 border border-indigo-200 dark:border-indigo-500/20 p-8">
         <div className="absolute top-0 right-0 w-72 h-72 bg-indigo-500/10 dark:bg-indigo-600/10 blur-3xl rounded-full pointer-events-none" />
-        <div className="relative z-10">
-          <div className="flex items-center gap-3 mb-2">
-            <div className="w-12 h-12 rounded-2xl bg-indigo-100 dark:bg-indigo-600/30 border border-indigo-200 dark:border-indigo-500/40 flex items-center justify-center text-indigo-600 dark:text-indigo-300 font-bold text-lg shadow-lg">
+        <div className="relative z-10 flex items-center justify-between gap-4">
+          <div className="flex items-center gap-3">
+            <div className="w-12 h-12 rounded-2xl bg-indigo-100 dark:bg-indigo-600/30 border border-indigo-200 dark:border-indigo-500/40 flex items-center justify-center text-indigo-600 dark:text-indigo-300 font-bold text-lg shadow-lg shrink-0">
               {firstName.charAt(0).toUpperCase()}
             </div>
             <div>
               <h1 className="text-2xl font-bold text-slate-900 dark:text-slate-100">
-                Good {new Date().getHours() < 12 ? 'Morning' : new Date().getHours() < 18 ? 'Afternoon' : 'Evening'}, {firstName}!
+                Good {currentHour < 12 ? 'Morning' : currentHour < 18 ? 'Afternoon' : 'Evening'}, {firstName}!
               </h1>
               <p className="text-slate-500 dark:text-slate-400 text-sm mt-0.5">{today}</p>
             </div>
+          </div>
+
+          {/* Big Sun / Moon Icon on the right side */}
+          <div className="flex items-center justify-center shrink-0">
+            {isBrightSun ? (
+              <div
+                title="10:00 AM - 6:00 PM: Bright Sun"
+                className="p-3.5 rounded-2xl bg-amber-500/15 border border-amber-500/30 text-amber-500 dark:text-amber-400 shadow-[0_0_20px_rgba(245,158,11,0.45)] animate-pulse flex items-center justify-center"
+              >
+                <Sun className="w-10 h-10 fill-amber-400/40 text-amber-500 dark:text-amber-400 drop-shadow-[0_0_12px_rgba(245,158,11,0.9)]" />
+              </div>
+            ) : (
+              <div
+                title="After 6:00 PM / Night: Moon"
+                className="p-3.5 rounded-2xl bg-indigo-500/15 border border-indigo-500/30 text-indigo-400 dark:text-indigo-300 shadow-[0_0_20px_rgba(99,102,241,0.35)] flex items-center justify-center"
+              >
+                <Moon className="w-10 h-10 fill-indigo-400/30 text-indigo-400 dark:text-indigo-300 drop-shadow-[0_0_12px_rgba(129,140,248,0.9)]" />
+              </div>
+            )}
           </div>
         </div>
       </div>

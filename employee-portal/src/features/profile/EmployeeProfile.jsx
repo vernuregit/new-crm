@@ -7,7 +7,7 @@ import { Input } from '../../components/ui/Input'
 import { useUserStore } from '../../stores/userStore'
 import { db, auth } from '../../shared/services/firebaseService'
 import { updateDoc, doc, getDoc } from 'firebase/firestore'
-import { updatePassword, sendPasswordResetEmail } from 'firebase/auth'
+import { updatePassword, sendPasswordResetEmail, updateProfile } from 'firebase/auth'
 import {
   User,
   Building,
@@ -24,7 +24,7 @@ import {
 } from 'lucide-react'
 
 export const EmployeeProfile = () => {
-  const { user, userDoc, setUser } = useUserStore()
+  const { user, userDoc, claims, setUser } = useUserStore()
 
   const [displayName, setDisplayName] = useState('')
   const [phoneNumber, setPhoneNumber] = useState('')
@@ -53,7 +53,7 @@ export const EmployeeProfile = () => {
           const snap = await getDoc(doc(db, 'users', user.uid))
           if (snap.exists()) {
             currentDoc = snap.data()
-            setUser(user, currentDoc, null)
+            setUser(user, currentDoc, claims)
           }
         } catch (err) {
           console.warn('Failed to fetch user doc:', err)
@@ -61,20 +61,20 @@ export const EmployeeProfile = () => {
       }
 
       if (currentDoc) {
-        setDisplayName(currentDoc.displayName || '')
+        setDisplayName(currentDoc.displayName || user?.displayName || '')
         setPhoneNumber(currentDoc.phoneNumber || '')
         setRoleName(currentDoc.roleName || currentDoc.role || 'Team Member')
         setDepartmentName(currentDoc.departmentName || currentDoc.department || 'Delivery & Operations')
         setSkills(currentDoc.skills || ['Productivity'])
       } else {
-        setDisplayName(user.displayName || '')
+        setDisplayName(user?.displayName || '')
         setRoleName('Software Specialist')
         setDepartmentName('Engineering & Product')
         setSkills(['React', 'Productivity'])
       }
     }
     loadProfile()
-  }, [user, userDoc, setUser])
+  }, [user, userDoc, claims, setUser])
 
   const handleUpdateProfile = async (e) => {
     e.preventDefault()
@@ -83,22 +83,31 @@ export const EmployeeProfile = () => {
     setSuccess('')
 
     try {
+      const trimmedName = displayName.trim()
       const userRef = doc(db, 'users', user.uid)
       const updatedFields = {
-        displayName,
-        phoneNumber,
+        displayName: trimmedName,
+        phoneNumber: phoneNumber.trim(),
         updatedAt: new Date().toISOString(),
       }
 
       if (import.meta.env.VITE_FIREBASE_API_KEY !== 'mock_api_key_dev') {
         await updateDoc(userRef, updatedFields)
+        if (auth.currentUser) {
+          try {
+            await updateProfile(auth.currentUser, { displayName: trimmedName })
+          } catch (pErr) {
+            console.warn('Firebase auth updateProfile warning:', pErr)
+          }
+        }
       }
 
-      // Update store
+      // Update store — propagate displayName to both user and userDoc so sidebar/topbar re-render immediately
       const newDoc = { ...userDoc, ...updatedFields }
-      setUser(user, newDoc, null)
+      const updatedUser = { ...(user || {}), displayName: trimmedName }
+      setUser(updatedUser, newDoc, claims)
 
-      setSuccess('Profile updated successfully!')
+      setSuccess('Profile details updated successfully!')
     } catch (err) {
       console.error(err)
       setError('Failed to update profile details.')

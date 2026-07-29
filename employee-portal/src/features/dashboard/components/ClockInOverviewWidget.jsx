@@ -4,6 +4,8 @@ import { Card } from '../../../components/ui/Card'
 import { Badge } from '../../../components/ui/Badge'
 import { Button } from '../../../components/ui/Button'
 import { useTeamStore } from '../../team/stores/teamStore'
+import { AttendanceCalendarWidget } from './AttendanceCalendarWidget'
+import { AttendanceMetricsBar } from '../../team/components/AttendanceMetricsBar'
 import {
   Clock,
   LogIn,
@@ -62,7 +64,6 @@ export const ClockInOverviewWidget = () => {
         setElapsedSeconds(accumulatedWorkSeconds)
       }
     }
-
     updateTicker()
     const timer = setInterval(updateTicker, 1000)
     return () => clearInterval(timer)
@@ -91,53 +92,49 @@ export const ClockInOverviewWidget = () => {
   const gaugeCircumference = 2 * Math.PI * gaugeRadius
   const strokeDashoffset = gaugeCircumference - (progressPercentage / 100) * gaugeCircumference
 
-  // Donut chart calculations for My Attendance (23 days)
-  const presentPct = Math.round((attendanceStats.presentDays / attendanceStats.totalDays) * 100)
-  const absentPct = Math.round((attendanceStats.absentDays / attendanceStats.totalDays) * 100)
-
   return (
-    <div className="space-y-4">
+    <div className="space-y-3">
       {/* Main Top Attendance Hub Grid */}
-      <div className="grid grid-cols-1 lg:grid-cols-12 gap-5 items-stretch">
-        
+      <div className="grid grid-cols-1 lg:grid-cols-12 gap-3 items-stretch">
+
         {/* CARD 1: Today's Overview (Main Clock-In Card) */}
-        <Card className="lg:col-span-5 p-5 border-slate-200 dark:border-slate-800 flex flex-col justify-between relative overflow-hidden bg-gradient-to-br from-white via-slate-50/50 to-emerald-50/20 dark:from-[#181C27] dark:via-[#181C27] dark:to-emerald-950/20 shadow-lg shadow-slate-200/50 dark:shadow-none">
+        <Card className="lg:col-span-5 p-5 sm:p-6 border-slate-200 dark:border-slate-800 flex flex-col justify-between relative overflow-hidden bg-gradient-to-br from-white via-slate-50/50 to-emerald-50/20 dark:from-[#181C27] dark:via-[#181C27] dark:to-emerald-950/20 shadow-lg shadow-slate-200/50 dark:shadow-none">
           {/* Top Row: Title & Badge & Live Clock */}
           <div>
             <div className="flex items-center justify-between pb-3 border-b border-slate-200/80 dark:border-slate-800">
               <div className="flex items-center gap-2">
-                <h3 className="font-bold text-slate-900 dark:text-slate-100 text-sm tracking-tight">
+                <h3 className="font-extrabold text-slate-900 dark:text-slate-100 text-base tracking-tight">
                   Today's Overview
                 </h3>
               </div>
 
-              <div className="flex items-center gap-2">
-                <span className="text-[11px] font-mono text-slate-500 dark:text-slate-400 bg-slate-100 dark:bg-slate-800/80 px-2 py-0.5 rounded-md border border-slate-200 dark:border-slate-700/60">
+              <div className="flex items-center gap-2.5">
+                <span className="text-xs font-mono text-slate-600 dark:text-slate-300 bg-slate-100 dark:bg-slate-800/90 px-2.5 py-1 rounded-lg border border-slate-200 dark:border-slate-700/80 shadow-xs font-medium">
                   {currentTimeStr}
                 </span>
 
                 {clockedIn ? (
                   isOnBreak ? (
-                    <Badge variant="warning" className="animate-pulse">
+                    <Badge variant="warning" className="animate-pulse text-xs px-2.5 py-0.5 font-semibold">
                       On Break
                     </Badge>
                   ) : (
-                    <Badge variant="success" className="flex items-center gap-1">
-                      <span className="w-1.5 h-1.5 rounded-full bg-emerald-500 animate-ping" />
+                    <Badge variant="success" className="flex items-center gap-1.5 text-xs px-2.5 py-0.5 font-semibold">
+                      <span className="w-2 h-2 rounded-full bg-emerald-500 animate-ping" />
                       Present
                     </Badge>
                   )
                 ) : (
-                  <Badge variant="danger">Absent</Badge>
+                  <Badge variant="danger" className="text-xs px-2.5 py-0.5 font-semibold">Absent</Badge>
                 )}
               </div>
             </div>
 
             {/* Gauge & Progress Details */}
-            <div className="grid grid-cols-12 gap-3 items-center py-4">
+            <div className="grid grid-cols-12 gap-4 items-center py-4">
               {/* Circular Gauge */}
-              <div className="col-span-5 flex flex-col items-center justify-center relative">
-                <div className="relative w-28 h-28 flex items-center justify-center">
+              <div className="col-span-5 sm:col-span-4 flex flex-col items-center justify-center relative">
+                <div className="relative w-28 h-28 sm:w-30 sm:h-30 flex items-center justify-center">
                   <svg className="w-full h-full transform -rotate-90" viewBox="0 0 100 100">
                     {/* Background Ring */}
                     <circle
@@ -163,10 +160,10 @@ export const ClockInOverviewWidget = () => {
                   </svg>
 
                   <div className="absolute inset-0 flex flex-col items-center justify-center text-center">
-                    <span className="text-xl font-extrabold text-slate-900 dark:text-white leading-none">
+                    <span className="text-xl sm:text-2xl font-black text-slate-900 dark:text-white leading-none tracking-tight">
                       {progressPercentage}%
                     </span>
-                    <span className="text-[10px] font-medium text-slate-500 dark:text-slate-400 mt-1">
+                    <span className="text-[11px] font-semibold text-slate-500 dark:text-slate-400 mt-1">
                       in office
                     </span>
                   </div>
@@ -174,36 +171,36 @@ export const ClockInOverviewWidget = () => {
               </div>
 
               {/* Progress Text Information */}
-              <div className="col-span-7 space-y-2 pl-2">
+              <div className="col-span-7 sm:col-span-8 space-y-2 pl-2">
                 <div>
-                  <span className="text-[11px] font-semibold text-slate-500 dark:text-slate-400 uppercase tracking-wider block">
+                  <span className="text-xs font-semibold text-slate-500 dark:text-slate-400 uppercase tracking-wider block">
                     Workday Progress
                   </span>
-                  <div className="text-2xl font-black text-emerald-600 dark:text-emerald-400 tracking-tight mt-0.5">
+                  <div className="text-2xl sm:text-3xl font-black text-emerald-600 dark:text-emerald-400 tracking-tight mt-0.5">
                     {formatWorkdayHours(elapsedSeconds)}
                   </div>
                 </div>
 
                 {/* Sub progress line */}
-                <div className="w-full bg-slate-200 dark:bg-slate-800 h-1.5 rounded-full overflow-hidden">
+                <div className="w-full bg-slate-200 dark:bg-slate-800 h-2 rounded-full overflow-hidden">
                   <div
                     className="bg-emerald-500 dark:bg-emerald-400 h-full transition-all duration-500 rounded-full"
                     style={{ width: `${progressPercentage}%` }}
                   />
                 </div>
 
-                <p className="text-xs text-slate-500 dark:text-slate-400">
+                <p className="text-xs sm:text-sm text-slate-500 dark:text-slate-400 font-medium pt-0.5">
                   {!clockedIn ? (
                     <span className="text-slate-500 dark:text-slate-400 italic">
                       You haven't clocked in today
                     </span>
                   ) : isOnBreak ? (
-                    <span className="text-amber-600 dark:text-amber-400 font-medium">
+                    <span className="text-amber-600 dark:text-amber-400 font-semibold">
                       Paused for break
                     </span>
                   ) : (
-                    <span className="text-slate-700 dark:text-slate-300 font-medium">
-                      Clocked in at <strong className="text-emerald-600 dark:text-emerald-400">{clockInTime}</strong>
+                    <span className="text-slate-700 dark:text-slate-300">
+                      Clocked in at <strong className="text-emerald-600 dark:text-emerald-400 font-bold">{clockInTime}</strong>
                     </span>
                   )}
                 </p>
@@ -212,10 +209,10 @@ export const ClockInOverviewWidget = () => {
           </div>
 
           {/* Action Button Strip */}
-          <div className="pt-2 flex items-center gap-2">
+          <div className="pt-3 flex items-center gap-2.5">
             <Button
               onClick={toggleClockIn}
-              className={`flex-1 justify-center py-2.5 font-bold shadow-md transition-all text-sm ${
+              className={`flex-1 justify-center py-2.5 font-extrabold shadow-md transition-all text-sm sm:text-base rounded-xl ${
                 clockedIn
                   ? 'bg-gradient-to-r from-rose-600 to-rose-500 hover:from-rose-500 hover:to-rose-600 text-white shadow-rose-500/20'
                   : 'bg-emerald-700 hover:bg-emerald-800 text-white shadow-emerald-700/20'
@@ -223,11 +220,11 @@ export const ClockInOverviewWidget = () => {
             >
               {clockedIn ? (
                 <>
-                  <LogOut className="w-4 h-4 mr-1.5" /> Clock Out
+                  <LogOut className="w-4 h-4 sm:w-5 sm:h-5 mr-2" /> Clock Out
                 </>
               ) : (
                 <>
-                  <LogIn className="w-4 h-4 mr-1.5" /> Check In
+                  <LogIn className="w-4 h-4 sm:w-5 sm:h-5 mr-2" /> Check In
                 </>
               )}
             </Button>
@@ -237,9 +234,9 @@ export const ClockInOverviewWidget = () => {
                 variant={isOnBreak ? 'primary' : 'secondary'}
                 onClick={toggleBreak}
                 title={isOnBreak ? 'Resume Work' : 'Take Break'}
-                className="py-2.5 px-3"
+                className="py-2.5 px-3.5 rounded-xl"
               >
-                <Coffee className={`w-4 h-4 ${isOnBreak ? 'text-white' : 'text-amber-500'}`} />
+                <Coffee className={`w-4 h-4 sm:w-5 sm:h-5 ${isOnBreak ? 'text-white' : 'text-amber-500'}`} />
               </Button>
             )}
 
@@ -247,9 +244,9 @@ export const ClockInOverviewWidget = () => {
               variant="outline"
               onClick={() => setShowLogs(!showLogs)}
               title="Today's Shift Logs"
-              className="py-2.5 px-3 text-slate-500 dark:text-slate-400"
+              className="py-2.5 px-3.5 text-slate-500 dark:text-slate-400 rounded-xl"
             >
-              <History className="w-4 h-4" />
+              <History className="w-4 h-4 sm:w-5 sm:h-5" />
             </Button>
           </div>
         </Card>
@@ -257,152 +254,74 @@ export const ClockInOverviewWidget = () => {
         {/* CARD 2: Daily Metrics 2x2 Grid */}
         <div className="lg:col-span-4 grid grid-cols-2 gap-3 items-stretch">
           {/* Avg Hours / Day */}
-          <Card className="p-4 border-slate-200 dark:border-slate-800 flex flex-col justify-between hover:border-indigo-400/40 transition-colors">
-            <div className="w-9 h-9 rounded-xl bg-sky-50 dark:bg-sky-500/10 text-sky-600 dark:text-sky-400 flex items-center justify-center mb-2">
+          <Card className="p-3 border-slate-200 dark:border-slate-800 flex flex-col justify-between hover:border-indigo-400/40 transition-colors">
+            <div className="w-8 h-8 rounded-lg bg-sky-50 dark:bg-sky-500/10 text-sky-600 dark:text-sky-400 flex items-center justify-center mb-2">
               <Clock className="w-4 h-4" />
             </div>
             <div>
-              <div className="text-lg font-bold text-slate-900 dark:text-slate-100">
+              <div className="text-base font-bold text-slate-900 dark:text-slate-100">
                 {attendanceStats.avgHours}
               </div>
-              <span className="text-[11px] font-medium text-slate-500 dark:text-slate-400 uppercase tracking-wider block mt-0.5">
+              <span className="text-[10px] font-medium text-slate-500 dark:text-slate-400 uppercase tracking-wider block mt-0.5">
                 Avg hours / day
               </span>
             </div>
           </Card>
 
           {/* Avg Check-In */}
-          <Card className="p-4 border-slate-200 dark:border-slate-800 flex flex-col justify-between hover:border-emerald-400/40 transition-colors">
-            <div className="w-9 h-9 rounded-xl bg-emerald-50 dark:bg-emerald-500/10 text-emerald-600 dark:text-emerald-400 flex items-center justify-center mb-2">
+          <Card className="p-3 border-slate-200 dark:border-slate-800 flex flex-col justify-between hover:border-emerald-400/40 transition-colors">
+            <div className="w-8 h-8 rounded-lg bg-emerald-50 dark:bg-emerald-500/10 text-emerald-600 dark:text-emerald-400 flex items-center justify-center mb-2">
               <LogIn className="w-4 h-4" />
             </div>
             <div>
-              <div className="text-lg font-bold text-slate-900 dark:text-slate-100">
+              <div className="text-base font-bold text-slate-900 dark:text-slate-100">
                 {clockInTime || attendanceStats.avgCheckIn}
               </div>
-              <span className="text-[11px] font-medium text-slate-500 dark:text-slate-400 uppercase tracking-wider block mt-0.5">
+              <span className="text-[10px] font-medium text-slate-500 dark:text-slate-400 uppercase tracking-wider block mt-0.5">
                 Avg check-in
               </span>
             </div>
           </Card>
 
           {/* Avg Arrival Time */}
-          <Card className="p-4 border-slate-200 dark:border-slate-800 flex flex-col justify-between hover:border-teal-400/40 transition-colors">
-            <div className="w-9 h-9 rounded-xl bg-teal-50 dark:bg-teal-500/10 text-teal-600 dark:text-teal-400 flex items-center justify-center mb-2">
+          <Card className="p-3 border-slate-200 dark:border-slate-800 flex flex-col justify-between hover:border-teal-400/40 transition-colors">
+            <div className="w-8 h-8 rounded-lg bg-teal-50 dark:bg-teal-500/10 text-teal-600 dark:text-teal-400 flex items-center justify-center mb-2">
               <TrendingUp className="w-4 h-4" />
             </div>
             <div>
-              <div className="text-lg font-bold text-emerald-600 dark:text-emerald-400">
+              <div className="text-base font-bold text-emerald-600 dark:text-emerald-400">
                 {attendanceStats.avgArrival}
               </div>
-              <span className="text-[11px] font-medium text-slate-500 dark:text-slate-400 uppercase tracking-wider block mt-0.5">
+              <span className="text-[10px] font-medium text-slate-500 dark:text-slate-400 uppercase tracking-wider block mt-0.5">
                 Avg arrival time
               </span>
             </div>
           </Card>
 
           {/* Avg Check-Out */}
-          <Card className="p-4 border-slate-200 dark:border-slate-800 flex flex-col justify-between hover:border-purple-400/40 transition-colors">
-            <div className="w-9 h-9 rounded-xl bg-purple-50 dark:bg-purple-500/10 text-purple-600 dark:text-purple-400 flex items-center justify-center mb-2">
+          <Card className="p-3 border-slate-200 dark:border-slate-800 flex flex-col justify-between hover:border-purple-400/40 transition-colors">
+            <div className="w-8 h-8 rounded-lg bg-purple-50 dark:bg-purple-500/10 text-purple-600 dark:text-purple-400 flex items-center justify-center mb-2">
               <LogOut className="w-4 h-4" />
             </div>
             <div>
-              <div className="text-lg font-bold text-slate-900 dark:text-slate-100">
+              <div className="text-base font-bold text-slate-900 dark:text-slate-100">
                 {clockOutTime || attendanceStats.avgCheckOut || '—'}
               </div>
-              <span className="text-[11px] font-medium text-slate-500 dark:text-slate-400 uppercase tracking-wider block mt-0.5">
+              <span className="text-[10px] font-medium text-slate-500 dark:text-slate-400 uppercase tracking-wider block mt-0.5">
                 Avg check-out
               </span>
             </div>
           </Card>
         </div>
 
-        {/* CARD 3: My Attendance Summary (Donut & Breakdown) */}
-        <Card className="lg:col-span-3 p-5 border-slate-200 dark:border-slate-800 flex flex-col justify-between">
-          <div className="flex items-center justify-between pb-3 border-b border-slate-200 dark:border-slate-800">
-            <h3 className="font-bold text-slate-900 dark:text-slate-100 text-sm tracking-tight">
-              My Attendance
-            </h3>
-            <NavLink
-              to="/attendance"
-              className="text-xs font-semibold text-emerald-600 dark:text-emerald-400 hover:underline flex items-center gap-0.5"
-            >
-              View All <ChevronRight className="w-3.5 h-3.5" />
-            </NavLink>
-          </div>
-
-          <div className="grid grid-cols-12 gap-3 items-center py-2 my-auto">
-            {/* Donut Chart */}
-            <div className="col-span-5 flex items-center justify-center relative">
-              <div className="relative w-22 h-22 flex items-center justify-center">
-                <svg className="w-full h-full transform -rotate-90" viewBox="0 0 100 100">
-                  {/* Background Circle */}
-                  <circle
-                    cx="50"
-                    cy="50"
-                    r="36"
-                    className="text-rose-500/80 stroke-current"
-                    strokeWidth="11"
-                    fill="transparent"
-                  />
-                  {/* Present Circle */}
-                  <circle
-                    cx="50"
-                    cy="50"
-                    r="36"
-                    className="text-emerald-500 stroke-current"
-                    strokeWidth="11"
-                    strokeDasharray={2 * Math.PI * 36}
-                    strokeDashoffset={(2 * Math.PI * 36) * (1 - presentPct / 100)}
-                    strokeLinecap="round"
-                    fill="transparent"
-                  />
-                </svg>
-
-                <div className="absolute inset-0 flex flex-col items-center justify-center text-center">
-                  <span className="text-lg font-bold text-slate-900 dark:text-white leading-none">
-                    {attendanceStats.totalDays}
-                  </span>
-                  <span className="text-[9px] text-slate-500 dark:text-slate-400">days</span>
-                </div>
-              </div>
-            </div>
-
-            {/* Legend breakdown */}
-            <div className="col-span-7 space-y-2 text-xs">
-              <div className="flex items-center justify-between">
-                <div className="flex items-center gap-1.5">
-                  <span className="w-2 h-2 rounded-full bg-emerald-500" />
-                  <span className="text-slate-600 dark:text-slate-400 font-medium">Present Days</span>
-                </div>
-                <span className="font-bold text-slate-900 dark:text-slate-100">
-                  {attendanceStats.presentDays}
-                </span>
-              </div>
-
-              <div className="flex items-center justify-between">
-                <div className="flex items-center gap-1.5">
-                  <span className="w-2 h-2 rounded-full bg-rose-500" />
-                  <span className="text-slate-600 dark:text-slate-400 font-medium">Absent Days</span>
-                </div>
-                <span className="font-bold text-slate-900 dark:text-slate-100">
-                  {attendanceStats.absentDays}
-                </span>
-              </div>
-
-              <div className="flex items-center justify-between">
-                <div className="flex items-center gap-1.5">
-                  <span className="w-2 h-2 rounded-full bg-amber-500" />
-                  <span className="text-slate-600 dark:text-slate-400 font-medium">Attendance %</span>
-                </div>
-                <span className="font-bold text-slate-900 dark:text-slate-100">
-                  {attendanceStats.attendancePercentage}%
-                </span>
-              </div>
-            </div>
-          </div>
-        </Card>
+        {/* CARD 3: Attendance Calendar (compact height so it matches other cards) */}
+        <div className="lg:col-span-3 flex w-full">
+          <AttendanceCalendarWidget />
+        </div>
       </div>
+
+      {/* 5-Card Attendance Metrics Bar: Status, Clock In, Clock Out, Worked Hours, Late By */}
+      <AttendanceMetricsBar />
 
       {/* Shift History Log Dropdown Panel */}
       {showLogs && (

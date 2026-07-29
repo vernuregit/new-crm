@@ -32,7 +32,9 @@ const NAV_ITEMS = [
 
 export const EmployeeSidebar = () => {
   const { sidebarOpen, toggleSidebar } = useUIStore()
-  const { user, clearUser } = useUserStore()
+  const { user, userDoc, clearUser } = useUserStore()
+
+  const displayName = userDoc?.displayName || user?.displayName || 'Employee Staff'
 
   return (
     <aside
@@ -94,12 +96,12 @@ export const EmployeeSidebar = () => {
         {/* User badge */}
         <div className={`flex items-center gap-3 p-2 rounded-xl bg-slate-50 dark:bg-purple-900/20 border border-slate-200 dark:border-purple-900/40 ${!sidebarOpen && 'justify-center'}`}>
           <div className="w-8 h-8 rounded-lg bg-purple-100 dark:bg-purple-600/30 text-purple-600 dark:text-purple-400 flex items-center justify-center font-bold text-xs shrink-0 border border-purple-200 dark:border-purple-500/30">
-            {user?.displayName?.charAt(0)?.toUpperCase() || 'E'}
+            {displayName?.charAt(0)?.toUpperCase() || 'E'}
           </div>
           {sidebarOpen && (
             <div className="flex flex-col min-w-0">
               <span className="text-xs font-semibold text-slate-800 dark:text-slate-200 truncate">
-                {user?.displayName || 'Employee Staff'}
+                {displayName}
               </span>
               <span className="text-[10px] font-bold px-1.5 py-0.5 rounded-md border mt-0.5 text-purple-600 dark:text-purple-400 bg-purple-50 dark:bg-purple-500/10 border-purple-200 dark:border-purple-500/20 truncate">
                 Employee Staff Portal

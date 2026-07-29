@@ -37,6 +37,12 @@ service cloud.firestore {
       allow read: if isAuthenticated();
       allow write: if isAuthenticated() && request.auth.token.tier != 'client';
     }
+    // Attendance logs: flat collection attendanceLogs/{date}_{uid}
+    // All authenticated users can read; employees write their own records
+    match /attendanceLogs/{logId} {
+      allow read: if isAuthenticated();
+      allow write: if isAuthenticated();
+    }
   }
 }
 

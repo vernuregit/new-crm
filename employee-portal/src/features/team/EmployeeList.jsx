@@ -6,6 +6,7 @@ import { Badge } from '../../components/ui/Badge'
 import { Button } from '../../components/ui/Button'
 import { Input } from '../../components/ui/Input'
 import { useTeamStore } from './stores/teamStore'
+import { useUserStore } from '../../stores/userStore'
 import {
   getEmployees,
   getDepartments,
@@ -31,6 +32,9 @@ import {
 
 export const EmployeeList = () => {
   const { employees, departments, setEmployees, setDepartments, setLoading, loading, addEmployee, deleteEmployee } = useTeamStore()
+  const { userDoc, claims } = useUserStore()
+
+  const isAdmin = claims?.role === 'admin' || claims?.role === 'owner' || claims?.role === 'superadmin' || userDoc?.role === 'admin' || userDoc?.role === 'owner'
 
   const [searchQuery, setSearchQuery] = useState('')
   const [selectedDept, setSelectedDept] = useState('all')
@@ -108,9 +112,15 @@ export const EmployeeList = () => {
     setShowAddModal(false)
   }
 
-  const handleDeleteEmployee = async (uid) => {
-    deleteEmployee(uid)
-    await deleteEmployeeFromDb(uid)
+  const handleDeleteEmployee = async (uid, displayName) => {
+    if (!isAdmin) {
+      alert('Permission Denied: Regular employees cannot delete employee records.')
+      return
+    }
+    if (window.confirm(`Are you sure you want to remove ${displayName || 'this employee'}?`)) {
+      deleteEmployee(uid)
+      await deleteEmployeeFromDb(uid)
+    }
   }
 
   if (loading) {
@@ -130,9 +140,11 @@ export const EmployeeList = () => {
           title="Team & Personnel Management"
           description="Manage employees, organizational chart, attendance, utilization rates, and leave workflows"
           actions={
-            <Button icon={UserPlus} variant="primary" onClick={() => setShowAddModal(true)}>
-              Invite Member
-            </Button>
+            isAdmin ? (
+              <Button icon={UserPlus} variant="primary" onClick={() => setShowAddModal(true)}>
+                Invite Member
+              </Button>
+            ) : null
           }
         />
 
@@ -261,13 +273,15 @@ export const EmployeeList = () => {
                   />
                 </div>
               </div>
-              <button
-                onClick={() => handleDeleteEmployee(emp.uid || emp.employeeId)}
-                className="p-1.5 text-slate-400 dark:text-slate-500 hover:text-rose-600 dark:hover:text-rose-400 rounded-lg hover:bg-slate-100 dark:hover:bg-slate-800 transition-colors"
-                title="Remove Member"
-              >
-                <Trash2 className="w-4 h-4" />
-              </button>
+              {isAdmin && (
+                <button
+                  onClick={() => handleDeleteEmployee(emp.uid || emp.employeeId, emp.displayName)}
+                  className="p-1.5 text-slate-400 dark:text-slate-500 hover:text-rose-600 dark:hover:text-rose-400 rounded-lg hover:bg-slate-100 dark:hover:bg-slate-800 transition-colors"
+                  title="Remove Member"
+                >
+                  <Trash2 className="w-4 h-4" />
+                </button>
+              )}
             </div>
           </Card>
         ))}

@@ -50,7 +50,7 @@ const InteractiveCalendarPicker = ({ startDate, setStartDate, endDate, setEndDat
     const today = new Date()
     today.setHours(0, 0, 0, 0)
 
-    if (leaveType === 'Sick Leave' || leaveType === 'Emergency Leave') {
+    if (leaveType === 'Sick Leave' || leaveType === 'Emergency Leave' || leaveType === 'Work From Home') {
       return todayStr
     }
 
@@ -73,7 +73,7 @@ const InteractiveCalendarPicker = ({ startDate, setStartDate, endDate, setEndDat
     const clickedDate = `${currentYear}-${mStr}-${dStr}`
 
     if (clickedDate < minAllowedDate) {
-      if (leaveType === 'Sick Leave' || leaveType === 'Emergency Leave') {
+      if (leaveType === 'Sick Leave' || leaveType === 'Emergency Leave' || leaveType === 'Work From Home') {
         setValidationError('Past dates cannot be selected.')
       } else {
         setValidationError(`Standard leaves require 3 working days advance notice. Earliest available date is ${minAllowedDate}.`)
@@ -232,13 +232,16 @@ export const LeaveManagement = () => {
   const loggedInEmployeeName = user?.displayName || 'Team Staff'
 
   const [showAddModal, setShowAddModal] = useState(false)
-  const [leaveType, setLeaveType] = useState('Annual Leave')
+  const [leaveType, setLeaveType] = useState('Casual Leave')
   const [startDate, setStartDate] = useState('')
   const [endDate, setEndDate] = useState('')
   const [isMultiDay, setIsMultiDay] = useState(false)
   const [reason, setReason] = useState('')
   const [validationError, setValidationError] = useState('')
   const [loadingLeave, setLoadingLeave] = useState(false)
+
+  const currentMonthStr = new Date().toISOString().slice(0, 7) // "YYYY-MM"
+  const currentMonthName = new Date().toLocaleString('default', { month: 'long', year: 'numeric' })
 
   // Real-time Firestore sync for leave requests
   useEffect(() => {
@@ -261,26 +264,40 @@ export const LeaveManagement = () => {
     return () => unsub()
   }, [setLeaveRequests, setEmployees])
 
-  // Only show this employee's own leave requests
-  const myLeaveRequests = leaveRequests.filter(
-    (l) => l.employeeName === loggedInEmployeeName
-  )
+  // Filter this employee's own leave requests using UID, Email, or Name for robust persistence across refreshes
+  const myLeaveRequests = leaveRequests.filter((l) => {
+    if (user?.uid && l.employeeId === user.uid) return true
+    if (user?.email && l.employeeEmail === user.email) return true
+    if (user?.displayName && l.employeeName === user.displayName) return true
+    if (l.employeeName === loggedInEmployeeName) return true
+    return false
+  })
 
   const pendingRequests = myLeaveRequests.filter((l) => l.status === 'pending').length
   const approvedRequests = myLeaveRequests.filter((l) => l.status === 'approved')
   const rejectedRequests = myLeaveRequests.filter((l) => l.status === 'rejected')
 
-  // Dynamic PTO and Allowance calculations based on approved leave requests
-  const approvedAnnualDays = approvedRequests
-    .filter((l) => l.leaveType === 'Annual Leave' || l.leaveType === 'Casual Leave')
+  // Filter non-rejected leaves for current month (pending + approved both count towards quota)
+  const currentMonthRequests = myLeaveRequests.filter((l) => {
+    if (l.status === 'rejected') return false
+    return l.startDate && l.startDate.startsWith(currentMonthStr)
+  })
+
+  const currentMonthApproved = approvedRequests.filter((l) => {
+    return l.startDate && l.startDate.startsWith(currentMonthStr)
+  })
+
+  // Dynamic month-wise calculation (1 Sick Leave & 1 Casual Leave per month)
+  const usedCasualDaysThisMonth = currentMonthRequests
+    .filter((l) => l.leaveType === 'Casual Leave' || l.leaveType === 'Annual Leave')
     .reduce((sum, l) => sum + (Number(l.days) || 1), 0)
 
-  const approvedSickDays = approvedRequests
-    .filter((l) => l.leaveType === 'Sick Leave' || l.leaveType === 'Emergency Leave')
+  const usedSickDaysThisMonth = currentMonthRequests
+    .filter((l) => l.leaveType === 'Sick Leave')
     .reduce((sum, l) => sum + (Number(l.days) || 1), 0)
 
-  const remainingAnnualDays = Math.max(0, 24 - approvedAnnualDays)
-  const remainingSickDays = Math.max(0, 10 - approvedSickDays)
+  const remainingCasualDays = Math.max(0, 1 - usedCasualDaysThisMonth)
+  const remainingSickDays = Math.max(0, 1 - usedSickDaysThisMonth)
 
   const handleRequestLeave = async (e) => {
     e.preventDefault()
@@ -305,12 +322,12 @@ export const LeaveManagement = () => {
     const diffDays = Math.ceil((reqStartDate - today) / (1000 * 60 * 60 * 24))
 
     // ─── 3-Day Advance Notice Rule ───
-    // Emergency & Sick Leave are exempt from the 3-day advance notice rule.
-    const isUrgentLeave = leaveType === 'Sick Leave' || leaveType === 'Emergency Leave'
+    // Emergency, Sick Leave, and Work From Home are exempt from the 3-day advance notice rule.
+    const isUrgentLeave = leaveType === 'Sick Leave' || leaveType === 'Emergency Leave' || leaveType === 'Work From Home'
 
     if (!isUrgentLeave && diffDays < 3) {
       setValidationError(
-        'Standard leave must be requested at least 3 days in advance. For urgent situations, please select "Sick Leave" or "Emergency Leave".'
+        'Standard leave must be requested at least 3 days in advance. For urgent situations, please select "Sick Leave", "Emergency Leave", or "Work From Home".'
       )
       return
     }
@@ -320,8 +337,25 @@ export const LeaveManagement = () => {
       ? Math.max(1, Math.round((new Date(endDate) - new Date(startDate)) / 86400000) + 1)
       : 1
 
+    // Monthly Quota Validation: Maximum 1 Sick Leave & 1 Casual Leave per month
+    if ((leaveType === 'Casual Leave' || leaveType === 'Annual Leave') && (usedCasualDaysThisMonth + daysCount > 1)) {
+      setValidationError(
+        `Monthly Casual Leave limit exceeded. Employees can take only 1 Casual Leave per month (${usedCasualDaysThisMonth}/1 used in ${currentMonthName}).`
+      )
+      return
+    }
+
+    if (leaveType === 'Sick Leave' && (usedSickDaysThisMonth + daysCount > 1)) {
+      setValidationError(
+        `Monthly Sick Leave limit exceeded. Employees can take only 1 Sick Leave per month (${usedSickDaysThisMonth}/1 used in ${currentMonthName}).`
+      )
+      return
+    }
+
     const leaveData = {
-      employeeName: loggedInEmployeeName,
+      employeeName: user?.displayName || loggedInEmployeeName,
+      employeeId: user?.uid || '',
+      employeeEmail: user?.email || '',
       leaveType,
       startDate,
       endDate: finalEndDate,
@@ -332,7 +366,7 @@ export const LeaveManagement = () => {
     const created = await createLeaveRequest(leaveData)
     addLeaveRequest(created)
 
-    setLeaveType('Annual Leave')
+    setLeaveType('Casual Leave')
     setStartDate('')
     setEndDate('')
     setIsMultiDay(false)
@@ -351,8 +385,8 @@ export const LeaveManagement = () => {
       {/* Header & Sub Nav */}
       <div className="space-y-4">
         <PageHeader
-          title="Leave & PTO Management"
-          description="Employee leave requests, PTO balances, annual holidays, and manager approvals"
+          title="Monthly Leave & PTO Management"
+          description={`Track monthly leave requests. Each employee can take 1 Sick Leave & 1 Casual Leave per month (${currentMonthName}).`}
           actions={
             <Button icon={Plus} variant="primary" onClick={() => setShowAddModal(true)}>
               Request Leave
@@ -442,16 +476,39 @@ export const LeaveManagement = () => {
         </div>
       )}
 
-      {/* PTO Balance Summary Metrics */}
+      {/* Monthly Policy Banner */}
+      <div className="bg-indigo-50 dark:bg-indigo-600/10 border border-indigo-200 dark:border-indigo-500/20 rounded-2xl p-4 flex items-center justify-between shadow-sm">
+        <div className="flex items-center gap-3">
+          <div className="w-10 h-10 rounded-xl bg-indigo-100 dark:bg-indigo-600/20 text-indigo-600 dark:text-indigo-400 flex items-center justify-center border border-indigo-200 dark:border-indigo-500/30 shrink-0">
+            <ShieldCheck className="w-5 h-5" />
+          </div>
+          <div>
+            <h4 className="font-bold text-slate-900 dark:text-slate-100 text-sm">
+              Monthly Leave Allowance Policy ({currentMonthName})
+            </h4>
+            <p className="text-xs text-slate-600 dark:text-slate-300 mt-0.5">
+              Each employee is allocated <strong className="text-indigo-600 dark:text-indigo-400 font-semibold">1 Sick Leave</strong> and <strong className="text-indigo-600 dark:text-indigo-400 font-semibold">1 Casual Leave</strong> per month. Leave tracking is calculated on a month-wise basis.
+            </p>
+          </div>
+        </div>
+        <Badge variant="indigo">Monthly Quota</Badge>
+      </div>
+
+      {/* Monthly PTO Balance Summary Metrics */}
       <div className="grid grid-cols-1 sm:grid-cols-4 gap-4">
         <Card className="p-4 flex items-center justify-between border-slate-200 dark:border-slate-800/80">
           <div>
             <span className="text-[11px] font-medium text-slate-500 dark:text-slate-400 uppercase tracking-wider">
-              Annual PTO Balance
+              Monthly Casual Leave
             </span>
-            <p className="text-xl font-bold text-emerald-600 dark:text-emerald-400 mt-1">{remainingAnnualDays} / 24 Days</p>
+            <p className="text-xl font-bold text-emerald-600 dark:text-emerald-400 mt-1">
+              {remainingCasualDays} {remainingCasualDays === 1 ? 'Day' : 'Days'} Remaining
+            </p>
+            <p className="text-[10px] text-slate-500 dark:text-slate-400 mt-0.5">
+              {usedCasualDaysThisMonth} of 1 Day Used ({currentMonthName})
+            </p>
           </div>
-          <div className="w-9 h-9 rounded-xl bg-emerald-50 dark:bg-emerald-500/10 text-emerald-600 dark:text-emerald-400 flex items-center justify-center">
+          <div className="w-9 h-9 rounded-xl bg-emerald-50 dark:bg-emerald-500/10 text-emerald-600 dark:text-emerald-400 flex items-center justify-center shrink-0">
             <Calendar className="w-5 h-5" />
           </div>
         </Card>
@@ -459,11 +516,16 @@ export const LeaveManagement = () => {
         <Card className="p-4 flex items-center justify-between border-slate-200 dark:border-slate-800/80">
           <div>
             <span className="text-[11px] font-medium text-slate-500 dark:text-slate-400 uppercase tracking-wider">
-              Sick & Emergency Allowance
+              Monthly Sick Leave
             </span>
-            <p className="text-xl font-bold text-blue-600 dark:text-blue-400 mt-1">{remainingSickDays} / 10 Days</p>
+            <p className="text-xl font-bold text-blue-600 dark:text-blue-400 mt-1">
+              {remainingSickDays} {remainingSickDays === 1 ? 'Day' : 'Days'} Remaining
+            </p>
+            <p className="text-[10px] text-slate-500 dark:text-slate-400 mt-0.5">
+              {usedSickDaysThisMonth} of 1 Day Used ({currentMonthName})
+            </p>
           </div>
-          <div className="w-9 h-9 rounded-xl bg-blue-50 dark:bg-blue-500/10 text-blue-600 dark:text-blue-400 flex items-center justify-center">
+          <div className="w-9 h-9 rounded-xl bg-blue-50 dark:bg-blue-500/10 text-blue-600 dark:text-blue-400 flex items-center justify-center shrink-0">
             <Clock className="w-5 h-5" />
           </div>
         </Card>
@@ -474,6 +536,7 @@ export const LeaveManagement = () => {
               Pending Approvals
             </span>
             <p className="text-xl font-bold text-amber-600 dark:text-amber-400 mt-1">{pendingRequests} Requests</p>
+            <p className="text-[10px] text-slate-400 mt-0.5">Awaiting review</p>
           </div>
           <div className="w-9 h-9 rounded-xl bg-amber-50 dark:bg-amber-500/10 text-amber-600 dark:text-amber-400 flex items-center justify-center">
             <AlertCircle className="w-5 h-5" />
@@ -483,9 +546,10 @@ export const LeaveManagement = () => {
         <Card className="p-4 flex items-center justify-between border-slate-200 dark:border-slate-800/80">
           <div>
             <span className="text-[11px] font-medium text-slate-500 dark:text-slate-400 uppercase tracking-wider">
-              Approved Leave
+              Approved ({currentMonthName})
             </span>
-            <p className="text-xl font-bold text-purple-600 dark:text-purple-400 mt-1">{approvedRequests.length} Requests</p>
+            <p className="text-xl font-bold text-purple-600 dark:text-purple-400 mt-1">{currentMonthApproved.length} Granted</p>
+            <p className="text-[10px] text-slate-400 mt-0.5">This month total</p>
           </div>
           <div className="w-9 h-9 rounded-xl bg-purple-50 dark:bg-purple-500/10 text-purple-600 dark:text-purple-400 flex items-center justify-center">
             <CheckCircle2 className="w-5 h-5" />
@@ -583,10 +647,10 @@ export const LeaveManagement = () => {
                   }}
                   className="w-full bg-slate-100 dark:bg-slate-900 border border-slate-300 dark:border-slate-800 text-slate-800 dark:text-slate-100 text-sm rounded-xl py-2.5 px-3.5 focus:outline-none focus:border-indigo-500"
                 >
-                  <option value="Annual Leave">Annual Leave</option>
-                  <option value="Sick Leave">Sick Leave </option>
+                  <option value="Casual Leave">Casual Leave (1 Day / Month)</option>
+                  <option value="Sick Leave">Sick Leave (1 Day / Month)</option>
+                  <option value="Work From Home">Work From Home</option>
                   <option value="Emergency Leave">Emergency Leave</option>
-                  <option value="Casual Leave">Casual Leave </option>
                 </select>
               </div>
 

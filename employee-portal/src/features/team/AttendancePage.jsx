@@ -7,6 +7,7 @@ import { Button } from '../../components/ui/Button'
 import { useTeamStore } from './stores/teamStore'
 import { useUserStore } from '../../stores/userStore'
 import { getEmployees, recordAttendanceInDb } from './services/teamService'
+import { AttendanceMetricsBar } from './components/AttendanceMetricsBar'
 import { Users, CheckCircle2, Calendar, Clock, LogIn, LogOut } from 'lucide-react'
 
 export const AttendancePage = () => {
@@ -120,50 +121,8 @@ export const AttendancePage = () => {
         </div>
       </Card>
 
-      {/* Personal Summary Metrics */}
-      <div className="grid grid-cols-1 sm:grid-cols-3 gap-4">
-        <Card className="p-4 flex items-center justify-between border-slate-200 dark:border-slate-800/80">
-          <div>
-            <span className="text-[11px] font-medium text-slate-500 dark:text-slate-400 uppercase tracking-wider">
-              Today's Status
-            </span>
-            <p className={`text-xl font-bold mt-1 ${clockedIn ? 'text-emerald-600 dark:text-emerald-400' : 'text-amber-600 dark:text-amber-400'}`}>
-              {clockedIn ? 'Present' : 'Not Checked In'}
-            </p>
-          </div>
-          <div className={`w-9 h-9 rounded-xl flex items-center justify-center ${clockedIn ? 'bg-emerald-50 dark:bg-emerald-500/10 text-emerald-600 dark:text-emerald-400' : 'bg-amber-50 dark:bg-amber-500/10 text-amber-600 dark:text-amber-400'}`}>
-            <CheckCircle2 className="w-5 h-5" />
-          </div>
-        </Card>
-
-        <Card className="p-4 flex items-center justify-between border-slate-200 dark:border-slate-800/80">
-          <div>
-            <span className="text-[11px] font-medium text-slate-500 dark:text-slate-400 uppercase tracking-wider">
-              Clock In Time
-            </span>
-            <p className="text-xl font-bold text-indigo-600 dark:text-indigo-400 mt-1">
-              {clockedIn ? clockInTime : '—'}
-            </p>
-          </div>
-          <div className="w-9 h-9 rounded-xl bg-indigo-50 dark:bg-indigo-500/10 text-indigo-600 dark:text-indigo-400 flex items-center justify-center">
-            <LogIn className="w-5 h-5" />
-          </div>
-        </Card>
-
-        <Card className="p-4 flex items-center justify-between border-slate-200 dark:border-slate-800/80">
-          <div>
-            <span className="text-[11px] font-medium text-slate-500 dark:text-slate-400 uppercase tracking-wider">
-              My Department
-            </span>
-            <p className="text-xl font-bold text-slate-900 dark:text-slate-100 mt-1 truncate">
-              {myRecord?.departmentName || '—'}
-            </p>
-          </div>
-          <div className="w-9 h-9 rounded-xl bg-slate-100 dark:bg-slate-800 text-slate-600 dark:text-slate-400 flex items-center justify-center">
-            <Users className="w-5 h-5" />
-          </div>
-        </Card>
-      </div>
+      {/* Personal Summary Metrics: 5-Card Bar (Status, Clock In, Clock Out, Worked Hours, Late By) */}
+      <AttendanceMetricsBar />
 
       {/* My Attendance Record */}
       <Card className="overflow-x-auto p-0 border-slate-200 dark:border-slate-800">
