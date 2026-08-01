@@ -3,6 +3,7 @@ import {
   doc,
   getDocs,
   addDoc,
+  setDoc,
   updateDoc,
   deleteDoc,
   query,
@@ -10,6 +11,33 @@ import {
   serverTimestamp,
 } from 'firebase/firestore'
 import { db } from '../../../shared/services/firebaseService'
+
+/**
+ * Fetch custom CRM pipeline stages from Firestore
+ */
+export const getCrmStagesFromDb = async () => {
+  try {
+    const snap = await getDocs(collection(db, 'crmStages'))
+    return snap.docs.map((d) => ({ id: d.id, ...d.data() }))
+  } catch (err) {
+    console.error('Error fetching CRM stages from Firestore:', err)
+    return []
+  }
+}
+
+/**
+ * Save custom CRM stage to Firestore
+ */
+export const createCrmStageInDb = async (stageData) => {
+  try {
+    const docRef = doc(db, 'crmStages', stageData.id)
+    await setDoc(docRef, stageData)
+    return stageData
+  } catch (err) {
+    console.error('Error creating CRM stage in Firestore:', err)
+    return stageData
+  }
+}
 
 /**
  * Fetch all leads from Firestore

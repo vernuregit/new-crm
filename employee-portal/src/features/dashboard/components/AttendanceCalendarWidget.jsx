@@ -1,10 +1,14 @@
-import React, { useState } from 'react'
+import React, { useState, useEffect } from 'react'
 import { Card } from '../../../components/ui/Card'
 import { useTeamStore } from '../../team/stores/teamStore'
+import { useUserStore } from '../../../stores/userStore'
+import { getUserMonthlyAttendance } from '../../team/services/attendanceService'
 import { ChevronLeft, ChevronRight } from 'lucide-react'
 
 export const AttendanceCalendarWidget = () => {
   const { clockedIn, todayShiftLogs } = useTeamStore()
+  const { user, userDoc } = useUserStore()
+  const activeUid = userDoc?.uid || user?.uid
 
   // Default view date (current month/year)
   const [currentViewDate, setCurrentViewDate] = useState(() => new Date())
@@ -12,12 +16,30 @@ export const AttendanceCalendarWidget = () => {
   // Selected date state (defaults to today's date)
   const todayDateObj = new Date()
   const [selectedDay, setSelectedDay] = useState(todayDateObj.getDate())
+  const [selectedMonth, setSelectedMonth] = useState(todayDateObj.getMonth())
+  const [selectedYear, setSelectedYear] = useState(todayDateObj.getFullYear())
 
-  // Custom attendance overrides state (dateKey -> 'present' | 'absent')
-  const [customStatuses, setCustomStatuses] = useState({})
+  const [monthlyRecords, setMonthlyRecords] = useState({})
+  const [isLoadingRecords, setIsLoadingRecords] = useState(true)
 
   const year = currentViewDate.getFullYear()
   const month = currentViewDate.getMonth()
+
+  // Fetch real attendance records from Firestore for current user
+  useEffect(() => {
+    if (activeUid) {
+      setIsLoadingRecords(true)
+      getUserMonthlyAttendance(activeUid)
+        .then((records) => {
+          setMonthlyRecords(records || {})
+        })
+        .finally(() => {
+          setIsLoadingRecords(false)
+        })
+    } else {
+      setIsLoadingRecords(false)
+    }
+  }, [activeUid, year, month])
 
   // Month name formatting e.g. "July 2026"
   const monthName = currentViewDate.toLocaleDateString('en-US', {
@@ -27,11 +49,13 @@ export const AttendanceCalendarWidget = () => {
 
   // Navigation handlers
   const handlePrevMonth = () => {
-    setCurrentViewDate(new Date(year, month - 1, 1))
+    const newDate = new Date(year, month - 1, 1)
+    setCurrentViewDate(newDate)
   }
 
   const handleNextMonth = () => {
-    setCurrentViewDate(new Date(year, month + 1, 1))
+    const newDate = new Date(year, month + 1, 1)
+    setCurrentViewDate(newDate)
   }
 
   // Calculate calendar grid days
@@ -74,18 +98,27 @@ export const AttendanceCalendarWidget = () => {
     })
   }
 
-  // Determine presence/absence status for a date
+  // Parse employee account creation date (joinedAt / createdAt / auth creationTime)
+  const getAccountCreatedDate = () => {
+    let rawDate = userDoc?.joinedAt || userDoc?.createdAt || user?.metadata?.creationTime
+    if (!rawDate) return null
+    if (typeof rawDate === 'object' && rawDate.seconds) {
+      return new Date(rawDate.seconds * 1000)
+    }
+    const parsed = new Date(rawDate)
+    return isNaN(parsed.getTime()) ? null : parsed
+  }
+
+  // Determine presence/absence status for a date using real Firestore data
   const getAttendanceStatus = (dayNum, isCurrentMonth) => {
     if (!isCurrentMonth) return null
 
     const dateKey = `${year}-${String(month + 1).padStart(2, '0')}-${String(dayNum).padStart(2, '0')}`
-    if (customStatuses[dateKey] !== undefined) {
-      return customStatuses[dateKey] === 'none' ? null : customStatuses[dateKey]
-    }
 
     const cellDate = new Date(year, month, dayNum)
-    const dayOfWeek = cellDate.getDay() // 0 = Sun, 6 = Sat
-    const isWeekend = dayOfWeek === 0 || dayOfWeek === 6
+    cellDate.setHours(0, 0, 0, 0)
+    const dayOfWeek = cellDate.getDay() // 0 = Sun (Sunday is the only weekend rest day; Saturday is a regular working day)
+    const isWeekend = dayOfWeek === 0
 
     const todayMidnight = new Date(todayDateObj.getFullYear(), todayDateObj.getMonth(), todayDateObj.getDate())
     const isToday =
@@ -95,46 +128,72 @@ export const AttendanceCalendarWidget = () => {
 
     const isFuture = cellDate > todayMidnight
 
-    // Weekends and future dates show no status color by default
-    if (isWeekend || isFuture) {
+    // Today's dynamic sync with clockedIn state, shift log activity, or Firestore record
+    if (isToday) {
+      const recordForToday = monthlyRecords[dateKey]
+      const isPresentToday =
+        clockedIn ||
+        (todayShiftLogs && todayShiftLogs.length > 0) ||
+        (recordForToday && (recordForToday.clockedIn || recordForToday.regularSeconds > 0))
+      
+      if (isPresentToday) {
+        return 'present'
+      }
+      if (isWeekend) {
+        return null
+      }
+      return 'absent'
+    }
+
+    // Future dates show no status dot
+    if (isFuture) {
       return null
     }
 
-    // Today's dynamic sync with clockedIn state or shift log activity
-    if (isToday) {
-      const isPresentToday = clockedIn || (todayShiftLogs && todayShiftLogs.length > 0)
-      return isPresentToday ? 'present' : 'absent'
+    // Account creation date boundary check:
+    // If the calendar date is BEFORE the employee joined / created account, do NOT mark as absent
+    const accountCreatedDate = getAccountCreatedDate()
+    if (accountCreatedDate) {
+      const createdMidnight = new Date(
+        accountCreatedDate.getFullYear(),
+        accountCreatedDate.getMonth(),
+        accountCreatedDate.getDate()
+      )
+      if (cellDate < createdMidnight) {
+        return null
+      }
     }
 
-    // Past working days (Monday - Friday): realistic pattern of present/absent
-    const absentDaysPattern = [4, 13, 19]
-    if (absentDaysPattern.includes(dayNum)) {
-      return 'absent'
+    // Past dates check Firestore records
+    const pastRecord = monthlyRecords[dateKey]
+    if (pastRecord) {
+      const isPresent =
+        pastRecord.clockedIn ||
+        (pastRecord.regularSeconds && pastRecord.regularSeconds > 0) ||
+        (pastRecord.shiftLogs && pastRecord.shiftLogs.length > 0) ||
+        (pastRecord.todayShiftLogs && pastRecord.todayShiftLogs.length > 0)
+      if (isPresent) return 'present'
     }
-    return 'present'
+
+    // Past weekends with no work record return null
+    if (isWeekend) {
+      return null
+    }
+
+    // While fetching monthly records from Firestore, do NOT flash false 'absent' red dots for past dates
+    if (isLoadingRecords) {
+      return null
+    }
+
+    // Past working weekday without presence: mark as absent
+    return 'absent'
   }
 
   const handleCellClick = (cell) => {
     if (!cell.isCurrentMonth) return
     setSelectedDay(cell.day)
-
-    const dateKey = `${year}-${String(month + 1).padStart(2, '0')}-${String(cell.day).padStart(2, '0')}`
-    const currentStatus = getAttendanceStatus(cell.day, true)
-    
-    // Cycle: 'present' -> 'absent' -> 'none' (no dot) -> 'present'
-    let nextStatus
-    if (currentStatus === 'present') {
-      nextStatus = 'absent'
-    } else if (currentStatus === 'absent') {
-      nextStatus = 'none'
-    } else {
-      nextStatus = 'present'
-    }
-
-    setCustomStatuses((prev) => ({
-      ...prev,
-      [dateKey]: nextStatus,
-    }))
+    setSelectedMonth(month)
+    setSelectedYear(year)
   }
 
   const weekHeader = ['SUN', 'MON', 'TUE', 'WED', 'THU', 'FRI', 'SAT']
@@ -189,7 +248,11 @@ export const AttendanceCalendarWidget = () => {
           <div className="grid grid-cols-7 gap-y-0.5 gap-x-0.5 items-center justify-items-center">
             {gridCells.map((cell) => {
               const status = getAttendanceStatus(cell.day, cell.isCurrentMonth)
-              const isSelected = cell.isCurrentMonth && cell.day === selectedDay
+              const isSelected =
+                cell.isCurrentMonth &&
+                cell.day === selectedDay &&
+                month === selectedMonth &&
+                year === selectedYear
 
               return (
                 <div

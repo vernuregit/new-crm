@@ -157,7 +157,7 @@ export const KpiBuilder = () => {
               icon={Save}
               disabled={isSaving}
             >
-              {isSaving ? 'Saving to Firestore...' : 'Save KPI Rule'}
+              {isSaving ? 'Saving...' : 'Save KPI Rule'}
             </Button>
           </div>
         </form>

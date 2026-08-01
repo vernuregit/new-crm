@@ -17,8 +17,32 @@ import {
   User,
   X,
   Trash2,
-  Search,
+  Search
 } from 'lucide-react'
+
+const STATUS_DOT_COLORS = {
+  todo: 'bg-sky-500 dark:bg-sky-400',
+  blue: 'bg-sky-500 dark:bg-sky-400',
+  sky: 'bg-sky-500 dark:bg-sky-400',
+  in_progress: 'bg-indigo-500 dark:bg-indigo-400',
+  indigo: 'bg-indigo-500 dark:bg-indigo-400',
+  in_review: 'bg-amber-500 dark:bg-amber-400',
+  amber: 'bg-amber-500 dark:bg-amber-400',
+  done: 'bg-emerald-500 dark:bg-emerald-400',
+  emerald: 'bg-emerald-500 dark:bg-emerald-400',
+  purple: 'bg-purple-500 dark:bg-purple-400',
+  rose: 'bg-rose-500 dark:bg-rose-400',
+}
+
+const getStatusDotBg = (status) => {
+  if (!status) return 'bg-sky-500 dark:bg-sky-400'
+  if (typeof status === 'string') return STATUS_DOT_COLORS[status] || 'bg-sky-500 dark:bg-sky-400'
+  return (
+    STATUS_DOT_COLORS[status.id] ||
+    STATUS_DOT_COLORS[status.color] ||
+    'bg-sky-500 dark:bg-sky-400'
+  )
+}
 
 export const TaskBoard = () => {
   const {
@@ -31,6 +55,8 @@ export const TaskBoard = () => {
     logHoursToTask,
     fetchProjectsAndTasks,
     addCustomStatus,
+    selectedProjectId,
+    setSelectedProjectId
   } = useProjectStore()
   const { employees, setEmployees } = useTeamStore()
 
@@ -40,7 +66,51 @@ export const TaskBoard = () => {
   const [showAddModal, setShowAddModal] = useState(false)
   const [showAddStatusModal, setShowAddStatusModal] = useState(false)
   const [selectedTask, setSelectedTask] = useState(null)
+  const [deleteConfirmTask, setDeleteConfirmTask] = useState(null)
   const [hoursToLog, setHoursToLog] = useState('')
+
+  // Drag & Drop State
+  const [draggedOverCol, setDraggedOverCol] = useState(null)
+  const [draggingTaskId, setDraggingTaskId] = useState(null)
+
+  // Drag & Drop Handlers
+  const handleDragStart = (e, taskId) => {
+    e.dataTransfer.setData('text/plain', taskId)
+    e.dataTransfer.effectAllowed = 'move'
+    setDraggingTaskId(taskId)
+  }
+
+  const handleDragEnd = () => {
+    setDraggingTaskId(null)
+    setDraggedOverCol(null)
+  }
+
+  const handleDragOver = (e, statusId) => {
+    e.preventDefault()
+    e.dataTransfer.dropEffect = 'move'
+    if (draggedOverCol !== statusId) {
+      setDraggedOverCol(statusId)
+    }
+  }
+
+  const handleDragLeave = (e, statusId) => {
+    if (draggedOverCol === statusId) {
+      setDraggedOverCol(null)
+    }
+  }
+
+  const handleDrop = async (e, targetStatusId) => {
+    e.preventDefault()
+    setDraggedOverCol(null)
+    setDraggingTaskId(null)
+    const taskId = e.dataTransfer.getData('text/plain')
+    if (!taskId) return
+
+    const task = tasks.find((t) => t.taskId === taskId)
+    if (task && task.status !== targetStatusId) {
+      updateTaskStatus(taskId, targetStatusId)
+    }
+  }
 
   // New status form state
   const [newStatusName, setNewStatusName] = useState('')
@@ -216,11 +286,18 @@ export const TaskBoard = () => {
           return (
             <div
               key={status.id}
-              className="w-72 shrink-0 bg-slate-100/90 dark:bg-[#12151E] border border-slate-200 dark:border-slate-800/80 rounded-2xl p-3 flex flex-col space-y-3 transition-colors"
+              onDragOver={(e) => handleDragOver(e, status.id)}
+              onDragLeave={(e) => handleDragLeave(e, status.id)}
+              onDrop={(e) => handleDrop(e, status.id)}
+              className={`w-72 shrink-0 border rounded-2xl p-3 flex flex-col space-y-3 transition-all ${
+                draggedOverCol === status.id
+                  ? 'bg-indigo-50/80 dark:bg-indigo-950/40 border-indigo-500/80 ring-2 ring-indigo-500/40 shadow-lg'
+                  : 'bg-slate-100/90 dark:bg-[#12151E] border-slate-200 dark:border-slate-800/80'
+              }`}
             >
               <div className="flex items-center justify-between px-1 pb-2 border-b border-slate-200 dark:border-slate-800/80">
                 <span className="font-bold text-slate-800 dark:text-slate-200 text-xs flex items-center gap-2">
-                  <span className={`w-2.5 h-2.5 rounded-full bg-${status.color || 'indigo'}-500 dark:bg-${status.color || 'indigo'}-400 inline-block`} />
+                  <span className={`w-2.5 h-2.5 rounded-full inline-block ${getStatusDotBg(status)}`} />
                   {status.name}
                 </span>
                 <Badge variant="brand">{colTasks.length}</Badge>
@@ -233,12 +310,20 @@ export const TaskBoard = () => {
                   </div>
                 ) : (
                   colTasks.map((t) => (
-                    <Card
+                    <div
                       key={t.taskId}
-                      hover
-                      className="p-3.5 space-y-2.5 cursor-pointer bg-white dark:bg-[#181C27] border-slate-200 dark:border-slate-800 hover:border-indigo-500/40 relative group shadow-sm"
-                      onClick={() => setSelectedTask(t)}
+                      draggable
+                      onDragStart={(e) => handleDragStart(e, t.taskId)}
+                      onDragEnd={handleDragEnd}
+                      className={`transition-opacity cursor-grab active:cursor-grabbing ${
+                        draggingTaskId === t.taskId ? 'opacity-40 scale-95' : 'opacity-100'
+                      }`}
                     >
+                      <Card
+                        hover
+                        className="p-3.5 space-y-2.5 bg-white dark:bg-[#181C27] border-slate-200 dark:border-slate-800 hover:border-indigo-500/40 relative group shadow-sm"
+                        onClick={() => setSelectedTask(t)}
+                      >
                       <div className="flex items-start justify-between">
                         <span className="text-xs font-bold text-slate-900 dark:text-slate-100 group-hover:text-indigo-600 dark:group-hover:text-indigo-400 transition-colors">
                           {t.title}
@@ -286,7 +371,8 @@ export const TaskBoard = () => {
                         </select>
                       </div>
                     </Card>
-                  ))
+                  </div>
+                ))
                 )}
               </div>
             </div>
@@ -443,7 +529,7 @@ export const TaskBoard = () => {
                   size="sm"
                   icon={Trash2}
                   onClick={() => {
-                    deleteTask(liveSelectedTask.taskId)
+                    setDeleteConfirmTask(liveSelectedTask)
                     setSelectedTask(null)
                   }}
                 >
@@ -454,6 +540,46 @@ export const TaskBoard = () => {
                 </Button>
               </div>
             </form>
+          </Card>
+        </div>
+      )}
+
+      {/* Confirm Delete Task Modal */}
+      {deleteConfirmTask && (
+        <div className="fixed inset-0 z-50 bg-black/70 backdrop-blur-sm flex items-center justify-center p-4">
+          <Card className="w-full max-w-md p-6 space-y-4 border-slate-200 dark:border-slate-800 shadow-2xl relative bg-white dark:bg-[#181C27]">
+            <div className="flex items-center justify-between pb-3 border-b border-slate-200 dark:border-slate-800">
+              <h3 className="font-bold text-slate-900 dark:text-slate-100 text-sm flex items-center gap-2">
+                <Trash2 className="w-4 h-4 text-rose-500" /> Confirm Delete Task
+              </h3>
+              <button
+                onClick={() => setDeleteConfirmTask(null)}
+                className="text-slate-400 hover:text-slate-600 dark:hover:text-white p-1 rounded-lg hover:bg-slate-100 dark:hover:bg-slate-800 transition-colors"
+              >
+                <X className="w-4 h-4" />
+              </button>
+            </div>
+
+            <p className="text-xs text-slate-600 dark:text-slate-300 leading-relaxed">
+              Are you sure you want to delete task <strong className="text-slate-900 dark:text-white">{deleteConfirmTask.title}</strong>? This action cannot be undone.
+            </p>
+
+            <div className="flex items-center justify-end gap-3 pt-3 border-t border-slate-200 dark:border-slate-800">
+              <Button variant="secondary" onClick={() => setDeleteConfirmTask(null)}>
+                Cancel
+              </Button>
+              <Button
+                variant="danger"
+                onClick={async () => {
+                  const id = deleteConfirmTask.taskId || deleteConfirmTask.id
+                  deleteTask(id)
+                  await updateTaskStatusInDb('org_real', id, 'deleted')
+                  setDeleteConfirmTask(null)
+                }}
+              >
+                Yes, Delete Task
+              </Button>
+            </div>
           </Card>
         </div>
       )}

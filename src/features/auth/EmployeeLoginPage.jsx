@@ -75,7 +75,7 @@ export const EmployeeLoginPage = () => {
           <div className="inline-flex w-12 h-12 rounded-2xl bg-purple-50 dark:bg-purple-600/20 text-purple-600 dark:text-purple-400 items-center justify-center border border-purple-200 dark:border-purple-500/30 mb-1">
             <UserCheck className="w-6 h-6" />
           </div>
-          <h2 className="text-2xl font-bold text-slate-900 dark:text-slate-100 tracking-tight">Employee Staff Portal</h2>
+          <h2 className="text-2xl font-bold text-slate-900 dark:text-slate-100 tracking-tight">Employee   EMPLOYEE PORTAL</h2>
           <p className="text-xs text-slate-500 dark:text-slate-400">Sprint Tasks, Time Tracker & Attendance Sign-In</p>
         </div>
 
@@ -88,7 +88,7 @@ export const EmployeeLoginPage = () => {
 
         <form onSubmit={handleLogin} className="space-y-4">
           <Input
-            label="Staff Work Email"
+            label=" EMPLOYEEWork Email"
             type="email"
             placeholder="name@company.com"
             icon={Mail}
@@ -108,7 +108,7 @@ export const EmployeeLoginPage = () => {
           />
 
           <Button type="submit" variant="primary" className="w-full mt-2 bg-purple-600 hover:bg-purple-500" disabled={loading} icon={ArrowRight}>
-            {loading ? 'Authenticating Staff...' : 'Sign In to Staff Workspace'}
+            {loading ? 'Authenticating Staff...' : 'Sign In to   EMPLOYEE Workspace'}
           </Button>
         </form>
 
@@ -117,7 +117,7 @@ export const EmployeeLoginPage = () => {
             <div className="w-full border-t border-slate-200 dark:border-slate-800" />
           </div>
           <span className="relative bg-white dark:bg-[#181C27] px-3 text-[11px] text-slate-500 dark:text-slate-400 uppercase tracking-wider">
-            Or Staff SSO
+            Or  EMPLOYEESSO
           </span>
         </div>
 
@@ -128,7 +128,7 @@ export const EmployeeLoginPage = () => {
           onClick={handleGoogleClick}
           disabled={loading}
         >
-          Sign In with Staff Google SSO
+          Sign In with  EMPLOYEEGoogle SSO
         </Button>
 
         <div className="pt-2 text-center text-xs text-slate-500 dark:text-slate-400 flex justify-between">

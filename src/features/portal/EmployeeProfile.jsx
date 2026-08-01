@@ -170,7 +170,7 @@ export const EmployeeProfile = () => {
     <div className="space-y-6 w-full">
       <PageHeader
         title="My Employee Profile"
-        description="Manage your staff contact info, view roles, skills, and secure your credentials"
+        description="Manage your  EMPLOYEEcontact info, view roles, skills, and secure your credentials"
       />
 
       {error && (

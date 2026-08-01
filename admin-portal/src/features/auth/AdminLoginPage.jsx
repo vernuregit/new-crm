@@ -1,18 +1,16 @@
 import React, { useState } from 'react'
 import { useNavigate } from 'react-router-dom'
-import { Crown, Mail, Lock, User, ArrowRight, AlertCircle, UserPlus } from 'lucide-react'
+import { Crown, Mail, Lock, ArrowRight, AlertCircle } from 'lucide-react'
 import { Button } from '../../components/ui/Button'
 import { Input } from '../../components/ui/Input'
 import { Card } from '../../components/ui/Card'
 import { useUserStore } from '../../stores/userStore'
-import { loginWithEmail, signupWithEmail, fetchCustomClaims } from '../../shared/services/authService'
+import { loginWithEmail, fetchCustomClaims, getUserDoc, logoutUser } from '../../shared/services/authService'
 
 export const AdminLoginPage = () => {
   const navigate = useNavigate()
   const { setUser } = useUserStore()
 
-  const [isRegisterMode, setIsRegisterMode] = useState(false)
-  const [fullName, setFullName] = useState('')
   const [email, setEmail] = useState('')
   const [password, setPassword] = useState('')
   const [error, setError] = useState('')
@@ -25,11 +23,6 @@ export const AdminLoginPage = () => {
       return
     }
 
-    if (isRegisterMode && !fullName.trim()) {
-      setError('Please enter your full name.')
-      return
-    }
-
     if (password.length < 6) {
       setError('Password must be at least 6 characters.')
       return
@@ -39,30 +32,32 @@ export const AdminLoginPage = () => {
     setError('')
 
     try {
-      let firebaseUser
-      if (isRegisterMode) {
-        // Register new Admin user in Firebase Auth
-        firebaseUser = await signupWithEmail(email, password, fullName)
-      } else {
-        // Sign in existing Admin user
-        firebaseUser = await loginWithEmail(email, password)
+      // Sign in existing Admin user
+      const firebaseUser = await loginWithEmail(email, password)
+
+      // Verify user role: reject employee accounts from logging into Admin portal
+      const userDoc = await getUserDoc(firebaseUser.uid)
+      if (userDoc && (userDoc.role === 'employee' || (userDoc.roleName && userDoc.role !== 'owner' && userDoc.role !== 'admin'))) {
+        await logoutUser()
+        setError('Access Denied: This account is an Employee account. Please log in using the Employee Portal.')
+        setLoading(false)
+        return
       }
 
       const claims = await fetchCustomClaims(firebaseUser)
+      const userRole = userDoc?.role || (claims && claims.role) || 'owner'
       setUser(
         firebaseUser,
-        null,
-        claims || { orgId: 'org_real', role: 'owner', tier: 'company' }
+        userDoc || null,
+        { orgId: 'org_real', role: userRole, tier: 'company', ...claims }
       )
       navigate('/dashboard')
     } catch (err) {
       console.error('Firebase Auth error:', err)
-      if (err.code === 'auth/email-already-in-use') {
-        setError('An account with this email already exists. Please sign in instead.')
-      } else if (err.code === 'auth/wrong-password' || err.code === 'auth/invalid-credential') {
+      if (err.code === 'auth/wrong-password' || err.code === 'auth/invalid-credential') {
         setError('Incorrect email or password. Please try again.')
       } else if (err.code === 'auth/user-not-found') {
-        setError('No account found with this email. Click "Register New Account" to create one.')
+        setError('No account found with this email.')
       } else if (err.code === 'auth/weak-password') {
         setError('Password should be at least 6 characters.')
       } else {
@@ -83,29 +78,11 @@ export const AdminLoginPage = () => {
             <Crown className="w-6 h-6" />
           </div>
           <h2 className="text-2xl font-bold text-slate-900 dark:text-slate-100 tracking-tight">
-            {isRegisterMode ? 'Register New Admin Account' : 'Founder & Admin Login'}
+            Founder & Admin Login
           </h2>
           <p className="text-xs text-slate-500 dark:text-slate-400">
-            {isRegisterMode ? 'Create executive account in Firebase' : 'Executive Workspace & Operations Management'}
+            Executive Workspace & Operations Management
           </p>
-        </div>
-
-        {/* Mode Toggle Tabs */}
-        <div className="grid grid-cols-2 p-1 bg-slate-100 dark:bg-slate-900/80 rounded-xl border border-slate-200 dark:border-slate-800 text-xs">
-          <button
-            type="button"
-            className={`py-2 rounded-lg font-medium transition-colors ${!isRegisterMode ? 'bg-indigo-600 text-white shadow-sm' : 'text-slate-600 dark:text-slate-400 hover:text-slate-900 dark:hover:text-slate-200'}`}
-            onClick={() => { setIsRegisterMode(false); setError(''); }}
-          >
-            Sign In
-          </button>
-          <button
-            type="button"
-            className={`py-2 rounded-lg font-medium transition-colors ${isRegisterMode ? 'bg-indigo-600 text-white shadow-sm' : 'text-slate-600 dark:text-slate-400 hover:text-slate-900 dark:hover:text-slate-200'}`}
-            onClick={() => { setIsRegisterMode(true); setError(''); }}
-          >
-            Register Account
-          </button>
         </div>
 
         {error && (
@@ -116,17 +93,6 @@ export const AdminLoginPage = () => {
         )}
 
         <form onSubmit={handleSubmit} className="space-y-4">
-          {isRegisterMode && (
-            <Input
-              label="Full Name"
-              placeholder="e.g. Alex Rivera"
-              icon={User}
-              value={fullName}
-              onChange={(e) => setFullName(e.target.value)}
-              required
-            />
-          )}
-
           <Input
             label="Admin Work Email"
             type="email"
@@ -152,11 +118,9 @@ export const AdminLoginPage = () => {
             variant="primary"
             className="w-full mt-2"
             disabled={loading}
-            icon={isRegisterMode ? UserPlus : ArrowRight}
+            icon={ArrowRight}
           >
-            {loading
-              ? isRegisterMode ? 'Creating Account in Firebase...' : 'Authenticating...'
-              : isRegisterMode ? 'Register Admin Account' : 'Sign In'}
+            {loading ? 'Authenticating...' : 'Sign In'}
           </Button>
         </form>
       </Card>

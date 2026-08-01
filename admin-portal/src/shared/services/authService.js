@@ -80,7 +80,7 @@ export const fetchCustomClaims = async (user, forceRefresh = false) => {
 /**
  * Ensure user document exists in /users/{uid}
  */
-export const ensureUserDocExists = async (user) => {
+export const ensureUserDocExists = async (user, defaultRole = 'owner') => {
   if (!user) return
   if (import.meta.env.VITE_FIREBASE_API_KEY === 'mock_api_key_dev') return
 
@@ -95,6 +95,7 @@ export const ensureUserDocExists = async (user) => {
         displayName: user.displayName || user.email.split('@')[0],
         photoURL: user.photoURL || null,
         phoneNumber: user.phoneNumber || null,
+        role: defaultRole,
         createdAt: serverTimestamp(),
         updatedAt: serverTimestamp(),
         status: 'active',
@@ -125,7 +126,7 @@ export const ensureUserDocExists = async (user) => {
 }
 
 /**
- * Fetch a user document from Firestore /users/{uid}
+ * Fetch a user document from Firestore /users/{uid} or /employees/{uid}
  */
 export const getUserDoc = async (uid) => {
   try {
@@ -133,6 +134,11 @@ export const getUserDoc = async (uid) => {
     const snap = await getDoc(userRef)
     if (snap.exists()) {
       return snap.data()
+    }
+    const empRef = doc(db, 'employees', uid)
+    const empSnap = await getDoc(empRef)
+    if (empSnap.exists()) {
+      return { ...empSnap.data(), role: 'employee' }
     }
   } catch (err) {
     console.warn('Error fetching user document:', err.message)
@@ -272,6 +278,72 @@ export const createEmployeeAccount = async (email, password, displayName, roleNa
     await signOut(secondaryAuth)
     await deleteApp(secondaryApp)
     return mockData
+  } catch (err) {
+    try {
+      await deleteApp(secondaryApp)
+    } catch (_) { }
+    throw err
+  }
+}
+
+/**
+ * Programmatically create an Admin Auth user & Firestore profile without logging out the active admin.
+ */
+export const createAdminAccount = async (email, password, displayName, roleName = 'Executive Admin') => {
+  const adminPayload = {
+    displayName,
+    email,
+    roleName: roleName || 'Executive Admin',
+    departmentName: 'Executive Management',
+    phoneNumber: ' ',
+    skills: ['Leadership', 'Management'],
+    role: 'admin',
+    tier: 'company',
+    status: 'active',
+    joinedAt: new Date().toISOString().split('T')[0],
+  }
+
+  if (import.meta.env.VITE_FIREBASE_API_KEY === 'mock_api_key_dev') {
+    const mockUid = `admin_${Date.now()}`
+    const mockData = {
+      uid: mockUid,
+      ...adminPayload,
+      createdAt: new Date().toISOString(),
+      updatedAt: new Date().toISOString(),
+    }
+    await setDoc(doc(db, 'users', mockUid), mockData)
+    return mockData
+  }
+
+  let secondaryApp
+  try {
+    secondaryApp = initializeApp(tempConfig, 'AdminCreationApp')
+  } catch (e) {
+    secondaryApp = getApp('AdminCreationApp')
+  }
+
+  const secondaryAuth = getAuth(secondaryApp)
+  try {
+    const userCredential = await createUserWithEmailAndPassword(secondaryAuth, email, password)
+    const user = userCredential.user
+
+    if (displayName) {
+      await updateProfile(user, { displayName })
+    }
+
+    const adminData = {
+      uid: user.uid,
+      ...adminPayload,
+      createdAt: new Date().toISOString(),
+      updatedAt: new Date().toISOString(),
+    }
+
+    const userRef = doc(db, 'users', user.uid)
+    await setDoc(userRef, adminData)
+
+    await signOut(secondaryAuth)
+    await deleteApp(secondaryApp)
+    return adminData
   } catch (err) {
     try {
       await deleteApp(secondaryApp)

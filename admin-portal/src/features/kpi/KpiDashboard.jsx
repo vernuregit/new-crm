@@ -126,7 +126,7 @@ export const KpiDashboard = () => {
       {isLoading && (
         <div className="flex items-center justify-center py-16">
           <Loader2 className="w-8 h-8 text-indigo-400 animate-spin" />
-          <span className="ml-3 text-slate-400 text-sm">Loading KPI data from Firestore...</span>
+          <span className="ml-3 text-slate-400 text-sm">Loading KPI data...</span>
         </div>
       )}
 

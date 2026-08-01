@@ -38,9 +38,8 @@ export const EmployeeSidebar = () => {
 
   return (
     <aside
-      className={`fixed top-0 left-0 bottom-0 z-40 bg-white dark:bg-[#12151E] border-r border-slate-200 dark:border-purple-900/40 transition-all duration-300 flex flex-col ${
-        sidebarOpen ? 'w-64' : 'w-20'
-      }`}
+      className={`fixed top-0 left-0 bottom-0 z-40 bg-white dark:bg-[#12151E] border-r border-slate-200 dark:border-purple-900/40 transition-all duration-300 flex flex-col ${sidebarOpen ? 'w-64' : 'w-20'
+        }`}
     >
       {/* Brand Header */}
       <div className="h-16 flex items-center justify-between px-4 border-b border-slate-200 dark:border-purple-900/40">
@@ -51,7 +50,7 @@ export const EmployeeSidebar = () => {
           {sidebarOpen && (
             <div className="flex flex-col">
               <span className="font-bold text-slate-900 dark:text-slate-100 text-sm tracking-wide leading-none">
-                STAFF PORTAL
+                EMPLOYEE PORTAL
               </span>
               <span className="text-[10px] text-purple-600 dark:text-purple-400 font-medium tracking-wider mt-1 uppercase">
                 EMPLOYEE MODE
@@ -77,10 +76,9 @@ export const EmployeeSidebar = () => {
               key={item.path}
               to={item.path}
               className={({ isActive }) =>
-                `flex items-center gap-3 px-3 py-2.5 rounded-xl text-sm font-medium transition-all ${
-                  isActive
-                    ? 'bg-purple-50 dark:bg-purple-600/15 text-purple-600 dark:text-purple-400 border border-purple-200 dark:border-purple-500/30 shadow-sm'
-                    : 'text-slate-600 dark:text-slate-400 hover:text-slate-900 dark:hover:text-slate-200 hover:bg-slate-100 dark:hover:bg-slate-800/50'
+                `flex items-center gap-3 px-3 py-2.5 rounded-xl text-sm font-medium transition-all ${isActive
+                  ? 'bg-purple-50 dark:bg-purple-600/15 text-purple-600 dark:text-purple-400 border border-purple-200 dark:border-purple-500/30 shadow-sm'
+                  : 'text-slate-600 dark:text-slate-400 hover:text-slate-900 dark:hover:text-slate-200 hover:bg-slate-100 dark:hover:bg-slate-800/50'
                 }`
               }
             >
@@ -104,7 +102,7 @@ export const EmployeeSidebar = () => {
                 {displayName}
               </span>
               <span className="text-[10px] font-bold px-1.5 py-0.5 rounded-md border mt-0.5 text-purple-600 dark:text-purple-400 bg-purple-50 dark:bg-purple-500/10 border-purple-200 dark:border-purple-500/20 truncate">
-                Employee Staff Portal
+                Employee   EMPLOYEE PORTAL
               </span>
             </div>
           )}

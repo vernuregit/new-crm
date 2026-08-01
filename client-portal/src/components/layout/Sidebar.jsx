@@ -44,7 +44,7 @@ export const Sidebar = () => {
       ]
     }
 
-    // 2. Employee / Staff Role Menu
+    // 2. Employee /  EMPLOYEERole Menu
     if (userRole === 'employee') {
       return [
         { name: 'Dashboard', path: '/dashboard', icon: LayoutDashboard },
@@ -76,7 +76,7 @@ export const Sidebar = () => {
 
   const getRoleLabel = () => {
     if (userTier === 'client' || userRole === 'client') return { label: 'Client Workspace', color: 'text-emerald-400 bg-emerald-500/10 border-emerald-500/20' }
-    if (userRole === 'employee') return { label: 'Employee Staff Portal', color: 'text-purple-400 bg-purple-500/10 border-purple-500/20' }
+    if (userRole === 'employee') return { label: 'Employee   EMPLOYEE PORTAL', color: 'text-purple-400 bg-purple-500/10 border-purple-500/20' }
     return { label: 'Founder & Admin Suite', color: 'text-indigo-400 bg-indigo-500/10 border-indigo-500/20' }
   }
 
@@ -84,9 +84,8 @@ export const Sidebar = () => {
 
   return (
     <aside
-      className={`fixed top-0 left-0 bottom-0 z-40 bg-[#12151E] border-r border-slate-800/80 transition-all duration-300 flex flex-col ${
-        sidebarOpen ? 'w-64' : 'w-20'
-      }`}
+      className={`fixed top-0 left-0 bottom-0 z-40 bg-[#12151E] border-r border-slate-800/80 transition-all duration-300 flex flex-col ${sidebarOpen ? 'w-64' : 'w-20'
+        }`}
     >
       {/* Brand Header */}
       <div className="h-16 flex items-center justify-between px-4 border-b border-slate-800/80">
@@ -123,10 +122,9 @@ export const Sidebar = () => {
               key={item.path}
               to={item.path}
               className={({ isActive }) =>
-                `flex items-center gap-3 px-3 py-2.5 rounded-xl text-sm font-medium transition-all ${
-                  isActive
-                    ? 'bg-indigo-600/15 text-indigo-400 border border-indigo-500/30 shadow-sm'
-                    : 'text-slate-400 hover:text-slate-200 hover:bg-slate-800/50'
+                `flex items-center gap-3 px-3 py-2.5 rounded-xl text-sm font-medium transition-all ${isActive
+                  ? 'bg-indigo-600/15 text-indigo-400 border border-indigo-500/30 shadow-sm'
+                  : 'text-slate-400 hover:text-slate-200 hover:bg-slate-800/50'
                 }`
               }
             >

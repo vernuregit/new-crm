@@ -130,7 +130,7 @@ export const WorkflowList = () => {
       {isLoading && (
         <div className="flex items-center justify-center py-20">
           <Loader2 className="w-7 h-7 text-indigo-400 animate-spin" />
-          <span className="ml-3 text-slate-400 text-sm">Loading workflows from Firestore...</span>
+          <span className="ml-3 text-slate-400 text-sm">Loading workflows...</span>
         </div>
       )}
 

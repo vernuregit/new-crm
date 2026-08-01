@@ -4,6 +4,7 @@ import { Card } from '../../../components/ui/Card'
 import { Badge } from '../../../components/ui/Badge'
 import { Button } from '../../../components/ui/Button'
 import { useTeamStore } from '../../team/stores/teamStore'
+import { useUserStore } from '../../../stores/userStore'
 import { AttendanceCalendarWidget } from './AttendanceCalendarWidget'
 import { AttendanceMetricsBar } from '../../team/components/AttendanceMetricsBar'
 import {
@@ -17,10 +18,16 @@ import {
   ChevronRight,
   ListFilter,
   History,
-  AlertCircle
+  AlertCircle,
+  Zap
 } from 'lucide-react'
 
 export const ClockInOverviewWidget = () => {
+  const { user, userDoc } = useUserStore()
+  const activeUid = userDoc?.uid || user?.uid
+  const displayName = userDoc?.displayName || user?.displayName || 'Employee'
+  const departmentName = userDoc?.departmentName || ''
+
   const {
     clockedIn,
     clockInTime,
@@ -32,13 +39,54 @@ export const ClockInOverviewWidget = () => {
     accumulatedWorkSeconds,
     todayShiftLogs,
     attendanceStats,
+    isInExtraTime,
+    extraTimeStart,
+    accumulatedExtraSeconds,
+    loadUserAttendance,
     toggleClockIn,
     toggleBreak,
+    toggleExtraTime,
   } = useTeamStore()
 
   const [currentTimeStr, setCurrentTimeStr] = useState('')
   const [elapsedSeconds, setElapsedSeconds] = useState(0)
+  const [elapsedExtraSec, setElapsedExtraSec] = useState(0)
   const [showLogs, setShowLogs] = useState(false)
+
+  // Fetch today's attendance log for the active logged-in employee
+  useEffect(() => {
+    if (activeUid) {
+      loadUserAttendance(activeUid)
+    }
+  }, [activeUid, loadUserAttendance])
+
+  // Live real-time ticker for extra work hours
+  useEffect(() => {
+    let timer
+    if (isInExtraTime && extraTimeStart) {
+      const updateExtraTicker = () => {
+        const netExtra = Math.max(0, Math.floor((Date.now() - extraTimeStart) / 1000))
+        setElapsedExtraSec(accumulatedExtraSeconds + netExtra)
+      }
+      updateExtraTicker()
+      timer = setInterval(updateExtraTicker, 1000)
+    } else {
+      setElapsedExtraSec(accumulatedExtraSeconds)
+    }
+    return () => clearInterval(timer)
+  }, [isInExtraTime, extraTimeStart, accumulatedExtraSeconds])
+
+  const currentHour = new Date().getHours()
+
+  // Extra work hours lock condition: Unlocks ONLY when regular 8-hour workday is completed,
+  // or user has clocked out after working today, or after 7:00 PM (hour 19+)
+  const isWorkDone =
+    elapsedSeconds >= 8 * 3600 ||
+    (!clockedIn && accumulatedWorkSeconds > 0) ||
+    currentHour >= 19 ||
+    isInExtraTime
+
+
 
   // Live real-time clock & elapsed work time ticker
   useEffect(() => {
@@ -94,6 +142,9 @@ export const ClockInOverviewWidget = () => {
 
   return (
     <div className="space-y-3">
+      {/* 5-Card Attendance Metrics Bar: Status, Clock In, Clock Out, Worked Hours, Late By */}
+      <AttendanceMetricsBar />
+
       {/* Main Top Attendance Hub Grid */}
       <div className="grid grid-cols-1 lg:grid-cols-12 gap-3 items-stretch">
 
@@ -211,7 +262,7 @@ export const ClockInOverviewWidget = () => {
           {/* Action Button Strip */}
           <div className="pt-3 flex items-center gap-2.5">
             <Button
-              onClick={toggleClockIn}
+              onClick={() => toggleClockIn({ uid: activeUid, displayName, departmentName })}
               className={`flex-1 justify-center py-2.5 font-extrabold shadow-md transition-all text-sm sm:text-base rounded-xl ${
                 clockedIn
                   ? 'bg-gradient-to-r from-rose-600 to-rose-500 hover:from-rose-500 hover:to-rose-600 text-white shadow-rose-500/20'
@@ -232,7 +283,7 @@ export const ClockInOverviewWidget = () => {
             {clockedIn && (
               <Button
                 variant={isOnBreak ? 'primary' : 'secondary'}
-                onClick={toggleBreak}
+                onClick={() => toggleBreak({ uid: activeUid, displayName, departmentName })}
                 title={isOnBreak ? 'Resume Work' : 'Take Break'}
                 className="py-2.5 px-3.5 rounded-xl"
               >
@@ -247,6 +298,38 @@ export const ClockInOverviewWidget = () => {
               className="py-2.5 px-3.5 text-slate-500 dark:text-slate-400 rounded-xl"
             >
               <History className="w-4 h-4 sm:w-5 sm:h-5" />
+            </Button>
+          </div>
+
+          {/* Extra Work Hours / Overtime Section */}
+          <div className="mt-3 pt-3 border-t border-slate-200/80 dark:border-slate-800 flex items-center justify-between gap-2">
+            <div className="flex items-center gap-2">
+              <div className={`p-1.5 rounded-lg ${isInExtraTime ? 'bg-amber-500/20 text-amber-500 animate-pulse' : isWorkDone ? 'bg-indigo-500/10 text-indigo-500' : 'bg-slate-100 dark:bg-slate-800 text-slate-400'}`}>
+                <Zap className="w-4 h-4" />
+              </div>
+              <div className="flex flex-col">
+                <span className="text-xs font-bold text-slate-800 dark:text-slate-200">
+                  Extra Work Hours
+                </span>
+                <span className="text-[10px] text-slate-500 dark:text-slate-400">
+                  {isInExtraTime
+                    ? `Logging overtime: ${formatWorkdayHours(elapsedExtraSec)}`
+                    : isWorkDone
+                    ? `Unlocked! Shift completed (${formatWorkdayHours(accumulatedExtraSeconds)} logged)`
+                    : ''}
+                </span>
+              </div>
+            </div>
+
+            <Button
+              size="sm"
+              variant={isInExtraTime ? 'danger' : isWorkDone ? 'primary' : 'secondary'}
+              disabled={!isWorkDone && !isInExtraTime}
+              onClick={() => toggleExtraTime({ uid: activeUid, displayName, departmentName })}
+              title={!isWorkDone ? 'Finish regular workday to unlock extra work hours' : 'Toggle extra work hours logging'}
+              className="text-xs font-bold px-3 py-1.5 rounded-xl shrink-0"
+            >
+              {isInExtraTime ? 'Stop Extra Time' : 'Start Extra Time'}
             </Button>
           </div>
         </Card>
@@ -319,9 +402,6 @@ export const ClockInOverviewWidget = () => {
           <AttendanceCalendarWidget />
         </div>
       </div>
-
-      {/* 5-Card Attendance Metrics Bar: Status, Clock In, Clock Out, Worked Hours, Late By */}
-      <AttendanceMetricsBar />
 
       {/* Shift History Log Dropdown Panel */}
       {showLogs && (

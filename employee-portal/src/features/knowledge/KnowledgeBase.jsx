@@ -144,7 +144,7 @@ export const KnowledgeBase = () => {
       {loading ? (
         <div className="flex items-center justify-center py-20">
           <Loader2 className="w-7 h-7 text-indigo-600 dark:text-indigo-400 animate-spin" />
-          <span className="ml-3 text-slate-500 dark:text-slate-400 text-xs">Loading Knowledge Base from Firestore…</span>
+          <span className="ml-3 text-slate-500 dark:text-slate-400 text-xs">Loading Knowledge Base…</span>
         </div>
       ) : filteredArticles.length === 0 ? (
         <Card className="p-8 text-center border-dashed border-slate-300 dark:border-slate-800 space-y-3 bg-white dark:bg-[#181C27]">

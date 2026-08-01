@@ -1,11 +1,14 @@
 import React, { useState, useEffect } from 'react'
 import { NavLink } from 'react-router-dom'
+import { collection, getDocs, query, where } from 'firebase/firestore'
+import { db } from '../../shared/services/firebaseService'
 import { PageHeader } from '../../components/layout/PageHeader'
 import { Card } from '../../components/ui/Card'
 import { Badge } from '../../components/ui/Badge'
 import { Button } from '../../components/ui/Button'
 import { Input } from '../../components/ui/Input'
 import { useProjectStore } from './stores/projectStore'
+import { useUserStore } from '../../stores/userStore'
 import {
   Plus,
   Search,
@@ -23,8 +26,20 @@ import {
   Loader2
 } from 'lucide-react'
 
+// Default fallback client list
+const defaultClients = [
+  { id: 'cli_acme', name: 'Acme Corp' },
+  { id: 'cli_techcorp', name: 'TechCorp Global' },
+  { id: 'cli_nexus', name: 'Nexus Systems' },
+  { id: 'cli_globallog', name: 'Global Logistics' },
+  { id: 'cli_apex', name: 'Apex Enterprises' },
+]
+
 export const ProjectList = () => {
+  const { user, userDoc } = useUserStore()
   const { projects, addProject, fetchProjectsAndTasks, loading } = useProjectStore()
+
+  const displayName = userDoc?.displayName || user?.displayName || 'Team Member'
 
   const [searchQuery, setSearchQuery] = useState('')
   const [statusFilter, setStatusFilter] = useState('all')
@@ -33,13 +48,57 @@ export const ProjectList = () => {
   // Form fields for new project
   const [projName, setProjName] = useState('')
   const [clientName, setClientName] = useState('')
+  const [selectedClientId, setSelectedClientId] = useState('')
   const [budget, setBudget] = useState('')
   const [description, setDescription] = useState('')
-  const [owner, setOwner] = useState('Sarah Jenkins')
+
+  // Client dropdown data
+  const [clients, setClients] = useState([])
+  const [dropdownLoading, setDropdownLoading] = useState(false)
 
   useEffect(() => {
     fetchProjectsAndTasks()
   }, [fetchProjectsAndTasks])
+
+  // Fetch real clients from Firestore when modal opens
+  useEffect(() => {
+    if (!showAddModal) return
+    const fetchClients = async () => {
+      setDropdownLoading(true)
+      try {
+        const q = query(collection(db, 'users'), where('role', '==', 'client'))
+        const snap = await getDocs(q)
+        const clientCompaniesMap = new Map()
+
+        snap.docs.forEach((d) => {
+          const data = d.data()
+          const company = data.companyName || data.displayName || data.name
+          if (company) {
+            clientCompaniesMap.set(company.trim().toLowerCase(), {
+              id: d.id,
+              name: company,
+            })
+          }
+        })
+
+        const fetchedList = Array.from(clientCompaniesMap.values())
+        const finalClients = fetchedList.length > 0 ? fetchedList : defaultClients
+        setClients(finalClients)
+        if (finalClients.length > 0) {
+          setSelectedClientId(finalClients[0].id)
+          setClientName(finalClients[0].name)
+        }
+      } catch (err) {
+        console.error('Error fetching clients from Firestore:', err)
+        setClients(defaultClients)
+        setSelectedClientId(defaultClients[0].id)
+        setClientName(defaultClients[0].name)
+      } finally {
+        setDropdownLoading(false)
+      }
+    }
+    fetchClients()
+  }, [showAddModal])
 
   const filtered = projects.filter((p) => {
     const matchesSearch =
@@ -67,16 +126,20 @@ export const ProjectList = () => {
     e.preventDefault()
     if (!projName.trim()) return
 
+    const effectiveClientName = clientName || (clients.find(c => c.id === selectedClientId)?.name) || 'Internal Platform'
+
     addProject({
       name: projName,
-      clientName: clientName || 'Internal Platform',
+      clientId: selectedClientId,
+      clientName: effectiveClientName,
       budget: Number(budget) || 0,
       description,
-      ownerName: owner,
+      ownerName: displayName,
     })
 
     setProjName('')
     setClientName('')
+    setSelectedClientId('')
     setBudget('')
     setDescription('')
     setShowAddModal(false)
@@ -205,7 +268,7 @@ export const ProjectList = () => {
       {loading ? (
         <div className="flex items-center justify-center py-20">
           <Loader2 className="w-7 h-7 text-indigo-600 dark:text-indigo-400 animate-spin" />
-          <span className="ml-3 text-slate-500 dark:text-slate-400 text-xs">Loading projects from Firestore…</span>
+          <span className="ml-3 text-slate-500 dark:text-slate-400 text-xs">Loading projects…</span>
         </div>
       ) : filtered.length === 0 ? (
         <Card className="p-8 text-center border-dashed border-slate-300 dark:border-slate-800 space-y-3">
@@ -297,12 +360,33 @@ export const ProjectList = () => {
               />
 
               <div className="grid grid-cols-2 gap-3">
-                <Input
-                  label="Client Name"
-                  placeholder="e.g. Acme Corp"
-                  value={clientName}
-                  onChange={(e) => setClientName(e.target.value)}
-                />
+                {/* Client Dropdown */}
+                <div className="space-y-1.5 text-left">
+                  <label className="block text-xs font-medium text-slate-700 dark:text-slate-300 flex items-center gap-1.5">
+                    <Building className="w-3 h-3 text-indigo-500" /> Client Name
+                  </label>
+                  {dropdownLoading ? (
+                    <div className="flex items-center gap-2 py-2.5 px-3.5 text-xs text-slate-400">
+                      <Loader2 className="w-3.5 h-3.5 animate-spin" /> Loading clients...
+                    </div>
+                  ) : (
+                    <select
+                      value={selectedClientId}
+                      onChange={(e) => {
+                        setSelectedClientId(e.target.value)
+                        const found = clients.find((c) => c.id === e.target.value)
+                        if (found) setClientName(found.name)
+                      }}
+                      className="w-full bg-slate-100/80 dark:bg-[#11141E] border border-slate-300 dark:border-slate-800 text-slate-900 dark:text-slate-100 text-xs rounded-xl py-2.5 px-3.5 focus:outline-none focus:border-indigo-500 focus:ring-1 focus:ring-indigo-500 transition-all cursor-pointer"
+                    >
+                      {clients.map((c) => (
+                        <option key={c.id} value={c.id} className="bg-white dark:bg-[#11141E]">
+                          {c.name}
+                        </option>
+                      ))}
+                    </select>
+                  )}
+                </div>
                 <Input
                   label="Project Budget ($ USD)"
                   type="number"
@@ -320,19 +404,6 @@ export const ProjectList = () => {
                   onChange={(e) => setDescription(e.target.value)}
                   className="w-full bg-slate-100/80 dark:bg-[#11141E] border border-slate-300 dark:border-slate-800 text-slate-900 dark:text-slate-100 placeholder-slate-400 dark:placeholder-slate-500 text-xs rounded-xl p-3 h-20 focus:outline-none focus:border-indigo-500 focus:ring-1 focus:ring-indigo-500 transition-all"
                 />
-              </div>
-
-              <div className="space-y-1.5 text-left">
-                <label className="block text-xs font-medium text-slate-700 dark:text-slate-300">Project Owner</label>
-                <select
-                  value={owner}
-                  onChange={(e) => setOwner(e.target.value)}
-                  className="w-full bg-slate-100/80 dark:bg-[#11141E] border border-slate-300 dark:border-slate-800 text-slate-900 dark:text-slate-100 text-sm rounded-xl py-2.5 px-3.5 focus:outline-none focus:border-indigo-500 focus:ring-1 focus:ring-indigo-500 transition-all cursor-pointer"
-                >
-                  <option value="Sarah Jenkins" className="bg-white dark:bg-[#11141E] text-slate-900 dark:text-slate-100">Sarah Jenkins (Engineering Lead)</option>
-                  <option value="Alex Rivera" className="bg-white dark:bg-[#11141E] text-slate-900 dark:text-slate-100">Alex Rivera (Design Lead)</option>
-                  <option value="David Chen" className="bg-white dark:bg-[#11141E] text-slate-900 dark:text-slate-100">David Chen (DevOps Architect)</option>
-                </select>
               </div>
 
               <div className="flex gap-3 pt-2">

@@ -11,10 +11,17 @@ import { AttendanceMetricsBar } from './components/AttendanceMetricsBar'
 import { Users, CheckCircle2, Calendar, Clock, LogIn, LogOut } from 'lucide-react'
 
 export const AttendancePage = () => {
-  const { employees, setEmployees, clockedIn, clockInTime, toggleClockIn } = useTeamStore()
-  const { user } = useUserStore()
+  const { employees, setEmployees, clockedIn, clockInTime, toggleClockIn, loadUserAttendance } = useTeamStore()
+  const { user, userDoc } = useUserStore()
 
-  const loggedInName = user?.displayName || user?.email || ''
+  const activeUid = userDoc?.uid || user?.uid
+  const loggedInName = userDoc?.displayName || user?.displayName || user?.email || ''
+
+  useEffect(() => {
+    if (activeUid) {
+      loadUserAttendance(activeUid)
+    }
+  }, [activeUid, loadUserAttendance])
 
   useEffect(() => {
     if (employees.length === 0) {
@@ -25,8 +32,14 @@ export const AttendancePage = () => {
   }, [employees.length, setEmployees])
 
   const handleClockToggle = async () => {
-    toggleClockIn()
+    toggleClockIn({
+      uid: activeUid,
+      displayName: loggedInName,
+      departmentName: userDoc?.departmentName || '',
+    })
     await recordAttendanceInDb({
+      uid: activeUid,
+      displayName: loggedInName,
       action: clockedIn ? 'clock_out' : 'clock_in',
       time: new Date().toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' }),
       date: new Date().toISOString().split('T')[0],
@@ -45,15 +58,6 @@ export const AttendancePage = () => {
         <PageHeader
           title="Attendance & Daily Presence Tracker"
           description="Your clock-in/out status, shift log, and daily presence"
-          actions={
-            <Button
-              icon={clockedIn ? LogOut : LogIn}
-              variant={clockedIn ? 'danger' : 'primary'}
-              onClick={handleClockToggle}
-            >
-              {clockedIn ? `Clock Out (${clockInTime})` : 'Clock In Now'}
-            </Button>
-          }
         />
 
         <div className="flex items-center gap-2 border-b border-slate-200 dark:border-slate-800 pb-3">

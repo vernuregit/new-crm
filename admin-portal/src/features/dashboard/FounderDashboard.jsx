@@ -331,7 +331,7 @@ export const FounderDashboard = () => {
               ))
             ) : activity.length === 0 ? (
               <div className="py-8 text-center text-slate-500 dark:text-slate-400 text-xs">
-                No recent activity found in Firestore.
+                No recent activity found.
               </div>
             ) : (
               activity.map((item) => (
@@ -421,7 +421,7 @@ export const FounderDashboard = () => {
 
               {crmPct == null && financePct == null && projectsPct == null && (
                 <p className="text-slate-500 dark:text-slate-400 text-center py-2">
-                  No health score data in Firestore yet.
+                  No health score data available yet.
                   <br />
                   <span className="text-indigo-600 dark:text-indigo-400 font-medium">
                     Save a health snapshot from the KPI Engine.

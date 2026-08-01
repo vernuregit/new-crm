@@ -19,7 +19,7 @@ export const EmployeeLoginPage = () => {
   const handleRealLogin = async (e) => {
     e.preventDefault()
     if (!email || !password) {
-      setError('Please enter both staff work email and password.')
+      setError('Please enter both  EMPLOYEEwork email and password.')
       return
     }
 
@@ -60,7 +60,7 @@ export const EmployeeLoginPage = () => {
           <div className="inline-flex w-12 h-12 rounded-2xl bg-purple-50 dark:bg-purple-600/20 text-purple-600 dark:text-purple-400 items-center justify-center border border-purple-200 dark:border-purple-500/30 mb-1">
             <UserCheck className="w-6 h-6" />
           </div>
-          <h2 className="text-2xl font-bold text-slate-900 dark:text-slate-100 tracking-tight">Employee Staff Portal</h2>
+          <h2 className="text-2xl font-bold text-slate-900 dark:text-slate-100 tracking-tight">Employee   EMPLOYEE PORTAL</h2>
           <p className="text-xs text-slate-500 dark:text-slate-400">Sprint Tasks, Time Tracker & Attendance Workspace</p>
         </div>
 
@@ -73,7 +73,7 @@ export const EmployeeLoginPage = () => {
 
         <form onSubmit={handleRealLogin} className="space-y-4">
           <Input
-            label="Staff Work Email"
+            label=" EMPLOYEEWork Email"
             type="email"
             placeholder="staff@company.com"
             icon={Mail}

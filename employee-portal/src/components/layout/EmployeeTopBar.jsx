@@ -12,12 +12,12 @@ export const EmployeeTopBar = () => {
 
   return (
     <header className="h-16 bg-white/90 dark:bg-[#12151E]/90 backdrop-blur-md border-b border-slate-200 dark:border-purple-900/40 px-6 flex items-center justify-between sticky top-0 z-30 transition-colors">
-      {/* Staff Environment Badge & Search */}
+      {/*  EMPLOYEEEnvironment Badge & Search */}
       <div className="flex items-center gap-4">
         <div className="flex items-center gap-2 text-xs text-purple-600 dark:text-purple-400">
           <UserCheck className="w-4 h-4" />
           <span className="font-medium hidden sm:block">
-            Staff Workspace
+            EMPLOYEE Workspace
           </span>
         </div>
 
@@ -64,7 +64,7 @@ export const EmployeeTopBar = () => {
               {displayName}
             </span>
             <span className="text-[10px] text-purple-600 dark:text-purple-400 font-medium">
-              Staff Member
+              EMPLOYEE Member
             </span>
           </div>
         </Link>

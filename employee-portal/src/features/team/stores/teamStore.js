@@ -1,6 +1,7 @@
 import { create } from 'zustand'
 import { persist } from 'zustand/middleware'
-import { upsertAttendanceLog } from '../services/attendanceService'
+import { upsertAttendanceLog, getTodayAttendanceLog } from '../services/attendanceService'
+import { useUserStore } from '../../../stores/userStore'
 
 // Office hours constants
 export const OFFICE_START_HOUR = 10
@@ -27,12 +28,31 @@ function secToHrsStr(totalSec) {
   return `${hrs}h ${mins}m`
 }
 
+/**
+ * Resolves user metadata (uid, displayName, departmentName) from passed argument or useUserStore.
+ */
+function resolveUserMeta(userMeta) {
+  if (userMeta && userMeta.uid) return userMeta
+  try {
+    const { user, userDoc } = useUserStore.getState()
+    const uid = userDoc?.uid || user?.uid
+    const displayName = userDoc?.displayName || user?.displayName || 'Employee'
+    const departmentName = userDoc?.departmentName || ''
+    return { uid, displayName, departmentName }
+  } catch (e) {
+    return userMeta || {}
+  }
+}
+
 export const useTeamStore = create(
   persist(
     (set, get) => ({
       employees: [],
       departments: [],
       leaveRequests: [],
+
+      // Active user tracking
+      currentUserId: null,
 
       // Clock-in state
       clockedIn: false,
@@ -114,10 +134,89 @@ export const useTeamStore = create(
         })),
 
       /**
+       * Resets attendance state (e.g. on logout or user switch).
+       */
+      resetAttendanceState: () =>
+        set({
+          currentUserId: null,
+          clockedIn: false,
+          clockInTime: null,
+          clockInTimestamp: null,
+          clockOutTime: null,
+          isOnBreak: false,
+          breakStartTime: null,
+          accumulatedBreakSeconds: 0,
+          accumulatedWorkSeconds: 0,
+          todayShiftLogs: [],
+          isInExtraTime: false,
+          extraTimeStart: null,
+          accumulatedExtraSeconds: 0,
+          extraTimeLogs: [],
+          overtimeRecords: [],
+          lastWorkDate: null,
+        }),
+
+      /**
+       * Loads today's attendance state for a specific employee from Firestore.
+       * @param {string} uid
+       */
+      loadUserAttendance: async (uid) => {
+        if (!uid) {
+          get().resetAttendanceState()
+          return
+        }
+
+        set({ currentUserId: uid })
+
+        try {
+          const todayLog = await getTodayAttendanceLog(uid)
+          if (todayLog && todayLog.date === todayDateStr()) {
+            set({
+              clockedIn: Boolean(todayLog.clockedIn),
+              clockInTime: todayLog.clockInTime || null,
+              clockInTimestamp: todayLog.clockInTimestamp || null,
+              clockOutTime: todayLog.clockOutTime || null,
+              isOnBreak: Boolean(todayLog.isOnBreak),
+              breakStartTime: todayLog.breakStartTime || null,
+              accumulatedBreakSeconds: todayLog.accumulatedBreakSeconds || 0,
+              accumulatedWorkSeconds: todayLog.regularSeconds ?? todayLog.accumulatedWorkSeconds ?? 0,
+              todayShiftLogs: todayLog.todayShiftLogs || todayLog.shiftLogs || [],
+              isInExtraTime: Boolean(todayLog.isInExtraTime),
+              extraTimeStart: todayLog.extraTimeStart || null,
+              accumulatedExtraSeconds: todayLog.extraSeconds ?? todayLog.accumulatedExtraSeconds ?? 0,
+              extraTimeLogs: todayLog.extraTimeLogs || [],
+              lastWorkDate: todayLog.date || todayDateStr(),
+            })
+          } else {
+            // No record for today yet: set un-clocked defaults for this user
+            set({
+              clockedIn: false,
+              clockInTime: null,
+              clockInTimestamp: null,
+              clockOutTime: null,
+              isOnBreak: false,
+              breakStartTime: null,
+              accumulatedBreakSeconds: 0,
+              accumulatedWorkSeconds: 0,
+              todayShiftLogs: [],
+              isInExtraTime: false,
+              extraTimeStart: null,
+              accumulatedExtraSeconds: 0,
+              extraTimeLogs: [],
+              lastWorkDate: todayDateStr(),
+            })
+          }
+        } catch (err) {
+          console.error('[teamStore] Error loading user attendance from Firestore:', err)
+        }
+      },
+
+      /**
        * Auto clock-out at 7:00 PM. Called by the widget's useEffect.
        * @param {object} userMeta - { uid, displayName, departmentName }
        */
       autoClockOutAtEndOfDay: (userMeta = {}) => {
+        const meta = resolveUserMeta(userMeta)
         const state = get()
         if (!state.clockedIn) return
 
@@ -143,6 +242,17 @@ export const useTeamStore = create(
           autoClockOut: true,
         }
 
+        const updatedLogs = [
+          {
+            id: `log_${Date.now()}`,
+            type: 'auto_clock_out',
+            label: 'Auto Clocked Out (EOD)',
+            time: timeStr,
+            timestamp: endTs,
+          },
+          ...state.todayShiftLogs,
+        ]
+
         set({
           clockedIn: false,
           clockOutTime: timeStr,
@@ -152,42 +262,32 @@ export const useTeamStore = create(
           accumulatedWorkSeconds: totalRegularSeconds,
           accumulatedBreakSeconds: 0,
           lastWorkDate: todayDateStr(),
-          todayShiftLogs: [
-            {
-              id: `log_${Date.now()}`,
-              type: 'auto_clock_out',
-              label: 'Auto Clocked Out (EOD)',
-              time: timeStr,
-              timestamp: endTs,
-            },
-            ...state.todayShiftLogs,
-          ],
+          todayShiftLogs: updatedLogs,
           overtimeRecords: [record, ...state.overtimeRecords],
         })
 
         // Write to Firestore
-        upsertAttendanceLog(userMeta.uid, {
-          displayName: userMeta.displayName || 'Employee',
-          departmentName: userMeta.departmentName || '',
-          clockedIn: false,
-          clockInTime: state.clockInTime,
-          clockOutTime: timeStr,
-          autoClockOut: true,
-          regularSeconds: totalRegularSeconds,
-          regularHours: secToHrsStr(totalRegularSeconds),
-          extraSeconds: state.accumulatedExtraSeconds,
-          extraHours: secToHrsStr(state.accumulatedExtraSeconds),
-          date: todayDateStr(),
-          shiftLogs: [
-            {
-              type: 'auto_clock_out',
-              label: 'Auto Clocked Out (EOD)',
-              time: timeStr,
-              timestamp: endTs,
-            },
-            ...state.todayShiftLogs,
-          ],
-        })
+        if (meta.uid) {
+          upsertAttendanceLog(meta.uid, {
+            displayName: meta.displayName || 'Employee',
+            departmentName: meta.departmentName || '',
+            clockedIn: false,
+            clockInTime: state.clockInTime,
+            clockInTimestamp: null,
+            clockOutTime: timeStr,
+            autoClockOut: true,
+            regularSeconds: totalRegularSeconds,
+            regularHours: secToHrsStr(totalRegularSeconds),
+            accumulatedWorkSeconds: totalRegularSeconds,
+            accumulatedBreakSeconds: 0,
+            isOnBreak: false,
+            extraSeconds: state.accumulatedExtraSeconds,
+            extraHours: secToHrsStr(state.accumulatedExtraSeconds),
+            date: todayDateStr(),
+            todayShiftLogs: updatedLogs,
+            shiftLogs: updatedLogs,
+          })
+        }
       },
 
       /**
@@ -195,53 +295,65 @@ export const useTeamStore = create(
        * @param {object} userMeta - { uid, displayName, departmentName }
        */
       toggleClockIn: (userMeta = {}) => {
+        const meta = resolveUserMeta(userMeta)
         const state = get()
         const now = new Date()
         const timeStr = now.toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })
 
         if (!state.clockedIn) {
           // --- Clocking In ---
+          const nowMs = Date.now()
+          const initialClockIn = state.clockInTime || timeStr
           const newLogs = [
             {
-              id: `log_${Date.now()}`,
+              id: `log_${nowMs}`,
               type: 'clock_in',
               label: 'Clocked In',
               time: timeStr,
-              timestamp: Date.now(),
+              timestamp: nowMs,
             },
+            ...state.todayShiftLogs,
           ]
 
           set({
+            currentUserId: meta.uid || state.currentUserId,
             clockedIn: true,
-            clockInTime: timeStr,
-            clockInTimestamp: Date.now(),
+            clockInTime: initialClockIn,
+            clockInTimestamp: nowMs,
             clockOutTime: null,
             isOnBreak: false,
             breakStartTime: null,
             accumulatedBreakSeconds: 0,
-            accumulatedWorkSeconds: 0,
+            accumulatedWorkSeconds: state.accumulatedWorkSeconds, // Keep worked hours accrued today!
             isInExtraTime: false,
             extraTimeStart: null,
-            accumulatedExtraSeconds: 0,
-            extraTimeLogs: [],
+            accumulatedExtraSeconds: state.accumulatedExtraSeconds,
+            extraTimeLogs: state.extraTimeLogs,
             todayShiftLogs: newLogs,
           })
 
           // Write to Firestore
-          upsertAttendanceLog(userMeta.uid, {
-            displayName: userMeta.displayName || 'Employee',
-            departmentName: userMeta.departmentName || '',
-            clockedIn: true,
-            clockInTime: timeStr,
-            clockOutTime: null,
-            autoClockOut: false,
-            regularSeconds: 0,
-            regularHours: '0h 0m',
-            extraSeconds: 0,
-            extraHours: '0h 0m',
-            date: todayDateStr(),
-            shiftLogs: newLogs,
-          })
+          if (meta.uid) {
+            upsertAttendanceLog(meta.uid, {
+              displayName: meta.displayName || 'Employee',
+              departmentName: meta.departmentName || '',
+              clockedIn: true,
+              clockInTime: initialClockIn,
+              clockInTimestamp: nowMs,
+              clockOutTime: null,
+              autoClockOut: false,
+              regularSeconds: state.accumulatedWorkSeconds,
+              regularHours: secToHrsStr(state.accumulatedWorkSeconds),
+              accumulatedWorkSeconds: state.accumulatedWorkSeconds,
+              accumulatedBreakSeconds: 0,
+              isOnBreak: false,
+              extraSeconds: state.accumulatedExtraSeconds,
+              extraHours: secToHrsStr(state.accumulatedExtraSeconds),
+              date: todayDateStr(),
+              todayShiftLogs: newLogs,
+              shiftLogs: newLogs,
+            })
+          }
         } else {
           // --- Clocking Out ---
           const sessionSeconds = state.clockInTimestamp
@@ -283,20 +395,27 @@ export const useTeamStore = create(
           })
 
           // Write to Firestore
-          upsertAttendanceLog(userMeta.uid, {
-            displayName: userMeta.displayName || 'Employee',
-            departmentName: userMeta.departmentName || '',
-            clockedIn: false,
-            clockInTime: state.clockInTime,
-            clockOutTime: timeStr,
-            autoClockOut: false,
-            regularSeconds: totalRegularSeconds,
-            regularHours: secToHrsStr(totalRegularSeconds),
-            extraSeconds: state.accumulatedExtraSeconds,
-            extraHours: secToHrsStr(state.accumulatedExtraSeconds),
-            date: todayDateStr(),
-            shiftLogs: updatedLogs,
-          })
+          if (meta.uid) {
+            upsertAttendanceLog(meta.uid, {
+              displayName: meta.displayName || 'Employee',
+              departmentName: meta.departmentName || '',
+              clockedIn: false,
+              clockInTime: state.clockInTime,
+              clockInTimestamp: null,
+              clockOutTime: timeStr,
+              autoClockOut: false,
+              regularSeconds: totalRegularSeconds,
+              regularHours: secToHrsStr(totalRegularSeconds),
+              accumulatedWorkSeconds: totalRegularSeconds,
+              accumulatedBreakSeconds: 0,
+              isOnBreak: false,
+              extraSeconds: state.accumulatedExtraSeconds,
+              extraHours: secToHrsStr(state.accumulatedExtraSeconds),
+              date: todayDateStr(),
+              todayShiftLogs: updatedLogs,
+              shiftLogs: updatedLogs,
+            })
+          }
         }
       },
 
@@ -305,31 +424,76 @@ export const useTeamStore = create(
        * @param {object} userMeta - { uid, displayName, departmentName }
        */
       toggleExtraTime: (userMeta = {}) => {
+        const meta = resolveUserMeta(userMeta)
         const state = get()
         const now = new Date()
         const timeStr = now.toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })
 
         if (!state.isInExtraTime) {
-          const newLog = {
+          // If employee was active clockedIn, finalize regular shift first!
+          let finalRegularSec = state.accumulatedWorkSeconds
+          let updatedShiftLogs = state.todayShiftLogs
+          if (state.clockedIn && state.clockInTimestamp) {
+            const sessionSeconds = Math.floor((Date.now() - state.clockInTimestamp) / 1000)
+            const netSeconds = Math.max(0, sessionSeconds - state.accumulatedBreakSeconds)
+            finalRegularSec += netSeconds
+            updatedShiftLogs = [
+              {
+                id: `log_${Date.now()}`,
+                type: 'clock_out',
+                label: 'Shift Ended (Started Extra Time)',
+                time: timeStr,
+                timestamp: Date.now(),
+              },
+              ...state.todayShiftLogs,
+            ]
+          }
+
+          const newExtraLog = {
             id: `xt_${Date.now()}`,
             type: 'extra_start',
             label: 'Extra Time Started',
             time: timeStr,
             timestamp: Date.now(),
           }
+
           set({
+            clockedIn: false,
+            clockInTimestamp: null,
+            clockOutTime: state.clockedIn ? timeStr : state.clockOutTime,
+            isOnBreak: false,
+            breakStartTime: null,
+            accumulatedWorkSeconds: finalRegularSec,
+            accumulatedBreakSeconds: 0,
             isInExtraTime: true,
             extraTimeStart: Date.now(),
-            extraTimeLogs: [newLog, ...state.extraTimeLogs],
+            extraTimeLogs: [newExtraLog, ...state.extraTimeLogs],
+            todayShiftLogs: updatedShiftLogs,
           })
 
-          // Write to Firestore
-          upsertAttendanceLog(userMeta.uid, {
-            displayName: userMeta.displayName || 'Employee',
-            departmentName: userMeta.departmentName || '',
-            isInExtraTime: true,
-            extraTimeStart: Date.now(),
-          })
+          // Write complete attendance snapshot to Firestore
+          if (meta.uid) {
+            upsertAttendanceLog(meta.uid, {
+              displayName: meta.displayName || 'Employee',
+              departmentName: meta.departmentName || '',
+              clockedIn: false,
+              clockInTime: state.clockInTime,
+              clockInTimestamp: null,
+              clockOutTime: state.clockedIn ? timeStr : state.clockOutTime,
+              regularSeconds: finalRegularSec,
+              regularHours: secToHrsStr(finalRegularSec),
+              accumulatedWorkSeconds: finalRegularSec,
+              accumulatedBreakSeconds: 0,
+              isOnBreak: false,
+              isInExtraTime: true,
+              extraTimeStart: Date.now(),
+              extraSeconds: state.accumulatedExtraSeconds,
+              extraHours: secToHrsStr(state.accumulatedExtraSeconds),
+              date: todayDateStr(),
+              todayShiftLogs: updatedShiftLogs,
+              shiftLogs: updatedShiftLogs,
+            })
+          }
         } else {
           const extraSessionSec = state.extraTimeStart
             ? Math.floor((Date.now() - state.extraTimeStart) / 1000)
@@ -358,49 +522,58 @@ export const useTeamStore = create(
           })
 
           // Write to Firestore
-          upsertAttendanceLog(userMeta.uid, {
-            displayName: userMeta.displayName || 'Employee',
-            departmentName: userMeta.departmentName || '',
-            isInExtraTime: false,
-            extraTimeStart: null,
-            extraSeconds: totalExtra,
-            extraHours: secToHrsStr(totalExtra),
-            extraTimeLogs: updatedExtraLogs,
-          })
+          if (meta.uid) {
+            upsertAttendanceLog(meta.uid, {
+              displayName: meta.displayName || 'Employee',
+              departmentName: meta.departmentName || '',
+              isInExtraTime: false,
+              extraTimeStart: null,
+              extraSeconds: totalExtra,
+              extraHours: secToHrsStr(totalExtra),
+              extraTimeLogs: updatedExtraLogs,
+            })
+          }
         }
       },
 
       toggleBreak: (userMeta = {}) => {
+        const meta = resolveUserMeta(userMeta)
         const state = get()
         if (!state.clockedIn) return
         const now = new Date()
         const timeStr = now.toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })
 
         if (!state.isOnBreak) {
+          const breakStartMs = Date.now()
           const newLog = {
-            id: `log_${Date.now()}`,
+            id: `log_${breakStartMs}`,
             type: 'break_start',
             label: 'Started Break',
             time: timeStr,
-            timestamp: Date.now(),
+            timestamp: breakStartMs,
           }
           const updatedLogs = [newLog, ...state.todayShiftLogs]
           set({
             isOnBreak: true,
-            breakStartTime: Date.now(),
+            breakStartTime: breakStartMs,
             todayShiftLogs: updatedLogs,
           })
 
-          upsertAttendanceLog(userMeta.uid, {
-            displayName: userMeta.displayName || 'Employee',
-            departmentName: userMeta.departmentName || '',
-            isOnBreak: true,
-            shiftLogs: updatedLogs,
-          })
+          if (meta.uid) {
+            upsertAttendanceLog(meta.uid, {
+              displayName: meta.displayName || 'Employee',
+              departmentName: meta.departmentName || '',
+              isOnBreak: true,
+              breakStartTime: breakStartMs,
+              todayShiftLogs: updatedLogs,
+              shiftLogs: updatedLogs,
+            })
+          }
         } else {
           const breakDuration = state.breakStartTime
             ? Math.floor((Date.now() - state.breakStartTime) / 1000)
             : 0
+          const newBreakTotal = state.accumulatedBreakSeconds + breakDuration
           const newLog = {
             id: `log_${Date.now()}`,
             type: 'break_end',
@@ -412,22 +585,28 @@ export const useTeamStore = create(
           set({
             isOnBreak: false,
             breakStartTime: null,
-            accumulatedBreakSeconds: state.accumulatedBreakSeconds + breakDuration,
+            accumulatedBreakSeconds: newBreakTotal,
             todayShiftLogs: updatedLogs,
           })
 
-          upsertAttendanceLog(userMeta.uid, {
-            displayName: userMeta.displayName || 'Employee',
-            departmentName: userMeta.departmentName || '',
-            isOnBreak: false,
-            shiftLogs: updatedLogs,
-          })
+          if (meta.uid) {
+            upsertAttendanceLog(meta.uid, {
+              displayName: meta.displayName || 'Employee',
+              departmentName: meta.departmentName || '',
+              isOnBreak: false,
+              breakStartTime: null,
+              accumulatedBreakSeconds: newBreakTotal,
+              todayShiftLogs: updatedLogs,
+              shiftLogs: updatedLogs,
+            })
+          }
         }
       },
     }),
     {
       name: 'crm_employee_team_store',
       partialize: (state) => ({
+        currentUserId: state.currentUserId,
         clockedIn: state.clockedIn,
         clockInTime: state.clockInTime,
         clockInTimestamp: state.clockInTimestamp,
@@ -447,3 +626,4 @@ export const useTeamStore = create(
     }
   )
 )
+

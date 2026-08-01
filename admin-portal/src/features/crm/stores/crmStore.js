@@ -21,9 +21,16 @@ export const useCRMStore = create(
       selectedStageFilter: 'all',
 
       setLeads: (leads) => set({ leads }),
+      setStages: (stages) => set({ stages }),
       setActiveLead: (activeLead) => set({ activeLead }),
       setSearchQuery: (searchQuery) => set({ searchQuery }),
       setSelectedStageFilter: (selectedStageFilter) => set({ selectedStageFilter }),
+
+      addCustomStage: (stage) =>
+        set((state) => {
+          if (state.stages.some((s) => s.id === stage.id)) return state
+          return { stages: [...state.stages, stage] }
+        }),
 
       addLead: (newLead) =>
         set((state) => ({

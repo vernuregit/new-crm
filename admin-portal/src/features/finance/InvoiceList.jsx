@@ -48,6 +48,7 @@ export const InvoiceList = () => {
   const [searchQuery, setSearchQuery] = useState('')
   const [showAddModal, setShowAddModal] = useState(false)
   const [selectedInvoice, setSelectedInvoice] = useState(null)
+  const [deleteConfirmInvoice, setDeleteConfirmInvoice] = useState(null)
   const [sendSuccessMsg, setSendSuccessMsg] = useState('')
 
   // Invoice form state
@@ -408,7 +409,7 @@ export const InvoiceList = () => {
                     )}
 
                     <button
-                      onClick={() => handleDeleteInvoice(inv.invoiceId)}
+                      onClick={() => setDeleteConfirmInvoice(inv)}
                       className="p-1.5 hover:bg-rose-50 dark:hover:bg-rose-500/10 text-slate-400 dark:text-slate-500 hover:text-rose-600 dark:hover:text-rose-400 rounded-lg transition-colors"
                       title="Delete Invoice"
                     >
@@ -579,6 +580,45 @@ export const InvoiceList = () => {
           onClose={() => setSelectedInvoice(null)}
           onSendClient={handleSendInvoiceToClient}
         />
+      )}
+
+      {/* Confirm Delete Invoice Modal */}
+      {deleteConfirmInvoice && (
+        <div className="fixed inset-0 z-50 bg-black/70 backdrop-blur-sm flex items-center justify-center p-4">
+          <Card className="w-full max-w-md p-6 space-y-4 border-slate-200 dark:border-slate-800 shadow-2xl relative bg-white dark:bg-[#181C27]">
+            <div className="flex items-center justify-between pb-3 border-b border-slate-200 dark:border-slate-800">
+              <h3 className="font-bold text-slate-900 dark:text-slate-100 text-sm flex items-center gap-2">
+                <Trash2 className="w-4 h-4 text-rose-500" /> Confirm Delete Invoice
+              </h3>
+              <button
+                onClick={() => setDeleteConfirmInvoice(null)}
+                className="text-slate-400 hover:text-slate-600 dark:hover:text-white p-1 rounded-lg hover:bg-slate-100 dark:hover:bg-slate-800 transition-colors"
+              >
+                <X className="w-4 h-4" />
+              </button>
+            </div>
+
+            <p className="text-xs text-slate-600 dark:text-slate-300 leading-relaxed">
+              Are you sure you want to delete invoice <strong className="text-slate-900 dark:text-white">{deleteConfirmInvoice.invoiceNumber}</strong> ({deleteConfirmInvoice.clientName})? This action cannot be undone.
+            </p>
+
+            <div className="flex items-center justify-end gap-3 pt-3 border-t border-slate-200 dark:border-slate-800">
+              <Button variant="secondary" onClick={() => setDeleteConfirmInvoice(null)}>
+                Cancel
+              </Button>
+              <Button
+                variant="danger"
+                onClick={async () => {
+                  const id = deleteConfirmInvoice.invoiceId || deleteConfirmInvoice.id
+                  await handleDeleteInvoice(id)
+                  setDeleteConfirmInvoice(null)
+                }}
+              >
+                Yes, Delete Invoice
+              </Button>
+            </div>
+          </Card>
+        </div>
       )}
     </div>
   )

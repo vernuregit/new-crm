@@ -128,7 +128,7 @@ export const KnowledgeBase = () => {
       {isLoading && (
         <div className="flex items-center justify-center py-20">
           <Loader2 className="w-7 h-7 text-indigo-600 dark:text-indigo-400 animate-spin" />
-          <span className="ml-3 text-slate-500 dark:text-slate-400 text-xs">Loading documentation from Firestore...</span>
+          <span className="ml-3 text-slate-500 dark:text-slate-400 text-xs">Loading documentation...</span>
         </div>
       )}
 
@@ -296,7 +296,7 @@ export const KnowledgeBase = () => {
                   icon={isSaving ? Loader2 : Plus}
                   disabled={isSaving}
                 >
-                  {isSaving ? 'Publishing to Firestore...' : 'Publish Article'}
+                  {isSaving ? 'Publishing...' : 'Publish Article'}
                 </Button>
               </div>
             </form>
