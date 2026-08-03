@@ -5,11 +5,13 @@ import { Card } from '../../components/ui/Card'
 import { Badge } from '../../components/ui/Badge'
 import { useTeamStore } from './stores/teamStore'
 import { db } from '../../shared/services/firebaseService'
+import { computeRealAttendanceStats } from './services/attendanceStatsUtils'
 import {
   collection,
   query,
   where,
   onSnapshot,
+  getDocs,
 } from 'firebase/firestore'
 import {
   Users,
@@ -24,6 +26,7 @@ import {
   AlertCircle,
   Wifi,
   WifiOff,
+  TrendingUp,
 } from 'lucide-react'
 
 // Today's date in YYYY-MM-DD
@@ -52,7 +55,44 @@ export const AttendancePage = () => {
   const [error, setError] = useState(null)
   const [lastRefresh, setLastRefresh] = useState(null)
   const [isLive, setIsLive] = useState(false)
-  const [selectedDate, setSelectedDate] = useState(todayStr())
+  const [allLogs, setAllLogs] = useState([])
+
+  useEffect(() => {
+    const fetchAllLogs = async () => {
+      try {
+        const snap = await getDocs(collection(db, 'attendanceLogs'))
+        const docs = snap.docs.map((d) => ({ id: d.id, ...d.data() }))
+        setAllLogs(docs)
+      } catch (err) {
+        console.error('[AttendancePage] Error fetching all attendance logs:', err)
+      }
+    }
+    fetchAllLogs()
+  }, [])
+
+  // Calculate real employee-wise attendance stats for all employees
+  const employeeStatsList = useMemo(() => {
+    const mapByUid = {}
+    allLogs.forEach((log) => {
+      if (log.uid) {
+        if (!mapByUid[log.uid]) mapByUid[log.uid] = []
+        mapByUid[log.uid].push(log)
+      }
+    })
+
+    return employees.map((emp) => {
+      const uId = emp.uid || emp.employeeId || emp.id
+      const uLogs = mapByUid[uId] || []
+      const stats = computeRealAttendanceStats(uLogs)
+      return {
+        uid: uId,
+        displayName: emp.displayName || emp.name || 'Employee',
+        departmentName: emp.departmentName || emp.department || 'General',
+        role: emp.role || 'Team Member',
+        ...stats,
+      }
+    })
+  }, [allLogs, employees])
 
   // Build a UID → employee info lookup from the admin team store
   const employeeMap = useMemo(() =>
@@ -466,6 +506,52 @@ export const AttendancePage = () => {
           </div>
         </div>
       )}
+
+      {/* Employee-Wise Attendance Metrics Section */}
+      <div className="space-y-3 pt-4">
+        <div className="flex flex-wrap items-center justify-between gap-2 border-b border-slate-800 pb-2">
+          <h3 className="text-sm font-bold text-slate-100 flex items-center gap-2">
+            <Clock className="w-4 h-4 text-indigo-400" /> Employee-Wise Attendance Averages & Metrics
+          </h3>
+          <span className="text-xs text-slate-400 font-mono">
+            Real calculated averages across all logged shifts
+          </span>
+        </div>
+
+        <Card className="overflow-x-auto p-0 border-slate-800">
+          <table className="w-full text-left border-collapse text-xs">
+            <thead>
+              <tr className="bg-slate-900/80 border-b border-slate-800 text-slate-400 font-semibold">
+                <th className="p-4 font-semibold">Employee</th>
+                <th className="p-4 font-semibold">Department</th>
+                <th className="p-4 font-semibold">Avg Hours / Day</th>
+                <th className="p-4 font-semibold">Avg Check-In</th>
+                <th className="p-4 font-semibold">Avg Arrival Time</th>
+                <th className="p-4 font-semibold">Avg Check-Out</th>
+              </tr>
+            </thead>
+            <tbody className="divide-y divide-slate-800/60">
+              {employeeStatsList.map((emp) => (
+                <tr key={emp.uid} className="hover:bg-slate-800/30 transition-colors text-slate-300">
+                  <td className="p-4">
+                    <div className="flex items-center gap-2.5">
+                      <div className="w-7 h-7 rounded-lg bg-indigo-600/20 border border-indigo-500/20 text-indigo-400 flex items-center justify-center font-bold text-[11px] shrink-0">
+                        {emp.displayName?.charAt(0)?.toUpperCase()}
+                      </div>
+                      <span className="font-semibold text-slate-100">{emp.displayName}</span>
+                    </div>
+                  </td>
+                  <td className="p-4 text-slate-400">{emp.departmentName}</td>
+                  <td className="p-4 font-semibold font-mono text-sky-400">{emp.avgHours}</td>
+                  <td className="p-4 font-semibold font-mono text-emerald-400">{emp.avgCheckIn}</td>
+                  <td className="p-4 font-semibold font-mono text-teal-400">{emp.avgArrival}</td>
+                  <td className="p-4 font-semibold font-mono text-purple-400">{emp.avgCheckOut}</td>
+                </tr>
+              ))}
+            </tbody>
+          </table>
+        </Card>
+      </div>
     </div>
   )
 }

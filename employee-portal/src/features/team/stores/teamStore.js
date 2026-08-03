@@ -1,6 +1,7 @@
 import { create } from 'zustand'
 import { persist } from 'zustand/middleware'
-import { upsertAttendanceLog, getTodayAttendanceLog } from '../services/attendanceService'
+import { upsertAttendanceLog, getTodayAttendanceLog, getUserMonthlyAttendance } from '../services/attendanceService'
+import { computeRealAttendanceStats } from '../services/attendanceStatsUtils'
 import { useUserStore } from '../../../stores/userStore'
 
 // Office hours constants
@@ -169,9 +170,16 @@ export const useTeamStore = create(
         set({ currentUserId: uid })
 
         try {
-          const todayLog = await getTodayAttendanceLog(uid)
+          const [todayLog, monthlyLogsMap] = await Promise.all([
+            getTodayAttendanceLog(uid),
+            getUserMonthlyAttendance(uid),
+          ])
+
+          const monthlyLogsList = Object.values(monthlyLogsMap || {})
+
+          let todayState = {}
           if (todayLog && todayLog.date === todayDateStr()) {
-            set({
+            todayState = {
               clockedIn: Boolean(todayLog.clockedIn),
               clockInTime: todayLog.clockInTime || null,
               clockInTimestamp: todayLog.clockInTimestamp || null,
@@ -186,10 +194,9 @@ export const useTeamStore = create(
               accumulatedExtraSeconds: todayLog.extraSeconds ?? todayLog.accumulatedExtraSeconds ?? 0,
               extraTimeLogs: todayLog.extraTimeLogs || [],
               lastWorkDate: todayLog.date || todayDateStr(),
-            })
+            }
           } else {
-            // No record for today yet: set un-clocked defaults for this user
-            set({
+            todayState = {
               clockedIn: false,
               clockInTime: null,
               clockInTimestamp: null,
@@ -204,8 +211,23 @@ export const useTeamStore = create(
               accumulatedExtraSeconds: 0,
               extraTimeLogs: [],
               lastWorkDate: todayDateStr(),
-            })
+            }
           }
+
+          // Dynamically compute REAL employee-wise attendanceStats
+          const currentLive = {
+            date: todayDateStr(),
+            clockInTime: todayState.clockInTime,
+            clockOutTime: todayState.clockOutTime,
+            accumulatedWorkSeconds: todayState.accumulatedWorkSeconds,
+            regularSeconds: todayState.accumulatedWorkSeconds,
+          }
+          const realStats = computeRealAttendanceStats(monthlyLogsList, currentLive)
+
+          set({
+            ...todayState,
+            attendanceStats: realStats,
+          })
         } catch (err) {
           console.error('[teamStore] Error loading user attendance from Firestore:', err)
         }

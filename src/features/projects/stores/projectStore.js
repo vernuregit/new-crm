@@ -266,6 +266,8 @@ export const useProjectStore = create(
             const createdSubtask = {
               id: `sub_${Date.now()}_${Math.random().toString(36).substr(2, 4)}`,
               title: newSubtask.title,
+              description: newSubtask.description || null,
+              estimatedTime: newSubtask.estimatedTime || null,
               isCompleted: false,
             }
             updatedSubtasks = [...existingSubtasks, createdSubtask]

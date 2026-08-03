@@ -16,6 +16,7 @@ import { RecurringBilling } from './features/finance/RecurringBilling'
 import { EmployeeList } from './features/team/EmployeeList'
 import { AttendancePage } from './features/team/AttendancePage'
 import { LeaveManagement } from './features/team/LeaveManagement'
+import { HolidayManager } from './features/team/HolidayManager'
 import { CampaignList } from './features/marketing/CampaignList'
 import { ContentCalendar } from './features/marketing/ContentCalendar'
 import { UtmBuilder } from './features/marketing/UtmBuilder'
@@ -69,6 +70,7 @@ export const router = createBrowserRouter([
       { path: 'team/employees', element: <EmployeeList /> },
       { path: 'team/attendance', element: <AttendancePage /> },
       { path: 'team/leave', element: <LeaveManagement /> },
+      { path: 'team/holidays', element: <HolidayManager /> },
 
       // Marketing Module
       { path: 'marketing', element: <Navigate to="/marketing/campaigns" replace /> },

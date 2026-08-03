@@ -343,7 +343,7 @@ export const ClockInOverviewWidget = () => {
             </div>
             <div>
               <div className="text-base font-bold text-slate-900 dark:text-slate-100">
-                {attendanceStats.avgHours}
+                {attendanceStats?.avgHours || formatWorkdayHours(elapsedSeconds)}
               </div>
               <span className="text-[10px] font-medium text-slate-500 dark:text-slate-400 uppercase tracking-wider block mt-0.5">
                 Avg hours / day
@@ -358,7 +358,7 @@ export const ClockInOverviewWidget = () => {
             </div>
             <div>
               <div className="text-base font-bold text-slate-900 dark:text-slate-100">
-                {clockInTime || attendanceStats.avgCheckIn}
+                {attendanceStats?.avgCheckIn || clockInTime || '—'}
               </div>
               <span className="text-[10px] font-medium text-slate-500 dark:text-slate-400 uppercase tracking-wider block mt-0.5">
                 Avg check-in
@@ -373,7 +373,7 @@ export const ClockInOverviewWidget = () => {
             </div>
             <div>
               <div className="text-base font-bold text-emerald-600 dark:text-emerald-400">
-                {attendanceStats.avgArrival}
+                {attendanceStats?.avgArrival || clockInTime || '—'}
               </div>
               <span className="text-[10px] font-medium text-slate-500 dark:text-slate-400 uppercase tracking-wider block mt-0.5">
                 Avg arrival time
@@ -388,7 +388,7 @@ export const ClockInOverviewWidget = () => {
             </div>
             <div>
               <div className="text-base font-bold text-slate-900 dark:text-slate-100">
-                {clockOutTime || attendanceStats.avgCheckOut || '—'}
+                {attendanceStats?.avgCheckOut || clockOutTime || '—'}
               </div>
               <span className="text-[10px] font-medium text-slate-500 dark:text-slate-400 uppercase tracking-wider block mt-0.5">
                 Avg check-out

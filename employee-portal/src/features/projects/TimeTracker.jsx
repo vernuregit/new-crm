@@ -6,6 +6,7 @@ import { Badge } from '../../components/ui/Badge'
 import { Button } from '../../components/ui/Button'
 import { Input } from '../../components/ui/Input'
 import { useProjectStore } from './stores/projectStore'
+import { useUserStore } from '../../stores/userStore'
 import {
   FolderKanban,
   Kanban,
@@ -20,8 +21,40 @@ import {
   Calendar
 } from 'lucide-react'
 
+const isTaskVisibleToUser = (t, user, userDoc, claims) => {
+  if (!t) return false
+  const currentUserId = userDoc?.uid || user?.uid || userDoc?.id
+  const currentUserEmail = userDoc?.email || user?.email
+  const currentDisplayName = userDoc?.displayName || user?.displayName
+
+  const rawRole = claims?.role || userDoc?.role || 'employee'
+  const isAdmin =
+    rawRole === 'admin' ||
+    rawRole === 'owner' ||
+    rawRole === 'superadmin'
+
+  if (isAdmin) return true
+
+  const isCreatorByUid =
+    t.createdBy && currentUserId && String(t.createdBy) === String(currentUserId)
+  const isCreatorByEmail =
+    t.createdByEmail && currentUserEmail && String(t.createdByEmail).toLowerCase() === String(currentUserEmail).toLowerCase()
+  const isCreatorByName =
+    t.createdByName && currentDisplayName && String(t.createdByName).toLowerCase() === String(currentDisplayName).toLowerCase()
+  const isAssigneeByName =
+    t.assigneeName && currentDisplayName && String(t.assigneeName).toLowerCase() === String(currentDisplayName).toLowerCase()
+
+  return Boolean(isCreatorByUid || isCreatorByEmail || isCreatorByName || isAssigneeByName)
+}
+
 export const TimeTracker = () => {
   const { tasks, projects, logHoursToTask, fetchProjectsAndTasks } = useProjectStore()
+  const { user, userDoc, claims } = useUserStore()
+
+  const currentUserId = userDoc?.uid || user?.uid
+  const currentUserEmail = userDoc?.email || user?.email
+  const userRole = claims?.role || userDoc?.role || 'employee'
+  const isAdmin = userRole === 'admin' || userRole === 'owner' || userRole === 'superadmin' || claims?.role === 'admin' || claims?.role === 'owner' || claims?.role === 'superadmin'
 
   const [searchQuery, setSearchQuery] = useState('')
   const [selectedProjectFilter, setSelectedProjectFilter] = useState('all')
@@ -37,6 +70,7 @@ export const TimeTracker = () => {
   }, [fetchProjectsAndTasks])
 
   const filteredTasks = tasks.filter((t) => {
+    if (!isTaskVisibleToUser(t, user, userDoc, claims)) return false
     const matchesSearch =
       !searchQuery ||
       t.title.toLowerCase().includes(searchQuery.toLowerCase()) ||

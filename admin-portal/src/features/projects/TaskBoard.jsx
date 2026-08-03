@@ -192,6 +192,8 @@ export const TaskBoard = () => {
       loggedHours: 0,
       status: 'todo',
       dueDate: new Date(Date.now() + 86400000 * 7).toISOString().split('T')[0],
+      createdByRole: 'admin',
+      isEmployeeCreated: false,
     }
 
     const created = await createTask(payload)
@@ -383,7 +385,7 @@ export const TaskBoard = () => {
                             <Clock className="w-3 h-3 text-indigo-600 dark:text-indigo-400" /> {t.loggedHours} / {t.estimatedHours}h
                           </span>
                           <span className="flex items-center gap-1 text-[10px] text-slate-500 dark:text-slate-400">
-                            <User className="w-3 h-3 text-slate-400 dark:text-slate-500" /> {t.assigneeName}
+                            <User className="w-3 h-3 text-slate-400 dark:text-slate-500" /> {t.createdByName || t.assigneeName || 'Employee'}
                           </span>
                         </div>
 
@@ -520,8 +522,8 @@ export const TaskBoard = () => {
 
             <div className="space-y-2 text-xs text-slate-600 dark:text-slate-400">
               <div className="flex justify-between py-1 border-b border-slate-200 dark:border-slate-800">
-                <span>Assignee:</span>
-                <span className="text-slate-900 dark:text-slate-200 font-medium">{selectedTask.assigneeName}</span>
+                <span>Creator / Assignee:</span>
+                <span className="text-slate-900 dark:text-slate-200 font-medium">{selectedTask.createdByName || selectedTask.assigneeName || 'Employee'}</span>
               </div>
               <div className="flex justify-between py-1 border-b border-slate-200 dark:border-slate-800">
                 <span>Logged Work:</span>
@@ -588,9 +590,16 @@ export const TaskBoard = () => {
               <Button
                 variant="danger"
                 onClick={async () => {
-                  const id = deleteConfirmTask.taskId || deleteConfirmTask.id
-                  await handleDeleteTask(id)
+                  const id = deleteConfirmTask?.taskId || deleteConfirmTask?.id
                   setDeleteConfirmTask(null)
+                  setSelectedTask(null)
+                  if (id) {
+                    try {
+                      await handleDeleteTask(id)
+                    } catch (err) {
+                      console.error('Error deleting task:', err)
+                    }
+                  }
                 }}
               >
                 Yes, Delete Task

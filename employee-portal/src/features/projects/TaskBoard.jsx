@@ -8,6 +8,7 @@ import { Input } from '../../components/ui/Input'
 import { SubtaskStepper } from './components/SubtaskStepper'
 import { useProjectStore } from './stores/projectStore'
 import { useTeamStore } from '../team/stores/teamStore'
+import { useUserStore } from '../../stores/userStore'
 import { getEmployees } from '../team/services/teamService'
 import {
   FolderKanban,
@@ -19,6 +20,32 @@ import {
   Trash2,
   Search
 } from 'lucide-react'
+
+const isTaskVisibleToUser = (t, user, userDoc, claims) => {
+  if (!t) return false
+  const currentUserId = userDoc?.uid || user?.uid || userDoc?.id
+  const currentUserEmail = userDoc?.email || user?.email
+  const currentDisplayName = userDoc?.displayName || user?.displayName
+
+  const rawRole = claims?.role || userDoc?.role || 'employee'
+  const isAdmin =
+    rawRole === 'admin' ||
+    rawRole === 'owner' ||
+    rawRole === 'superadmin'
+
+  if (isAdmin) return true
+
+  const isCreatorByUid =
+    t.createdBy && currentUserId && String(t.createdBy) === String(currentUserId)
+  const isCreatorByEmail =
+    t.createdByEmail && currentUserEmail && String(t.createdByEmail).toLowerCase() === String(currentUserEmail).toLowerCase()
+  const isCreatorByName =
+    t.createdByName && currentDisplayName && String(t.createdByName).toLowerCase() === String(currentDisplayName).toLowerCase()
+  const isAssigneeByName =
+    t.assigneeName && currentDisplayName && String(t.assigneeName).toLowerCase() === String(currentDisplayName).toLowerCase()
+
+  return Boolean(isCreatorByUid || isCreatorByEmail || isCreatorByName || isAssigneeByName)
+}
 
 const STATUS_DOT_COLORS = {
   todo: 'bg-sky-500 dark:bg-sky-400',
@@ -55,18 +82,47 @@ export const TaskBoard = () => {
     logHoursToTask,
     fetchProjectsAndTasks,
     addCustomStatus,
+    deleteCustomStatus,
     selectedProjectId,
     setSelectedProjectId
   } = useProjectStore()
   const { employees, setEmployees } = useTeamStore()
+  const { user, userDoc, claims } = useUserStore()
+
+  const currentUserId = userDoc?.uid || user?.uid
+  const currentUserEmail = userDoc?.email || user?.email
+  const userRole = claims?.role || userDoc?.role || 'employee'
+  const isAdmin = userRole === 'admin' || userRole === 'owner' || userRole === 'superadmin' || claims?.role === 'admin' || claims?.role === 'owner' || claims?.role === 'superadmin'
+
+  const DEFAULT_STATUS_IDS = ['todo', 'in_progress', 'in_review', 'done']
+
+  const visibleStatuses = (statuses || []).filter((s) => {
+    const isDefault = DEFAULT_STATUS_IDS.includes(s.id)
+    if (isDefault) return true
+    if (isAdmin) return true
+    const isAdminCreated = s.createdByRole === 'admin' || s.createdByRole === 'owner' || s.createdByRole === 'superadmin' || s.isAdminCreated === true
+    if (isAdminCreated) return true
+    const isCreatorByUid = s.createdBy && currentUserId && String(s.createdBy) === String(currentUserId)
+    const isCreatorByEmail = s.createdByEmail && currentUserEmail && String(s.createdByEmail).toLowerCase() === String(currentUserEmail).toLowerCase()
+    return Boolean(isCreatorByUid || isCreatorByEmail)
+  })
+
+  const canDeleteStatus = (status) => {
+    const isDefault = DEFAULT_STATUS_IDS.includes(status.id)
+    if (isDefault) return false
+    if (isAdmin) return true
+    const isCreatorByUid = status.createdBy && currentUserId && String(status.createdBy) === String(currentUserId)
+    const isCreatorByEmail = status.createdByEmail && currentUserEmail && String(status.createdByEmail).toLowerCase() === String(currentUserEmail).toLowerCase()
+    return Boolean(isCreatorByUid || isCreatorByEmail)
+  }
 
   const [searchQuery, setSearchQuery] = useState('')
-  const [filterAssignee, setFilterAssignee] = useState('all')
 
   const [showAddModal, setShowAddModal] = useState(false)
   const [showAddStatusModal, setShowAddStatusModal] = useState(false)
   const [selectedTask, setSelectedTask] = useState(null)
   const [deleteConfirmTask, setDeleteConfirmTask] = useState(null)
+  const [deleteConfirmStatus, setDeleteConfirmStatus] = useState(null)
   const [hoursToLog, setHoursToLog] = useState('')
 
   // Drag & Drop State
@@ -121,7 +177,6 @@ export const TaskBoard = () => {
   const [taskDesc, setTaskDesc] = useState('')
   const [projectId, setProjectId] = useState(projects[0]?.projectId || '')
   const [priority, setPriority] = useState('medium')
-  const [assignee, setAssignee] = useState(employees[0]?.displayName || 'Sarah Jenkins')
   const [estimatedHours, setEstimatedHours] = useState('10')
 
   useEffect(() => {
@@ -136,28 +191,23 @@ export const TaskBoard = () => {
     }
   }, [employees.length, setEmployees])
 
-  useEffect(() => {
-    if (employees.length > 0 && !assignee) {
-      setAssignee(employees[0].displayName)
-    }
-  }, [employees, assignee])
-
   const filteredTasks = tasks.filter((t) => {
+    if (!isTaskVisibleToUser(t, user, userDoc, claims)) return false
     const matchesSearch =
       !searchQuery ||
       t.title.toLowerCase().includes(searchQuery.toLowerCase()) ||
       t.projectName?.toLowerCase().includes(searchQuery.toLowerCase())
-    const matchesAssignee = filterAssignee === 'all' || t.assigneeName === filterAssignee
-    return matchesSearch && matchesAssignee
+    return matchesSearch
   })
 
-  const liveSelectedTask = selectedTask ? tasks.find((t) => t.taskId === selectedTask.taskId) || selectedTask : null
+  const liveSelectedTask = selectedTask ? tasks.find((t) => t.taskId === selectedTask.taskId) || null : null
 
   const handleCreateTask = (e) => {
     e.preventDefault()
     if (!taskTitle.trim()) return
 
     const proj = projects.find((p) => p.projectId === projectId)
+    const employeeName = userDoc?.displayName || user?.displayName || currentUserEmail || 'Employee'
 
     addTask({
       title: taskTitle,
@@ -165,9 +215,14 @@ export const TaskBoard = () => {
       projectId,
       projectName: proj?.name || 'Project Work',
       priority,
-      assigneeName: assignee,
+      assigneeName: employeeName,
       estimatedHours: Number(estimatedHours) || 0,
       dueDate: new Date(Date.now() + 86400000 * 7).toISOString().split('T')[0],
+      createdBy: currentUserId || null,
+      createdByEmail: currentUserEmail || null,
+      createdByName: employeeName,
+      createdByRole: userRole || 'employee',
+      isEmployeeCreated: true,
     })
 
     setTaskTitle('')
@@ -179,10 +234,18 @@ export const TaskBoard = () => {
     e.preventDefault()
     if (!newStatusName.trim()) return
 
-    await addCustomStatus({
-      name: newStatusName.trim(),
-      color: newStatusColor,
-    })
+    await addCustomStatus(
+      {
+        name: newStatusName.trim(),
+        color: newStatusColor,
+      },
+      {
+        uid: currentUserId,
+        email: currentUserEmail,
+        displayName: userDoc?.displayName || user?.displayName || currentUserEmail,
+        role: userRole,
+      }
+    )
 
     setNewStatusName('')
     setShowAddStatusModal(false)
@@ -251,19 +314,6 @@ export const TaskBoard = () => {
           </div>
 
           <div className="flex items-center gap-3">
-            <select
-              value={filterAssignee}
-              onChange={(e) => setFilterAssignee(e.target.value)}
-              className="bg-slate-100 dark:bg-[#181C27] border border-slate-300 dark:border-slate-800 text-xs text-slate-800 dark:text-slate-200 rounded-xl px-3 py-1.5 focus:outline-none cursor-pointer"
-            >
-              <option value="all">All Assignees</option>
-              {employees.map((emp) => (
-                <option key={emp.uid || emp.displayName} value={emp.displayName}>
-                  {emp.displayName}
-                </option>
-              ))}
-            </select>
-
             <div className="relative w-56">
               <Search className="w-3.5 h-3.5 absolute left-3 top-1/2 -translate-y-1/2 text-slate-400 dark:text-slate-500" />
               <input
@@ -280,8 +330,9 @@ export const TaskBoard = () => {
 
       {/* Dynamic Task Kanban Columns */}
       <div className="flex gap-4 overflow-x-auto pb-4 items-start min-h-[500px]">
-        {statuses.map((status) => {
+        {visibleStatuses.map((status) => {
           const colTasks = filteredTasks.filter((t) => t.status === status.id)
+          const allowDelete = canDeleteStatus(status)
 
           return (
             <div
@@ -300,7 +351,22 @@ export const TaskBoard = () => {
                   <span className={`w-2.5 h-2.5 rounded-full inline-block ${getStatusDotBg(status)}`} />
                   {status.name}
                 </span>
-                <Badge variant="brand">{colTasks.length}</Badge>
+                <div className="flex items-center gap-1.5">
+                  <Badge variant="brand">{colTasks.length}</Badge>
+                  {allowDelete && (
+                    <button
+                      type="button"
+                      onClick={(e) => {
+                        e.stopPropagation()
+                        setDeleteConfirmStatus(status)
+                      }}
+                      title="Delete Custom Status"
+                      className="text-slate-400 hover:text-rose-500 p-1 rounded-lg hover:bg-rose-50 dark:hover:bg-rose-950/30 transition-colors"
+                    >
+                      <Trash2 className="w-3.5 h-3.5" />
+                    </button>
+                  )}
+                </div>
               </div>
 
               <div className="space-y-3 flex-1 overflow-y-auto max-h-[600px]">
@@ -363,7 +429,7 @@ export const TaskBoard = () => {
                           onChange={(e) => updateTaskStatus(t.taskId, e.target.value)}
                           className="bg-slate-100 dark:bg-slate-900 border border-slate-300 dark:border-slate-800 text-[10px] text-slate-800 dark:text-slate-300 rounded px-1.5 py-0.5 focus:outline-none"
                         >
-                          {statuses.map((s) => (
+                          {visibleStatuses.map((s) => (
                             <option key={s.id} value={s.id}>
                               {s.name}
                             </option>
@@ -445,28 +511,13 @@ export const TaskBoard = () => {
                   </select>
                 </div>
 
-                <div className="space-y-1.5 text-left">
-                  <label className="block text-xs font-medium text-slate-700 dark:text-slate-300">Assignee</label>
-                  <select
-                    value={assignee}
-                    onChange={(e) => setAssignee(e.target.value)}
-                    className="w-full bg-slate-100/80 dark:bg-slate-900 border border-slate-300 dark:border-slate-800 text-slate-900 dark:text-slate-100 text-sm rounded-xl py-2.5 px-3.5 focus:outline-none focus:border-indigo-500 cursor-pointer"
-                  >
-                    {employees.map((emp) => (
-                      <option key={emp.uid || emp.displayName} value={emp.displayName} className="bg-white dark:bg-slate-900 text-slate-900 dark:text-slate-100">
-                        {emp.displayName}
-                      </option>
-                    ))}
-                  </select>
-                </div>
+                <Input
+                  label="Estimated Hours"
+                  type="number"
+                  value={estimatedHours}
+                  onChange={(e) => setEstimatedHours(e.target.value)}
+                />
               </div>
-
-              <Input
-                label="Estimated Hours"
-                type="number"
-                value={estimatedHours}
-                onChange={(e) => setEstimatedHours(e.target.value)}
-              />
 
               <div className="flex gap-3 pt-2">
                 <Button type="button" variant="secondary" onClick={() => setShowAddModal(false)} className="w-1/3">
@@ -500,8 +551,8 @@ export const TaskBoard = () => {
 
             <div className="grid grid-cols-2 gap-4 text-xs bg-slate-50 dark:bg-slate-900/40 p-3 rounded-2xl border border-slate-200 dark:border-slate-800">
               <div className="space-y-1">
-                <span className="text-slate-500 dark:text-slate-400 block">Assignee</span>
-                <span className="text-slate-900 dark:text-slate-100 font-bold">{liveSelectedTask.assigneeName}</span>
+                <span className="text-slate-500 dark:text-slate-400 block">Created By</span>
+                <span className="text-slate-900 dark:text-slate-100 font-bold">{liveSelectedTask.createdByName || liveSelectedTask.assigneeName || 'Employee'}</span>
               </div>
               <div className="space-y-1">
                 <span className="text-slate-500 dark:text-slate-400 block">Logged / Target Work</span>
@@ -571,13 +622,57 @@ export const TaskBoard = () => {
               <Button
                 variant="danger"
                 onClick={async () => {
-                  const id = deleteConfirmTask.taskId || deleteConfirmTask.id
-                  deleteTask(id)
-                  await updateTaskStatusInDb('org_real', id, 'deleted')
+                  const id = deleteConfirmTask?.taskId || deleteConfirmTask?.id
                   setDeleteConfirmTask(null)
+                  setSelectedTask(null)
+                  if (id) {
+                    try {
+                      await deleteTask(id)
+                    } catch (err) {
+                      console.error('Error deleting task:', err)
+                    }
+                  }
                 }}
               >
                 Yes, Delete Task
+              </Button>
+            </div>
+          </Card>
+        </div>
+      )}
+
+      {/* Confirm Delete Status Modal */}
+      {deleteConfirmStatus && (
+        <div className="fixed inset-0 z-50 bg-black/70 backdrop-blur-sm flex items-center justify-center p-4">
+          <Card className="w-full max-w-md p-6 space-y-4 border-slate-200 dark:border-slate-800 shadow-2xl relative bg-white dark:bg-[#181C27]">
+            <div className="flex items-center justify-between pb-3 border-b border-slate-200 dark:border-slate-800">
+              <h3 className="font-bold text-slate-900 dark:text-slate-100 text-sm flex items-center gap-2">
+                <Trash2 className="w-4 h-4 text-rose-500" /> Confirm Delete Status Column
+              </h3>
+              <button
+                onClick={() => setDeleteConfirmStatus(null)}
+                className="text-slate-400 hover:text-slate-600 dark:hover:text-white p-1 rounded-lg hover:bg-slate-100 dark:hover:bg-slate-800 transition-colors"
+              >
+                <X className="w-4 h-4" />
+              </button>
+            </div>
+
+            <p className="text-xs text-slate-600 dark:text-slate-300 leading-relaxed">
+              Are you sure you want to delete status column <strong className="text-slate-900 dark:text-white">{deleteConfirmStatus.name}</strong>? Any tasks currently in this status will be automatically moved to <strong className="text-indigo-600 dark:text-indigo-400">To Do</strong>.
+            </p>
+
+            <div className="flex items-center justify-end gap-3 pt-3 border-t border-slate-200 dark:border-slate-800">
+              <Button variant="secondary" onClick={() => setDeleteConfirmStatus(null)}>
+                Cancel
+              </Button>
+              <Button
+                variant="danger"
+                onClick={async () => {
+                  await deleteCustomStatus(deleteConfirmStatus.id)
+                  setDeleteConfirmStatus(null)
+                }}
+              >
+                Yes, Delete Status
               </Button>
             </div>
           </Card>

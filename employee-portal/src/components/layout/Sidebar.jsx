@@ -29,7 +29,7 @@ export const Sidebar = () => {
   const { sidebarOpen, toggleSidebar } = useUIStore()
   const { claims, user } = useUserStore()
 
-  const userRole = claims?.role || 'owner'
+  const userRole = claims?.role || 'employee'
   const userTier = claims?.tier || 'company'
 
   // Dynamic Navigation Items Filtered by Role

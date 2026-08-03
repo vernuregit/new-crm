@@ -18,6 +18,35 @@ export const DEFAULT_TASK_STATUSES = [
 ]
 
 /**
+ * Helper to check if a task should be visible to the current user
+ */
+export const isTaskVisibleToUser = (t, user, userDoc, claims) => {
+  if (!t) return false
+  const currentUserId = userDoc?.uid || user?.uid || userDoc?.id
+  const currentUserEmail = userDoc?.email || user?.email
+  const currentDisplayName = userDoc?.displayName || user?.displayName
+
+  const rawRole = claims?.role || userDoc?.role || 'employee'
+  const isAdmin =
+    rawRole === 'admin' ||
+    rawRole === 'owner' ||
+    rawRole === 'superadmin'
+
+  if (isAdmin) return true
+
+  const isCreatorByUid =
+    t.createdBy && currentUserId && String(t.createdBy) === String(currentUserId)
+  const isCreatorByEmail =
+    t.createdByEmail && currentUserEmail && String(t.createdByEmail).toLowerCase() === String(currentUserEmail).toLowerCase()
+  const isCreatorByName =
+    t.createdByName && currentDisplayName && String(t.createdByName).toLowerCase() === String(currentDisplayName).toLowerCase()
+  const isAssigneeByName =
+    t.assigneeName && currentDisplayName && String(t.assigneeName).toLowerCase() === String(currentDisplayName).toLowerCase()
+
+  return Boolean(isCreatorByUid || isCreatorByEmail || isCreatorByName || isAssigneeByName)
+}
+
+/**
  * Fetch task statuses from Firestore
  */
 export const getTaskStatusesFromDb = async () => {

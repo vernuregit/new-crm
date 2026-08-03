@@ -4,10 +4,53 @@ import { PageHeader } from '../../shared/components/layout/PageHeader'
 import { Card } from '../../shared/components/ui/Card'
 import { Badge } from '../../shared/components/ui/Badge'
 import { useProjectStore } from './stores/projectStore'
+import { useUserStore } from '../../shared/stores/userStore'
 import { FolderKanban, Kanban, Clock, User, CheckCircle2 } from 'lucide-react'
+
+const isTaskVisibleToUser = (t, user, userDoc, claims) => {
+  if (!t) return false
+  const currentUserId = userDoc?.uid || user?.uid || userDoc?.id
+  const currentUserEmail = userDoc?.email || user?.email
+
+  const rawRole = claims?.role || userDoc?.role || 'employee'
+  const isAdmin =
+    rawRole === 'admin' ||
+    rawRole === 'owner' ||
+    rawRole === 'superadmin'
+
+  if (isAdmin) return true
+
+  const isCreatedByAdmin =
+    t.createdByRole === 'admin' ||
+    t.createdByRole === 'owner' ||
+    t.createdByRole === 'superadmin' ||
+    t.isAdminCreated === true
+
+  if (isCreatedByAdmin) return true
+
+  const hasCreatorInfo = Boolean(
+    t.createdBy ||
+    t.createdByEmail ||
+    t.createdByName ||
+    t.createdByRole === 'employee' ||
+    t.isEmployeeCreated === true
+  )
+
+  if (!hasCreatorInfo) return true
+
+  const isCreatorByUid =
+    t.createdBy && currentUserId && String(t.createdBy) === String(currentUserId)
+  const isCreatorByEmail =
+    t.createdByEmail && currentUserEmail && String(t.createdByEmail).toLowerCase() === String(currentUserEmail).toLowerCase()
+
+  return Boolean(isCreatorByUid || isCreatorByEmail)
+}
 
 export const TimeTracker = () => {
   const { tasks } = useProjectStore()
+  const { user, userDoc, claims } = useUserStore()
+
+  const visibleTasks = tasks.filter((t) => isTaskVisibleToUser(t, user, userDoc, claims))
 
   return (
     <div className="space-y-6">
@@ -72,7 +115,7 @@ export const TimeTracker = () => {
             </tr>
           </thead>
           <tbody className="divide-y divide-slate-800/60">
-            {tasks.map((t) => (
+            {visibleTasks.map((t) => (
               <tr key={t.taskId} className="hover:bg-slate-800/30 transition-colors">
                 <td className="p-4 font-bold text-slate-200">{t.title}</td>
                 <td className="p-4 text-slate-300">{t.projectName}</td>

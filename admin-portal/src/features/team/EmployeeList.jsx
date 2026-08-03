@@ -20,15 +20,17 @@ import {
   Building,
   CheckCircle2,
   Calendar,
-  Layers,
   X,
   Trash2,
   TrendingUp,
-  Award,
   Eye,
   EyeOff,
   Edit,
-  ShieldCheck
+  ShieldCheck,
+  Tag,
+  Plus,
+  FileText,
+  Percent
 } from 'lucide-react'
 
 export const EmployeeList = () => {
@@ -58,6 +60,13 @@ export const EmployeeList = () => {
   const [loading, setLoading] = useState(false)
   const [error, setError] = useState('')
   const [success, setSuccess] = useState('')
+
+  // Edit-specific fields
+  const [utilizationRate, setUtilizationRate] = useState(85)
+  const [skills, setSkills] = useState([])
+  const [skillInput, setSkillInput] = useState('')
+  const [joiningDate, setJoiningDate] = useState('')
+  const [bio, setBio] = useState('')
 
   const createdRoles = customRoles.filter((r) => !r.isSystem)
 
@@ -176,7 +185,7 @@ export const EmployeeList = () => {
           name,
           roleName || 'Executive Admin'
         )
-        addEmployee(created)
+        // Do NOT add admin to the employee list — admins are stored in /users only, not /employees
         setSuccess(`Admin account created successfully for ${email}! They can now log in to the Admin Portal.`)
       } else {
         if (isCustomDept) {
@@ -222,7 +231,11 @@ export const EmployeeList = () => {
     setEmail(emp.email || '')
     setRoleName(emp.roleName || '')
     setPhone(emp.phoneNumber || emp.phone || '')
-    setUtilizationRate(emp.utilizationRate || 85)
+    setUtilizationRate(emp.utilizationRate ?? 85)
+    setSkills(Array.isArray(emp.skills) ? emp.skills.filter(Boolean) : [])
+    setSkillInput('')
+    setJoiningDate(emp.joiningDate || emp.startDate || '')
+    setBio(emp.bio || emp.about || '')
 
     const isCustom = !departments.some((d) => d.name === emp.departmentName)
     if (isCustom && emp.departmentName) {
@@ -237,6 +250,18 @@ export const EmployeeList = () => {
     setError('')
     setSuccess('')
     setShowEditModal(true)
+  }
+
+  const handleAddSkill = () => {
+    const trimmed = skillInput.trim()
+    if (trimmed && !skills.includes(trimmed)) {
+      setSkills([...skills, trimmed])
+    }
+    setSkillInput('')
+  }
+
+  const handleRemoveSkill = (skill) => {
+    setSkills(skills.filter((s) => s !== skill))
   }
 
   const handleUpdateMember = async (e) => {
@@ -272,14 +297,19 @@ export const EmployeeList = () => {
         departmentName: finalDept,
         phoneNumber: phone,
         phone,
-        utilizationRate: Number(utilizationRate)
+        utilizationRate: Number(utilizationRate),
+        skills,
+        joiningDate,
+        startDate: joiningDate,
+        bio,
+        about: bio,
       }
 
       const uid = editingEmployee.uid || editingEmployee.employeeId
       await updateEmployeeInDb(uid, updatedFields)
       updateEmployee(uid, updatedFields)
 
-      setSuccess(`Employee details updated successfully!`)
+      setSuccess('Employee details updated successfully!')
 
       setTimeout(() => {
         setShowEditModal(false)
@@ -586,95 +616,99 @@ export const EmployeeList = () => {
                 </button>
               </div>
 
-              <div className="grid grid-cols-2 gap-3">
-                {createdRoles.length > 0 ? (
-                  <div className="space-y-1.5 text-left">
-                    <label className="block text-xs font-medium text-slate-700 dark:text-slate-300">Role Title *</label>
-                    <select
-                      value={roleName}
-                      onChange={(e) => setRoleName(e.target.value)}
-                      className="w-full bg-slate-100/80 dark:bg-[#11141E] border border-slate-300 dark:border-slate-800 text-slate-900 dark:text-slate-100 text-sm rounded-xl py-2.5 px-3.5 focus:outline-none focus:border-indigo-500 focus:ring-1 focus:ring-indigo-500 transition-all cursor-pointer"
-                      required
-                    >
-                      <option value="">Select Role</option>
-                      {createdRoles.map((role) => (
-                        <option key={role.roleId} value={role.name} className="bg-white dark:bg-[#11141E] text-slate-900 dark:text-slate-100">
-                          {role.name}
-                        </option>
-                      ))}
-                    </select>
+              {accountType !== 'admin' && (
+                <>
+                  <div className="grid grid-cols-2 gap-3">
+                    {createdRoles.length > 0 ? (
+                      <div className="space-y-1.5 text-left">
+                        <label className="block text-xs font-medium text-slate-700 dark:text-slate-300">Role Title *</label>
+                        <select
+                          value={roleName}
+                          onChange={(e) => setRoleName(e.target.value)}
+                          className="w-full bg-slate-100/80 dark:bg-[#11141E] border border-slate-300 dark:border-slate-800 text-slate-900 dark:text-slate-100 text-sm rounded-xl py-2.5 px-3.5 focus:outline-none focus:border-indigo-500 focus:ring-1 focus:ring-indigo-500 transition-all cursor-pointer"
+                          required
+                        >
+                          <option value="">Select Role</option>
+                          {createdRoles.map((role) => (
+                            <option key={role.roleId} value={role.name} className="bg-white dark:bg-[#11141E] text-slate-900 dark:text-slate-100">
+                              {role.name}
+                            </option>
+                          ))}
+                        </select>
+                      </div>
+                    ) : (
+                      <Input
+                        label="Role Title"
+                        placeholder="e.g. Senior Frontend Engineer"
+                        value={roleName}
+                        onChange={(e) => setRoleName(e.target.value)}
+                      />
+                    )}
+                    {isCustomDept ? (
+                      <div className="space-y-1.5 text-left">
+                        <div className="flex justify-between items-center">
+                          <label className="block text-xs font-medium text-slate-700 dark:text-slate-300">Custom Department *</label>
+                          <button
+                            type="button"
+                            onClick={() => {
+                              setIsCustomDept(false)
+                              setDepartmentName(departments[0]?.name || '')
+                            }}
+                            className="text-[10px] text-indigo-500 hover:text-indigo-600 dark:text-indigo-400 dark:hover:text-indigo-300 font-bold"
+                          >
+                            Choose Existing
+                          </button>
+                        </div>
+                        <Input
+                          placeholder="e.g. Quality Assurance"
+                          value={customDept}
+                          onChange={(e) => setCustomDept(e.target.value)}
+                          required
+                        />
+                      </div>
+                    ) : (
+                      <div className="space-y-1.5 text-left">
+                        <label className="block text-xs font-medium text-slate-700 dark:text-slate-300">Department</label>
+                        <select
+                          value={departmentName}
+                          onChange={(e) => {
+                            if (e.target.value === 'ADD_CUSTOM') {
+                              setIsCustomDept(true)
+                              setDepartmentName('')
+                            } else {
+                              setDepartmentName(e.target.value)
+                            }
+                          }}
+                          className="w-full bg-slate-100/80 dark:bg-[#11141E] border border-slate-300 dark:border-slate-800 text-slate-900 dark:text-slate-100 text-sm rounded-xl py-2.5 px-3.5 focus:outline-none focus:border-indigo-500 focus:ring-1 focus:ring-indigo-500 transition-all cursor-pointer"
+                        >
+                          {departments.map((d) => (
+                            <option key={d.deptId} value={d.name} className="bg-white dark:bg-[#11141E] text-slate-900 dark:text-slate-100">
+                              {d.name}
+                            </option>
+                          ))}
+                          <option value="ADD_CUSTOM" className="bg-white dark:bg-[#11141E] text-indigo-600 dark:text-indigo-400 font-semibold">
+                            + Add Custom Department
+                          </option>
+                        </select>
+                      </div>
+                    )}
                   </div>
-                ) : (
-                  <Input
-                    label="Role Title"
-                    placeholder="e.g. Senior Frontend Engineer"
-                    value={roleName}
-                    onChange={(e) => setRoleName(e.target.value)}
-                  />
-                )}
-                {isCustomDept ? (
-                  <div className="space-y-1.5 text-left">
-                    <div className="flex justify-between items-center">
-                      <label className="block text-xs font-medium text-slate-700 dark:text-slate-300">Custom Department *</label>
-                      <button
-                        type="button"
-                        onClick={() => {
-                          setIsCustomDept(false)
-                          setDepartmentName(departments[0]?.name || '')
-                        }}
-                        className="text-[10px] text-indigo-500 hover:text-indigo-600 dark:text-indigo-400 dark:hover:text-indigo-300 font-bold"
-                      >
-                        Choose Existing
-                      </button>
-                    </div>
-                    <Input
-                      placeholder="e.g. Quality Assurance"
-                      value={customDept}
-                      onChange={(e) => setCustomDept(e.target.value)}
-                      required
-                    />
-                  </div>
-                ) : (
-                  <div className="space-y-1.5 text-left">
-                    <label className="block text-xs font-medium text-slate-700 dark:text-slate-300">Department</label>
-                    <select
-                      value={departmentName}
-                      onChange={(e) => {
-                        if (e.target.value === 'ADD_CUSTOM') {
-                          setIsCustomDept(true)
-                          setDepartmentName('')
-                        } else {
-                          setDepartmentName(e.target.value)
-                        }
-                      }}
-                      className="w-full bg-slate-100/80 dark:bg-[#11141E] border border-slate-300 dark:border-slate-800 text-slate-900 dark:text-slate-100 text-sm rounded-xl py-2.5 px-3.5 focus:outline-none focus:border-indigo-500 focus:ring-1 focus:ring-indigo-500 transition-all cursor-pointer"
-                    >
-                      {departments.map((d) => (
-                        <option key={d.deptId} value={d.name} className="bg-white dark:bg-[#11141E] text-slate-900 dark:text-slate-100">
-                          {d.name}
-                        </option>
-                      ))}
-                      <option value="ADD_CUSTOM" className="bg-white dark:bg-[#11141E] text-indigo-600 dark:text-indigo-400 font-semibold">
-                        + Add Custom Department
-                      </option>
-                    </select>
-                  </div>
-                )}
-              </div>
 
-              <Input
-                label="Phone Number"
-                placeholder=" "
-                value={phone}
-                onChange={(e) => setPhone(e.target.value)}
-              />
+                  <Input
+                    label="Phone Number"
+                    placeholder=" "
+                    value={phone}
+                    onChange={(e) => setPhone(e.target.value)}
+                  />
+                </>
+              )}
 
               <div className="flex gap-3 pt-2">
                 <Button type="button" variant="secondary" onClick={() => setShowAddModal(false)} className="w-1/3" disabled={loading}>
                   Cancel
                 </Button>
                 <Button type="submit" variant="primary" className="w-2/3 animate-pulse-subtle" icon={UserPlus} disabled={loading}>
-                  {loading ? 'Creating Account...' : 'Create Employee Account'}
+                  {loading ? 'Creating Account...' : accountType === 'admin' ? 'Create Admin Account' : 'Create Employee Account'}
                 </Button>
               </div>
             </form>
@@ -685,9 +719,18 @@ export const EmployeeList = () => {
       {/* Edit Member Modal */}
       {showEditModal && editingEmployee && (
         <div className="fixed inset-0 z-50 bg-black/70 backdrop-blur-sm flex items-center justify-center p-4">
-          <Card className="w-full max-w-lg p-6 space-y-4 border-slate-200 dark:border-slate-800 shadow-2xl relative bg-white dark:bg-[#181C27]">
-            <div className="flex items-center justify-between pb-3 border-b border-slate-200 dark:border-slate-800">
-              <h3 className="font-bold text-slate-900 dark:text-slate-100 text-sm">Edit Team Member</h3>
+          <Card className="w-full max-w-2xl p-6 border-slate-200 dark:border-slate-800 shadow-2xl relative bg-white dark:bg-[#181C27] max-h-[92vh] overflow-y-auto">
+            {/* Modal Header */}
+            <div className="flex items-center justify-between pb-4 border-b border-slate-200 dark:border-slate-800 mb-5">
+              <div className="flex items-center gap-3">
+                <div className="w-8 h-8 rounded-xl bg-indigo-50 dark:bg-indigo-500/10 text-indigo-600 dark:text-indigo-400 flex items-center justify-center">
+                  <Edit className="w-4 h-4" />
+                </div>
+                <div>
+                  <h3 className="font-bold text-slate-900 dark:text-slate-100 text-sm">Edit Employee Details</h3>
+                  <p className="text-[11px] text-slate-400 dark:text-slate-500 mt-0.5">{editingEmployee.displayName}</p>
+                </div>
+              </div>
               <button
                 onClick={() => {
                   setShowEditModal(false)
@@ -700,135 +743,224 @@ export const EmployeeList = () => {
             </div>
 
             {error && (
-              <div className="p-3 text-xs bg-rose-500/10 text-rose-500 rounded-xl border border-rose-500/20">
+              <div className="mb-4 p-3 text-xs bg-rose-500/10 text-rose-500 rounded-xl border border-rose-500/20">
                 {error}
               </div>
             )}
-
             {success && (
-              <div className="p-3 text-xs bg-emerald-500/10 text-emerald-500 rounded-xl border border-emerald-500/20">
+              <div className="mb-4 p-3 text-xs bg-emerald-500/10 text-emerald-500 rounded-xl border border-emerald-500/20">
                 {success}
               </div>
             )}
 
-            <form onSubmit={handleUpdateMember} className="space-y-4">
-              <Input
-                label="Full Name *"
-                placeholder="e.g. Alex Rivera"
-                value={name}
-                onChange={(e) => setName(e.target.value)}
-                required
-              />
+            <form onSubmit={handleUpdateMember} className="space-y-5">
 
-              <Input
-                label="Work Email *"
-                type="email"
-                placeholder="alex@company.com"
-                value={email}
-                onChange={(e) => setEmail(e.target.value)}
-                required
-              />
-
-              <div className="grid grid-cols-2 gap-3">
-                {createdRoles.length > 0 ? (
-                  <div className="space-y-1.5 text-left">
-                    <label className="block text-xs font-medium text-slate-700 dark:text-slate-300">Role Title *</label>
-                    <select
-                      value={roleName}
-                      onChange={(e) => setRoleName(e.target.value)}
-                      className="w-full bg-slate-100/80 dark:bg-[#11141E] border border-slate-300 dark:border-slate-800 text-slate-900 dark:text-slate-100 text-sm rounded-xl py-2.5 px-3.5 focus:outline-none focus:border-indigo-500 focus:ring-1 focus:ring-indigo-500 transition-all cursor-pointer"
-                      required
-                    >
-                      <option value="">Select Role</option>
-                      {createdRoles.map((role) => (
-                        <option key={role.roleId} value={role.name} className="bg-white dark:bg-[#11141E] text-slate-900 dark:text-slate-100">
-                          {role.name}
-                        </option>
-                      ))}
-                    </select>
-                  </div>
-                ) : (
+              {/* ── Section: Basic Info ── */}
+              <div>
+                <p className="text-[11px] font-semibold text-indigo-500 dark:text-indigo-400 uppercase tracking-widest mb-3 flex items-center gap-1.5">
+                  <Users className="w-3.5 h-3.5" /> Basic Information
+                </p>
+                <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
                   <Input
-                    label="Role Title"
-                    placeholder="e.g. Senior Frontend Engineer"
-                    value={roleName}
-                    onChange={(e) => setRoleName(e.target.value)}
+                    label="Full Name *"
+                    placeholder="e.g. Alex Rivera"
+                    value={name}
+                    onChange={(e) => setName(e.target.value)}
+                    required
                   />
-                )}
-                {isCustomDept ? (
-                  <div className="space-y-1.5 text-left">
-                    <div className="flex justify-between items-center">
-                      <label className="block text-xs font-medium text-slate-700 dark:text-slate-300">Custom Department *</label>
-                      <button
-                        type="button"
-                        onClick={() => {
-                          setIsCustomDept(false)
-                          setDepartmentName(departments[0]?.name || '')
-                        }}
-                        className="text-[10px] text-indigo-500 hover:text-indigo-600 dark:text-indigo-400 dark:hover:text-indigo-300 font-bold"
-                      >
-                        Choose Existing
-                      </button>
-                    </div>
-                    <Input
-                      placeholder="e.g. Quality Assurance"
-                      value={customDept}
-                      onChange={(e) => setCustomDept(e.target.value)}
-                      required
+                  <Input
+                    label="Work Email *"
+                    type="email"
+                    placeholder="alex@company.com"
+                    value={email}
+                    onChange={(e) => setEmail(e.target.value)}
+                    required
+                  />
+                  <Input
+                    label="Phone Number"
+                    placeholder="+1 (555) 000-0000"
+                    value={phone}
+                    onChange={(e) => setPhone(e.target.value)}
+                  />
+                  <div className="space-y-1.5">
+                    <label className="block text-xs font-medium text-slate-700 dark:text-slate-300">Joining Date</label>
+                    <input
+                      type="date"
+                      value={joiningDate}
+                      onChange={(e) => setJoiningDate(e.target.value)}
+                      className="w-full bg-slate-100/80 dark:bg-[#11141E] border border-slate-300 dark:border-slate-800 text-slate-900 dark:text-slate-100 text-sm rounded-xl py-2.5 px-3.5 focus:outline-none focus:border-indigo-500 focus:ring-1 focus:ring-indigo-500 transition-all"
                     />
                   </div>
-                ) : (
-                  <div className="space-y-1.5 text-left">
-                    <label className="block text-xs font-medium text-slate-700 dark:text-slate-300">Department</label>
-                    <select
-                      value={departmentName}
-                      onChange={(e) => {
-                        if (e.target.value === 'ADD_CUSTOM') {
-                          setIsCustomDept(true)
-                          setDepartmentName('')
-                        } else {
-                          setDepartmentName(e.target.value)
-                        }
-                      }}
-                      className="w-full bg-slate-100/80 dark:bg-[#11141E] border border-slate-300 dark:border-slate-800 text-slate-900 dark:text-slate-100 text-sm rounded-xl py-2.5 px-3.5 focus:outline-none focus:border-indigo-500 focus:ring-1 focus:ring-indigo-500 transition-all cursor-pointer"
-                    >
-                      {departments.map((d) => (
-                        <option key={d.deptId} value={d.name} className="bg-white dark:bg-[#11141E] text-slate-900 dark:text-slate-100">
-                          {d.name}
-                        </option>
-                      ))}
-                      <option value="ADD_CUSTOM" className="bg-white dark:bg-[#11141E] text-indigo-600 dark:text-indigo-400 font-semibold">
-                        + Add Custom Department
-                      </option>
-                    </select>
+                </div>
+              </div>
+
+              {/* ── Section: Role & Department ── */}
+              <div>
+                <p className="text-[11px] font-semibold text-indigo-500 dark:text-indigo-400 uppercase tracking-widest mb-3 flex items-center gap-1.5">
+                  <Building className="w-3.5 h-3.5" /> Role & Department
+                </p>
+                <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
+                  {createdRoles.length > 0 ? (
+                    <div className="space-y-1.5 text-left">
+                      <label className="block text-xs font-medium text-slate-700 dark:text-slate-300">Role Title</label>
+                      <select
+                        value={roleName}
+                        onChange={(e) => setRoleName(e.target.value)}
+                        className="w-full bg-slate-100/80 dark:bg-[#11141E] border border-slate-300 dark:border-slate-800 text-slate-900 dark:text-slate-100 text-sm rounded-xl py-2.5 px-3.5 focus:outline-none focus:border-indigo-500 focus:ring-1 focus:ring-indigo-500 transition-all cursor-pointer"
+                      >
+                        <option value="">Select Role</option>
+                        {createdRoles.map((role) => (
+                          <option key={role.roleId} value={role.name} className="bg-white dark:bg-[#11141E] text-slate-900 dark:text-slate-100">
+                            {role.name}
+                          </option>
+                        ))}
+                      </select>
+                    </div>
+                  ) : (
+                    <Input
+                      label="Role Title"
+                      placeholder="e.g. Senior Frontend Engineer"
+                      value={roleName}
+                      onChange={(e) => setRoleName(e.target.value)}
+                    />
+                  )}
+
+                  {isCustomDept ? (
+                    <div className="space-y-1.5 text-left">
+                      <div className="flex justify-between items-center">
+                        <label className="block text-xs font-medium text-slate-700 dark:text-slate-300">Custom Department *</label>
+                        <button
+                          type="button"
+                          onClick={() => { setIsCustomDept(false); setDepartmentName(departments[0]?.name || '') }}
+                          className="text-[10px] text-indigo-500 hover:text-indigo-600 dark:text-indigo-400 font-bold"
+                        >
+                          Choose Existing
+                        </button>
+                      </div>
+                      <Input
+                        placeholder="e.g. Quality Assurance"
+                        value={customDept}
+                        onChange={(e) => setCustomDept(e.target.value)}
+                        required
+                      />
+                    </div>
+                  ) : (
+                    <div className="space-y-1.5 text-left">
+                      <label className="block text-xs font-medium text-slate-700 dark:text-slate-300">Department</label>
+                      <select
+                        value={departmentName}
+                        onChange={(e) => {
+                          if (e.target.value === 'ADD_CUSTOM') { setIsCustomDept(true); setDepartmentName('') }
+                          else setDepartmentName(e.target.value)
+                        }}
+                        className="w-full bg-slate-100/80 dark:bg-[#11141E] border border-slate-300 dark:border-slate-800 text-slate-900 dark:text-slate-100 text-sm rounded-xl py-2.5 px-3.5 focus:outline-none focus:border-indigo-500 focus:ring-1 focus:ring-indigo-500 transition-all cursor-pointer"
+                      >
+                        {departments.map((d) => (
+                          <option key={d.deptId} value={d.name} className="bg-white dark:bg-[#11141E] text-slate-900 dark:text-slate-100">{d.name}</option>
+                        ))}
+                        <option value="ADD_CUSTOM" className="bg-white dark:bg-[#11141E] text-indigo-600 dark:text-indigo-400 font-semibold">+ Add Custom Department</option>
+                      </select>
+                    </div>
+                  )}
+                </div>
+              </div>
+
+              {/* ── Section: Performance ── */}
+              <div>
+                <p className="text-[11px] font-semibold text-indigo-500 dark:text-indigo-400 uppercase tracking-widest mb-3 flex items-center gap-1.5">
+                  <TrendingUp className="w-3.5 h-3.5" /> Performance
+                </p>
+                <div className="space-y-2">
+                  <div className="flex items-center justify-between">
+                    <label className="text-xs font-medium text-slate-700 dark:text-slate-300">Utilization Rate</label>
+                    <span className="text-xs font-bold text-indigo-600 dark:text-indigo-400">{utilizationRate}%</span>
                   </div>
+                  <input
+                    type="range"
+                    min="0"
+                    max="100"
+                    value={utilizationRate}
+                    onChange={(e) => setUtilizationRate(Number(e.target.value))}
+                    className="w-full h-2 appearance-none rounded-full bg-slate-200 dark:bg-slate-700 accent-indigo-600 cursor-pointer"
+                  />
+                  <div className="flex justify-between text-[10px] text-slate-400">
+                    <span>0%</span><span>50%</span><span>100%</span>
+                  </div>
+                </div>
+              </div>
+
+              {/* ── Section: Skills ── */}
+              <div>
+                <p className="text-[11px] font-semibold text-indigo-500 dark:text-indigo-400 uppercase tracking-widest mb-3 flex items-center gap-1.5">
+                  <Tag className="w-3.5 h-3.5" /> Skills & Expertise
+                </p>
+                <div className="flex gap-2 mb-3">
+                  <input
+                    type="text"
+                    value={skillInput}
+                    onChange={(e) => setSkillInput(e.target.value)}
+                    onKeyDown={(e) => { if (e.key === 'Enter') { e.preventDefault(); handleAddSkill() } }}
+                    placeholder="Add a skill (press Enter)"
+                    className="flex-1 bg-slate-100/80 dark:bg-[#11141E] border border-slate-300 dark:border-slate-800 text-slate-900 dark:text-slate-100 text-sm rounded-xl py-2 px-3.5 focus:outline-none focus:border-indigo-500 focus:ring-1 focus:ring-indigo-500 transition-all"
+                  />
+                  <button
+                    type="button"
+                    onClick={handleAddSkill}
+                    className="px-3 py-2 bg-indigo-600 hover:bg-indigo-700 text-white rounded-xl text-xs font-semibold transition-colors flex items-center gap-1"
+                  >
+                    <Plus className="w-3.5 h-3.5" /> Add
+                  </button>
+                </div>
+                {skills.length > 0 ? (
+                  <div className="flex flex-wrap gap-1.5">
+                    {skills.map((skill, idx) => (
+                      <span
+                        key={idx}
+                        className="flex items-center gap-1 px-2.5 py-1 rounded-lg bg-indigo-50 dark:bg-indigo-500/10 border border-indigo-200 dark:border-indigo-500/20 text-[11px] text-indigo-700 dark:text-indigo-300 font-medium"
+                      >
+                        {skill}
+                        <button
+                          type="button"
+                          onClick={() => handleRemoveSkill(skill)}
+                          className="ml-0.5 text-indigo-400 hover:text-rose-500 transition-colors"
+                        >
+                          <X className="w-3 h-3" />
+                        </button>
+                      </span>
+                    ))}
+                  </div>
+                ) : (
+                  <p className="text-xs text-slate-400 dark:text-slate-500 italic">No skills added yet</p>
                 )}
               </div>
 
+              {/* ── Section: Bio ── */}
               <div>
-                <Input
-                  label="Phone Number"
-                  placeholder="+1 (555) 000-0000"
-                  value={phone}
-                  onChange={(e) => setPhone(e.target.value)}
+                <p className="text-[11px] font-semibold text-indigo-500 dark:text-indigo-400 uppercase tracking-widest mb-3 flex items-center gap-1.5">
+                  <FileText className="w-3.5 h-3.5" /> About / Bio
+                </p>
+                <textarea
+                  value={bio}
+                  onChange={(e) => setBio(e.target.value)}
+                  placeholder="Short bio or notes about this employee..."
+                  rows={3}
+                  className="w-full bg-slate-100/80 dark:bg-[#11141E] border border-slate-300 dark:border-slate-800 text-slate-900 dark:text-slate-100 text-sm rounded-xl py-2.5 px-3.5 focus:outline-none focus:border-indigo-500 focus:ring-1 focus:ring-indigo-500 transition-all resize-none"
                 />
               </div>
 
-              <div className="flex gap-3 pt-2">
+              {/* Actions */}
+              <div className="flex gap-3 pt-2 border-t border-slate-200 dark:border-slate-800">
                 <Button
                   type="button"
                   variant="secondary"
-                  onClick={() => {
-                    setShowEditModal(false)
-                    setEditingEmployee(null)
-                  }}
+                  onClick={() => { setShowEditModal(false); setEditingEmployee(null) }}
                   className="w-1/3"
                   disabled={loading}
                 >
                   Cancel
                 </Button>
-                <Button type="submit" variant="primary" className="w-2/3 animate-pulse-subtle" icon={Edit} disabled={loading}>
-                  {loading ? 'Saving Changes...' : 'Save Changes'}
+                <Button type="submit" variant="primary" className="w-2/3" icon={Edit} disabled={loading}>
+                  {loading ? 'Saving Changes...' : 'Save All Changes'}
                 </Button>
               </div>
             </form>

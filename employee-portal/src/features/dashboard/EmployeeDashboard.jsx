@@ -2,6 +2,32 @@ import React, { useState, useEffect } from 'react'
 import { useUserStore } from '../../stores/userStore'
 import { useProjectStore } from '../projects/stores/projectStore'
 import { ClockInOverviewWidget } from './components/ClockInOverviewWidget'
+
+const isTaskVisibleToUser = (t, user, userDoc, claims) => {
+  if (!t) return false
+  const currentUserId = userDoc?.uid || user?.uid || userDoc?.id
+  const currentUserEmail = userDoc?.email || user?.email
+  const currentDisplayName = userDoc?.displayName || user?.displayName
+
+  const rawRole = claims?.role || userDoc?.role || 'employee'
+  const isAdmin =
+    rawRole === 'admin' ||
+    rawRole === 'owner' ||
+    rawRole === 'superadmin'
+
+  if (isAdmin) return true
+
+  const isCreatorByUid =
+    t.createdBy && currentUserId && String(t.createdBy) === String(currentUserId)
+  const isCreatorByEmail =
+    t.createdByEmail && currentUserEmail && String(t.createdByEmail).toLowerCase() === String(currentUserEmail).toLowerCase()
+  const isCreatorByName =
+    t.createdByName && currentDisplayName && String(t.createdByName).toLowerCase() === String(currentDisplayName).toLowerCase()
+  const isAssigneeByName =
+    t.assigneeName && currentDisplayName && String(t.assigneeName).toLowerCase() === String(currentDisplayName).toLowerCase()
+
+  return Boolean(isCreatorByUid || isCreatorByEmail || isCreatorByName || isAssigneeByName)
+}
 import { Card } from '../../components/ui/Card'
 import { Badge } from '../../components/ui/Badge'
 import { Button } from '../../components/ui/Button'
@@ -41,8 +67,13 @@ const colorMap = {
 }
 
 export const EmployeeDashboard = () => {
-  const { user, userDoc } = useUserStore()
+  const { user, userDoc, claims } = useUserStore()
   const { tasks, projects, updateTaskStatus, addTask, fetchProjectsAndTasks } = useProjectStore()
+
+  const currentUserId = userDoc?.uid || user?.uid
+  const currentUserEmail = userDoc?.email || user?.email
+  const userRole = claims?.role || userDoc?.role || 'employee'
+  const isAdmin = userRole === 'admin' || userRole === 'owner' || userRole === 'superadmin' || claims?.role === 'admin' || claims?.role === 'owner' || claims?.role === 'superadmin'
 
   const displayName = userDoc?.displayName || user?.displayName || 'Team Member'
   const firstName = displayName.split(' ')[0]
@@ -65,9 +96,12 @@ export const EmployeeDashboard = () => {
   // Time-based condition: 10 AM to 6 PM (10:00 - 17:59) is bright sun; after 6 PM (18:00+) & early morning is moon
   const isBrightSun = currentHour >= 10 && currentHour < 18
 
+  // Filter tasks visible to current user (hide other employees' created tasks unless admin)
+  const visibleTasks = tasks.filter((t) => isTaskVisibleToUser(t, user, userDoc, claims))
+
   // Filter tasks assigned to logged-in user or open team tasks
-  const userTasks = tasks.filter((t) => !t.assigneeName || t.assigneeName === displayName)
-  const displayTasks = userTasks.length > 0 ? userTasks : tasks
+  const userTasks = visibleTasks.filter((t) => !t.assigneeName || t.assigneeName === displayName)
+  const displayTasks = userTasks.length > 0 ? userTasks : visibleTasks
 
   // Computed Production Metrics
   const assignedTaskCount = displayTasks.length
@@ -102,6 +136,11 @@ export const EmployeeDashboard = () => {
       assigneeName: displayName,
       estimatedHours: 4,
       dueDate: new Date().toISOString().split('T')[0],
+      createdBy: currentUserId || null,
+      createdByEmail: currentUserEmail || null,
+      createdByName: displayName,
+      createdByRole: userRole || 'employee',
+      isEmployeeCreated: true,
     })
 
     setNewFocusTitle('')

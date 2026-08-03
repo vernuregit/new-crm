@@ -8,6 +8,7 @@ import {
   setDoc,
   query,
   orderBy,
+  onSnapshot,
   serverTimestamp,
 } from 'firebase/firestore'
 import { db } from '../../../shared/services/firebaseService'
@@ -125,4 +126,34 @@ export const recordAttendanceInDb = async (attendanceData) => {
     console.error('Error recording attendance in Firestore:', err)
     return { id: `att_${Date.now()}`, ...attendanceData }
   }
+}
+
+// ─── Fetch company-wide public holidays (read-only for employees) ─────────────
+export const getCompanyHolidays = async () => {
+  try {
+    const snap = await getDocs(collection(db, 'companyHolidays'))
+    return snap.docs.map((d) => ({ holidayId: d.id, ...d.data() }))
+  } catch (err) {
+    console.error('Error fetching company holidays from Firestore:', err)
+    return []
+  }
+}
+
+/**
+ * Subscribe to company holidays with real-time updates (read-only for employees)
+ * @param {Function} callback - called with array of holiday objects whenever they change
+ * @returns unsubscribe function
+ */
+export const subscribeToCompanyHolidays = (callback) => {
+  return onSnapshot(
+    collection(db, 'companyHolidays'),
+    (snap) => {
+      const list = snap.docs.map((d) => ({ holidayId: d.id, ...d.data() }))
+      callback(list)
+    },
+    (err) => {
+      console.error('Error listening to company holidays:', err)
+      callback([])
+    }
+  )
 }

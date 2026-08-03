@@ -1,4 +1,5 @@
 import {
+  onSnapshot,
   collection,
   doc,
   getDocs,
@@ -174,5 +175,74 @@ export const updateEmployeeInDb = async (uid, data) => {
     await updateDoc(userRef, data)
   } catch (err) {
     console.error('Error updating employee in Firestore:', err)
+  }
+}
+
+/**
+ * Fetch all company-wide holidays from Firestore /companyHolidays
+ */
+export const getCompanyHolidays = async () => {
+  try {
+    const snap = await getDocs(collection(db, 'companyHolidays'))
+    return snap.docs.map((d) => ({ holidayId: d.id, ...d.data() }))
+  } catch (err) {
+    console.error('Error fetching company holidays from Firestore:', err)
+    return []
+  }
+}
+
+/**
+ * Subscribe to company holidays with real-time updates
+ * @param {Function} callback - called with array of holiday objects
+ * @returns unsubscribe function
+ */
+export const subscribeToCompanyHolidays = (callback) => {
+  return onSnapshot(
+    collection(db, 'companyHolidays'),
+    (snap) => {
+      const list = snap.docs.map((d) => ({ holidayId: d.id, ...d.data() }))
+      callback(list)
+    },
+    (err) => {
+      console.error('Error listening to company holidays:', err)
+      callback([])
+    }
+  )
+}
+
+/**
+ * Create a new company holiday in Firestore /companyHolidays
+ * @param {string} date - "YYYY-MM-DD"
+ * @param {string} name - Holiday label e.g. "Diwali"
+ * @param {string} createdBy - Admin display name
+ */
+export const createCompanyHoliday = async (date, name, createdBy) => {
+  try {
+    const holidayId = `holiday_${Date.now()}`
+    await setDoc(doc(db, 'companyHolidays', holidayId), {
+      holidayId,
+      date,
+      name: name || 'Holiday',
+      createdBy: createdBy || 'Admin',
+      createdAt: serverTimestamp(),
+    })
+    return { holidayId, date, name: name || 'Holiday', createdBy: createdBy || 'Admin' }
+  } catch (err) {
+    console.error('Error creating company holiday in Firestore:', err)
+    const holidayId = `holiday_${Date.now()}`
+    return { holidayId, date, name: name || 'Holiday', createdBy: createdBy || 'Admin' }
+  }
+}
+
+/**
+ * Delete a company holiday from Firestore /companyHolidays
+ * @param {string} holidayId - Document ID
+ */
+export const deleteCompanyHoliday = async (holidayId) => {
+  try {
+    if (!holidayId) return
+    await deleteDoc(doc(db, 'companyHolidays', holidayId))
+  } catch (err) {
+    console.error('Error deleting company holiday from Firestore:', err)
   }
 }

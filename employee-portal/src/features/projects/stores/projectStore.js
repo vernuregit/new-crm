@@ -11,6 +11,7 @@ import {
   updateTaskSubtasksInDb,
   logHoursToTaskInDb,
   deleteTaskFromDb,
+  deleteTaskStatusFromDb,
   DEFAULT_TASK_STATUSES,
 } from '../services/projectService'
 
@@ -155,12 +156,18 @@ export const useProjectStore = create(
         }
       },
 
-      addCustomStatus: async (statusObj) => {
+      addCustomStatus: async (statusObj, currentUser = null) => {
         const id = statusObj.id || statusObj.name.toLowerCase().replace(/[^a-z0-9]/g, '_')
+        const isUserAdmin = currentUser?.role === 'admin' || currentUser?.role === 'owner' || currentUser?.role === 'superadmin'
         const payload = {
           id,
           name: statusObj.name,
           color: statusObj.color || 'purple',
+          createdBy: currentUser?.uid || statusObj.createdBy || null,
+          createdByEmail: currentUser?.email || statusObj.createdByEmail || null,
+          createdByName: currentUser?.displayName || currentUser?.email || statusObj.createdByName || 'Employee',
+          createdByRole: currentUser?.role || statusObj.createdByRole || 'employee',
+          isAdminCreated: Boolean(isUserAdmin || statusObj.isAdminCreated),
         }
 
         set((state) => {
@@ -169,6 +176,21 @@ export const useProjectStore = create(
         })
 
         await createTaskStatusInDb(payload)
+      },
+
+      deleteCustomStatus: async (statusId) => {
+        if (!statusId) return
+        const affectedTasks = get().tasks.filter((t) => t.status === statusId)
+
+        set((state) => ({
+          statuses: state.statuses.filter((s) => s.id !== statusId),
+          tasks: state.tasks.map((t) => (t.status === statusId ? { ...t, status: 'todo' } : t)),
+        }))
+
+        await deleteTaskStatusFromDb(statusId)
+        for (const task of affectedTasks) {
+          await updateTaskStatusInDb(task.taskId, 'todo')
+        }
       },
 
       addProject: async (newProj) => {
@@ -199,6 +221,11 @@ export const useProjectStore = create(
           priority: 'medium',
           loggedHours: 0,
           subtasks: newTask.subtasks || [],
+          createdBy: newTask.createdBy || null,
+          createdByEmail: newTask.createdByEmail || null,
+          createdByName: newTask.createdByName || null,
+          createdByRole: newTask.createdByRole || 'employee',
+          isEmployeeCreated: newTask.isEmployeeCreated !== undefined ? newTask.isEmployeeCreated : true,
           ...newTask,
         }
 
@@ -297,6 +324,8 @@ export const useProjectStore = create(
             const createdSubtask = {
               id: `sub_${Date.now()}_${Math.random().toString(36).substr(2, 4)}`,
               title: newSubtask.title,
+              description: newSubtask.description || null,
+              estimatedTime: newSubtask.estimatedTime || null,
               isCompleted: false,
             }
             updatedSubtasks = [...existingSubtasks, createdSubtask]

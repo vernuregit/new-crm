@@ -7,6 +7,7 @@ import { Button } from '../../shared/components/ui/Button'
 import { Input } from '../../shared/components/ui/Input'
 import { SubtaskStepper } from './components/SubtaskStepper'
 import { useProjectStore, DEFAULT_TASK_STATUSES } from './stores/projectStore'
+import { useUserStore } from '../../shared/stores/userStore'
 import { getProjects, getTasks, getTaskStatusesFromDb, createTask, updateTaskStatusInDb, deleteTaskFromDb } from './services/projectService'
 import {
   FolderKanban,
@@ -19,9 +20,41 @@ import {
   Filter
 } from 'lucide-react'
 
+const isTaskVisibleToUser = (t, user, userDoc, claims) => {
+  if (!t) return false
+  const currentUserId = userDoc?.uid || user?.uid || userDoc?.id
+  const currentUserEmail = userDoc?.email || user?.email
+  const currentDisplayName = userDoc?.displayName || user?.displayName
+
+  const rawRole = claims?.role || userDoc?.role || 'employee'
+  const isAdmin =
+    rawRole === 'admin' ||
+    rawRole === 'owner' ||
+    rawRole === 'superadmin'
+
+  if (isAdmin) return true
+
+  const isCreatorByUid =
+    t.createdBy && currentUserId && String(t.createdBy) === String(currentUserId)
+  const isCreatorByEmail =
+    t.createdByEmail && currentUserEmail && String(t.createdByEmail).toLowerCase() === String(currentUserEmail).toLowerCase()
+  const isCreatorByName =
+    t.createdByName && currentDisplayName && String(t.createdByName).toLowerCase() === String(currentDisplayName).toLowerCase()
+  const isAssigneeByName =
+    t.assigneeName && currentDisplayName && String(t.assigneeName).toLowerCase() === String(currentDisplayName).toLowerCase()
+
+  return Boolean(isCreatorByUid || isCreatorByEmail || isCreatorByName || isAssigneeByName)
+}
+
 export const TaskBoard = () => {
   const [searchParams, setSearchParams] = useSearchParams()
   const urlProjectId = searchParams.get('projectId')
+
+  const { user, userDoc, claims } = useUserStore()
+  const currentUserId = userDoc?.uid || user?.uid
+  const currentUserEmail = userDoc?.email || user?.email
+  const userRole = claims?.role || userDoc?.role || 'employee'
+  const isAdmin = userRole === 'admin' || userRole === 'owner' || userRole === 'superadmin' || claims?.role === 'admin' || claims?.role === 'owner' || claims?.role === 'superadmin'
 
   const {
     tasks,
@@ -96,13 +129,15 @@ export const TaskBoard = () => {
     (p) => p.projectId === selectedProjectId || p.id === selectedProjectId
   )
 
-  const filteredTasks = selectedProjectId && selectedProjectId !== 'all'
+  const rawFilteredTasks = selectedProjectId && selectedProjectId !== 'all'
     ? tasks.filter(
         (t) =>
           t.projectId === selectedProjectId ||
           (activeProject && t.projectName && t.projectName.toLowerCase() === activeProject.name.toLowerCase())
       )
     : tasks
+
+  const filteredTasks = rawFilteredTasks.filter((t) => isTaskVisibleToUser(t, user, userDoc, claims))
 
   const activeStatuses = statuses || DEFAULT_TASK_STATUSES
 
@@ -114,17 +149,24 @@ export const TaskBoard = () => {
 
     const proj = projects.find((p) => p.projectId === projectId || p.id === projectId)
 
+    const employeeName = userDoc?.displayName || user?.displayName || currentUserEmail || 'Employee'
+
     const payload = {
       title: taskTitle,
       description: taskDesc,
       projectId: projectId || 'proj_default',
       projectName: proj?.name || 'Project Work',
       priority,
-      assigneeName: assignee,
+      assigneeName: isAdmin ? assignee : employeeName,
       estimatedHours: Number(estimatedHours) || 0,
       loggedHours: 0,
       status: 'todo',
       dueDate: new Date(Date.now() + 86400000 * 7).toISOString().split('T')[0],
+      createdBy: currentUserId || null,
+      createdByEmail: currentUserEmail || null,
+      createdByName: employeeName,
+      createdByRole: userRole || 'employee',
+      isEmployeeCreated: userRole === 'employee' || !isAdmin,
     }
 
     const created = await createTask(payload)
@@ -383,18 +425,20 @@ export const TaskBoard = () => {
                   </select>
                 </div>
 
-                <div className="space-y-1.5 text-left">
-                  <label className="block text-xs font-medium text-slate-700 dark:text-slate-300">Assignee</label>
-                  <select
-                    value={assignee}
-                    onChange={(e) => setAssignee(e.target.value)}
-                    className="w-full bg-slate-100/80 dark:bg-[#11141E] border border-slate-300 dark:border-slate-800 text-slate-900 dark:text-slate-100 text-sm rounded-xl py-2.5 px-3.5 focus:outline-none focus:border-indigo-500 focus:ring-1 focus:ring-indigo-500 transition-all cursor-pointer"
-                  >
-                    <option value="Sarah Jenkins" className="bg-white dark:bg-[#11141E] text-slate-900 dark:text-slate-100">Sarah Jenkins</option>
-                    <option value="Alex Rivera" className="bg-white dark:bg-[#11141E] text-slate-900 dark:text-slate-100">Alex Rivera</option>
-                    <option value="David Chen" className="bg-white dark:bg-[#11141E] text-slate-900 dark:text-slate-100">David Chen</option>
-                  </select>
-                </div>
+                {isAdmin && (
+                  <div className="space-y-1.5 text-left">
+                    <label className="block text-xs font-medium text-slate-700 dark:text-slate-300">Assignee</label>
+                    <select
+                      value={assignee}
+                      onChange={(e) => setAssignee(e.target.value)}
+                      className="w-full bg-slate-100/80 dark:bg-[#11141E] border border-slate-300 dark:border-slate-800 text-slate-900 dark:text-slate-100 text-sm rounded-xl py-2.5 px-3.5 focus:outline-none focus:border-indigo-500 focus:ring-1 focus:ring-indigo-500 transition-all cursor-pointer"
+                    >
+                      <option value="Sarah Jenkins" className="bg-white dark:bg-[#11141E] text-slate-900 dark:text-slate-100">Sarah Jenkins</option>
+                      <option value="Alex Rivera" className="bg-white dark:bg-[#11141E] text-slate-900 dark:text-slate-100">Alex Rivera</option>
+                      <option value="David Chen" className="bg-white dark:bg-[#11141E] text-slate-900 dark:text-slate-100">David Chen</option>
+                    </select>
+                  </div>
+                )}
               </div>
 
               <Input
@@ -465,8 +509,13 @@ export const TaskBoard = () => {
                   size="sm"
                   icon={Trash2}
                   onClick={async () => {
-                    await handleDeleteTask(liveSelectedTask.taskId)
+                    const id = liveSelectedTask.taskId
                     setSelectedTask(null)
+                    try {
+                      await handleDeleteTask(id)
+                    } catch (err) {
+                      console.error('Error deleting task:', err)
+                    }
                   }}
                 >
                   Delete Task

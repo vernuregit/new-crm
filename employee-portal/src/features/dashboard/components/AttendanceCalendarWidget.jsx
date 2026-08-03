@@ -3,6 +3,7 @@ import { Card } from '../../../components/ui/Card'
 import { useTeamStore } from '../../team/stores/teamStore'
 import { useUserStore } from '../../../stores/userStore'
 import { getUserMonthlyAttendance } from '../../team/services/attendanceService'
+import { subscribeToCompanyHolidays } from '../../team/services/teamService'
 import { ChevronLeft, ChevronRight } from 'lucide-react'
 
 export const AttendanceCalendarWidget = () => {
@@ -21,6 +22,7 @@ export const AttendanceCalendarWidget = () => {
 
   const [monthlyRecords, setMonthlyRecords] = useState({})
   const [isLoadingRecords, setIsLoadingRecords] = useState(true)
+  const [companyHolidays, setCompanyHolidays] = useState({})
 
   const year = currentViewDate.getFullYear()
   const month = currentViewDate.getMonth()
@@ -40,6 +42,19 @@ export const AttendanceCalendarWidget = () => {
       setIsLoadingRecords(false)
     }
   }, [activeUid, year, month])
+
+  // Subscribe to company-wide holidays in real-time
+  useEffect(() => {
+    const unsub = subscribeToCompanyHolidays((list) => {
+      // Build a date -> holiday object map for O(1) lookup
+      const map = {}
+      list.forEach((h) => {
+        if (h.date) map[h.date] = h
+      })
+      setCompanyHolidays(map)
+    })
+    return () => unsub()
+  }, [])
 
   // Month name formatting e.g. "July 2026"
   const monthName = currentViewDate.toLocaleDateString('en-US', {
@@ -114,6 +129,9 @@ export const AttendanceCalendarWidget = () => {
     if (!isCurrentMonth) return null
 
     const dateKey = `${year}-${String(month + 1).padStart(2, '0')}-${String(dayNum).padStart(2, '0')}`
+
+    // ── Company holiday takes priority over absent marker ──
+    if (companyHolidays[dateKey]) return 'holiday'
 
     const cellDate = new Date(year, month, dayNum)
     cellDate.setHours(0, 0, 0, 0)
@@ -270,7 +288,9 @@ export const AttendanceCalendarWidget = () => {
                       isSelected
                         ? 'bg-indigo-600 text-white font-bold shadow-sm shadow-indigo-500/40'
                         : cell.isCurrentMonth
-                        ? 'text-slate-800 dark:text-slate-200'
+                        ? status === 'holiday'
+                          ? 'bg-amber-400/15 text-amber-600 dark:text-amber-400 font-bold'
+                          : 'text-slate-800 dark:text-slate-200'
                         : 'text-slate-300 dark:text-slate-600 font-normal'
                     }`}
                   >
@@ -278,13 +298,27 @@ export const AttendanceCalendarWidget = () => {
                   </div>
 
                   {/* Dot Indicator */}
-                  <div className="h-1.5 flex items-center justify-center mt-0.5">
+                  <div className="h-1.5 flex items-center justify-center mt-0.5 relative group/dot">
                     {cell.isCurrentMonth && status && (
-                      <span
-                        className={`w-1.5 h-1.5 rounded-full ${
-                          status === 'present' ? 'bg-emerald-500' : 'bg-rose-500'
-                        }`}
-                      />
+                      <>
+                        <span
+                          className={`w-1.5 h-1.5 rounded-full ${
+                            status === 'present'
+                              ? 'bg-emerald-500'
+                              : status === 'holiday'
+                              ? 'bg-amber-400'
+                              : 'bg-rose-500'
+                          }`}
+                        />
+                        {/* Holiday name tooltip */}
+                        {status === 'holiday' && companyHolidays[`${year}-${String(month + 1).padStart(2, '0')}-${String(cell.day).padStart(2, '0')}`]?.name && (
+                          <div className="absolute bottom-full mb-1.5 left-1/2 -translate-x-1/2 z-20 hidden group-hover/dot:block pointer-events-none">
+                            <div className="bg-slate-900 dark:bg-slate-100 text-white dark:text-slate-900 text-[8px] font-semibold rounded-lg px-2 py-1 whitespace-nowrap shadow-xl">
+                              {companyHolidays[`${year}-${String(month + 1).padStart(2, '0')}-${String(cell.day).padStart(2, '0')}`].name}
+                            </div>
+                          </div>
+                        )}
+                      </>
                     )}
                   </div>
                 </div>
@@ -294,7 +328,7 @@ export const AttendanceCalendarWidget = () => {
         </div>
 
         {/* Legend Footer */}
-        <div className="pt-1.5 mt-1 border-t border-slate-100 dark:border-slate-800/80 flex items-center justify-center gap-4 text-[10px] font-medium text-slate-600 dark:text-slate-400">
+        <div className="pt-1.5 mt-1 border-t border-slate-100 dark:border-slate-800/80 flex items-center justify-center gap-4 text-[10px] font-medium text-slate-600 dark:text-slate-400 flex-wrap">
           <div className="flex items-center gap-1.5">
             <span className="w-1.5 h-1.5 rounded-full bg-emerald-500" />
             <span>Present</span>
@@ -302,6 +336,10 @@ export const AttendanceCalendarWidget = () => {
           <div className="flex items-center gap-1.5">
             <span className="w-1.5 h-1.5 rounded-full bg-rose-500" />
             <span>Absent</span>
+          </div>
+          <div className="flex items-center gap-1.5">
+            <span className="w-1.5 h-1.5 rounded-full bg-amber-400" />
+            <span>Holiday</span>
           </div>
         </div>
       </div>
