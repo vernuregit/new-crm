@@ -20,17 +20,20 @@ import {
   Download,
   FolderKanban,
   CheckCircle2,
-  Crown
+  Crown,
+  User
 } from 'lucide-react'
+import haloLogo from '../../assets/halologo.png'
 import { useUIStore } from '../../stores/uiStore'
 import { useUserStore } from '../../stores/userStore'
 
 export const Sidebar = () => {
   const { sidebarOpen, toggleSidebar } = useUIStore()
-  const { claims, user } = useUserStore()
+  const { claims, user, userDoc } = useUserStore()
 
-  const userRole = claims?.role || 'employee'
+  const userRole = claims?.role || 'admin'
   const userTier = claims?.tier || 'company'
+  const displayRole = (userRole === 'owner' || userRole === 'admin') ? 'ADMIN' : userRole.toUpperCase()
 
   // Dynamic Navigation Items Filtered by Role
   const getNavItemsForRole = () => {
@@ -44,7 +47,7 @@ export const Sidebar = () => {
       ]
     }
 
-    // 2. Employee /  EMPLOYEERole Menu
+    // 2. Employee / EMPLOYEERole Menu
     if (userRole === 'employee') {
       return [
         { name: 'Dashboard', path: '/dashboard', icon: LayoutDashboard },
@@ -67,8 +70,7 @@ export const Sidebar = () => {
       { name: 'KPIs & Health', path: '/kpi', icon: Activity },
       { name: 'Workflows', path: '/workflows', icon: GitBranch },
       { name: 'Knowledge Base', path: '/knowledge', icon: BookOpen },
-      { name: 'Client Portal View', path: '/portal', icon: Layers },
-      { name: 'Settings', path: '/settings', icon: Settings },
+      { name: 'My Profile', path: '/settings/profile', icon: User },
     ]
   }
 
@@ -76,8 +78,8 @@ export const Sidebar = () => {
 
   const getRoleLabel = () => {
     if (userTier === 'client' || userRole === 'client') return { label: 'Client Workspace', color: 'text-emerald-400 bg-emerald-500/10 border-emerald-500/20' }
-    if (userRole === 'employee') return { label: 'Employee   EMPLOYEE PORTAL', color: 'text-purple-400 bg-purple-500/10 border-purple-500/20' }
-    return { label: 'Founder & Admin Suite', color: 'text-indigo-400 bg-indigo-500/10 border-indigo-500/20' }
+    if (userRole === 'employee') return { label: 'Employee Portal', color: 'text-purple-400 bg-purple-500/10 border-purple-500/20' }
+    return { label: 'Admin Executive Suite', color: 'text-indigo-600 dark:text-indigo-400 bg-indigo-50 dark:bg-indigo-500/10 border-indigo-200 dark:border-indigo-500/20' }
   }
 
   const roleMeta = getRoleLabel()
@@ -88,18 +90,18 @@ export const Sidebar = () => {
         }`}
     >
       {/* Brand Header */}
-      <div className="h-16 flex items-center justify-between px-4 border-b border-slate-200 dark:border-slate-800/80">
-        <div className="flex items-center gap-3 overflow-hidden">
-          <div className="w-10 h-10 rounded-xl bg-gradient-to-tr from-indigo-600 to-indigo-400 flex items-center justify-center text-white font-bold shadow-lg shadow-indigo-600/30 shrink-0">
-            <Shield className="w-5 h-5" />
+      <div className="h-16 flex items-center justify-between px-3 border-b border-slate-200 dark:border-slate-800/80">
+        <div className="flex items-center gap-2 overflow-hidden">
+          <div className="w-11 h-11 bg-white p-1 rounded-full border border-slate-200 dark:border-slate-700/60 shadow-sm flex items-center justify-center shrink-0">
+            <img src={haloLogo} alt="The Halo Effect Consulting" className="w-full h-full object-contain rounded-full" />
           </div>
           {sidebarOpen && (
-            <div className="flex flex-col">
-              <span className="font-bold text-slate-900 dark:text-slate-100 text-sm tracking-wide leading-none">
+            <div className="flex flex-col leading-tight overflow-hidden">
+              <span className="font-bold text-slate-900 dark:text-slate-100 text-xs tracking-wide whitespace-nowrap">
                 BUSINESS OS
               </span>
-              <span className="text-[10px] text-indigo-600 dark:text-indigo-400 font-medium tracking-wider mt-1 uppercase">
-                {userRole.toUpperCase()} MODE
+              <span className="text-[10px] text-indigo-600 dark:text-indigo-400 font-semibold tracking-wider mt-1 uppercase whitespace-nowrap">
+                {displayRole} MODE
               </span>
             </div>
           )}
@@ -107,7 +109,7 @@ export const Sidebar = () => {
 
         <button
           onClick={toggleSidebar}
-          className="w-8 h-8 rounded-lg bg-slate-100 dark:bg-slate-800/60 hover:bg-slate-200 dark:hover:bg-slate-800 text-slate-500 dark:text-slate-400 hover:text-slate-900 dark:hover:text-white flex items-center justify-center transition-colors cursor-pointer"
+          className="w-8 h-8 rounded-lg bg-slate-100 dark:bg-slate-800/60 hover:bg-slate-200 dark:hover:bg-slate-800 text-slate-500 dark:text-slate-400 hover:text-slate-900 dark:hover:text-white flex items-center justify-center transition-colors cursor-pointer shrink-0"
         >
           {sidebarOpen ? <ChevronLeft className="w-4 h-4" /> : <ChevronRight className="w-4 h-4" />}
         </button>

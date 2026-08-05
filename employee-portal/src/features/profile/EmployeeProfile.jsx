@@ -20,7 +20,8 @@ import {
   Key,
   Briefcase,
   Layers,
-  Award
+  Award,
+  Sparkles,
 } from 'lucide-react'
 
 export const EmployeeProfile = () => {
@@ -32,6 +33,7 @@ export const EmployeeProfile = () => {
   const [roleName, setRoleName] = useState('')
   const [departmentName, setDepartmentName] = useState('')
   const [skills, setSkills] = useState([])
+  const [quote, setQuote] = useState('')
 
   // Password change
   const [newPassword, setNewPassword] = useState('')
@@ -66,11 +68,13 @@ export const EmployeeProfile = () => {
         setRoleName(currentDoc.roleName || currentDoc.role || 'Team Member')
         setDepartmentName(currentDoc.departmentName || currentDoc.department || 'Delivery & Operations')
         setSkills(currentDoc.skills || ['Productivity'])
+        setQuote(currentDoc.quote || currentDoc.proverb || (user?.uid ? localStorage.getItem(`crm_quote_${user.uid}`) : '') || '')
       } else {
         setDisplayName(user?.displayName || '')
         setRoleName('Software Specialist')
         setDepartmentName('Engineering & Product')
         setSkills(['React', 'Productivity'])
+        setQuote(user?.uid ? localStorage.getItem(`crm_quote_${user.uid}`) || '' : '')
       }
     }
     loadProfile()
@@ -84,11 +88,18 @@ export const EmployeeProfile = () => {
 
     try {
       const trimmedName = displayName.trim()
+      const trimmedQuote = quote.trim()
       const userRef = doc(db, 'users', user.uid)
       const updatedFields = {
         displayName: trimmedName,
         phoneNumber: phoneNumber.trim(),
+        quote: trimmedQuote,
+        proverb: trimmedQuote,
         updatedAt: new Date().toISOString(),
+      }
+
+      if (user?.uid) {
+        localStorage.setItem(`crm_quote_${user.uid}`, trimmedQuote)
       }
 
       if (import.meta.env.VITE_FIREBASE_API_KEY !== 'mock_api_key_dev') {
@@ -102,7 +113,7 @@ export const EmployeeProfile = () => {
         }
       }
 
-      // Update store — propagate displayName to both user and userDoc so sidebar/topbar re-render immediately
+      // Update store — propagate displayName and quote to userDoc
       const newDoc = { ...userDoc, ...updatedFields }
       const updatedUser = { ...(user || {}), displayName: trimmedName }
       setUser(updatedUser, newDoc, claims)
@@ -302,6 +313,14 @@ export const EmployeeProfile = () => {
                   </div>
                 </div>
               </div>
+
+              <Input
+                label="Daily Proverb / Quote / Personal Motto"
+                placeholder="e.g. Small daily gains compound over time..."
+                value={quote}
+                onChange={(e) => setQuote(e.target.value)}
+                icon={Sparkles}
+              />
 
               <div className="flex justify-end pt-2">
                 <Button

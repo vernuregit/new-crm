@@ -5,7 +5,7 @@ import { Card } from '../../components/ui/Card'
 import { Badge } from '../../components/ui/Badge'
 import { useTeamStore } from './stores/teamStore'
 import { db } from '../../shared/services/firebaseService'
-import { computeRealAttendanceStats } from './services/attendanceStatsUtils'
+import { computeRealAttendanceStats, timeStrToMinutes } from './services/attendanceStatsUtils'
 import {
   collection,
   query,
@@ -50,6 +50,7 @@ function formatDate(dateStr) {
 export const AttendancePage = () => {
   const { employees } = useTeamStore()
 
+  const [selectedDate, setSelectedDate] = useState(todayStr)
   const [attendanceLogs, setAttendanceLogs] = useState([])
   const [loading, setLoading] = useState(true)
   const [error, setError] = useState(null)
@@ -143,6 +144,32 @@ export const AttendancePage = () => {
       // We have real Firestore data — use it directly
       return attendanceLogs.map((log) => {
         const emp = employeeMap[log.uid] || {}
+
+        let calculatedRegularSec = log.regularSeconds || 0
+
+        if (log.clockedIn) {
+          let elapsedSec = 0
+          if (log.clockInTimestamp) {
+            elapsedSec = Math.max(0, Math.floor((Date.now() - log.clockInTimestamp) / 1000))
+          } else if (log.clockInTime) {
+            const mins = timeStrToMinutes(log.clockInTime)
+            if (mins !== null) {
+              const nowMins = new Date().getHours() * 60 + new Date().getMinutes()
+              if (nowMins >= mins) {
+                elapsedSec = (nowMins - mins) * 60
+              }
+            }
+          }
+          const breakSec = log.accumulatedBreakSeconds || 0
+          const liveShiftSec = Math.max(0, elapsedSec - breakSec)
+
+          if (calculatedRegularSec > liveShiftSec + 3600 && !log.clockOutTime) {
+            calculatedRegularSec = liveShiftSec
+          } else if (liveShiftSec > calculatedRegularSec) {
+            calculatedRegularSec = liveShiftSec
+          }
+        }
+
         return {
           uid: log.uid,
           displayName: log.displayName || emp.displayName || '—',
@@ -152,9 +179,9 @@ export const AttendancePage = () => {
           clockedIn: log.clockedIn || false,
           isOnBreak: log.isOnBreak || false,
           isInExtraTime: log.isInExtraTime || false,
-          regularHours: log.regularHours || secToHrsStr(log.regularSeconds),
+          regularHours: secToHrsStr(calculatedRegularSec),
           extraHours: log.extraHours || secToHrsStr(log.extraSeconds),
-          regularSeconds: log.regularSeconds || 0,
+          regularSeconds: calculatedRegularSec,
           extraSeconds: log.extraSeconds || 0,
           autoClockOut: log.autoClockOut || false,
           shiftLogs: log.shiftLogs || [],

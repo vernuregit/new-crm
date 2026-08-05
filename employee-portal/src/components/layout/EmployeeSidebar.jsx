@@ -13,8 +13,10 @@ import {
   ChevronRight,
   LogOut,
   UserCheck,
-  User
+  User,
+  Heart
 } from 'lucide-react'
+import haloLogo from '../../assets/halologo.png'
 import { useUIStore } from '../../stores/uiStore'
 import { useUserStore } from '../../stores/userStore'
 
@@ -27,6 +29,7 @@ const NAV_ITEMS = [
   { name: 'Attendance', path: '/attendance', icon: CheckCircle2 },
   { name: 'Leave & PTO', path: '/team/leave', icon: Calendar },
   { name: 'Knowledge Base', path: '/knowledge', icon: BookOpen },
+  { name: 'Wellness', path: '/wellness', icon: Heart },
   { name: 'My Profile', path: '/profile', icon: User },
 ]
 
@@ -42,17 +45,17 @@ export const EmployeeSidebar = () => {
         }`}
     >
       {/* Brand Header */}
-      <div className="h-16 flex items-center justify-between px-4 border-b border-slate-200 dark:border-purple-900/40">
-        <div className="flex items-center gap-3 overflow-hidden">
-          <div className="w-10 h-10 rounded-xl bg-gradient-to-tr from-purple-600 to-indigo-500 flex items-center justify-center text-white font-bold shadow-lg shadow-purple-600/30 shrink-0">
-            <UserCheck className="w-5 h-5" />
+      <div className="h-16 flex items-center justify-between px-3 border-b border-slate-200 dark:border-purple-900/40">
+        <div className="flex items-center gap-2 overflow-hidden">
+          <div className="w-11 h-11 bg-white p-1 rounded-full border border-slate-200 dark:border-purple-800/50 shadow-sm flex items-center justify-center shrink-0">
+            <img src={haloLogo} alt="The Halo Effect Consulting" className="w-full h-full object-contain rounded-full" />
           </div>
           {sidebarOpen && (
-            <div className="flex flex-col">
-              <span className="font-bold text-slate-900 dark:text-slate-100 text-sm tracking-wide leading-none">
+            <div className="flex flex-col leading-tight overflow-hidden">
+              <span className="font-bold text-slate-900 dark:text-slate-100 text-xs tracking-wide whitespace-nowrap">
                 EMPLOYEE PORTAL
               </span>
-              <span className="text-[10px] text-purple-600 dark:text-purple-400 font-medium tracking-wider mt-1 uppercase">
+              <span className="text-[10px] text-purple-600 dark:text-purple-400 font-semibold tracking-wider mt-1 uppercase whitespace-nowrap">
                 EMPLOYEE MODE
               </span>
             </div>
@@ -61,7 +64,7 @@ export const EmployeeSidebar = () => {
 
         <button
           onClick={toggleSidebar}
-          className="w-8 h-8 rounded-lg bg-slate-100 dark:bg-purple-900/30 hover:bg-slate-200 dark:hover:bg-purple-900/60 text-slate-500 dark:text-purple-400 hover:text-slate-900 dark:hover:text-white flex items-center justify-center transition-colors cursor-pointer"
+          className="w-8 h-8 rounded-lg bg-slate-100 dark:bg-purple-900/30 hover:bg-slate-200 dark:hover:bg-purple-900/60 text-slate-500 dark:text-purple-400 hover:text-slate-900 dark:hover:text-white flex items-center justify-center transition-colors cursor-pointer shrink-0"
         >
           {sidebarOpen ? <ChevronLeft className="w-4 h-4" /> : <ChevronRight className="w-4 h-4" />}
         </button>

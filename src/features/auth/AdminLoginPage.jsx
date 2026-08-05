@@ -1,9 +1,10 @@
 import React, { useState } from 'react'
 import { useNavigate } from 'react-router-dom'
-import { Crown, Mail, Lock, ArrowRight, AlertCircle } from 'lucide-react'
+import { Mail, Lock, ArrowRight, AlertCircle } from 'lucide-react'
 import { Button } from '../../shared/components/ui/Button'
 import { Input } from '../../shared/components/ui/Input'
 import { Card } from '../../shared/components/ui/Card'
+import haloLogo from '../../assets/halologo.png'
 import { loginWithEmail, loginWithGoogle } from '../../shared/services/authService'
 import { useUserStore } from '../../shared/stores/userStore'
 
@@ -28,20 +29,16 @@ export const AdminLoginPage = () => {
 
     try {
       const user = await loginWithEmail(email, password)
-      setUser(
-        user,
-        null,
-        { orgId: 'org_real', role: 'owner', tier: 'company' }
-      )
+      setUser(user, { orgId: 'org_demo', role: 'owner', tier: 'company' })
       navigate('/dashboard')
     } catch (err) {
-      console.error('Firebase Auth error:', err)
-      if (err.code === 'auth/wrong-password' || err.code === 'auth/invalid-credential') {
-        setError('Incorrect email or password. Please try again.')
+      console.error('Login error:', err)
+      if (err.code === 'auth/wrong-password') {
+        setError('Incorrect password. Please try again.')
       } else if (err.code === 'auth/user-not-found') {
-        setError('No account found with this email.')
+        setError('Account does not exist. Contact administrator.')
       } else {
-        setError(err.message || 'Authentication failed. Please check credentials.')
+        setError(err.message || 'Login failed.')
       }
     } finally {
       setLoading(false)
@@ -72,8 +69,8 @@ export const AdminLoginPage = () => {
 
       <Card className="w-full max-w-md p-8 relative z-10 border-indigo-200/80 dark:border-indigo-500/30 shadow-xl dark:shadow-2xl space-y-6">
         <div className="text-center space-y-2">
-          <div className="inline-flex w-12 h-12 rounded-2xl bg-indigo-50 dark:bg-indigo-600/20 text-indigo-600 dark:text-indigo-400 items-center justify-center border border-indigo-200 dark:border-indigo-500/30 mb-1">
-            <Crown className="w-6 h-6" />
+          <div className="inline-flex w-20 h-20 rounded-full bg-white p-2 items-center justify-center border border-slate-200 dark:border-slate-700/80 shadow-md mb-2">
+            <img src={haloLogo} alt="The Halo Effect Consulting" className="w-full h-full object-contain rounded-full" />
           </div>
           <h2 className="text-2xl font-bold text-slate-900 dark:text-slate-100 tracking-tight">Founder & Admin Login</h2>
           <p className="text-xs text-slate-500 dark:text-slate-400">Executive Workspace & Operations Management</p>

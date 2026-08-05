@@ -1,10 +1,11 @@
 import React, { useState } from 'react'
 import { useNavigate } from 'react-router-dom'
-import { UserCheck, Mail, Lock, ArrowRight, AlertCircle } from 'lucide-react'
+import { Mail, Lock, ArrowRight, AlertCircle } from 'lucide-react'
 import { Button } from '../../components/ui/Button'
 import { Input } from '../../components/ui/Input'
 import { Card } from '../../components/ui/Card'
 import { useUserStore } from '../../stores/userStore'
+import haloLogo from '../../assets/halologo.png'
 import { loginWithEmail, signupWithEmail, fetchCustomClaims } from '../../shared/services/authService'
 
 export const EmployeeLoginPage = () => {
@@ -19,7 +20,12 @@ export const EmployeeLoginPage = () => {
   const handleRealLogin = async (e) => {
     e.preventDefault()
     if (!email || !password) {
-      setError('Please enter both  EMPLOYEEwork email and password.')
+      setError('Please enter work email and password.')
+      return
+    }
+
+    if (password.length < 6) {
+      setError('Password must be at least 6 characters.')
       return
     }
 
@@ -32,19 +38,17 @@ export const EmployeeLoginPage = () => {
       setUser(
         firebaseUser,
         null,
-        claims || { orgId: 'org_real', role: 'employee', tier: 'company' }
+        { orgId: 'org_real', role: 'employee', tier: 'company', ...claims }
       )
       navigate('/dashboard')
     } catch (err) {
-      console.error('Firebase Auth error:', err)
-      if (err.code === 'auth/wrong-password') {
-        setError('Incorrect password. Please try again.')
-      } else if (err.code === 'auth/user-not-found' || err.code === 'auth/invalid-credential') {
-        setError('Account does not exist or credentials are invalid. Please contact the administrator.')
-      } else if (err.code === 'auth/invalid-email') {
-        setError('Invalid email address format.')
+      console.error('Employee Auth error:', err)
+      if (err.code === 'auth/wrong-password' || err.code === 'auth/invalid-credential') {
+        setError('Incorrect email or password. Please try again.')
+      } else if (err.code === 'auth/user-not-found') {
+        setError('No employee account found with this email.')
       } else {
-        setError(err.message || 'Authentication failed. Please check credentials.')
+        setError(err.message || 'Authentication failed.')
       }
     } finally {
       setLoading(false)
@@ -57,8 +61,8 @@ export const EmployeeLoginPage = () => {
 
       <Card className="w-full max-w-md p-8 relative z-10 border-purple-200/80 dark:border-purple-500/30 shadow-xl dark:shadow-2xl space-y-6">
         <div className="text-center space-y-2">
-          <div className="inline-flex w-12 h-12 rounded-2xl bg-purple-50 dark:bg-purple-600/20 text-purple-600 dark:text-purple-400 items-center justify-center border border-purple-200 dark:border-purple-500/30 mb-1">
-            <UserCheck className="w-6 h-6" />
+          <div className="inline-flex w-20 h-20 rounded-full bg-white p-2 items-center justify-center border border-slate-200 dark:border-slate-700/80 shadow-md mb-2">
+            <img src={haloLogo} alt="The Halo Effect Consulting" className="w-full h-full object-contain rounded-full" />
           </div>
           <h2 className="text-2xl font-bold text-slate-900 dark:text-slate-100 tracking-tight">Employee   EMPLOYEE PORTAL</h2>
           <p className="text-xs text-slate-500 dark:text-slate-400">Sprint Tasks, Time Tracker & Attendance Workspace</p>

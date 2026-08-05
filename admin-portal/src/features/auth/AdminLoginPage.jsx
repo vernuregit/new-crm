@@ -5,6 +5,7 @@ import { Button } from '../../components/ui/Button'
 import { Input } from '../../components/ui/Input'
 import { Card } from '../../components/ui/Card'
 import { useUserStore } from '../../stores/userStore'
+import haloLogo from '../../assets/halologo.png'
 import { loginWithEmail, fetchCustomClaims, getUserDoc, logoutUser } from '../../shared/services/authService'
 
 export const AdminLoginPage = () => {
@@ -74,8 +75,8 @@ export const AdminLoginPage = () => {
 
       <Card className="w-full max-w-md p-8 relative z-10 border-indigo-200/80 dark:border-indigo-500/30 shadow-xl dark:shadow-2xl space-y-6">
         <div className="text-center space-y-2">
-          <div className="inline-flex w-12 h-12 rounded-2xl bg-indigo-50 dark:bg-indigo-600/20 text-indigo-600 dark:text-indigo-400 items-center justify-center border border-indigo-200 dark:border-indigo-500/30 mb-1">
-            <Crown className="w-6 h-6" />
+          <div className="inline-flex w-20 h-20 rounded-full bg-white p-2 items-center justify-center border border-slate-200 dark:border-slate-700/80 shadow-md mb-2">
+            <img src={haloLogo} alt="The Halo Effect Consulting" className="w-full h-full object-contain rounded-full" />
           </div>
           <h2 className="text-2xl font-bold text-slate-900 dark:text-slate-100 tracking-tight">
             Founder & Admin Login

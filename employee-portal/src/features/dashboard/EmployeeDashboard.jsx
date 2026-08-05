@@ -2,6 +2,27 @@ import React, { useState, useEffect } from 'react'
 import { useUserStore } from '../../stores/userStore'
 import { useProjectStore } from '../projects/stores/projectStore'
 import { ClockInOverviewWidget } from './components/ClockInOverviewWidget'
+import { WellnessWidget } from '../wellness/WellnessWidget'
+import { Card } from '../../components/ui/Card'
+import { Badge } from '../../components/ui/Badge'
+import { Button } from '../../components/ui/Button'
+import {
+  CheckCircle2,
+  Clock,
+  Calendar,
+  BookOpen,
+  TrendingUp,
+  Briefcase,
+  Star,
+  ArrowRight,
+  Users,
+  FolderKanban,
+  Plus,
+  Sun,
+  Moon,
+  Sparkles,
+} from 'lucide-react'
+import { NavLink } from 'react-router-dom'
 
 const isTaskVisibleToUser = (t, user, userDoc, claims) => {
   if (!t) return false
@@ -28,25 +49,6 @@ const isTaskVisibleToUser = (t, user, userDoc, claims) => {
 
   return Boolean(isCreatorByUid || isCreatorByEmail || isCreatorByName || isAssigneeByName)
 }
-import { Card } from '../../components/ui/Card'
-import { Badge } from '../../components/ui/Badge'
-import { Button } from '../../components/ui/Button'
-import {
-  CheckCircle2,
-  Clock,
-  Calendar,
-  BookOpen,
-  TrendingUp,
-  Briefcase,
-  Star,
-  ArrowRight,
-  Users,
-  FolderKanban,
-  Plus,
-  Sun,
-  Moon
-} from 'lucide-react'
-import { NavLink } from 'react-router-dom'
 
 const quickLinks = [
   { name: 'Projects', path: '/projects/list', icon: FolderKanban, color: 'indigo', desc: 'Overview of active projects & completion status' },
@@ -67,7 +69,7 @@ const colorMap = {
 }
 
 export const EmployeeDashboard = () => {
-  const { user, userDoc, claims } = useUserStore()
+  const { user, userDoc, claims, setUser } = useUserStore()
   const { tasks, projects, updateTaskStatus, addTask, fetchProjectsAndTasks } = useProjectStore()
 
   const currentUserId = userDoc?.uid || user?.uid
@@ -81,6 +83,20 @@ export const EmployeeDashboard = () => {
   const [newFocusTitle, setNewFocusTitle] = useState('')
   const [showAddFocus, setShowAddFocus] = useState(false)
   const [currentHour, setCurrentHour] = useState(() => new Date().getHours())
+
+  // Custom Proverb / Daily Quote state (read-only on dashboard, editable in Profile)
+  const [userQuote, setUserQuote] = useState(() => {
+    return userDoc?.quote || userDoc?.proverb || (currentUserId ? localStorage.getItem(`crm_quote_${currentUserId}`) : '') || ''
+  })
+
+  useEffect(() => {
+    if (userDoc?.quote || userDoc?.proverb) {
+      setUserQuote(userDoc.quote || userDoc.proverb)
+    } else if (currentUserId) {
+      const stored = localStorage.getItem(`crm_quote_${currentUserId}`)
+      setUserQuote(stored || '')
+    }
+  }, [userDoc, currentUserId])
 
   useEffect(() => {
     fetchProjectsAndTasks()
@@ -150,10 +166,10 @@ export const EmployeeDashboard = () => {
   return (
     <div className="space-y-8">
       {/* Welcome Header */}
-      <div className="relative overflow-hidden rounded-2xl bg-gradient-to-r from-indigo-50 via-purple-50 to-blue-50 dark:from-indigo-600/20 dark:via-purple-600/10 dark:to-blue-600/20 border border-indigo-200 dark:border-indigo-500/20 p-8">
+      <div className="relative overflow-hidden rounded-2xl bg-gradient-to-r from-indigo-50 via-purple-50 to-blue-50 dark:from-indigo-600/20 dark:via-purple-600/10 dark:to-blue-600/20 border border-indigo-200 dark:border-indigo-500/20 p-6 sm:p-8">
         <div className="absolute top-0 right-0 w-72 h-72 bg-indigo-500/10 dark:bg-indigo-600/10 blur-3xl rounded-full pointer-events-none" />
-        <div className="relative z-10 flex items-center justify-between gap-4">
-          <div className="flex items-center gap-3">
+        <div className="relative z-10 flex flex-wrap lg:flex-nowrap items-center justify-between gap-4">
+          <div className="flex items-center gap-3 shrink-0">
             <div className="w-12 h-12 rounded-2xl bg-indigo-100 dark:bg-indigo-600/30 border border-indigo-200 dark:border-indigo-500/40 flex items-center justify-center text-indigo-600 dark:text-indigo-300 font-bold text-lg shadow-lg shrink-0">
               {firstName.charAt(0).toUpperCase()}
             </div>
@@ -164,6 +180,15 @@ export const EmployeeDashboard = () => {
               <p className="text-slate-500 dark:text-slate-400 text-sm mt-0.5">{today}</p>
             </div>
           </div>
+
+          {/* Middle: Display Custom Proverb / Daily Quote / Motto if set (Clean text only) */}
+          {userQuote ? (
+            <div className="flex-1 max-w-xl mx-0 sm:mx-4 my-2 lg:my-0">
+              <p className="text-xs sm:text-sm italic font-medium text-slate-700 dark:text-slate-300 truncate">
+                "{userQuote}"
+              </p>
+            </div>
+          ) : null}
 
           {/* Big Sun / Moon Icon on the right side */}
           <div className="flex items-center justify-center shrink-0">
@@ -188,6 +213,9 @@ export const EmployeeDashboard = () => {
 
       {/* Clock-In & Attendance Command Widget */}
       <ClockInOverviewWidget />
+
+      {/* Wellness Hub Widget */}
+      <WellnessWidget />
 
       {/* Stats Strip */}
       <div className="grid grid-cols-1 sm:grid-cols-3 gap-4">

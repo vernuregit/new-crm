@@ -17,7 +17,11 @@ export const WORKDAY_SECONDS = 8.5 * 3600
  * Returns a "YYYY-MM-DD" string for today (local date).
  */
 function todayDateStr() {
-  return new Date().toISOString().split('T')[0]
+  const d = new Date()
+  const year = d.getFullYear()
+  const month = String(d.getMonth() + 1).padStart(2, '0')
+  const day = String(d.getDate()).padStart(2, '0')
+  return `${year}-${month}-${day}`
 }
 
 /**
@@ -179,6 +183,40 @@ export const useTeamStore = create(
 
           let todayState = {}
           if (todayLog && todayLog.date === todayDateStr()) {
+            let rawWorkSec = todayLog.regularSeconds ?? todayLog.accumulatedWorkSeconds ?? 0
+
+            // Sanitize stale accumulated hours carried over from previous days
+            if (todayLog.clockedIn && !todayLog.clockOutTime) {
+              let maxPossibleSec = 0
+              if (todayLog.clockInTimestamp) {
+                maxPossibleSec = Math.max(0, Math.floor((Date.now() - todayLog.clockInTimestamp) / 1000))
+              } else if (todayLog.clockInTime) {
+                const match = todayLog.clockInTime.match(/(\d+):(\d+)(?::\d+)?\s*(AM|PM)?/i)
+                if (match) {
+                  let hrs = parseInt(match[1], 10)
+                  const mins = parseInt(match[2], 10)
+                  const ampm = match[3] ? match[3].toUpperCase() : null
+                  if (ampm === 'PM' && hrs < 12) hrs += 12
+                  if (ampm === 'AM' && hrs === 12) hrs = 0
+                  const clockInMins = hrs * 60 + mins
+                  const nowMins = new Date().getHours() * 60 + new Date().getMinutes()
+                  if (nowMins >= clockInMins) {
+                    maxPossibleSec = (nowMins - clockInMins) * 60 + 300
+                  }
+                }
+              }
+
+              if (rawWorkSec > maxPossibleSec + 60) {
+                rawWorkSec = 0
+                // Correct today's Firestore document asynchronously
+                upsertAttendanceLog(uid, {
+                  regularSeconds: 0,
+                  regularHours: '0h 0m',
+                  accumulatedWorkSeconds: 0,
+                })
+              }
+            }
+
             todayState = {
               clockedIn: Boolean(todayLog.clockedIn),
               clockInTime: todayLog.clockInTime || null,
@@ -187,7 +225,7 @@ export const useTeamStore = create(
               isOnBreak: Boolean(todayLog.isOnBreak),
               breakStartTime: todayLog.breakStartTime || null,
               accumulatedBreakSeconds: todayLog.accumulatedBreakSeconds || 0,
-              accumulatedWorkSeconds: todayLog.regularSeconds ?? todayLog.accumulatedWorkSeconds ?? 0,
+              accumulatedWorkSeconds: rawWorkSec,
               todayShiftLogs: todayLog.todayShiftLogs || todayLog.shiftLogs || [],
               isInExtraTime: Boolean(todayLog.isInExtraTime),
               extraTimeStart: todayLog.extraTimeStart || null,
@@ -325,7 +363,15 @@ export const useTeamStore = create(
         if (!state.clockedIn) {
           // --- Clocking In ---
           const nowMs = Date.now()
-          const initialClockIn = state.clockInTime || timeStr
+          const today = todayDateStr()
+          const isNewDay = state.lastWorkDate !== today
+
+          const currentAccWorkSec = isNewDay ? 0 : (state.accumulatedWorkSeconds || 0)
+          const currentAccBreakSec = isNewDay ? 0 : (state.accumulatedBreakSeconds || 0)
+          const currentAccExtraSec = isNewDay ? 0 : (state.accumulatedExtraSeconds || 0)
+          const currentShiftLogs = isNewDay ? [] : (state.todayShiftLogs || [])
+
+          const initialClockIn = timeStr
           const newLogs = [
             {
               id: `log_${nowMs}`,
@@ -334,7 +380,7 @@ export const useTeamStore = create(
               time: timeStr,
               timestamp: nowMs,
             },
-            ...state.todayShiftLogs,
+            ...currentShiftLogs,
           ]
 
           set({
@@ -345,13 +391,14 @@ export const useTeamStore = create(
             clockOutTime: null,
             isOnBreak: false,
             breakStartTime: null,
-            accumulatedBreakSeconds: 0,
-            accumulatedWorkSeconds: state.accumulatedWorkSeconds, // Keep worked hours accrued today!
+            accumulatedBreakSeconds: currentAccBreakSec,
+            accumulatedWorkSeconds: currentAccWorkSec,
             isInExtraTime: false,
             extraTimeStart: null,
-            accumulatedExtraSeconds: state.accumulatedExtraSeconds,
-            extraTimeLogs: state.extraTimeLogs,
+            accumulatedExtraSeconds: currentAccExtraSec,
+            extraTimeLogs: isNewDay ? [] : state.extraTimeLogs,
             todayShiftLogs: newLogs,
+            lastWorkDate: today,
           })
 
           // Write to Firestore
@@ -364,14 +411,16 @@ export const useTeamStore = create(
               clockInTimestamp: nowMs,
               clockOutTime: null,
               autoClockOut: false,
-              regularSeconds: state.accumulatedWorkSeconds,
-              regularHours: secToHrsStr(state.accumulatedWorkSeconds),
-              accumulatedWorkSeconds: state.accumulatedWorkSeconds,
-              accumulatedBreakSeconds: 0,
+              regularSeconds: currentAccWorkSec,
+              regularHours: secToHrsStr(currentAccWorkSec),
+              accumulatedWorkSeconds: currentAccWorkSec,
+              accumulatedBreakSeconds: currentAccBreakSec,
               isOnBreak: false,
-              extraSeconds: state.accumulatedExtraSeconds,
-              extraHours: secToHrsStr(state.accumulatedExtraSeconds),
-              date: todayDateStr(),
+              isInExtraTime: false,
+              extraTimeStart: null,
+              extraSeconds: currentAccExtraSec,
+              extraHours: secToHrsStr(currentAccExtraSec),
+              date: today,
               todayShiftLogs: newLogs,
               shiftLogs: newLogs,
             })

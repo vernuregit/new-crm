@@ -1,6 +1,7 @@
 import React from 'react'
 import { Link } from 'react-router-dom'
 import { Bell, ShieldCheck, User, Sun, Moon } from 'lucide-react'
+import haloLogo from '../../assets/halologo.png'
 import { useUserStore } from '../../stores/userStore'
 import { useUIStore } from '../../stores/uiStore'
 
@@ -13,7 +14,7 @@ export const ClientTopBar = () => {
       {/* Security badge */}
       <div className="flex items-center gap-2 text-xs text-emerald-600 dark:text-emerald-400">
         <ShieldCheck className="w-4 h-4" />
-        <span className="font-medium hidden sm:block">
+        <span className="font-semibold hidden sm:block">
           Secure Client Environment — <span className="text-slate-700 dark:text-slate-300">Acme Corp</span>
         </span>
       </div>

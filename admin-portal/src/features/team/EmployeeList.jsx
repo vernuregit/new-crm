@@ -30,7 +30,8 @@ import {
   Tag,
   Plus,
   FileText,
-  Percent
+  Percent,
+  Sparkles
 } from 'lucide-react'
 
 export const EmployeeList = () => {
@@ -487,6 +488,13 @@ export const EmployeeList = () => {
                   <span className="truncate text-slate-600 dark:text-slate-400">{emp.email}</span>
                 </div>
               </div>
+
+              {(emp.quote || emp.proverb) && (
+                <div className="px-2.5 py-1.5 rounded-lg bg-indigo-50/60 dark:bg-indigo-950/40 border border-indigo-200/50 dark:border-indigo-800/40 text-[11px] italic font-medium text-indigo-800 dark:text-indigo-300 flex items-center gap-1.5 mt-1">
+                  <Sparkles className="w-3 h-3 text-amber-500 shrink-0" />
+                  <span className="truncate">"{emp.quote || emp.proverb}"</span>
+                </div>
+              )}
 
               {/* Skills Badges */}
               <div className="flex flex-wrap gap-1.5 pt-1">

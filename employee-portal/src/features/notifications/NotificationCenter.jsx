@@ -11,7 +11,8 @@ import {
   Briefcase,
   Info,
   X,
-  ExternalLink
+  ExternalLink,
+  Heart
 } from 'lucide-react'
 
 export const NotificationCenter = () => {
@@ -31,6 +32,8 @@ export const NotificationCenter = () => {
         return <Users className="w-4 h-4 text-indigo-400" />
       case 'project':
         return <Briefcase className="w-4 h-4 text-purple-400" />
+      case 'wellness':
+        return <Heart className="w-4 h-4 text-rose-400" />
       default:
         return <Info className="w-4 h-4 text-blue-400" />
     }

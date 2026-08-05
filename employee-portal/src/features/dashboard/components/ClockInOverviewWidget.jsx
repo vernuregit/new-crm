@@ -96,20 +96,45 @@ export const ClockInOverviewWidget = () => {
         now.toLocaleTimeString([], { hour: '2-digit', minute: '2-digit', second: '2-digit' })
       )
 
-      if (clockedIn && clockInTimestamp) {
+      if (clockedIn) {
         const nowMs = Date.now()
-        let currentSessionSec = Math.floor((nowMs - clockInTimestamp) / 1000)
+        let currentSessionSec = 0
+
+        if (clockInTimestamp) {
+          currentSessionSec = Math.max(0, Math.floor((nowMs - clockInTimestamp) / 1000))
+        } else if (clockInTime) {
+          const match = clockInTime.match(/(\d+):(\d+)(?::\d+)?\s*(AM|PM)?/i)
+          if (match) {
+            let hrs = parseInt(match[1], 10)
+            const mins = parseInt(match[2], 10)
+            const ampm = match[3] ? match[3].toUpperCase() : null
+            if (ampm === 'PM' && hrs < 12) hrs += 12
+            if (ampm === 'AM' && hrs === 12) hrs = 0
+            const clockInMins = hrs * 60 + mins
+            const nowMins = now.getHours() * 60 + now.getMinutes()
+            if (nowMins >= clockInMins) {
+              currentSessionSec = (nowMins - clockInMins) * 60 + now.getSeconds()
+            }
+          }
+        }
 
         // Subtract break duration
-        let activeBreakSec = accumulatedBreakSeconds
+        let activeBreakSec = accumulatedBreakSeconds || 0
         if (isOnBreak && breakStartTime) {
           activeBreakSec += Math.floor((nowMs - breakStartTime) / 1000)
         }
 
         const netSec = Math.max(0, currentSessionSec - activeBreakSec)
-        setElapsedSeconds(accumulatedWorkSeconds + netSec)
+        let validAccSec = accumulatedWorkSeconds || 0
+
+        // Sanitize stale carry-over from previous days
+        if (validAccSec > netSec + 3600 && !clockOutTime) {
+          validAccSec = 0
+        }
+
+        setElapsedSeconds(validAccSec + netSec)
       } else {
-        setElapsedSeconds(accumulatedWorkSeconds)
+        setElapsedSeconds(accumulatedWorkSeconds || 0)
       }
     }
     updateTicker()
@@ -117,7 +142,9 @@ export const ClockInOverviewWidget = () => {
     return () => clearInterval(timer)
   }, [
     clockedIn,
+    clockInTime,
     clockInTimestamp,
+    clockOutTime,
     isOnBreak,
     breakStartTime,
     accumulatedBreakSeconds,

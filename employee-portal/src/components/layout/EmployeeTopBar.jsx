@@ -1,6 +1,7 @@
 import React from 'react'
 import { Link } from 'react-router-dom'
 import { Bell, UserCheck, User, Search, Sun, Moon } from 'lucide-react'
+import haloLogo from '../../assets/halologo.png'
 import { useUserStore } from '../../stores/userStore'
 import { useUIStore } from '../../stores/uiStore'
 
@@ -12,11 +13,11 @@ export const EmployeeTopBar = () => {
 
   return (
     <header className="h-16 bg-white/90 dark:bg-[#12151E]/90 backdrop-blur-md border-b border-slate-200 dark:border-purple-900/40 px-6 flex items-center justify-between sticky top-0 z-30 transition-colors">
-      {/*  EMPLOYEEEnvironment Badge & Search */}
+      {/* EMPLOYEE Environment Badge & Search */}
       <div className="flex items-center gap-4">
         <div className="flex items-center gap-2 text-xs text-purple-600 dark:text-purple-400">
           <UserCheck className="w-4 h-4" />
-          <span className="font-medium hidden sm:block">
+          <span className="font-semibold hidden sm:block">
             EMPLOYEE Workspace
           </span>
         </div>
