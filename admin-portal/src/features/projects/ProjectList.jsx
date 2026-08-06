@@ -8,30 +8,36 @@ import { Badge } from '../../components/ui/Badge'
 import { Button } from '../../components/ui/Button'
 import { Input } from '../../components/ui/Input'
 import { useProjectStore } from './stores/projectStore'
-import { getProjects, createProject, deleteProjectFromDb } from './services/projectService'
+import { getProjects, createProject, deleteProjectFromDb, updateProjectMembersInDb } from './services/projectService'
 import {
   Plus,
   Search,
   Briefcase,
   CheckCircle2,
   Clock,
-  IndianRupee,
   User,
+  Users,
+  UserPlus,
   Building,
   Kanban,
   FolderKanban,
   X,
   TrendingUp,
   Trash2,
-  ArrowRight,
-  ChevronDown,
-  Loader2
+  Loader2,
+  ShieldCheck,
 } from 'lucide-react'
 
 export const ProjectList = () => {
   const navigate = useNavigate()
-  const { projects, setProjects, addProject, deleteProject, setSelectedProjectId } = useProjectStore()
-
+  const {
+    projects,
+    setProjects,
+    addProject,
+    deleteProject,
+    updateProjectMembers,
+    setSelectedProjectId,
+  } = useProjectStore()
 
   const [searchQuery, setSearchQuery] = useState('')
   const [statusFilter, setStatusFilter] = useState('all')
@@ -50,6 +56,12 @@ export const ProjectList = () => {
   const [employees, setEmployees] = useState([])
   const [dropdownLoading, setDropdownLoading] = useState(false)
   const [deleteConfirmProj, setDeleteConfirmProj] = useState(null)
+
+  // Manage Project Members Modal state
+  const [memberModalProj, setMemberModalProj] = useState(null)
+  const [allEmployees, setAllEmployees] = useState([])
+  const [membersLoading, setMembersLoading] = useState(false)
+  const [selectedMemberIds, setSelectedMemberIds] = useState(new Set())
 
   useEffect(() => {
     const fetchRealProjects = async () => {
@@ -74,7 +86,6 @@ export const ProjectList = () => {
 
         const clientCompaniesMap = new Map()
 
-        // Map registered clients (users collection where role == 'client')
         usersSnap.docs.forEach((d) => {
           const data = d.data()
           if (data.companyName) {
@@ -106,6 +117,49 @@ export const ProjectList = () => {
     fetchDropdowns()
   }, [showAddModal])
 
+  // Fetch available employees when Member Modal opens
+  useEffect(() => {
+    if (!memberModalProj) return
+    const fetchTeamEmployees = async () => {
+      setMembersLoading(true)
+      try {
+        const empSnap = await getDocs(collection(db, 'employees'))
+
+        const empList = empSnap.docs.map((d) => {
+          const data = d.data()
+          const id = d.id
+          const name = data.name || data.fullName || data.displayName || 'Employee'
+          const email = data.email || ''
+          const role = data.role || 'employee'
+          return { id, uid: id, name, email, role }
+        })
+
+        setAllEmployees(empList)
+
+
+        // Initialize selected members set based on current project members
+        const currentMembers = memberModalProj.members || []
+        const initialSelected = new Set()
+
+        currentMembers.forEach((m) => {
+          const mId = typeof m === 'object' ? (m.uid || m.id) : m
+          if (mId) initialSelected.add(String(mId))
+        })
+
+        if (memberModalProj.employeeId) {
+          initialSelected.add(String(memberModalProj.employeeId))
+        }
+
+        setSelectedMemberIds(initialSelected)
+      } catch (err) {
+        console.error('Error fetching employees for member assignment:', err)
+      } finally {
+        setMembersLoading(false)
+      }
+    }
+    fetchTeamEmployees()
+  }, [memberModalProj])
+
   const filtered = projects.filter((p) => {
     const matchesSearch =
       !searchQuery ||
@@ -135,6 +189,10 @@ export const ProjectList = () => {
     const selectedClient = clients.find((c) => c.id === selectedClientId)
     const selectedEmployee = employees.find((emp) => emp.id === selectedEmployeeId)
 
+    const initialMembers = selectedEmployee
+      ? [{ id: selectedEmployee.id, uid: selectedEmployee.id, name: selectedEmployee.name, role: selectedEmployee.role }]
+      : []
+
     const payload = {
       name: projName,
       clientId: selectedClientId || '',
@@ -149,6 +207,7 @@ export const ProjectList = () => {
       totalTaskCount: 0,
       completedTaskCount: 0,
       totalHoursLogged: 0,
+      members: initialMembers,
     }
 
     const created = await createProject(payload)
@@ -168,12 +227,34 @@ export const ProjectList = () => {
     navigate(`/projects/tasks?projectId=${pId}`)
   }
 
-  const handleDeleteProject = async (id, e) => {
-    e.stopPropagation()
-    const targetId = id || ''
-    if (!targetId) return
-    await deleteProjectFromDb(targetId)
-    deleteProject(targetId)
+  const handleToggleMemberSelection = (empId) => {
+    const next = new Set(selectedMemberIds)
+    if (next.has(empId)) {
+      next.delete(empId)
+    } else {
+      next.add(empId)
+    }
+    setSelectedMemberIds(next)
+  }
+
+  const handleSaveMembers = async (e) => {
+    e.preventDefault()
+    if (!memberModalProj) return
+
+    const pId = memberModalProj.projectId || memberModalProj.id
+    const updatedMembersList = allEmployees
+      .filter((emp) => selectedMemberIds.has(String(emp.id)) || selectedMemberIds.has(String(emp.uid)))
+      .map((emp) => ({
+        uid: emp.uid || emp.id,
+        id: emp.id || emp.uid,
+        name: emp.name,
+        email: emp.email,
+        role: emp.role,
+      }))
+
+    updateProjectMembers(pId, updatedMembersList)
+    await updateProjectMembersInDb(pId, updatedMembersList)
+    setMemberModalProj(null)
   }
 
   return (
@@ -182,7 +263,7 @@ export const ProjectList = () => {
       <div className="space-y-4">
         <PageHeader
           title="Project Management"
-          description="Manage active client deliverables, sprint velocity, task boards, and time tracking"
+          description="Manage active client deliverables, sprint velocity, task boards, and team access"
           actions={
             <Button icon={Plus} variant="primary" onClick={() => setShowAddModal(true)}>
               New Project
@@ -202,7 +283,7 @@ export const ProjectList = () => {
                 }`
               }
             >
-              <FolderKanban className="w-3.5 h-3.5" /> All Projects
+              <FolderKanban className="w-3.5 h-3.5" /> All Projects ({projects.length})
             </NavLink>
             <NavLink
               to="/projects/tasks"
@@ -314,76 +395,219 @@ export const ProjectList = () => {
         </div>
       ) : (
         <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-5">
-          {filtered.map((proj) => (
-            <Card
-              key={proj.projectId || proj.id}
-              hover
-              className="space-y-4 border-slate-200 dark:border-slate-800 cursor-pointer group"
-              onClick={() => handleProjectClick(proj)}
-            >
-              <div className="flex items-start justify-between">
-                <div>
-                  <h3 className="font-bold text-slate-900 dark:text-slate-100 text-sm group-hover:text-indigo-600 dark:group-hover:text-indigo-400 transition-colors flex items-center gap-1.5">
-                    {proj.name}
-                  </h3>
-                  <p className="text-xs text-slate-500 dark:text-slate-400 flex items-center gap-1 mt-0.5">
-                    <Building className="w-3 h-3 text-slate-400 dark:text-slate-500" /> {proj.clientName}
-                  </p>
+          {filtered.map((proj) => {
+            const pId = proj.projectId || proj.id
+            const membersList = proj.members || []
+
+            return (
+              <Card
+                key={pId}
+                hover
+                className="space-y-4 border-slate-200 dark:border-slate-800 cursor-pointer group"
+                onClick={() => handleProjectClick(proj)}
+              >
+                <div className="flex items-start justify-between">
+                  <div>
+                    <h3 className="font-bold text-slate-900 dark:text-slate-100 text-sm group-hover:text-indigo-600 dark:group-hover:text-indigo-400 transition-colors flex items-center gap-1.5">
+                      {proj.name}
+                    </h3>
+                    <p className="text-xs text-slate-500 dark:text-slate-400 flex items-center gap-1 mt-0.5">
+                      <Building className="w-3 h-3 text-slate-400 dark:text-slate-500" /> {proj.clientName}
+                    </p>
+                  </div>
+                  <div className="flex items-center gap-2" onClick={(e) => e.stopPropagation()}>
+                    <Badge
+                      variant={
+                        proj.status === 'active'
+                          ? 'success'
+                          : proj.status === 'completed'
+                          ? 'brand'
+                          : 'warning'
+                      }
+                    >
+                      {proj.status}
+                    </Badge>
+                    <button
+                      onClick={(e) => {
+                        e.stopPropagation()
+                        setDeleteConfirmProj(proj)
+                      }}
+                      title="Delete project"
+                      className="text-slate-400 dark:text-slate-500 hover:text-rose-600 dark:hover:text-rose-400 p-1 rounded hover:bg-slate-100 dark:hover:bg-slate-800 transition-colors"
+                    >
+                      <Trash2 className="w-3.5 h-3.5" />
+                    </button>
+                  </div>
                 </div>
-                <div className="flex items-center gap-2" onClick={(e) => e.stopPropagation()}>
-                  <Badge
-                    variant={
-                      proj.status === 'active'
-                        ? 'success'
-                        : proj.status === 'completed'
-                        ? 'brand'
-                        : 'warning'
-                    }
-                  >
-                    {proj.status}
-                  </Badge>
+
+                <p className="text-xs text-slate-600 dark:text-slate-400 line-clamp-2">{proj.description}</p>
+
+                {/* Progress Bar */}
+                <div className="space-y-1.5 pt-1">
+                  <div className="flex justify-between text-xs text-slate-600 dark:text-slate-400">
+                    <span>Completion Velocity</span>
+                    <span className="font-bold text-emerald-600 dark:text-emerald-400">{proj.completionPercent}%</span>
+                  </div>
+                  <div className="w-full bg-slate-200 dark:bg-slate-800 h-2 rounded-full overflow-hidden border border-slate-300/40 dark:border-slate-700/50">
+                    <div
+                      className="bg-emerald-500 dark:bg-emerald-400 h-full transition-all duration-500 rounded-full"
+                      style={{ width: `${proj.completionPercent}%` }}
+                    />
+                  </div>
+                </div>
+
+                {/* Assigned Employees / Members on Project Card */}
+                <div
+                  className="pt-2 border-t border-slate-200 dark:border-slate-800/60 flex items-center justify-between"
+                  onClick={(e) => e.stopPropagation()}
+                >
+                  <div className="flex items-center gap-1.5 flex-wrap">
+                    <span className="text-[11px] font-semibold text-slate-500 dark:text-slate-400 flex items-center gap-1">
+                      <Users className="w-3 h-3 text-indigo-500" /> Team:
+                    </span>
+                    {membersList.length === 0 ? (
+                      <span className="text-[11px] text-slate-400 italic">Unassigned</span>
+                    ) : (
+                      membersList.slice(0, 3).map((m, idx) => {
+                        const name = typeof m === 'object' ? m.name || m.email : m
+                        return (
+                          <span
+                            key={idx}
+                            className="inline-flex items-center gap-1 text-[10px] bg-slate-100 dark:bg-slate-800 text-slate-700 dark:text-slate-300 px-2 py-0.5 rounded-md font-medium border border-slate-200 dark:border-slate-700"
+                          >
+                            <User className="w-2.5 h-2.5 text-indigo-500" />
+                            {name}
+                          </span>
+                        )
+                      })
+                    )}
+                    {membersList.length > 3 && (
+                      <span className="text-[10px] text-slate-400 font-semibold">
+                        +{membersList.length - 3} more
+                      </span>
+                    )}
+                  </div>
+
+                  {/* Add Employee Button on Project Card */}
                   <button
+                    type="button"
                     onClick={(e) => {
                       e.stopPropagation()
-                      setDeleteConfirmProj(proj)
+                      setMemberModalProj(proj)
                     }}
-                    title="Delete project"
-                    className="text-slate-400 dark:text-slate-500 hover:text-rose-600 dark:hover:text-rose-400 p-1 rounded hover:bg-slate-100 dark:hover:bg-slate-800 transition-colors"
+                    title="Add or manage employees in this project"
+                    className="flex items-center gap-1 px-2 py-1 bg-indigo-50 dark:bg-indigo-950/60 hover:bg-indigo-100 dark:hover:bg-indigo-900/60 text-indigo-600 dark:text-indigo-400 border border-indigo-200 dark:border-indigo-800/60 text-[10px] font-bold rounded-lg transition-colors"
                   >
-                    <Trash2 className="w-3.5 h-3.5" />
+                    <UserPlus className="w-3 h-3" /> Add Employee
                   </button>
                 </div>
-              </div>
 
-              <p className="text-xs text-slate-600 dark:text-slate-400 line-clamp-2">{proj.description}</p>
+                {/* Card Footer Info */}
+                <div className="pt-2 border-t border-slate-200 dark:border-slate-800/60 flex items-center justify-between text-[11px] text-slate-600 dark:text-slate-400">
+                  <div className="flex items-center gap-1">
+                    <span className="font-medium text-slate-700 dark:text-slate-300">Client: </span>
+                    <span className="truncate max-w-[100px] font-semibold text-slate-800 dark:text-slate-200">
+                      {proj.clientName || 'Independent'}
+                    </span>
+                  </div>
+                  <div className="flex items-center gap-1">
+                    <span className="font-medium text-slate-700 dark:text-slate-300">Lead: </span>
+                    <span className="truncate max-w-[100px]">{proj.ownerName || 'Unassigned'}</span>
+                  </div>
+                </div>
+              </Card>
+            )
+          })}
+        </div>
+      )}
 
-              {/* Progress Bar - Emerald Green Progress Fill */}
-              <div className="space-y-1.5 pt-1">
-                <div className="flex justify-between text-xs text-slate-600 dark:text-slate-400">
-                  <span>Completion Velocity</span>
-                  <span className="font-bold text-emerald-600 dark:text-emerald-400">{proj.completionPercent}%</span>
-                </div>
-                <div className="w-full bg-slate-200 dark:bg-slate-800 h-2 rounded-full overflow-hidden border border-slate-300/40 dark:border-slate-700/50">
-                  <div
-                    className="bg-emerald-500 dark:bg-emerald-400 h-full transition-all duration-500 rounded-full"
-                    style={{ width: `${proj.completionPercent}%` }}
-                  />
-                </div>
+      {/* Member Management Modal ("Add Employee in Project Card") */}
+      {memberModalProj && (
+        <div className="fixed inset-0 z-50 bg-black/70 backdrop-blur-sm flex items-center justify-center p-4">
+          <Card className="w-full max-w-lg p-6 space-y-4 border-slate-200 dark:border-slate-800 shadow-2xl relative bg-white dark:bg-[#181C27] max-h-[85vh] flex flex-col">
+            <div className="flex items-center justify-between pb-3 border-b border-slate-200 dark:border-slate-800">
+              <div>
+                <h3 className="font-bold text-slate-900 dark:text-slate-100 text-sm flex items-center gap-2">
+                  <UserPlus className="w-4 h-4 text-indigo-500" /> Manage Project Employees
+                </h3>
+                <p className="text-xs text-slate-500 dark:text-slate-400 mt-0.5">
+                  Project: <strong className="text-indigo-600 dark:text-indigo-400">{memberModalProj.name}</strong>
+                </p>
               </div>
+              <button
+                onClick={() => setMemberModalProj(null)}
+                className="text-slate-400 hover:text-slate-600 dark:hover:text-white p-1 rounded-lg hover:bg-slate-100 dark:hover:bg-slate-800 transition-colors"
+              >
+                <X className="w-4 h-4" />
+              </button>
+            </div>
 
-              {/* Card Footer Info */}
-              <div className="pt-2 border-t border-slate-200 dark:border-slate-800/60 flex items-center justify-between text-[11px] text-slate-600 dark:text-slate-400">
-                <div className="flex items-center gap-1">
-                  <span className="font-medium text-slate-700 dark:text-slate-300">Client: </span>
-                  <span className="truncate max-w-[100px] font-semibold text-slate-800 dark:text-slate-200">{proj.clientName || 'Independent'}</span>
+            <p className="text-xs text-slate-600 dark:text-slate-300">
+              Select team members to assign them to this project card:
+            </p>
+
+            <form onSubmit={handleSaveMembers} className="space-y-4 flex-1 overflow-y-auto pr-1">
+              {membersLoading ? (
+                <div className="flex items-center justify-center py-8 text-xs text-slate-400">
+                  <Loader2 className="w-4 h-4 animate-spin mr-2" /> Loading team directory...
                 </div>
-                <div className="flex items-center gap-1">
-                  <span className="font-medium text-slate-700 dark:text-slate-300">Lead: </span>
-                  <span className="truncate max-w-[100px]">{proj.ownerName || 'Unassigned'}</span>
+              ) : allEmployees.length === 0 ? (
+                <div className="text-center py-6 text-xs text-slate-400">
+                  No registered employees found.
                 </div>
+              ) : (
+                <div className="space-y-2 max-h-60 overflow-y-auto">
+                  {allEmployees.map((emp) => {
+                    const empIdStr = String(emp.id || emp.uid)
+                    const isChecked = selectedMemberIds.has(empIdStr)
+
+                    return (
+                      <div
+                        key={empIdStr}
+                        onClick={() => handleToggleMemberSelection(empIdStr)}
+                        className={`flex items-center justify-between p-3 rounded-xl border cursor-pointer transition-all ${
+                          isChecked
+                            ? 'bg-indigo-50/70 dark:bg-indigo-950/40 border-indigo-300 dark:border-indigo-700/60'
+                            : 'bg-slate-50 dark:bg-slate-900/40 border-slate-200 dark:border-slate-800 hover:border-slate-300'
+                        }`}
+                      >
+                        <div className="flex items-center gap-3">
+                          <input
+                            type="checkbox"
+                            checked={isChecked}
+                            onChange={() => handleToggleMemberSelection(empIdStr)}
+                            className="rounded border-slate-300 text-indigo-600 focus:ring-indigo-500 cursor-pointer"
+                          />
+                          <div>
+                            <span className="text-xs font-semibold text-slate-900 dark:text-slate-100 block">
+                              {emp.name}
+                            </span>
+                            <span className="text-[10px] text-slate-500 dark:text-slate-400">
+                              {emp.email || emp.role || 'Employee'}
+                            </span>
+                          </div>
+                        </div>
+                      </div>
+                    )
+                  })}
+                </div>
+              )}
+
+              <div className="flex gap-3 pt-3 border-t border-slate-200 dark:border-slate-800">
+                <Button
+                  type="button"
+                  variant="secondary"
+                  onClick={() => setMemberModalProj(null)}
+                  className="w-1/3"
+                >
+                  Cancel
+                </Button>
+                <Button type="submit" variant="primary" className="w-2/3" icon={ShieldCheck}>
+                  Save Project Members
+                </Button>
               </div>
-            </Card>
-          ))}
+            </form>
+          </Card>
         </div>
       )}
 

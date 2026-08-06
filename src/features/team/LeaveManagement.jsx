@@ -9,7 +9,7 @@ import { useTeamStore } from './stores/teamStore'
 import { Users, CheckCircle2, Calendar, Plus, Check, X } from 'lucide-react'
 
 export const LeaveManagement = () => {
-  const { leaveRequests, addLeaveRequest, updateLeaveStatus } = useTeamStore()
+  const { employees, leaveRequests, addLeaveRequest, updateLeaveStatus } = useTeamStore()
 
   const [showAddModal, setShowAddModal] = useState(false)
   const [employeeName, setEmployeeName] = useState('')
@@ -17,6 +17,44 @@ export const LeaveManagement = () => {
   const [startDate, setStartDate] = useState('')
   const [endDate, setEndDate] = useState('')
   const [reason, setReason] = useState('')
+
+  const getEmployeeInfo = (req) => {
+    const matched = (employees || []).find(
+      (e) =>
+        (req.employeeId && (e.uid === req.employeeId || e.employeeId === req.employeeId)) ||
+        (req.employeeEmail && e.email?.toLowerCase() === req.employeeEmail.toLowerCase()) ||
+        (req.employeeName &&
+          req.employeeName !== 'Team Staff' &&
+          (e.displayName?.toLowerCase() === req.employeeName.toLowerCase() || e.name?.toLowerCase() === req.employeeName.toLowerCase()))
+    )
+
+    let name = matched?.displayName || matched?.name || req.employeeName
+    let email = req.employeeEmail || matched?.email || ''
+    let role = matched?.role || matched?.department || matched?.designation || ''
+
+    if (!name || name === 'Team Staff') {
+      if (email) {
+        name = email
+          .split('@')[0]
+          .replace(/[._-]/g, ' ')
+          .replace(/\b\w/g, (c) => c.toUpperCase())
+      } else {
+        name = 'Team Member'
+      }
+    }
+
+    const avatar = matched?.avatar || matched?.photoURL || null
+    const initials = name
+      ? name
+          .split(' ')
+          .filter(Boolean)
+          .slice(0, 2)
+          .map((n) => n[0].toUpperCase())
+          .join('')
+      : 'TM'
+
+    return { name, email, role, avatar, initials }
+  }
 
   const handleRequestLeave = (e) => {
     e.preventDefault()
@@ -103,7 +141,40 @@ export const LeaveManagement = () => {
           <tbody className="divide-y divide-slate-800/60">
             {leaveRequests.map((req) => (
               <tr key={req.leaveId} className="hover:bg-slate-800/30 transition-colors">
-                <td className="p-4 font-bold text-slate-200">{req.employeeName}</td>
+                <td className="p-4">
+                  {(() => {
+                    const info = getEmployeeInfo(req)
+                    return (
+                      <div className="flex items-center gap-3">
+                        {info.avatar ? (
+                          <img
+                            src={info.avatar}
+                            alt={info.name}
+                            className="w-8 h-8 rounded-full object-cover border border-slate-700 shrink-0"
+                          />
+                        ) : (
+                          <div className="w-8 h-8 rounded-full bg-indigo-500/20 text-indigo-400 border border-indigo-500/30 flex items-center justify-center font-bold text-xs shrink-0 shadow-sm">
+                            {info.initials}
+                          </div>
+                        )}
+                        <div className="flex flex-col min-w-0">
+                          <span className="font-bold text-slate-200 text-xs truncate">
+                            {info.name}
+                          </span>
+                          {info.email ? (
+                            <span className="text-[11px] text-slate-400 truncate">
+                              {info.email}
+                            </span>
+                          ) : info.role ? (
+                            <span className="text-[11px] text-slate-400 truncate">
+                              {info.role}
+                            </span>
+                          ) : null}
+                        </div>
+                      </div>
+                    )
+                  })()}
+                </td>
                 <td className="p-4 text-slate-300 font-medium">{req.leaveType}</td>
                 <td className="p-4 text-slate-400">
                   {req.startDate} to {req.endDate} ({req.days} days)

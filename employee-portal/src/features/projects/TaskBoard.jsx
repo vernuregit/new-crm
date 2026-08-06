@@ -1,5 +1,5 @@
 import React, { useState, useEffect } from 'react'
-import { NavLink } from 'react-router-dom'
+import { NavLink, useSearchParams } from 'react-router-dom'
 import { PageHeader } from '../../components/layout/PageHeader'
 import { Card } from '../../components/ui/Card'
 import { Badge } from '../../components/ui/Badge'
@@ -18,7 +18,8 @@ import {
   User,
   X,
   Trash2,
-  Search
+  Search,
+  Filter,
 } from 'lucide-react'
 
 const isTaskVisibleToUser = (t, user, userDoc, claims) => {
@@ -72,6 +73,9 @@ const getStatusDotBg = (status) => {
 }
 
 export const TaskBoard = () => {
+  const [searchParams, setSearchParams] = useSearchParams()
+  const urlProjectId = searchParams.get('projectId')
+
   const {
     tasks,
     projects,
@@ -84,7 +88,7 @@ export const TaskBoard = () => {
     addCustomStatus,
     deleteCustomStatus,
     selectedProjectId,
-    setSelectedProjectId
+    setSelectedProjectId,
   } = useProjectStore()
   const { employees, setEmployees } = useTeamStore()
   const { user, userDoc, claims } = useUserStore()
@@ -92,7 +96,20 @@ export const TaskBoard = () => {
   const currentUserId = userDoc?.uid || user?.uid
   const currentUserEmail = userDoc?.email || user?.email
   const userRole = claims?.role || userDoc?.role || 'employee'
-  const isAdmin = userRole === 'admin' || userRole === 'owner' || userRole === 'superadmin' || claims?.role === 'admin' || claims?.role === 'owner' || claims?.role === 'superadmin'
+  const isAdmin =
+    userRole === 'admin' ||
+    userRole === 'owner' ||
+    userRole === 'superadmin' ||
+    claims?.role === 'admin' ||
+    claims?.role === 'owner' ||
+    claims?.role === 'superadmin'
+
+  // Sync URL search param with selectedProjectId
+  useEffect(() => {
+    if (urlProjectId) {
+      setSelectedProjectId(urlProjectId)
+    }
+  }, [urlProjectId, setSelectedProjectId])
 
   const DEFAULT_STATUS_IDS = ['todo', 'in_progress', 'in_review', 'done']
 
@@ -100,10 +117,18 @@ export const TaskBoard = () => {
     const isDefault = DEFAULT_STATUS_IDS.includes(s.id)
     if (isDefault) return true
     if (isAdmin) return true
-    const isAdminCreated = s.createdByRole === 'admin' || s.createdByRole === 'owner' || s.createdByRole === 'superadmin' || s.isAdminCreated === true
+    const isAdminCreated =
+      s.createdByRole === 'admin' ||
+      s.createdByRole === 'owner' ||
+      s.createdByRole === 'superadmin' ||
+      s.isAdminCreated === true
     if (isAdminCreated) return true
-    const isCreatorByUid = s.createdBy && currentUserId && String(s.createdBy) === String(currentUserId)
-    const isCreatorByEmail = s.createdByEmail && currentUserEmail && String(s.createdByEmail).toLowerCase() === String(currentUserEmail).toLowerCase()
+    const isCreatorByUid =
+      s.createdBy && currentUserId && String(s.createdBy) === String(currentUserId)
+    const isCreatorByEmail =
+      s.createdByEmail &&
+      currentUserEmail &&
+      String(s.createdByEmail).toLowerCase() === String(currentUserEmail).toLowerCase()
     return Boolean(isCreatorByUid || isCreatorByEmail)
   })
 
@@ -111,8 +136,12 @@ export const TaskBoard = () => {
     const isDefault = DEFAULT_STATUS_IDS.includes(status.id)
     if (isDefault) return false
     if (isAdmin) return true
-    const isCreatorByUid = status.createdBy && currentUserId && String(status.createdBy) === String(currentUserId)
-    const isCreatorByEmail = status.createdByEmail && currentUserEmail && String(status.createdByEmail).toLowerCase() === String(currentUserEmail).toLowerCase()
+    const isCreatorByUid =
+      status.createdBy && currentUserId && String(status.createdBy) === String(currentUserId)
+    const isCreatorByEmail =
+      status.createdByEmail &&
+      currentUserEmail &&
+      String(status.createdByEmail).toLowerCase() === String(currentUserEmail).toLowerCase()
     return Boolean(isCreatorByUid || isCreatorByEmail)
   }
 
@@ -173,11 +202,26 @@ export const TaskBoard = () => {
   const [newStatusColor, setNewStatusColor] = useState('purple')
 
   // New task form state
+  const defaultProjId =
+    selectedProjectId && selectedProjectId !== 'all'
+      ? selectedProjectId
+      : projects[0]?.projectId || projects[0]?.id || ''
+
   const [taskTitle, setTaskTitle] = useState('')
   const [taskDesc, setTaskDesc] = useState('')
-  const [projectId, setProjectId] = useState(projects[0]?.projectId || '')
+  const [projectId, setProjectId] = useState(defaultProjId)
   const [priority, setPriority] = useState('medium')
   const [estimatedHours, setEstimatedHours] = useState('10')
+
+  useEffect(() => {
+    if (showAddModal) {
+      setProjectId(
+        selectedProjectId && selectedProjectId !== 'all'
+          ? selectedProjectId
+          : projects[0]?.projectId || projects[0]?.id || ''
+      )
+    }
+  }, [showAddModal, selectedProjectId, projects])
 
   useEffect(() => {
     fetchProjectsAndTasks()
@@ -191,8 +235,31 @@ export const TaskBoard = () => {
     }
   }, [employees.length, setEmployees])
 
+  const handleProjectFilterChange = (pId) => {
+    if (pId === 'all') {
+      setSelectedProjectId(null)
+      setSearchParams({})
+    } else {
+      setSelectedProjectId(pId)
+      setSearchParams({ projectId: pId })
+    }
+  }
+
+  const activeProject = projects.find(
+    (p) => p.projectId === selectedProjectId || p.id === selectedProjectId
+  )
+
   const filteredTasks = tasks.filter((t) => {
     if (!isTaskVisibleToUser(t, user, userDoc, claims)) return false
+
+    // Filter strictly by project if a project is selected
+    if (selectedProjectId && selectedProjectId !== 'all') {
+      const isProjectMatch =
+        t.projectId === selectedProjectId ||
+        (activeProject && t.projectName && t.projectName.toLowerCase() === activeProject.name.toLowerCase())
+      if (!isProjectMatch) return false
+    }
+
     const matchesSearch =
       !searchQuery ||
       t.title.toLowerCase().includes(searchQuery.toLowerCase()) ||
@@ -200,19 +267,22 @@ export const TaskBoard = () => {
     return matchesSearch
   })
 
-  const liveSelectedTask = selectedTask ? tasks.find((t) => t.taskId === selectedTask.taskId) || null : null
+  const liveSelectedTask = selectedTask
+    ? tasks.find((t) => t.taskId === selectedTask.taskId) || null
+    : null
 
   const handleCreateTask = (e) => {
     e.preventDefault()
     if (!taskTitle.trim()) return
 
-    const proj = projects.find((p) => p.projectId === projectId)
+    const targetProjId = projectId || defaultProjId
+    const proj = projects.find((p) => p.projectId === targetProjId || p.id === targetProjId)
     const employeeName = userDoc?.displayName || user?.displayName || currentUserEmail || 'Employee'
 
     addTask({
       title: taskTitle,
       description: taskDesc,
-      projectId,
+      projectId: targetProjId,
       projectName: proj?.name || 'Project Work',
       priority,
       assigneeName: employeeName,
@@ -313,8 +383,27 @@ export const TaskBoard = () => {
             </NavLink>
           </div>
 
-          <div className="flex items-center gap-3">
-            <div className="relative w-56">
+          <div className="flex flex-wrap items-center gap-3">
+            {/* Project Filter Dropdown */}
+            <div className="flex items-center gap-2">
+              <span className="text-xs font-medium text-slate-500 dark:text-slate-400 flex items-center gap-1">
+                <Filter className="w-3.5 h-3.5 text-indigo-500" /> Filter Project:
+              </span>
+              <select
+                value={selectedProjectId || 'all'}
+                onChange={(e) => handleProjectFilterChange(e.target.value)}
+                className="bg-slate-100 dark:bg-[#181C27] border border-slate-300 dark:border-slate-800 text-xs text-slate-900 dark:text-slate-100 font-semibold rounded-xl px-3 py-1.5 focus:outline-none focus:border-indigo-500 cursor-pointer transition-colors"
+              >
+                <option value="all">All Projects ({projects.length})</option>
+                {projects.map((p) => (
+                  <option key={p.projectId || p.id} value={p.projectId || p.id}>
+                    {p.name}
+                  </option>
+                ))}
+              </select>
+            </div>
+
+            <div className="relative w-52">
               <Search className="w-3.5 h-3.5 absolute left-3 top-1/2 -translate-y-1/2 text-slate-400 dark:text-slate-500" />
               <input
                 type="text"
@@ -327,6 +416,29 @@ export const TaskBoard = () => {
           </div>
         </div>
       </div>
+
+      {/* Active Project Filter Alert Banner */}
+      {selectedProjectId && selectedProjectId !== 'all' && (
+        <div className="flex items-center justify-between bg-indigo-50 dark:bg-indigo-950/40 border border-indigo-200 dark:border-indigo-800/60 rounded-xl px-4 py-2.5 text-xs text-indigo-900 dark:text-indigo-200">
+          <div className="flex items-center gap-2">
+            <span className="font-medium text-slate-600 dark:text-slate-300">
+              Showing tasks for project:
+            </span>
+            <span className="bg-indigo-600 text-white px-2.5 py-0.5 rounded-lg font-bold">
+              {activeProject ? activeProject.name : selectedProjectId}
+            </span>
+            <span className="text-slate-500 dark:text-slate-400">
+              ({filteredTasks.length} {filteredTasks.length === 1 ? 'task' : 'tasks'})
+            </span>
+          </div>
+          <button
+            onClick={() => handleProjectFilterChange('all')}
+            className="flex items-center gap-1 text-xs font-semibold text-indigo-600 dark:text-indigo-400 hover:underline"
+          >
+            <X className="w-3.5 h-3.5" /> Show All Projects
+          </button>
+        </div>
+      )}
 
       {/* Dynamic Task Kanban Columns */}
       <div className="flex gap-4 overflow-x-auto pb-4 items-start min-h-[500px]">
@@ -390,62 +502,64 @@ export const TaskBoard = () => {
                         className="p-3.5 space-y-2.5 bg-white dark:bg-[#181C27] border-slate-200 dark:border-slate-800 hover:border-indigo-500/40 relative group shadow-sm"
                         onClick={() => setSelectedTask(t)}
                       >
-                      <div className="flex items-start justify-between">
-                        <span className="text-xs font-bold text-slate-900 dark:text-slate-100 group-hover:text-indigo-600 dark:group-hover:text-indigo-400 transition-colors">
-                          {t.title}
-                        </span>
-                        <Badge
-                          variant={
-                            t.priority === 'critical' || t.priority === 'high'
-                              ? 'danger'
-                              : 'info'
-                          }
+                        <div className="flex items-start justify-between">
+                          <span className="text-xs font-bold text-slate-900 dark:text-slate-100 group-hover:text-indigo-600 dark:group-hover:text-indigo-400 transition-colors">
+                            {t.title}
+                          </span>
+                          <Badge
+                            variant={
+                              t.priority === 'critical' || t.priority === 'high'
+                                ? 'danger'
+                                : 'info'
+                            }
+                          >
+                            {t.priority}
+                          </Badge>
+                        </div>
+
+                        <p className="text-[11px] text-indigo-600 dark:text-indigo-400 font-medium truncate">
+                          {t.projectName}
+                        </p>
+
+                        {/* Subtask Mini Stepper Bar on Kanban Card */}
+                        <SubtaskStepper taskId={t.taskId} subtasks={t.subtasks || []} compact={true} />
+
+                        <div className="flex items-center justify-between text-xs pt-2 border-t border-slate-200 dark:border-slate-800/60">
+                          <span className="flex items-center gap-1 text-[11px] text-slate-500 dark:text-slate-400">
+                            <Clock className="w-3 h-3 text-indigo-600 dark:text-indigo-400" /> {t.loggedHours} / {t.estimatedHours}h
+                          </span>
+                          <span className="flex items-center gap-1 text-[10px] text-slate-500 dark:text-slate-400">
+                            <User className="w-3 h-3 text-slate-400 dark:text-slate-500" /> {t.assigneeName}
+                          </span>
+                        </div>
+
+                        <div
+                          className="pt-2 flex items-center justify-between text-[10px] text-slate-500 dark:text-slate-400"
+                          onClick={(e) => e.stopPropagation()}
                         >
-                          {t.priority}
-                        </Badge>
-                      </div>
-
-                      <p className="text-[11px] text-slate-500 dark:text-slate-400 truncate">{t.projectName}</p>
-
-                      {/* Subtask Mini Stepper Bar on Kanban Card */}
-                      <SubtaskStepper taskId={t.taskId} subtasks={t.subtasks || []} compact={true} />
-
-                      <div className="flex items-center justify-between text-xs pt-2 border-t border-slate-200 dark:border-slate-800/60">
-                        <span className="flex items-center gap-1 text-[11px] text-slate-500 dark:text-slate-400">
-                          <Clock className="w-3 h-3 text-indigo-600 dark:text-indigo-400" /> {t.loggedHours} / {t.estimatedHours}h
-                        </span>
-                        <span className="flex items-center gap-1 text-[10px] text-slate-500 dark:text-slate-400">
-                          <User className="w-3 h-3 text-slate-400 dark:text-slate-500" /> {t.assigneeName}
-                        </span>
-                      </div>
-
-                      <div
-                        className="pt-2 flex items-center justify-between text-[10px] text-slate-500 dark:text-slate-400"
-                        onClick={(e) => e.stopPropagation()}
-                      >
-                        <span>Status:</span>
-                        <select
-                          value={t.status}
-                          onChange={(e) => updateTaskStatus(t.taskId, e.target.value)}
-                          className="bg-slate-100 dark:bg-slate-900 border border-slate-300 dark:border-slate-800 text-[10px] text-slate-800 dark:text-slate-300 rounded px-1.5 py-0.5 focus:outline-none"
-                        >
-                          {visibleStatuses.map((s) => (
-                            <option key={s.id} value={s.id}>
-                              {s.name}
-                            </option>
-                          ))}
-                        </select>
-                      </div>
-                    </Card>
-                  </div>
-                ))
+                          <span>Status:</span>
+                          <select
+                            value={t.status}
+                            onChange={(e) => updateTaskStatus(t.taskId, e.target.value)}
+                            className="bg-slate-100 dark:bg-slate-900 border border-slate-300 dark:border-slate-800 text-[10px] text-slate-800 dark:text-slate-300 rounded px-1.5 py-0.5 focus:outline-none"
+                          >
+                            {visibleStatuses.map((s) => (
+                              <option key={s.id} value={s.id}>
+                                {s.name}
+                              </option>
+                            ))}
+                          </select>
+                        </div>
+                      </Card>
+                    </div>
+                  ))
                 )}
               </div>
             </div>
           )
         })}
 
-        {/* Sticky Floating + Add Status Button (Pinned to Right Edge) */}
+        {/* Sticky Floating + Add Status Button */}
         <div className="sticky right-0 shrink-0 self-start z-10 pl-3 py-1 bg-gradient-to-l from-slate-50 via-slate-50/90 to-transparent dark:from-[#0D0F17] dark:via-[#0D0F17]/90">
           <button
             type="button"
@@ -489,7 +603,11 @@ export const TaskBoard = () => {
                   className="w-full bg-slate-100/80 dark:bg-slate-900 border border-slate-300 dark:border-slate-800 text-slate-900 dark:text-slate-100 text-sm rounded-xl py-2.5 px-3.5 focus:outline-none focus:border-indigo-500 cursor-pointer"
                 >
                   {projects.map((p) => (
-                    <option key={p.projectId} value={p.projectId} className="bg-white dark:bg-slate-900 text-slate-900 dark:text-slate-100">
+                    <option
+                      key={p.projectId || p.id}
+                      value={p.projectId || p.id}
+                      className="bg-white dark:bg-slate-900 text-slate-900 dark:text-slate-100"
+                    >
                       {p.name}
                     </option>
                   ))}

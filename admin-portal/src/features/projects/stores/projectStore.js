@@ -184,6 +184,14 @@ export const useProjectStore = create((set) => ({
       ),
     })),
 
+  updateProjectMembers: (projectId, members) =>
+    set((state) => ({
+      projects: state.projects.map((p) =>
+        p.projectId === projectId || p.id === projectId ? { ...p, members } : p
+      ),
+    })),
+
+
   addTask: (newTask) =>
     set((state) => {
       const updatedTasks = [

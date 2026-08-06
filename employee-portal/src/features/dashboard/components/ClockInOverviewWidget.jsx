@@ -46,6 +46,7 @@ export const ClockInOverviewWidget = () => {
     toggleClockIn,
     toggleBreak,
     toggleExtraTime,
+    autoClockOutAtEndOfDay,
   } = useTeamStore()
 
   const [currentTimeStr, setCurrentTimeStr] = useState('')
@@ -59,6 +60,24 @@ export const ClockInOverviewWidget = () => {
       loadUserAttendance(activeUid)
     }
   }, [activeUid, loadUserAttendance])
+
+  const currentHour = new Date().getHours()
+
+  // Automatic EOD Clock-Out effect: Automatically clock out when time reaches 7:00 PM (19:00+) or 8 hours regular work limit
+  useEffect(() => {
+    if (!clockedIn || isInExtraTime) return
+
+    const checkAutoClockOut = () => {
+      const hour = new Date().getHours()
+      if (hour >= 19 || elapsedSeconds >= 8 * 3600) {
+        autoClockOutAtEndOfDay({ uid: activeUid, displayName, departmentName })
+      }
+    }
+
+    checkAutoClockOut()
+    const interval = setInterval(checkAutoClockOut, 30000)
+    return () => clearInterval(interval)
+  }, [clockedIn, elapsedSeconds, isInExtraTime, autoClockOutAtEndOfDay, activeUid, displayName, departmentName])
 
   // Live real-time ticker for extra work hours
   useEffect(() => {
@@ -75,8 +94,6 @@ export const ClockInOverviewWidget = () => {
     }
     return () => clearInterval(timer)
   }, [isInExtraTime, extraTimeStart, accumulatedExtraSeconds])
-
-  const currentHour = new Date().getHours()
 
   // Extra work hours lock condition: Unlocks ONLY when regular 8-hour workday is completed,
   // or user has clocked out after working today, or after 7:00 PM (hour 19+)
@@ -132,9 +149,11 @@ export const ClockInOverviewWidget = () => {
           validAccSec = 0
         }
 
-        setElapsedSeconds(validAccSec + netSec)
+        const calculatedTotal = validAccSec + netSec
+        // Cap regular shift hours at 8 hours max (28,800 seconds)
+        setElapsedSeconds(Math.min(8 * 3600, calculatedTotal))
       } else {
-        setElapsedSeconds(accumulatedWorkSeconds || 0)
+        setElapsedSeconds(Math.min(8 * 3600, accumulatedWorkSeconds || 0))
       }
     }
     updateTicker()

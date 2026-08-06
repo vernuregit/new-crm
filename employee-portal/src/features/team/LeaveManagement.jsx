@@ -227,9 +227,35 @@ const InteractiveCalendarPicker = ({ startDate, setStartDate, endDate, setEndDat
 
 export const LeaveManagement = () => {
   const { employees, setEmployees, leaveRequests, setLeaveRequests, addLeaveRequest, updateLeaveStatus } = useTeamStore()
-  const { user } = useUserStore()
+  const { user, userDoc } = useUserStore()
 
-  const loggedInEmployeeName = user?.displayName || 'Team Staff'
+  // Match current user in employees list or derive from userDoc / user / email
+  const currentEmp = employees.find(
+    (e) => (user?.uid && (e.uid === user.uid || e.employeeId === user.uid)) || (user?.email && e.email?.toLowerCase() === user.email.toLowerCase())
+  )
+
+  const resolvedEmployeeName =
+    currentEmp?.displayName ||
+    currentEmp?.name ||
+    userDoc?.displayName ||
+    userDoc?.name ||
+    user?.displayName ||
+    (user?.email
+      ? user.email
+          .split('@')[0]
+          .replace(/[._-]/g, ' ')
+          .replace(/\b\w/g, (c) => c.toUpperCase())
+      : 'Employee')
+
+  const resolvedEmployeeEmail = user?.email || userDoc?.email || currentEmp?.email || ''
+  const resolvedEmployeeId = user?.uid || userDoc?.uid || currentEmp?.uid || ''
+
+  const loggedInEmployeeInitials = resolvedEmployeeName
+    .split(' ')
+    .filter(Boolean)
+    .slice(0, 2)
+    .map((n) => n[0].toUpperCase())
+    .join('') || 'E'
 
   const [showAddModal, setShowAddModal] = useState(false)
   const [leaveType, setLeaveType] = useState('Casual Leave')
@@ -266,10 +292,10 @@ export const LeaveManagement = () => {
 
   // Filter this employee's own leave requests using UID, Email, or Name for robust persistence across refreshes
   const myLeaveRequests = leaveRequests.filter((l) => {
-    if (user?.uid && l.employeeId === user.uid) return true
-    if (user?.email && l.employeeEmail === user.email) return true
-    if (user?.displayName && l.employeeName === user.displayName) return true
-    if (l.employeeName === loggedInEmployeeName) return true
+    if (resolvedEmployeeId && (l.employeeId === resolvedEmployeeId || l.employeeId === user?.uid)) return true
+    if (resolvedEmployeeEmail && l.employeeEmail?.toLowerCase() === resolvedEmployeeEmail.toLowerCase()) return true
+    if (l.employeeName && l.employeeName !== 'Team Staff' && l.employeeName === resolvedEmployeeName) return true
+    if (l.employeeName === 'Team Staff' && (!l.employeeEmail || l.employeeEmail === resolvedEmployeeEmail)) return true
     return false
   })
 
@@ -353,9 +379,9 @@ export const LeaveManagement = () => {
     }
 
     const leaveData = {
-      employeeName: user?.displayName || loggedInEmployeeName,
-      employeeId: user?.uid || '',
-      employeeEmail: user?.email || '',
+      employeeName: resolvedEmployeeName,
+      employeeId: resolvedEmployeeId,
+      employeeEmail: resolvedEmployeeEmail,
       leaveType,
       startDate,
       endDate: finalEndDate,

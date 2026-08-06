@@ -91,7 +91,8 @@ export function computeRealAttendanceStats(logs = [], currentLiveState = null) {
   let totalWorkedSeconds = 0
   let workedDaysCount = 0
   records.forEach((r) => {
-    const sec = Number(r.regularSeconds) || Number(r.accumulatedWorkSeconds) || 0
+    let sec = Number(r.regularSeconds) || Number(r.accumulatedWorkSeconds) || 0
+    if (sec > 28800) sec = 28800 // Cap single-day regular hours at 8 hours (28,800 sec max)
     if (sec > 0) {
       totalWorkedSeconds += sec
       workedDaysCount++

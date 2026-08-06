@@ -81,6 +81,22 @@ export const deleteProjectFromDb = async (projectId) => {
 }
 
 /**
+ * Update project members in Firestore
+ */
+export const updateProjectMembersInDb = async (projectId, members) => {
+  try {
+    if (!projectId) return
+    await updateDoc(doc(db, 'projects', projectId), {
+      members,
+      updatedAt: new Date().toISOString(),
+    })
+  } catch (err) {
+    console.error('Error updating project members in Firestore:', err)
+  }
+}
+
+
+/**
  * Fetch all tasks from Firestore
  */
 export const getTasks = async () => {

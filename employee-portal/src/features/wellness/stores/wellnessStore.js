@@ -252,13 +252,21 @@ export const useWellnessStore = create((set, get) => ({
   // Check if within work hours
   isWithinWorkHours: () => {
     const { workHoursStart, workHoursEnd } = get()
+    if (!workHoursStart || !workHoursEnd) return true
+
     const now = new Date()
     const [startH, startM] = workHoursStart.split(':').map(Number)
     const [endH, endM] = workHoursEnd.split(':').map(Number)
     const currentMinutes = now.getHours() * 60 + now.getMinutes()
     const startMinutes = startH * 60 + startM
     const endMinutes = endH * 60 + endM
-    return currentMinutes >= startMinutes && currentMinutes <= endMinutes
+
+    if (startMinutes <= endMinutes) {
+      return currentMinutes >= startMinutes && currentMinutes <= endMinutes
+    } else {
+      // Overnight work hours (e.g. 22:00 to 06:00)
+      return currentMinutes >= startMinutes || currentMinutes <= endMinutes
+    }
   },
 
   // Get next reminder info (for widget countdown)
@@ -273,8 +281,11 @@ export const useWellnessStore = create((set, get) => ({
       const settings = reminderSettings[r.id]
       if (!settings?.enabled) return
 
-      const lastFired = lastFiredAt[r.id] ? new Date(lastFiredAt[r.id]).getTime() : Date.now()
-      const nextFire = lastFired + settings.interval * 60 * 1000
+      const lastFired = lastFiredAt[r.id] ? new Date(lastFiredAt[r.id]).getTime() : null
+      const nextFire = lastFired
+        ? lastFired + settings.interval * 60 * 1000
+        : Date.now() + settings.interval * 60 * 1000
+
       if (nextFire < earliestTime) {
         earliestTime = nextFire
         earliest = { ...r, nextFireAt: nextFire }
@@ -283,4 +294,5 @@ export const useWellnessStore = create((set, get) => ({
 
     return earliest
   },
-}))
+})
+)

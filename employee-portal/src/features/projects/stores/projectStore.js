@@ -12,6 +12,8 @@ import {
   logHoursToTaskInDb,
   deleteTaskFromDb,
   deleteTaskStatusFromDb,
+  updateProjectMembersInDb,
+  deleteProjectFromDb,
   DEFAULT_TASK_STATUSES,
 } from '../services/projectService'
 
@@ -212,6 +214,25 @@ export const useProjectStore = create(
 
         await createProjectInDb(payload)
       },
+
+      updateProjectMembers: async (projectId, members) => {
+        set((state) => ({
+          projects: state.projects.map((p) =>
+            p.projectId === projectId || p.id === projectId ? { ...p, members } : p
+          ),
+        }))
+
+        await updateProjectMembersInDb(projectId, members)
+      },
+
+      deleteProject: async (projectId) => {
+        set((state) => ({
+          projects: state.projects.filter((p) => p.projectId !== projectId && p.id !== projectId),
+        }))
+
+        await deleteProjectFromDb(projectId)
+      },
+
 
       addTask: async (newTask) => {
         const taskId = `task_${Date.now()}`

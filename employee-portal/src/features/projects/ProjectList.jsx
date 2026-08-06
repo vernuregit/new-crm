@@ -1,5 +1,5 @@
 import React, { useState, useEffect } from 'react'
-import { NavLink } from 'react-router-dom'
+import { NavLink, useNavigate } from 'react-router-dom'
 import { collection, getDocs, query, where } from 'firebase/firestore'
 import { db } from '../../shared/services/firebaseService'
 import { PageHeader } from '../../components/layout/PageHeader'
@@ -17,13 +17,16 @@ import {
   Clock,
   DollarSign,
   User,
+  Users,
+  UserPlus,
   Building,
   Kanban,
   FolderKanban,
   X,
   TrendingUp,
-  Layers,
-  Loader2
+  Trash2,
+  Loader2,
+  ShieldCheck,
 } from 'lucide-react'
 
 // Default fallback client list
@@ -36,10 +39,29 @@ const defaultClients = [
 ]
 
 export const ProjectList = () => {
-  const { user, userDoc } = useUserStore()
-  const { projects, addProject, fetchProjectsAndTasks, loading } = useProjectStore()
+  const navigate = useNavigate()
+  const { user, userDoc, claims } = useUserStore()
+  const {
+    projects,
+    addProject,
+    updateProjectMembers,
+    deleteProject,
+    setSelectedProjectId,
+    fetchProjectsAndTasks,
+    loading,
+  } = useProjectStore()
 
-  const displayName = userDoc?.displayName || user?.displayName || 'Team Member'
+  const currentUserId = userDoc?.uid || user?.uid || userDoc?.id
+  const currentUserEmail = userDoc?.email || user?.email
+  const currentDisplayName = userDoc?.displayName || user?.displayName || 'Team Member'
+  const userRole = claims?.role || userDoc?.role || 'employee'
+  const isAdmin =
+    userRole === 'admin' ||
+    userRole === 'owner' ||
+    userRole === 'superadmin' ||
+    claims?.role === 'admin' ||
+    claims?.role === 'owner' ||
+    claims?.role === 'superadmin'
 
   const [searchQuery, setSearchQuery] = useState('')
   const [statusFilter, setStatusFilter] = useState('all')
@@ -55,6 +77,13 @@ export const ProjectList = () => {
   // Client dropdown data
   const [clients, setClients] = useState([])
   const [dropdownLoading, setDropdownLoading] = useState(false)
+
+  // Manage Project Members Modal state
+  const [memberModalProj, setMemberModalProj] = useState(null)
+  const [allEmployees, setAllEmployees] = useState([])
+  const [membersLoading, setMembersLoading] = useState(false)
+  const [selectedMemberIds, setSelectedMemberIds] = useState(new Set())
+  const [deleteConfirmProj, setDeleteConfirmProj] = useState(null)
 
   useEffect(() => {
     fetchProjectsAndTasks()
@@ -100,7 +129,94 @@ export const ProjectList = () => {
     fetchClients()
   }, [showAddModal])
 
-  const filtered = projects.filter((p) => {
+  // Fetch available employees when Member Modal opens
+  useEffect(() => {
+    if (!memberModalProj) return
+    const fetchTeamEmployees = async () => {
+      setMembersLoading(true)
+      try {
+        const empSnap = await getDocs(collection(db, 'employees'))
+
+        const empList = empSnap.docs.map((d) => {
+          const data = d.data()
+          const id = d.id
+          const name = data.name || data.fullName || data.displayName || 'Employee'
+          const email = data.email || ''
+          const role = data.role || 'employee'
+          return { id, uid: id, name, email, role }
+        })
+
+        setAllEmployees(empList)
+
+
+        // Initialize selected members set based on current project members
+        const currentMembers = memberModalProj.members || []
+        const initialSelected = new Set()
+
+        currentMembers.forEach((m) => {
+          const mId = typeof m === 'object' ? (m.uid || m.id) : m
+          if (mId) initialSelected.add(String(mId))
+        })
+
+        // Ensure creator is included
+        if (memberModalProj.createdBy) {
+          initialSelected.add(String(memberModalProj.createdBy))
+        }
+
+        setSelectedMemberIds(initialSelected)
+      } catch (err) {
+        console.error('Error fetching employees for member assignment:', err)
+      } finally {
+        setMembersLoading(false)
+      }
+    }
+    fetchTeamEmployees()
+  }, [memberModalProj])
+
+  // Helper to check if a project is visible to current user
+  const isProjectVisibleToUser = (p) => {
+    if (isAdmin) return true
+
+    // Created by current user (by UID, email, or name)
+    const isCreatorByUid =
+      p.createdBy && currentUserId && String(p.createdBy) === String(currentUserId)
+    const isCreatorByEmail =
+      p.createdByEmail &&
+      currentUserEmail &&
+      String(p.createdByEmail).toLowerCase() === String(currentUserEmail).toLowerCase()
+    const isCreatorByName =
+      p.createdByName &&
+      currentDisplayName &&
+      String(p.createdByName).toLowerCase() === String(currentDisplayName).toLowerCase()
+    const isOwnerByName =
+      p.ownerName &&
+      currentDisplayName &&
+      String(p.ownerName).toLowerCase() === String(currentDisplayName).toLowerCase()
+
+    // Listed as member in project members array
+    const isMember =
+      p.members &&
+      Array.isArray(p.members) &&
+      p.members.some((m) => {
+        const mId = typeof m === 'object' ? (m.uid || m.id) : m
+        const mEmail = typeof m === 'object' ? m.email : m
+        const mName = typeof m === 'object' ? m.name : m
+        return (
+          (currentUserId && String(mId) === String(currentUserId)) ||
+          (currentUserEmail && String(mEmail).toLowerCase() === String(currentUserEmail).toLowerCase()) ||
+          (currentDisplayName && String(mName).toLowerCase() === String(currentDisplayName).toLowerCase())
+        )
+      })
+
+    // If legacy project without createdBy/members, fallback to true for backward compatibility
+    const isLegacyProject = !p.createdBy && (!p.members || p.members.length === 0)
+
+    return Boolean(isCreatorByUid || isCreatorByEmail || isCreatorByName || isOwnerByName || isMember || isLegacyProject)
+  }
+
+  const userVisibleProjects = projects.filter(isProjectVisibleToUser)
+
+  const filtered = userVisibleProjects.filter((p) => {
     const matchesSearch =
       !searchQuery ||
       p.name.toLowerCase().includes(searchQuery.toLowerCase()) ||
@@ -109,15 +225,16 @@ export const ProjectList = () => {
     return matchesSearch && matchesStatus
   })
 
-  // Summary Metrics
-  const activeCount = projects.filter((p) => p.status === 'active').length
+  // Summary Metrics based on user visible projects
+  const activeCount = userVisibleProjects.filter((p) => p.status === 'active').length
   const avgCompletion =
-    projects.length > 0
+    userVisibleProjects.length > 0
       ? Math.round(
-          projects.reduce((sum, p) => sum + p.completionPercent, 0) / projects.length
+          userVisibleProjects.reduce((sum, p) => sum + (p.completionPercent || 0), 0) /
+            userVisibleProjects.length
         )
       : 0
-  const totalLoggedHours = projects.reduce(
+  const totalLoggedHours = userVisibleProjects.reduce(
     (sum, p) => sum + (p.totalHoursLogged || 0),
     0
   )
@@ -126,7 +243,16 @@ export const ProjectList = () => {
     e.preventDefault()
     if (!projName.trim()) return
 
-    const effectiveClientName = clientName || (clients.find(c => c.id === selectedClientId)?.name) || 'Internal Platform'
+    const effectiveClientName =
+      clientName || (clients.find((c) => c.id === selectedClientId)?.name) || 'Internal Platform'
+
+    const creatorMember = {
+      uid: currentUserId || `emp_${Date.now()}`,
+      id: currentUserId || `emp_${Date.now()}`,
+      email: currentUserEmail || '',
+      name: currentDisplayName,
+      role: userRole,
+    }
 
     addProject({
       name: projName,
@@ -134,7 +260,12 @@ export const ProjectList = () => {
       clientName: effectiveClientName,
       budget: Number(budget) || 0,
       description,
-      ownerName: displayName,
+      ownerName: currentDisplayName,
+      createdBy: currentUserId || null,
+      createdByEmail: currentUserEmail || null,
+      createdByName: currentDisplayName,
+      createdByRole: userRole || 'employee',
+      members: [creatorMember],
     })
 
     setProjName('')
@@ -145,13 +276,48 @@ export const ProjectList = () => {
     setShowAddModal(false)
   }
 
+  const handleProjectClick = (proj) => {
+    const pId = proj.projectId || proj.id
+    setSelectedProjectId(pId)
+    navigate(`/projects/tasks?projectId=${pId}`)
+  }
+
+  const handleToggleMemberSelection = (empId) => {
+    const next = new Set(selectedMemberIds)
+    if (next.has(empId)) {
+      next.delete(empId)
+    } else {
+      next.add(empId)
+    }
+    setSelectedMemberIds(next)
+  }
+
+  const handleSaveMembers = async (e) => {
+    e.preventDefault()
+    if (!memberModalProj) return
+
+    const pId = memberModalProj.projectId || memberModalProj.id
+    const updatedMembersList = allEmployees
+      .filter((emp) => selectedMemberIds.has(String(emp.id)) || selectedMemberIds.has(String(emp.uid)))
+      .map((emp) => ({
+        uid: emp.uid || emp.id,
+        id: emp.id || emp.uid,
+        name: emp.name,
+        email: emp.email,
+        role: emp.role,
+      }))
+
+    await updateProjectMembers(pId, updatedMembersList)
+    setMemberModalProj(null)
+  }
+
   return (
     <div className="space-y-6">
       {/* Header & Sub Nav */}
       <div className="space-y-4">
         <PageHeader
           title="Project Management"
-          description="Manage active client deliverables, sprint velocity, task boards, and time tracking"
+          description="Manage active client deliverables, sprint velocity, task boards, and team access"
           actions={
             <Button icon={Plus} variant="primary" onClick={() => setShowAddModal(true)}>
               New Project
@@ -159,7 +325,7 @@ export const ProjectList = () => {
           }
         />
 
-        <div className="flex items-center justify-between border-b border-slate-200 dark:border-slate-800 pb-3">
+        <div className="flex flex-wrap items-center justify-between gap-3 border-b border-slate-200 dark:border-slate-800 pb-3">
           <div className="flex items-center gap-2">
             <NavLink
               to="/projects/list"
@@ -171,7 +337,7 @@ export const ProjectList = () => {
                 }`
               }
             >
-              <FolderKanban className="w-3.5 h-3.5" /> All Projects
+              <FolderKanban className="w-3.5 h-3.5" /> All Projects ({userVisibleProjects.length})
             </NavLink>
             <NavLink
               to="/projects/tasks"
@@ -273,9 +439,9 @@ export const ProjectList = () => {
       ) : filtered.length === 0 ? (
         <Card className="p-8 text-center border-dashed border-slate-300 dark:border-slate-800 space-y-3">
           <FolderKanban className="w-8 h-8 text-slate-400 dark:text-slate-600 mx-auto" />
-          <h4 className="font-bold text-slate-700 dark:text-slate-300 text-sm">No Projects Found</h4>
+          <h4 className="font-bold text-slate-700 dark:text-slate-300 text-sm">No Accessible Projects Found</h4>
           <p className="text-xs text-slate-500 max-w-sm mx-auto">
-            No projects found in the system. Click below to initialize a new project deliverable.
+            You do not have access to any projects matching your filter. Create a new project or ask the creator to add you to their project card.
           </p>
           <Button size="sm" icon={Plus} variant="primary" onClick={() => setShowAddModal(true)}>
             Initialize New Project
@@ -283,56 +449,229 @@ export const ProjectList = () => {
         </Card>
       ) : (
         <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-5">
-          {filtered.map((proj) => (
-            <Card key={proj.projectId} hover className="space-y-4 border-slate-200 dark:border-slate-800">
-              <div className="flex items-start justify-between">
-                <div>
-                  <h3 className="font-bold text-slate-900 dark:text-slate-100 text-sm hover:text-indigo-600 dark:hover:text-indigo-400 transition-colors">
-                    {proj.name}
-                  </h3>
-                  <p className="text-xs text-slate-500 dark:text-slate-400 flex items-center gap-1 mt-0.5">
-                    <Building className="w-3 h-3 text-slate-400 dark:text-slate-500" /> {proj.clientName}
-                  </p>
+          {filtered.map((proj) => {
+            const pId = proj.projectId || proj.id
+            const membersList = proj.members || []
+            const isCreator =
+              proj.createdBy && currentUserId && String(proj.createdBy) === String(currentUserId)
+
+            return (
+              <Card
+                key={pId}
+                hover
+                className="space-y-4 border-slate-200 dark:border-slate-800 cursor-pointer group relative"
+                onClick={() => handleProjectClick(proj)}
+              >
+                <div className="flex items-start justify-between">
+                  <div>
+                    <h3 className="font-bold text-slate-900 dark:text-slate-100 text-sm group-hover:text-indigo-600 dark:group-hover:text-indigo-400 transition-colors flex items-center gap-1.5">
+                      {proj.name}
+                    </h3>
+                    <p className="text-xs text-slate-500 dark:text-slate-400 flex items-center gap-1 mt-0.5">
+                      <Building className="w-3 h-3 text-slate-400 dark:text-slate-500" /> {proj.clientName}
+                    </p>
+                  </div>
+                  <div className="flex items-center gap-2" onClick={(e) => e.stopPropagation()}>
+                    <Badge
+                      variant={
+                        proj.status === 'active'
+                          ? 'success'
+                          : proj.status === 'completed'
+                          ? 'brand'
+                          : 'warning'
+                      }
+                    >
+                      {proj.status}
+                    </Badge>
+                    {(isAdmin || isCreator) && (
+                      <button
+                        onClick={(e) => {
+                          e.stopPropagation()
+                          setDeleteConfirmProj(proj)
+                        }}
+                        title="Delete project"
+                        className="text-slate-400 dark:text-slate-500 hover:text-rose-600 dark:hover:text-rose-400 p-1 rounded hover:bg-slate-100 dark:hover:bg-slate-800 transition-colors"
+                      >
+                        <Trash2 className="w-3.5 h-3.5" />
+                      </button>
+                    )}
+                  </div>
                 </div>
-                <Badge
-                  variant={
-                    proj.status === 'active'
-                      ? 'success'
-                      : proj.status === 'completed'
-                      ? 'brand'
-                      : 'warning'
-                  }
+
+                <p className="text-xs text-slate-600 dark:text-slate-400 line-clamp-2">{proj.description}</p>
+
+                {/* Progress Bar */}
+                <div className="space-y-1.5 pt-1">
+                  <div className="flex justify-between text-xs text-slate-600 dark:text-slate-400">
+                    <span>Completion Velocity</span>
+                    <span className="font-bold text-emerald-600 dark:text-emerald-400">
+                      {proj.completionPercent}%
+                    </span>
+                  </div>
+                  <div className="w-full bg-slate-200 dark:bg-slate-800 h-2 rounded-full overflow-hidden border border-slate-300/40 dark:border-slate-700/50">
+                    <div
+                      className="bg-emerald-500 dark:bg-emerald-400 h-full transition-all duration-500 rounded-full"
+                      style={{ width: `${proj.completionPercent}%` }}
+                    />
+                  </div>
+                </div>
+
+                {/* Assigned Employees / Members on Project Card */}
+                <div
+                  className="pt-2 border-t border-slate-200 dark:border-slate-800/60 flex items-center justify-between"
+                  onClick={(e) => e.stopPropagation()}
                 >
-                  {proj.status}
-                </Badge>
-              </div>
+                  <div className="flex items-center gap-1.5 flex-wrap">
+                    <span className="text-[11px] font-semibold text-slate-500 dark:text-slate-400 flex items-center gap-1">
+                      <Users className="w-3 h-3 text-indigo-500" /> Team:
+                    </span>
+                    {membersList.length === 0 ? (
+                      <span className="text-[11px] text-slate-400 italic">Only Creator</span>
+                    ) : (
+                      membersList.slice(0, 3).map((m, idx) => {
+                        const name = typeof m === 'object' ? m.name || m.email : m
+                        return (
+                          <span
+                            key={idx}
+                            className="inline-flex items-center gap-1 text-[10px] bg-slate-100 dark:bg-slate-800 text-slate-700 dark:text-slate-300 px-2 py-0.5 rounded-md font-medium border border-slate-200 dark:border-slate-700"
+                          >
+                            <User className="w-2.5 h-2.5 text-indigo-500" />
+                            {name}
+                          </span>
+                        )
+                      })
+                    )}
+                    {membersList.length > 3 && (
+                      <span className="text-[10px] text-slate-400 font-semibold">
+                        +{membersList.length - 3} more
+                      </span>
+                    )}
+                  </div>
 
-              <p className="text-xs text-slate-600 dark:text-slate-400 line-clamp-2">{proj.description}</p>
-
-              {/* Progress Bar - Emerald Green Progress Fill */}
-              <div className="space-y-1.5 pt-1">
-                <div className="flex justify-between text-xs text-slate-600 dark:text-slate-400">
-                  <span>Completion Velocity</span>
-                  <span className="font-bold text-emerald-600 dark:text-emerald-400">{proj.completionPercent}%</span>
+                  {/* Add Employee Button on Project Card */}
+                  <button
+                    type="button"
+                    onClick={(e) => {
+                      e.stopPropagation()
+                      setMemberModalProj(proj)
+                    }}
+                    title="Add or manage employees in this project"
+                    className="flex items-center gap-1 px-2 py-1 bg-indigo-50 dark:bg-indigo-950/60 hover:bg-indigo-100 dark:hover:bg-indigo-900/60 text-indigo-600 dark:text-indigo-400 border border-indigo-200 dark:border-indigo-800/60 text-[10px] font-bold rounded-lg transition-colors"
+                  >
+                    <UserPlus className="w-3 h-3" /> Add Employee
+                  </button>
                 </div>
-                <div className="w-full bg-slate-200 dark:bg-slate-800 h-2 rounded-full overflow-hidden border border-slate-300/40 dark:border-slate-700/50">
-                  <div
-                    className="bg-emerald-500 dark:bg-emerald-400 h-full transition-all duration-500 rounded-full"
-                    style={{ width: `${proj.completionPercent}%` }}
-                  />
-                </div>
-              </div>
 
-              <div className="flex items-center justify-between text-xs text-slate-500 dark:text-slate-400 pt-3 border-t border-slate-200 dark:border-slate-800/60">
-                <span className="flex items-center gap-1 text-slate-700 dark:text-slate-300 font-semibold">
-                  <CheckCircle2 className="w-3.5 h-3.5 text-emerald-600 dark:text-emerald-400" /> {proj.completedTaskCount} / {proj.totalTaskCount} tasks
-                </span>
-                <span className="flex items-center gap-1 text-emerald-600 dark:text-emerald-400 font-semibold">
-                  <DollarSign className="w-3.5 h-3.5" /> ${proj.budget?.toLocaleString()}
-                </span>
+                <div className="flex items-center justify-between text-xs text-slate-500 dark:text-slate-400 pt-2 border-t border-slate-200 dark:border-slate-800/60">
+                  <span className="flex items-center gap-1 text-slate-700 dark:text-slate-300 font-semibold">
+                    <CheckCircle2 className="w-3.5 h-3.5 text-emerald-600 dark:text-emerald-400" />{' '}
+                    {proj.completedTaskCount} / {proj.totalTaskCount} tasks
+                  </span>
+                  <span className="flex items-center gap-1 text-emerald-600 dark:text-emerald-400 font-semibold">
+                    <DollarSign className="w-3.5 h-3.5" /> ${proj.budget?.toLocaleString()}
+                  </span>
+                </div>
+              </Card>
+            )
+          })}
+        </div>
+      )}
+
+      {/* Member Management Modal ("Add Employee in Project Card") */}
+      {memberModalProj && (
+        <div className="fixed inset-0 z-50 bg-black/70 backdrop-blur-sm flex items-center justify-center p-4">
+          <Card className="w-full max-w-lg p-6 space-y-4 border-slate-200 dark:border-slate-800 shadow-2xl relative bg-white dark:bg-[#181C27] max-h-[85vh] flex flex-col">
+            <div className="flex items-center justify-between pb-3 border-b border-slate-200 dark:border-slate-800">
+              <div>
+                <h3 className="font-bold text-slate-900 dark:text-slate-100 text-sm flex items-center gap-2">
+                  <UserPlus className="w-4 h-4 text-indigo-500" /> Add Employees to Project Card
+                </h3>
+                <p className="text-xs text-slate-500 dark:text-slate-400 mt-0.5">
+                  Project: <strong className="text-indigo-600 dark:text-indigo-400">{memberModalProj.name}</strong>
+                </p>
               </div>
-            </Card>
-          ))}
+              <button
+                onClick={() => setMemberModalProj(null)}
+                className="text-slate-400 hover:text-slate-600 dark:hover:text-white p-1 rounded-lg hover:bg-slate-100 dark:hover:bg-slate-800 transition-colors"
+              >
+                <X className="w-4 h-4" />
+              </button>
+            </div>
+
+            <p className="text-xs text-slate-600 dark:text-slate-300">
+              Select team members to give them access and visibility to this project card and its tasks:
+            </p>
+
+            <form onSubmit={handleSaveMembers} className="space-y-4 flex-1 overflow-y-auto pr-1">
+              {membersLoading ? (
+                <div className="flex items-center justify-center py-8 text-xs text-slate-400">
+                  <Loader2 className="w-4 h-4 animate-spin mr-2" /> Loading team directory...
+                </div>
+              ) : allEmployees.length === 0 ? (
+                <div className="text-center py-6 text-xs text-slate-400">
+                  No additional employees registered in team directory.
+                </div>
+              ) : (
+                <div className="space-y-2 max-h-60 overflow-y-auto">
+                  {allEmployees.map((emp) => {
+                    const empIdStr = String(emp.id || emp.uid)
+                    const isChecked = selectedMemberIds.has(empIdStr)
+                    const isCreator =
+                      memberModalProj.createdBy && String(memberModalProj.createdBy) === empIdStr
+
+                    return (
+                      <div
+                        key={empIdStr}
+                        onClick={() => !isCreator && handleToggleMemberSelection(empIdStr)}
+                        className={`flex items-center justify-between p-3 rounded-xl border cursor-pointer transition-all ${
+                          isChecked
+                            ? 'bg-indigo-50/70 dark:bg-indigo-950/40 border-indigo-300 dark:border-indigo-700/60'
+                            : 'bg-slate-50 dark:bg-slate-900/40 border-slate-200 dark:border-slate-800 hover:border-slate-300'
+                        }`}
+                      >
+                        <div className="flex items-center gap-3">
+                          <input
+                            type="checkbox"
+                            checked={isChecked}
+                            disabled={isCreator}
+                            onChange={() => handleToggleMemberSelection(empIdStr)}
+                            className="rounded border-slate-300 text-indigo-600 focus:ring-indigo-500 cursor-pointer"
+                          />
+                          <div>
+                            <span className="text-xs font-semibold text-slate-900 dark:text-slate-100 block">
+                              {emp.name} {isCreator && '(Project Creator)'}
+                            </span>
+                            <span className="text-[10px] text-slate-500 dark:text-slate-400">
+                              {emp.email || emp.role || 'Employee'}
+                            </span>
+                          </div>
+                        </div>
+                        {isCreator && (
+                          <Badge variant="brand" className="text-[10px]">
+                            Creator
+                          </Badge>
+                        )}
+                      </div>
+                    )
+                  })}
+                </div>
+              )}
+
+              <div className="flex gap-3 pt-3 border-t border-slate-200 dark:border-slate-800">
+                <Button
+                  type="button"
+                  variant="secondary"
+                  onClick={() => setMemberModalProj(null)}
+                  className="w-1/3"
+                >
+                  Cancel
+                </Button>
+                <Button type="submit" variant="primary" className="w-2/3" icon={ShieldCheck}>
+                  Save Project Members
+                </Button>
+              </div>
+            </form>
+          </Card>
         </div>
       )}
 
@@ -415,6 +754,47 @@ export const ProjectList = () => {
                 </Button>
               </div>
             </form>
+          </Card>
+        </div>
+      )}
+
+      {/* Confirm Delete Project Modal */}
+      {deleteConfirmProj && (
+        <div className="fixed inset-0 z-50 bg-black/70 backdrop-blur-sm flex items-center justify-center p-4">
+          <Card className="w-full max-w-md p-6 space-y-4 border-slate-200 dark:border-slate-800 shadow-2xl relative bg-white dark:bg-[#181C27]">
+            <div className="flex items-center justify-between pb-3 border-b border-slate-200 dark:border-slate-800">
+              <h3 className="font-bold text-slate-900 dark:text-slate-100 text-sm flex items-center gap-2">
+                <Trash2 className="w-4 h-4 text-rose-500" /> Confirm Delete Project
+              </h3>
+              <button
+                onClick={() => setDeleteConfirmProj(null)}
+                className="text-slate-400 hover:text-slate-600 dark:hover:text-white p-1 rounded-lg hover:bg-slate-100 dark:hover:bg-slate-800 transition-colors"
+              >
+                <X className="w-4 h-4" />
+              </button>
+            </div>
+
+            <p className="text-xs text-slate-600 dark:text-slate-300 leading-relaxed">
+              Are you sure you want to delete project <strong className="text-slate-900 dark:text-white">{deleteConfirmProj.name}</strong>? This action cannot be undone.
+            </p>
+
+            <div className="flex items-center justify-end gap-3 pt-3 border-t border-slate-200 dark:border-slate-800">
+              <Button variant="secondary" onClick={() => setDeleteConfirmProj(null)}>
+                Cancel
+              </Button>
+              <Button
+                variant="danger"
+                onClick={async () => {
+                  const targetId = deleteConfirmProj.projectId || deleteConfirmProj.id
+                  if (targetId) {
+                    await deleteProject(targetId)
+                  }
+                  setDeleteConfirmProj(null)
+                }}
+              >
+                Yes, Delete Project
+              </Button>
+            </div>
           </Card>
         </div>
       )}

@@ -10,7 +10,7 @@ import { useNotificationStore } from '../../notifications/stores/notificationSto
  * Mount this in AppShell so it runs app-wide while the user is authenticated.
  */
 export const useWellnessNotifications = () => {
-  const intervalsRef = useRef({})
+  const timerRef = useRef(null)
 
   // Request browser notification permission on mount
   useEffect(() => {
@@ -28,24 +28,9 @@ export const useWellnessNotifications = () => {
     }
   }, [])
 
-  // Core timer engine — subscribe directly to Zustand store (no stale closures)
+  // Core ticker engine — checks real timestamps against intervals every 5 seconds
   useEffect(() => {
-    const clearAllTimers = () => {
-      Object.values(intervalsRef.current).forEach(clearInterval)
-      intervalsRef.current = {}
-    }
-
     const sendNotification = (reminder) => {
-      const state = useWellnessStore.getState()
-
-      // Guard: work hours, snooze, global toggle
-      if (!state.globalEnabled) return
-      if (!state.isWithinWorkHours()) return
-      if (state.isSnoozed()) return
-
-      // Record fired time
-      state.setLastFired(reminder.id)
-
       // Native browser notification
       if ('Notification' in window && Notification.permission === 'granted') {
         try {
@@ -71,45 +56,53 @@ export const useWellnessNotifications = () => {
       })
     }
 
-    const setupTimers = () => {
-      clearAllTimers()
-
+    const checkReminders = () => {
       const state = useWellnessStore.getState()
+
+      // Guard: work hours, snooze, global toggle
       if (!state.globalEnabled) return
+      if (!state.isWithinWorkHours()) return
+      if (state.isSnoozed()) return
+
+      const now = Date.now()
 
       WELLNESS_REMINDERS.forEach((reminder) => {
         const settings = state.reminderSettings[reminder.id]
         if (!settings?.enabled) return
 
-        const intervalMs = Math.max(settings.interval * 60 * 1000, 1000) // minimum 1 second
+        const intervalMs = Math.max((settings.interval || reminder.defaultInterval) * 60 * 1000, 1000)
+        const lastFiredIso = state.lastFiredAt[reminder.id]
 
-        intervalsRef.current[reminder.id] = setInterval(() => {
+        if (!lastFiredIso) {
+          // First time initialized: set initial timestamp to now so it fires after 1 interval
+          state.setLastFired(reminder.id)
+          return
+        }
+
+        const lastFiredTime = new Date(lastFiredIso).getTime()
+
+        // Check if interval has elapsed since last fired time
+        if (now - lastFiredTime >= intervalMs) {
+          // Record new fired timestamp BEFORE sending to prevent double firing
+          state.setLastFired(reminder.id)
           sendNotification(reminder)
-        }, intervalMs)
+        }
       })
     }
 
-    // Initial setup
-    setupTimers()
+    // Run check immediately on mount
+    checkReminders()
 
-    // Re-setup timers when relevant settings change
-    const unsubscribe = useWellnessStore.subscribe((state, prevState) => {
-      // Only react to settings/toggle/snooze changes, NOT lastFiredAt changes
-      const settingsChanged =
-        state.globalEnabled !== prevState.globalEnabled ||
-        state.reminderSettings !== prevState.reminderSettings ||
-        state.snoozedUntil !== prevState.snoozedUntil
-
-      if (settingsChanged) {
-        setupTimers()
-      }
-    })
+    // Ticker loop every 5 seconds
+    timerRef.current = setInterval(checkReminders, 5000)
 
     return () => {
-      clearAllTimers()
-      unsubscribe()
+      if (timerRef.current) {
+        clearInterval(timerRef.current)
+      }
     }
   }, []) // no deps — everything reads from store directly, no stale closures
 
   return { requestPermission: () => Notification.requestPermission() }
 }
+

@@ -12,6 +12,8 @@ import {
   where,
   onSnapshot,
   getDocs,
+  doc,
+  setDoc,
 } from 'firebase/firestore'
 import {
   Users,
@@ -27,6 +29,9 @@ import {
   Wifi,
   WifiOff,
   TrendingUp,
+  Edit,
+  Save,
+  X,
 } from 'lucide-react'
 
 // Today's date in YYYY-MM-DD
@@ -57,6 +62,51 @@ export const AttendancePage = () => {
   const [lastRefresh, setLastRefresh] = useState(null)
   const [isLive, setIsLive] = useState(false)
   const [allLogs, setAllLogs] = useState([])
+
+  // Admin edit attendance log state
+  const [editingRow, setEditingRow] = useState(null)
+  const [editClockIn, setEditClockIn] = useState('')
+  const [editClockOut, setEditClockOut] = useState('')
+  const [savingEdit, setSavingEdit] = useState(false)
+
+  const handleSaveEdit = async (e) => {
+    e.preventDefault()
+    if (!editingRow) return
+    setSavingEdit(true)
+    try {
+      const docId = `${selectedDate}_${editingRow.uid}`
+      const inMins = timeStrToMinutes(editClockIn)
+      const outMins = editClockOut && editClockOut !== 'In office' ? timeStrToMinutes(editClockOut) : null
+
+      let regSec = editingRow.regularSeconds || 0
+      if (inMins !== null && outMins !== null && outMins > inMins) {
+        regSec = Math.min(28800, (outMins - inMins) * 60)
+      } else if (inMins !== null && (editClockOut === 'In office' || !editClockOut)) {
+        regSec = Math.min(28800, regSec || 28800)
+      }
+
+      const isClockedIn = editClockOut === 'In office' || !editClockOut
+      const updatedData = {
+        uid: editingRow.uid,
+        displayName: editingRow.displayName,
+        departmentName: editingRow.departmentName,
+        date: selectedDate,
+        clockInTime: editClockIn || '—',
+        clockOutTime: isClockedIn ? null : editClockOut,
+        clockedIn: isClockedIn,
+        regularSeconds: regSec,
+        regularHours: secToHrsStr(regSec),
+        autoClockOut: false,
+      }
+
+      await setDoc(doc(db, 'attendanceLogs', docId), updatedData, { merge: true })
+      setEditingRow(null)
+    } catch (err) {
+      console.error('Error saving edited attendance log:', err)
+    } finally {
+      setSavingEdit(false)
+    }
+  }
 
   useEffect(() => {
     const fetchAllLogs = async () => {
@@ -140,33 +190,68 @@ export const AttendancePage = () => {
 
   // Merge: start from employees list and overlay Firestore attendance data
   const rows = React.useMemo(() => {
+    const today = todayStr()
+    const isPastDate = selectedDate < today
+
     if (attendanceLogs.length > 0) {
       // We have real Firestore data — use it directly
       return attendanceLogs.map((log) => {
         const emp = employeeMap[log.uid] || {}
 
-        let calculatedRegularSec = log.regularSeconds || 0
+        let calculatedRegularSec = log.regularSeconds || log.accumulatedWorkSeconds || 0
+        let isCurrentlyClockedIn = Boolean(log.clockedIn)
+        let resolvedClockOut = log.clockOutTime || null
+        let isAutoClockOut = Boolean(log.autoClockOut)
 
-        if (log.clockedIn) {
-          let elapsedSec = 0
-          if (log.clockInTimestamp) {
-            elapsedSec = Math.max(0, Math.floor((Date.now() - log.clockInTimestamp) / 1000))
-          } else if (log.clockInTime) {
-            const mins = timeStrToMinutes(log.clockInTime)
-            if (mins !== null) {
-              const nowMins = new Date().getHours() * 60 + new Date().getMinutes()
-              if (nowMins >= mins) {
-                elapsedSec = (nowMins - mins) * 60
+        if (isPastDate) {
+          // FOR PAST DATES: If employee didn't clock out, auto clock-out at 07:00 PM & cap regular hours to 8 hours max
+          if (isCurrentlyClockedIn && !resolvedClockOut) {
+            isCurrentlyClockedIn = false
+            resolvedClockOut = '07:00 PM'
+            isAutoClockOut = true
+          }
+          if (calculatedRegularSec <= 0 && log.clockInTime && log.clockInTime !== '—') {
+            const inMins = timeStrToMinutes(log.clockInTime)
+            const outMins = timeStrToMinutes(resolvedClockOut) || 19 * 60 // 7:00 PM
+            if (inMins !== null && outMins > inMins) {
+              const breakSec = log.accumulatedBreakSeconds || 0
+              calculatedRegularSec = Math.min(28800, Math.max(0, (outMins - inMins) * 60 - breakSec))
+            } else {
+              calculatedRegularSec = 28800 // 8 hours default
+            }
+          } else {
+            calculatedRegularSec = Math.min(28800, calculatedRegularSec)
+          }
+        } else {
+          // FOR TODAY'S DATE: Calculate live shift time up to standard 8 hours (28,800 sec max)
+          if (isCurrentlyClockedIn) {
+            let elapsedSec = 0
+            if (log.clockInTimestamp) {
+              elapsedSec = Math.max(0, Math.floor((Date.now() - log.clockInTimestamp) / 1000))
+            } else if (log.clockInTime) {
+              const mins = timeStrToMinutes(log.clockInTime)
+              if (mins !== null) {
+                const nowMins = new Date().getHours() * 60 + new Date().getMinutes()
+                if (nowMins >= mins) {
+                  elapsedSec = (nowMins - mins) * 60
+                }
               }
             }
-          }
-          const breakSec = log.accumulatedBreakSeconds || 0
-          const liveShiftSec = Math.max(0, elapsedSec - breakSec)
+            const breakSec = log.accumulatedBreakSeconds || 0
+            const liveShiftSec = Math.max(0, elapsedSec - breakSec)
 
-          if (calculatedRegularSec > liveShiftSec + 3600 && !log.clockOutTime) {
-            calculatedRegularSec = liveShiftSec
-          } else if (liveShiftSec > calculatedRegularSec) {
-            calculatedRegularSec = liveShiftSec
+            // Cap regular hours at standard 8 hours (28,800 sec)
+            calculatedRegularSec = Math.min(28800, Math.max(calculatedRegularSec, liveShiftSec))
+
+            // Auto clock-out if current time is past 7:00 PM (hour >= 19) or elapsed shift reached 8 hours
+            const currentHour = new Date().getHours()
+            if ((currentHour >= 19 || liveShiftSec >= 28800) && !resolvedClockOut) {
+              resolvedClockOut = '07:00 PM'
+              isAutoClockOut = true
+              isCurrentlyClockedIn = false
+            }
+          } else {
+            calculatedRegularSec = Math.min(28800, calculatedRegularSec)
           }
         }
 
@@ -175,15 +260,15 @@ export const AttendancePage = () => {
           displayName: log.displayName || emp.displayName || '—',
           departmentName: log.departmentName || emp.departmentName || '—',
           clockInTime: log.clockInTime || '—',
-          clockOutTime: log.clockOutTime || null,
-          clockedIn: log.clockedIn || false,
+          clockOutTime: resolvedClockOut,
+          clockedIn: isCurrentlyClockedIn,
           isOnBreak: log.isOnBreak || false,
           isInExtraTime: log.isInExtraTime || false,
           regularHours: secToHrsStr(calculatedRegularSec),
           extraHours: log.extraHours || secToHrsStr(log.extraSeconds),
           regularSeconds: calculatedRegularSec,
           extraSeconds: log.extraSeconds || 0,
-          autoClockOut: log.autoClockOut || false,
+          autoClockOut: isAutoClockOut,
           shiftLogs: log.shiftLogs || [],
         }
       })
@@ -410,6 +495,7 @@ export const AttendancePage = () => {
                 <th className="p-4 font-semibold">Regular Hours</th>
                 <th className="p-4 font-semibold">Extra / OT Hours</th>
                 <th className="p-4 font-semibold">Status</th>
+                <th className="p-4 font-semibold text-right">Actions</th>
               </tr>
             </thead>
             <tbody className="divide-y divide-slate-800/60">
@@ -476,6 +562,21 @@ export const AttendancePage = () => {
 
                   {/* Status */}
                   <td className="p-4">{getStatusBadge(row)}</td>
+
+                  {/* Admin Edit Action */}
+                  <td className="p-4 text-right">
+                    <button
+                      onClick={() => {
+                        setEditingRow(row)
+                        setEditClockIn(row.clockInTime === '—' ? '09:00 AM' : row.clockInTime)
+                        setEditClockOut(row.clockOutTime || 'In office')
+                      }}
+                      className="p-1.5 bg-slate-100 hover:bg-slate-200 dark:bg-slate-800 dark:hover:bg-slate-700 text-indigo-600 dark:text-indigo-400 rounded-lg border border-slate-300 dark:border-slate-700 transition-colors inline-flex items-center gap-1 text-[11px] font-medium"
+                      title="Edit Employee Time"
+                    >
+                      <Edit className="w-3.5 h-3.5" /> Edit Time
+                    </button>
+                  </td>
                 </tr>
               ))}
             </tbody>
@@ -579,6 +680,79 @@ export const AttendancePage = () => {
           </table>
         </Card>
       </div>
+
+      {/* Edit Attendance Modal */}
+      {editingRow && (
+        <div className="fixed inset-0 z-50 bg-black/70 backdrop-blur-sm flex items-center justify-center p-4">
+          <Card className="w-full max-w-md p-6 space-y-4 border-slate-200 dark:border-slate-800 shadow-2xl relative rounded-2xl bg-white dark:bg-[#181C27] text-slate-900 dark:text-slate-100">
+            <div className="flex items-center justify-between pb-3 border-b border-slate-200 dark:border-slate-800">
+              <div>
+                <h3 className="font-bold text-sm">Edit Attendance Record</h3>
+                <p className="text-xs text-slate-500 dark:text-slate-400">
+                  {editingRow.displayName} ({formatDate(selectedDate)})
+                </p>
+              </div>
+              <button
+                onClick={() => setEditingRow(null)}
+                className="text-slate-400 hover:text-slate-600 dark:hover:text-white p-1 rounded-lg hover:bg-slate-100 dark:hover:bg-slate-800"
+              >
+                <X className="w-4 h-4" />
+              </button>
+            </div>
+
+            <form onSubmit={handleSaveEdit} className="space-y-4">
+              <div className="space-y-1.5 text-left">
+                <label className="block text-xs font-medium text-slate-700 dark:text-slate-300">
+                  Clock In Time (e.g. 09:30 AM, 10:00 AM)
+                </label>
+                <input
+                  type="text"
+                  value={editClockIn}
+                  onChange={(e) => setEditClockIn(e.target.value)}
+                  placeholder="09:00 AM"
+                  className="w-full bg-slate-100 dark:bg-slate-900 border border-slate-300 dark:border-slate-800 text-slate-900 dark:text-slate-100 text-sm rounded-xl py-2 px-3 focus:outline-none focus:border-indigo-500"
+                  required
+                />
+              </div>
+
+              <div className="space-y-1.5 text-left">
+                <label className="block text-xs font-medium text-slate-700 dark:text-slate-300">
+                  Clock Out Time (e.g. 06:30 PM, or 'In office')
+                </label>
+                <input
+                  type="text"
+                  value={editClockOut}
+                  onChange={(e) => setEditClockOut(e.target.value)}
+                  placeholder="06:00 PM or In office"
+                  className="w-full bg-slate-100 dark:bg-slate-900 border border-slate-300 dark:border-slate-800 text-slate-900 dark:text-slate-100 text-sm rounded-xl py-2 px-3 focus:outline-none focus:border-indigo-500"
+                />
+              </div>
+
+              <div className="flex gap-3 pt-2">
+                <button
+                  type="button"
+                  onClick={() => setEditingRow(null)}
+                  className="w-1/3 py-2 px-3 bg-slate-100 dark:bg-slate-800 hover:bg-slate-200 dark:hover:bg-slate-700 text-slate-700 dark:text-slate-300 font-semibold rounded-xl text-xs"
+                >
+                  Cancel
+                </button>
+                <button
+                  type="submit"
+                  disabled={savingEdit}
+                  className="w-2/3 py-2 px-3 bg-indigo-600 hover:bg-indigo-500 text-white font-semibold rounded-xl text-xs flex items-center justify-center gap-1.5 text-white"
+                >
+                  {savingEdit ? (
+                    <RefreshCw className="w-3.5 h-3.5 animate-spin" />
+                  ) : (
+                    <Save className="w-3.5 h-3.5" />
+                  )}
+                  Save Changes
+                </button>
+              </div>
+            </form>
+          </Card>
+        </div>
+      )}
     </div>
   )
 }

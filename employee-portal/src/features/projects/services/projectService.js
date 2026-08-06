@@ -145,6 +145,30 @@ export const createProjectInDb = async (projData) => {
   }
 }
 
+// ─── Update Project Members ───────────────────────────────────────────────────
+export const updateProjectMembersInDb = async (projectId, members) => {
+  try {
+    if (!projectId) return
+    await updateDoc(doc(db, 'projects', projectId), {
+      members,
+      updatedAt: serverTimestamp(),
+    })
+  } catch (err) {
+    console.error('Error updating project members in Firestore:', err)
+  }
+}
+
+// ─── Delete Project ───────────────────────────────────────────────────────────
+export const deleteProjectFromDb = async (projectId) => {
+  try {
+    if (!projectId) return
+    await deleteDoc(doc(db, 'projects', projectId))
+  } catch (err) {
+    console.error('Error deleting project from Firestore:', err)
+  }
+}
+
+
 // ─── Create Task ───────────────────────────────────────────────────────────────
 export const createTaskInDb = async (taskData) => {
   try {

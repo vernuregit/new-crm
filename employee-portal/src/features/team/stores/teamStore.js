@@ -287,10 +287,14 @@ export const useTeamStore = create(
         const endTs = endTime.getTime()
         const timeStr = endTime.toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })
 
-        const sessionMs = endTs - state.clockInTimestamp
-        const sessionSeconds = Math.max(0, Math.floor(sessionMs / 1000))
+        let sessionSeconds = 0
+        if (state.clockInTimestamp) {
+          const sessionMs = endTs - state.clockInTimestamp
+          sessionSeconds = Math.max(0, Math.floor(sessionMs / 1000))
+        }
+
         const netSeconds = Math.max(0, sessionSeconds - state.accumulatedBreakSeconds)
-        const totalRegularSeconds = state.accumulatedWorkSeconds + netSeconds
+        const totalRegularSeconds = Math.min(8 * 3600, state.accumulatedWorkSeconds + netSeconds)
 
         const record = {
           id: `ot_${Date.now()}`,
