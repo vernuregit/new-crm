@@ -1,5 +1,5 @@
 import React from 'react'
-import { createBrowserRouter, Navigate } from 'react-router-dom'
+import { createBrowserRouter, Navigate, Outlet } from 'react-router-dom'
 import { AppShell } from './components/layout/AppShell'
 import { AdminLoginPage } from './features/auth/AdminLoginPage'
 import { FounderDashboard } from './features/dashboard/FounderDashboard'
@@ -17,6 +17,7 @@ import { EmployeeList } from './features/team/EmployeeList'
 import { AttendancePage } from './features/team/AttendancePage'
 import { LeaveManagement } from './features/team/LeaveManagement'
 import { HolidayManager } from './features/team/HolidayManager'
+import { EmployeeTimelinePage } from './features/team/EmployeeTimelinePage'
 import { CampaignList } from './features/marketing/CampaignList'
 import { ContentCalendar } from './features/marketing/ContentCalendar'
 import { UtmBuilder } from './features/marketing/UtmBuilder'
@@ -65,12 +66,19 @@ export const router = createBrowserRouter([
       { path: 'finance/expenses', element: <ExpenseList /> },
       { path: 'finance/recurring', element: <RecurringBilling /> },
 
-      // Team Module
-      { path: 'team', element: <Navigate to="/team/employees" replace /> },
-      { path: 'team/employees', element: <EmployeeList /> },
-      { path: 'team/attendance', element: <AttendancePage /> },
-      { path: 'team/leave', element: <LeaveManagement /> },
-      { path: 'team/holidays', element: <HolidayManager /> },
+      // Team Module (nested under Outlet so /team/timeline never hits the catch-all)
+      {
+        path: 'team',
+        element: <Outlet />,
+        children: [
+          { index: true, element: <Navigate to="/team/employees" replace /> },
+          { path: 'employees', element: <EmployeeList /> },
+          { path: 'attendance', element: <AttendancePage /> },
+          { path: 'leave', element: <LeaveManagement /> },
+          { path: 'holidays', element: <HolidayManager /> },
+          { path: 'timeline', element: <EmployeeTimelinePage /> },
+        ],
+      },
 
       // Marketing Module
       { path: 'marketing', element: <Navigate to="/marketing/campaigns" replace /> },

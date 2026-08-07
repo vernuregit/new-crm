@@ -10,7 +10,7 @@ import { useUserStore } from '../../stores/userStore'
 import { getEmployees, getLeaveRequests, createLeaveRequest, updateLeaveStatusInDb } from './services/teamService'
 import { collection, onSnapshot } from 'firebase/firestore'
 import { db } from '../../shared/services/firebaseService'
-import { Users, CheckCircle2, Calendar, Plus, Check, X, AlertTriangle, PartyPopper } from 'lucide-react'
+import { Users, CheckCircle2, Calendar, Plus, Check, X, AlertTriangle, PartyPopper, CalendarDays } from 'lucide-react'
 
 export const LeaveManagement = () => {
   const { employees, setEmployees, leaveRequests, setLeaveRequests, addLeaveRequest, updateLeaveStatus } = useTeamStore()
@@ -197,6 +197,18 @@ export const LeaveManagement = () => {
             }
           >
             <PartyPopper className="w-3.5 h-3.5" /> Public Holidays
+          </NavLink>
+          <NavLink
+            to="/team/timeline"
+            className={({ isActive }) =>
+              `flex items-center gap-2 px-3 py-1.5 rounded-xl text-xs font-semibold transition-colors ${
+                isActive
+                  ? 'bg-indigo-50 dark:bg-indigo-600/20 text-indigo-600 dark:text-indigo-400 border border-indigo-200 dark:border-indigo-500/30'
+                  : 'text-slate-600 dark:text-slate-400 hover:text-slate-900 dark:hover:text-slate-200 hover:bg-slate-100 dark:hover:bg-slate-800'
+              }`
+            }
+          >
+            <CalendarDays className="w-3.5 h-3.5" /> Work Timeline
           </NavLink>
         </div>
       </div>

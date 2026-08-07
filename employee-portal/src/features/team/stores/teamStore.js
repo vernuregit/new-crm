@@ -281,6 +281,8 @@ export const useTeamStore = create(
         if (!state.clockedIn) return
 
         const now = new Date()
+        if (now.getHours() < 19) return
+
         const endTime = new Date(now)
         endTime.setHours(OFFICE_END_HOUR, OFFICE_END_MINUTE, 0, 0)
 

@@ -31,7 +31,8 @@ import {
   Plus,
   FileText,
   Percent,
-  Sparkles
+  Sparkles,
+  CalendarDays,
 } from 'lucide-react'
 
 export const EmployeeList = () => {
@@ -378,6 +379,17 @@ export const EmployeeList = () => {
               }
             >
               <Calendar className="w-3.5 h-3.5" /> Leave Management
+            </NavLink>
+            <NavLink
+              to="/team/timeline"
+              className={({ isActive }) =>
+                `flex items-center gap-2 px-3 py-1.5 rounded-xl text-xs font-semibold transition-colors ${isActive
+                  ? 'bg-indigo-50 dark:bg-indigo-600/20 text-indigo-600 dark:text-indigo-400 border border-indigo-200 dark:border-indigo-500/30'
+                  : 'text-slate-600 dark:text-slate-400 hover:text-slate-900 dark:hover:text-slate-200 hover:bg-slate-100 dark:hover:bg-slate-800'
+                }`
+              }
+            >
+              <CalendarDays className="w-3.5 h-3.5" /> Work Timeline
             </NavLink>
           </div>
 

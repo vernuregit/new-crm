@@ -43,6 +43,12 @@ service cloud.firestore {
       allow read: if isAuthenticated();
       allow write: if isAuthenticated();
     }
+
+    // Work timeline: free-text + hours diary entries
+    match /workTimelineEntries/{entryId} {
+      allow read: if isAuthenticated();
+      allow write: if isAuthenticated();
+    }
   }
 }
 

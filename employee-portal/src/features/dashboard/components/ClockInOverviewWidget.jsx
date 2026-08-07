@@ -63,13 +63,13 @@ export const ClockInOverviewWidget = () => {
 
   const currentHour = new Date().getHours()
 
-  // Automatic EOD Clock-Out effect: Automatically clock out when time reaches 7:00 PM (19:00+) or 8 hours regular work limit
+  // Automatic EOD Clock-Out effect: Automatically clock out when time reaches 7:00 PM (19:00+)
   useEffect(() => {
     if (!clockedIn || isInExtraTime) return
 
     const checkAutoClockOut = () => {
       const hour = new Date().getHours()
-      if (hour >= 19 || elapsedSeconds >= 8 * 3600) {
+      if (hour >= 19) {
         autoClockOutAtEndOfDay({ uid: activeUid, displayName, departmentName })
       }
     }
@@ -77,7 +77,7 @@ export const ClockInOverviewWidget = () => {
     checkAutoClockOut()
     const interval = setInterval(checkAutoClockOut, 30000)
     return () => clearInterval(interval)
-  }, [clockedIn, elapsedSeconds, isInExtraTime, autoClockOutAtEndOfDay, activeUid, displayName, departmentName])
+  }, [clockedIn, isInExtraTime, autoClockOutAtEndOfDay, activeUid, displayName, departmentName])
 
   // Live real-time ticker for extra work hours
   useEffect(() => {

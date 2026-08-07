@@ -12,6 +12,7 @@ import { LeaveManagement } from './features/team/LeaveManagement'
 import { KnowledgeBase } from './features/knowledge/KnowledgeBase'
 import { EmployeeProfile } from './features/profile/EmployeeProfile'
 import { WellnessSettings } from './features/wellness/WellnessSettings'
+import { WorkTimelinePage } from './features/timeline/WorkTimelinePage'
 
 export const router = createBrowserRouter([
   {
@@ -32,6 +33,9 @@ export const router = createBrowserRouter([
       { path: 'projects/time', element: <TimeTracker /> },
       { path: 'tasks', element: <TaskBoard /> },
       { path: 'time', element: <TimeTracker /> },
+
+      // Work Timeline (daily work diary — separate from project time tracking)
+      { path: 'timeline', element: <WorkTimelinePage /> },
 
       // Team Sub-routes & Aliases
       { path: 'team', element: <Navigate to="/team/employees" replace /> },

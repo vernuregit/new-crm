@@ -21,6 +21,7 @@ import {
   Sun,
   Moon,
   Sparkles,
+  CalendarDays,
 } from 'lucide-react'
 import { NavLink } from 'react-router-dom'
 
@@ -54,6 +55,7 @@ const quickLinks = [
   { name: 'Projects', path: '/projects/list', icon: FolderKanban, color: 'indigo', desc: 'Overview of active projects & completion status' },
   { name: 'Sprint Task Board', path: '/tasks', icon: Briefcase, color: 'indigo', desc: 'View and manage sprint task assignments' },
   { name: 'Time Tracking', path: '/time', icon: Clock, color: 'blue', desc: 'Log billable hours and track task time' },
+  { name: 'Work Timeline', path: '/timeline', icon: CalendarDays, color: 'blue', desc: 'Daily Mon–Sat log of what you worked on' },
   { name: 'Team Directory', path: '/directory', icon: Users, color: 'purple', desc: 'Browse team directory and skills' },
   { name: 'Attendance', path: '/attendance', icon: Calendar, color: 'emerald', desc: 'Clock in/out and view presence status' },
   { name: 'Leave & PTO', path: '/team/leave', icon: Calendar, color: 'emerald', desc: 'Request annual/sick leave & check PTO balance' },

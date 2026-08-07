@@ -32,11 +32,25 @@ import {
   Edit,
   Save,
   X,
+  CalendarDays,
 } from 'lucide-react'
 
 // Today's date in YYYY-MM-DD
 function todayStr() {
   return new Date().toISOString().split('T')[0]
+}
+
+function formatTimeStr(timeStr) {
+  if (!timeStr || timeStr === '—' || timeStr === 'In office') return timeStr
+  const mins = timeStrToMinutes(timeStr)
+  if (mins === null) return timeStr
+  const hrs = Math.floor(mins / 60) % 24
+  const m = Math.round(mins % 60)
+  const ampm = hrs >= 12 ? 'PM' : 'AM'
+  const h12 = hrs % 12 === 0 ? 12 : hrs % 12
+  const hStr = h12.toString().padStart(2, '0')
+  const mStr = m.toString().padStart(2, '0')
+  return `${hStr}:${mStr} ${ampm}`
 }
 
 function secToHrsStr(totalSec) {
@@ -192,18 +206,56 @@ export const AttendancePage = () => {
   const rows = React.useMemo(() => {
     const today = todayStr()
     const isPastDate = selectedDate < today
+    const isToday = selectedDate === today
+    const now = new Date()
+    const currentHour = now.getHours()
+    const nowMins = currentHour * 60 + now.getMinutes()
 
     if (attendanceLogs.length > 0) {
       // We have real Firestore data — use it directly
       return attendanceLogs.map((log) => {
         const emp = employeeMap[log.uid] || {}
 
-        let calculatedRegularSec = log.regularSeconds || log.accumulatedWorkSeconds || 0
         let isCurrentlyClockedIn = Boolean(log.clockedIn)
         let resolvedClockOut = log.clockOutTime || null
         let isAutoClockOut = Boolean(log.autoClockOut)
+        let calculatedRegularSec = log.regularSeconds || log.accumulatedWorkSeconds || 0
 
-        if (isPastDate) {
+        if (isToday) {
+          // If log was prematurely auto-clocked out at 7:00 PM before 7:00 PM actually arrived today
+          if (isAutoClockOut && currentHour < 19 && log.clockInTime && log.clockInTime !== '—') {
+            isAutoClockOut = false
+            resolvedClockOut = null
+            isCurrentlyClockedIn = true
+          }
+
+          if (isCurrentlyClockedIn) {
+            let elapsedSec = 0
+            if (log.clockInTimestamp) {
+              elapsedSec = Math.max(0, Math.floor((Date.now() - log.clockInTimestamp) / 1000))
+            } else if (log.clockInTime && log.clockInTime !== '—') {
+              const inMins = timeStrToMinutes(log.clockInTime)
+              if (inMins !== null && nowMins >= inMins) {
+                elapsedSec = (nowMins - inMins) * 60
+              }
+            }
+            const breakSec = log.accumulatedBreakSeconds || 0
+            const liveShiftSec = Math.max(0, elapsedSec - breakSec)
+
+            // Dynamic live working seconds for today's active shift (capped at standard 8h = 28,800 sec max)
+            calculatedRegularSec = Math.min(28800, liveShiftSec)
+
+            // Auto clock-out ONLY if current time is past 7:00 PM (hour >= 19) or elapsed shift >= 8 hours
+            if ((currentHour >= 19 || liveShiftSec >= 28800) && !resolvedClockOut) {
+              resolvedClockOut = '07:00 PM'
+              isAutoClockOut = true
+              isCurrentlyClockedIn = false
+            }
+          } else {
+            // For completed/clocked out shifts today
+            calculatedRegularSec = Math.min(28800, calculatedRegularSec)
+          }
+        } else if (isPastDate) {
           // FOR PAST DATES: If employee didn't clock out, auto clock-out at 07:00 PM & cap regular hours to 8 hours max
           if (isCurrentlyClockedIn && !resolvedClockOut) {
             isCurrentlyClockedIn = false
@@ -222,45 +274,14 @@ export const AttendancePage = () => {
           } else {
             calculatedRegularSec = Math.min(28800, calculatedRegularSec)
           }
-        } else {
-          // FOR TODAY'S DATE: Calculate live shift time up to standard 8 hours (28,800 sec max)
-          if (isCurrentlyClockedIn) {
-            let elapsedSec = 0
-            if (log.clockInTimestamp) {
-              elapsedSec = Math.max(0, Math.floor((Date.now() - log.clockInTimestamp) / 1000))
-            } else if (log.clockInTime) {
-              const mins = timeStrToMinutes(log.clockInTime)
-              if (mins !== null) {
-                const nowMins = new Date().getHours() * 60 + new Date().getMinutes()
-                if (nowMins >= mins) {
-                  elapsedSec = (nowMins - mins) * 60
-                }
-              }
-            }
-            const breakSec = log.accumulatedBreakSeconds || 0
-            const liveShiftSec = Math.max(0, elapsedSec - breakSec)
-
-            // Cap regular hours at standard 8 hours (28,800 sec)
-            calculatedRegularSec = Math.min(28800, Math.max(calculatedRegularSec, liveShiftSec))
-
-            // Auto clock-out if current time is past 7:00 PM (hour >= 19) or elapsed shift reached 8 hours
-            const currentHour = new Date().getHours()
-            if ((currentHour >= 19 || liveShiftSec >= 28800) && !resolvedClockOut) {
-              resolvedClockOut = '07:00 PM'
-              isAutoClockOut = true
-              isCurrentlyClockedIn = false
-            }
-          } else {
-            calculatedRegularSec = Math.min(28800, calculatedRegularSec)
-          }
         }
 
         return {
           uid: log.uid,
           displayName: log.displayName || emp.displayName || '—',
           departmentName: log.departmentName || emp.departmentName || '—',
-          clockInTime: log.clockInTime || '—',
-          clockOutTime: resolvedClockOut,
+          clockInTime: formatTimeStr(log.clockInTime),
+          clockOutTime: formatTimeStr(resolvedClockOut),
           clockedIn: isCurrentlyClockedIn,
           isOnBreak: log.isOnBreak || false,
           isInExtraTime: log.isInExtraTime || false,
@@ -368,6 +389,18 @@ export const AttendancePage = () => {
             }
           >
             <Calendar className="w-3.5 h-3.5" /> Leave Management
+          </NavLink>
+          <NavLink
+            to="/team/timeline"
+            className={({ isActive }) =>
+              `flex items-center gap-2 px-3 py-1.5 rounded-xl text-xs font-semibold transition-colors ${
+                isActive
+                  ? 'bg-indigo-600/20 text-indigo-400 border border-indigo-500/30'
+                  : 'text-slate-400 hover:text-slate-200 hover:bg-slate-800'
+              }`
+            }
+          >
+            <CalendarDays className="w-3.5 h-3.5" /> Work Timeline
           </NavLink>
         </div>
       </div>
