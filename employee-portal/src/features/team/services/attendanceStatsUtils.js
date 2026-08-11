@@ -130,7 +130,14 @@ export function computeRealAttendanceStats(logs = [], currentLiveState = null) {
     : null
   const avgCheckOut = minutesToTimeStr(avgCheckOutMins) || currentLiveState?.clockOutTime || '—'
 
-  const presentDays = records.filter((r) => r.clockInTime || (r.regularSeconds && r.regularSeconds > 0)).length
+  const presentDays = records.filter(
+    (r) =>
+      r.clockInTime ||
+      (r.regularSeconds && r.regularSeconds > 0) ||
+      r.onDuty === true ||
+      r.present === true ||
+      r.source === 'on_duty'
+  ).length
 
   return {
     totalDays: records.length,

@@ -60,6 +60,11 @@ export const useTeamStore = create(
           ),
         })),
 
+      removeLeaveRequest: (leaveId) =>
+        set((state) => ({
+          leaveRequests: state.leaveRequests.filter((l) => l.leaveId !== leaveId),
+        })),
+
       toggleClockIn: () =>
         set((state) => ({
           clockedIn: !state.clockedIn,

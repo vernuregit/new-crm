@@ -1,6 +1,7 @@
 import {
   collection,
   doc,
+  getDoc,
   getDocs,
   addDoc,
   updateDoc,
@@ -75,31 +76,51 @@ export const deleteEmployeeFromDb = async (uid) => {
 
 // ─── Create leave request ─────────────────────────────────────────────────────
 export const createLeaveRequest = async (leaveData) => {
+  const requestedStatus = leaveData?.status === 'approved' ? 'approved' : 'pending'
+  const { status: _ignored, ...rest } = leaveData || {}
   try {
     const leaveId = `leave_${Date.now()}`
-    await setDoc(doc(db, 'leaveRequests', leaveId), {
-      ...leaveData,
+    const payload = {
+      ...rest,
       leaveId,
-      status: 'pending',
+      status: requestedStatus,
       createdAt: serverTimestamp(),
-    })
-    return { leaveId, ...leaveData, status: 'pending' }
+    }
+    if (requestedStatus === 'approved') {
+      payload.autoApproved = rest.autoApproved === true
+      payload.reviewedBy = rest.reviewedBy || (rest.autoApproved ? 'WFH Policy' : 'Admin')
+      payload.updatedAt = serverTimestamp()
+    }
+    await setDoc(doc(db, 'leaveRequests', leaveId), payload)
+    return { ...payload, createdAt: new Date().toISOString() }
   } catch (err) {
     console.error('Error creating leave request in Firestore:', err)
     const leaveId = `leave_${Date.now()}`
-    return { leaveId, ...leaveData, status: 'pending' }
+    return { leaveId, ...rest, status: requestedStatus }
   }
 }
 
 // ─── Update leave status ──────────────────────────────────────────────────────
-export const updateLeaveStatusInDb = async (leaveId, newStatus) => {
+export const updateLeaveStatusInDb = async (leaveId, newStatus, extras = {}) => {
   try {
     await updateDoc(doc(db, 'leaveRequests', leaveId), {
       status: newStatus,
       updatedAt: serverTimestamp(),
+      ...extras,
     })
   } catch (err) {
     console.error('Error updating leave status in Firestore:', err)
+  }
+}
+
+// ─── Permanently delete a leave request ───────────────────────────────────────
+export const deleteLeaveRequestFromDb = async (leaveId) => {
+  try {
+    if (!leaveId) return
+    await deleteDoc(doc(db, 'leaveRequests', leaveId))
+  } catch (err) {
+    console.error('Error deleting leave request from Firestore:', err)
+    throw err
   }
 }
 
@@ -156,4 +177,99 @@ export const subscribeToCompanyHolidays = (callback) => {
       callback([])
     }
   )
+}
+
+/**
+ * Default WFH policy when Firestore doc is missing
+ */
+export const DEFAULT_WFH_POLICY = {
+  enabled: true,
+  mode: 'monthly',
+  limit: 2,
+}
+
+/**
+ * Normalize raw Firestore WFH policy data
+ */
+export const normalizeWfhPolicy = (data) => {
+  const mode = ['weekly', 'monthly', 'unlimited'].includes(data?.mode)
+    ? data.mode
+    : DEFAULT_WFH_POLICY.mode
+  const limit = Math.max(1, Number(data?.limit) || DEFAULT_WFH_POLICY.limit)
+  return {
+    enabled: data?.enabled !== false,
+    mode,
+    limit,
+    updatedBy: data?.updatedBy || null,
+    updatedAt: data?.updatedAt || null,
+  }
+}
+
+/**
+ * Fetch company WFH policy from Firestore /companyPolicies/wfh
+ */
+export const getWfhPolicy = async () => {
+  try {
+    const snap = await getDoc(doc(db, 'companyPolicies', 'wfh'))
+    if (!snap.exists()) return { ...DEFAULT_WFH_POLICY }
+    return normalizeWfhPolicy(snap.data())
+  } catch (err) {
+    console.error('Error fetching WFH policy from Firestore:', err)
+    return { ...DEFAULT_WFH_POLICY }
+  }
+}
+
+/**
+ * Subscribe to company WFH policy with real-time updates
+ * @param {Function} callback - called with normalized policy object
+ * @returns unsubscribe function
+ */
+export const subscribeToWfhPolicy = (callback) => {
+  return onSnapshot(
+    doc(db, 'companyPolicies', 'wfh'),
+    (snap) => {
+      if (!snap.exists()) {
+        callback({ ...DEFAULT_WFH_POLICY })
+        return
+      }
+      callback(normalizeWfhPolicy(snap.data()))
+    },
+    (err) => {
+      console.error('Error listening to WFH policy:', err)
+      callback({ ...DEFAULT_WFH_POLICY })
+    }
+  )
+}
+
+const DEFAULT_OFFICE_LOCATION = {
+  lat: null,
+  lng: null,
+  radiusMeters: 200,
+  label: 'Office',
+}
+
+export const normalizeOfficeLocation = (data) => {
+  const lat = data?.lat != null ? Number(data.lat) : null
+  const lng = data?.lng != null ? Number(data.lng) : null
+  const radiusMeters = Math.max(50, Number(data?.radiusMeters) || DEFAULT_OFFICE_LOCATION.radiusMeters)
+  return {
+    lat: Number.isFinite(lat) ? lat : null,
+    lng: Number.isFinite(lng) ? lng : null,
+    radiusMeters,
+    label: data?.label || 'Office',
+    updatedBy: data?.updatedBy || null,
+    updatedAt: data?.updatedAt || null,
+  }
+}
+
+/** Fetch office geofence (read-only for employees) */
+export const getOfficeLocation = async () => {
+  try {
+    const snap = await getDoc(doc(db, 'companyPolicies', 'officeLocation'))
+    if (!snap.exists()) return { ...DEFAULT_OFFICE_LOCATION }
+    return normalizeOfficeLocation(snap.data())
+  } catch (err) {
+    console.error('Error fetching office location:', err)
+    return { ...DEFAULT_OFFICE_LOCATION }
+  }
 }

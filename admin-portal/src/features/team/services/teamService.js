@@ -2,16 +2,24 @@ import {
   onSnapshot,
   collection,
   doc,
+  getDoc,
   getDocs,
   addDoc,
   updateDoc,
   deleteDoc,
   setDoc,
   query,
+  where,
   orderBy,
   serverTimestamp,
 } from 'firebase/firestore'
 import { db } from '../../../shared/services/firebaseService'
+import {
+  buildEmployeeMonthlyReport,
+  getMonthDateBounds,
+  leaveDatesInMonth,
+  monthlyReportDocId,
+} from './monthlyReportEngine'
 
 /**
  * Fetch all employee profiles from Firestore /employees
@@ -85,22 +93,188 @@ export const deleteEmployeeFromDb = async (employeeId) => {
 
 /**
  * Create a leave request in Firestore /leaveRequests
+ * @param {object} leaveData - leave fields; optional status ('pending' | 'approved')
  */
 export const createLeaveRequest = async (leaveData) => {
+  const requestedStatus = leaveData?.status === 'approved' ? 'approved' : 'pending'
+  const { status: _ignored, ...rest } = leaveData || {}
   try {
     const leaveId = `leave_${Date.now()}`
-    await setDoc(doc(db, 'leaveRequests', leaveId), {
-      ...leaveData,
+    const payload = {
+      ...rest,
       leaveId,
-      status: 'pending',
+      status: requestedStatus,
       createdAt: serverTimestamp(),
-    })
-    return { leaveId, ...leaveData, status: 'pending' }
+    }
+    if (requestedStatus === 'approved') {
+      payload.autoApproved = rest.autoApproved === true
+      payload.reviewedBy = rest.reviewedBy || (rest.autoApproved ? 'WFH Policy' : 'Admin')
+      payload.updatedAt = serverTimestamp()
+    }
+    await setDoc(doc(db, 'leaveRequests', leaveId), payload)
+    return { ...payload, createdAt: new Date().toISOString() }
   } catch (err) {
     console.error('Error creating leave request in Firestore:', err)
     const leaveId = `leave_${Date.now()}`
-    return { leaveId, ...leaveData, status: 'pending' }
+    return { leaveId, ...rest, status: requestedStatus }
   }
+}
+
+/**
+ * Expand inclusive YYYY-MM-DD date range into an array of date strings.
+ */
+const expandDateRange = (startDate, endDate) => {
+  const dates = []
+  if (!startDate) return dates
+  const start = new Date(`${startDate}T00:00:00`)
+  const end = new Date(`${(endDate || startDate)}T00:00:00`)
+  if (Number.isNaN(start.getTime()) || Number.isNaN(end.getTime())) return dates
+
+  const cursor = new Date(start)
+  while (cursor <= end) {
+    const y = cursor.getFullYear()
+    const m = String(cursor.getMonth() + 1).padStart(2, '0')
+    const d = String(cursor.getDate()).padStart(2, '0')
+    dates.push(`${y}-${m}-${d}`)
+    cursor.setDate(cursor.getDate() + 1)
+  }
+  return dates
+}
+
+/**
+ * Resolve employee uid for an On Duty leave request (employeeId, email, or name).
+ */
+const resolveEmployeeUidForLeave = async (leaveData) => {
+  if (leaveData?.employeeId) return leaveData.employeeId
+
+  try {
+    const snap = await getDocs(collection(db, 'employees'))
+    const employees = snap.docs.map((d) => ({ uid: d.id, ...d.data() }))
+
+    if (leaveData?.employeeEmail) {
+      const byEmail = employees.find(
+        (e) => e.email?.toLowerCase() === leaveData.employeeEmail.toLowerCase()
+      )
+      if (byEmail) return byEmail.uid
+    }
+
+    if (leaveData?.employeeName && leaveData.employeeName !== 'Team Staff') {
+      const byName = employees.find(
+        (e) =>
+          e.displayName?.toLowerCase() === leaveData.employeeName.toLowerCase() ||
+          e.name?.toLowerCase() === leaveData.employeeName.toLowerCase()
+      )
+      if (byName) return byName.uid
+    }
+  } catch (err) {
+    console.error('Error resolving employee uid for On Duty:', err)
+  }
+  return null
+}
+
+/**
+ * Mark attendance Present for each date covered by an approved On Duty request.
+ * Writes/merges attendanceLogs/{date}_{uid} with onDuty flags (does not set clockedIn).
+ */
+export const markOnDutyAttendance = async (leaveData) => {
+  if (!leaveData || leaveData.leaveType !== 'On Duty') return
+
+  const uid = await resolveEmployeeUidForLeave(leaveData)
+  if (!uid) {
+    console.error('Cannot mark On Duty attendance: missing employee uid', leaveData)
+    return
+  }
+
+  const dates = expandDateRange(leaveData.startDate, leaveData.endDate)
+  if (dates.length === 0) return
+
+  try {
+    await Promise.all(
+      dates.map((date) => {
+        const docId = `${date}_${uid}`
+        return setDoc(
+          doc(db, 'attendanceLogs', docId),
+          {
+            uid,
+            date,
+            docId,
+            onDuty: true,
+            present: true,
+            source: 'on_duty',
+            leaveId: leaveData.leaveId || null,
+            updatedAt: serverTimestamp(),
+          },
+          { merge: true }
+        )
+      })
+    )
+  } catch (err) {
+    console.error('Error marking On Duty attendance in Firestore:', err)
+  }
+}
+
+/**
+ * Admin toggle: mark an employee Present or Absent for a given date (defaults to today).
+ * Writes attendanceLogs/{date}_{uid}.
+ */
+export const setEmployeeAttendanceStatus = async (employee, isPresent, dateStr) => {
+  const uid = employee?.uid || employee?.employeeId || employee?.id
+  if (!uid) throw new Error('Missing employee uid')
+
+  const date = dateStr || new Date().toISOString().split('T')[0]
+  const docId = `${date}_${uid}`
+  const displayName = employee.displayName || employee.name || 'Employee'
+  const departmentName = employee.departmentName || employee.department || 'General'
+
+  if (isPresent) {
+    const clockInTime = new Date().toLocaleTimeString([], {
+      hour: '2-digit',
+      minute: '2-digit',
+    })
+    await setDoc(
+      doc(db, 'attendanceLogs', docId),
+      {
+        uid,
+        date,
+        docId,
+        displayName,
+        departmentName,
+        present: true,
+        clockedIn: true,
+        onDuty: false,
+        clockInTime,
+        clockInTimestamp: Date.now(),
+        clockOutTime: null,
+        source: 'admin_toggle',
+        updatedAt: serverTimestamp(),
+      },
+      { merge: true }
+    )
+  } else {
+    await setDoc(
+      doc(db, 'attendanceLogs', docId),
+      {
+        uid,
+        date,
+        docId,
+        displayName,
+        departmentName,
+        present: false,
+        clockedIn: false,
+        onDuty: false,
+        clockInTime: null,
+        clockInTimestamp: null,
+        clockOutTime: null,
+        regularSeconds: 0,
+        regularHours: '0h',
+        source: 'admin_toggle',
+        updatedAt: serverTimestamp(),
+      },
+      { merge: true }
+    )
+  }
+
+  return { uid, date, isPresent }
 }
 
 /**
@@ -116,8 +290,31 @@ export const updateLeaveStatusInDb = async (leaveId, newStatus, reviewedBy) => {
       reviewedBy: reviewedBy || 'Admin',
       updatedAt: serverTimestamp(),
     })
+
+    if (newStatus === 'approved') {
+      const leaveSnap = await getDoc(doc(db, 'leaveRequests', leaveId))
+      if (leaveSnap.exists()) {
+        const leaveData = { leaveId, ...leaveSnap.data() }
+        if (leaveData.leaveType === 'On Duty') {
+          await markOnDutyAttendance(leaveData)
+        }
+      }
+    }
   } catch (err) {
     console.error('Error updating leave status in Firestore:', err)
+  }
+}
+
+/**
+ * Permanently delete a leave request from Firestore
+ */
+export const deleteLeaveRequestFromDb = async (leaveId) => {
+  try {
+    if (!leaveId) return
+    await deleteDoc(doc(db, 'leaveRequests', leaveId))
+  } catch (err) {
+    console.error('Error deleting leave request from Firestore:', err)
+    throw err
   }
 }
 
@@ -172,10 +369,30 @@ export const updateEmployeeInDb = async (uid, data) => {
     const empRef = doc(db, 'employees', uid)
     const userRef = doc(db, 'users', uid)
     await updateDoc(empRef, data)
-    await updateDoc(userRef, data)
+    try {
+      await updateDoc(userRef, data)
+    } catch {
+      // users doc may not exist for every employee
+    }
   } catch (err) {
     console.error('Error updating employee in Firestore:', err)
   }
+}
+
+/**
+ * Save per-employee WFH policy fields on /employees/{uid}
+ */
+export const saveEmployeeWfhPolicy = async (uid, { wfhMode, wfhLimit }, updatedBy) => {
+  const mode = ['off', 'full', 'weekly', 'monthly'].includes(wfhMode) ? wfhMode : 'off'
+  const limit = Math.max(1, Number(wfhLimit) || 1)
+  const data = {
+    wfhMode: mode,
+    wfhLimit: mode === 'weekly' || mode === 'monthly' ? limit : 0,
+    wfhUpdatedBy: updatedBy || 'Admin',
+    wfhUpdatedAt: serverTimestamp(),
+  }
+  await updateEmployeeInDb(uid, data)
+  return data
 }
 
 /**
@@ -245,4 +462,380 @@ export const deleteCompanyHoliday = async (holidayId) => {
   } catch (err) {
     console.error('Error deleting company holiday from Firestore:', err)
   }
+}
+
+/**
+ * Default WFH policy when Firestore doc is missing
+ */
+export const DEFAULT_WFH_POLICY = {
+  enabled: true,
+  mode: 'monthly',
+  limit: 2,
+}
+
+/**
+ * Normalize raw Firestore WFH policy data
+ */
+export const normalizeWfhPolicy = (data) => {
+  const mode = ['weekly', 'monthly', 'unlimited'].includes(data?.mode)
+    ? data.mode
+    : DEFAULT_WFH_POLICY.mode
+  const limit = Math.max(1, Number(data?.limit) || DEFAULT_WFH_POLICY.limit)
+  return {
+    enabled: data?.enabled !== false,
+    mode,
+    limit,
+    updatedBy: data?.updatedBy || null,
+    updatedAt: data?.updatedAt || null,
+  }
+}
+
+/**
+ * Fetch company WFH policy from Firestore /companyPolicies/wfh
+ */
+export const getWfhPolicy = async () => {
+  try {
+    const snap = await getDoc(doc(db, 'companyPolicies', 'wfh'))
+    if (!snap.exists()) return { ...DEFAULT_WFH_POLICY }
+    return normalizeWfhPolicy(snap.data())
+  } catch (err) {
+    console.error('Error fetching WFH policy from Firestore:', err)
+    return { ...DEFAULT_WFH_POLICY }
+  }
+}
+
+/**
+ * Subscribe to company WFH policy with real-time updates
+ * @param {Function} callback - called with normalized policy object
+ * @returns unsubscribe function
+ */
+export const subscribeToWfhPolicy = (callback) => {
+  return onSnapshot(
+    doc(db, 'companyPolicies', 'wfh'),
+    (snap) => {
+      if (!snap.exists()) {
+        callback({ ...DEFAULT_WFH_POLICY })
+        return
+      }
+      callback(normalizeWfhPolicy(snap.data()))
+    },
+    (err) => {
+      console.error('Error listening to WFH policy:', err)
+      callback({ ...DEFAULT_WFH_POLICY })
+    }
+  )
+}
+
+/**
+ * Save company WFH policy to Firestore /companyPolicies/wfh
+ * @param {{ enabled: boolean, mode: string, limit: number }} policy
+ * @param {string} updatedBy - Admin display name
+ */
+export const saveWfhPolicy = async (policy, updatedBy) => {
+  const normalized = normalizeWfhPolicy(policy)
+  const payload = {
+    enabled: Boolean(normalized.enabled),
+    mode: normalized.mode,
+    limit: normalized.mode === 'unlimited' ? normalized.limit : Math.max(1, Number(normalized.limit) || 1),
+    updatedBy: updatedBy || 'Admin',
+    updatedAt: serverTimestamp(),
+  }
+  try {
+    await setDoc(doc(db, 'companyPolicies', 'wfh'), payload, { merge: true })
+    return { ...payload, updatedAt: new Date().toISOString() }
+  } catch (err) {
+    console.error('Error saving WFH policy to Firestore:', err)
+    return payload
+  }
+}
+
+const DEFAULT_OFFICE_LOCATION = {
+  lat: null,
+  lng: null,
+  radiusMeters: 200,
+  label: 'Office',
+}
+
+/**
+ * Normalize office location document
+ */
+export const normalizeOfficeLocation = (data) => {
+  const lat = data?.lat != null ? Number(data.lat) : null
+  const lng = data?.lng != null ? Number(data.lng) : null
+  const radiusMeters = Math.max(50, Number(data?.radiusMeters) || DEFAULT_OFFICE_LOCATION.radiusMeters)
+  return {
+    lat: Number.isFinite(lat) ? lat : null,
+    lng: Number.isFinite(lng) ? lng : null,
+    radiusMeters,
+    label: data?.label || 'Office',
+    updatedBy: data?.updatedBy || null,
+    updatedAt: data?.updatedAt || null,
+  }
+}
+
+/**
+ * Fetch office geofence from Firestore /companyPolicies/officeLocation
+ */
+export const getOfficeLocation = async () => {
+  try {
+    const snap = await getDoc(doc(db, 'companyPolicies', 'officeLocation'))
+    if (!snap.exists()) return { ...DEFAULT_OFFICE_LOCATION }
+    return normalizeOfficeLocation(snap.data())
+  } catch (err) {
+    console.error('Error fetching office location:', err)
+    return { ...DEFAULT_OFFICE_LOCATION }
+  }
+}
+
+/**
+ * Subscribe to office location changes
+ */
+export const subscribeToOfficeLocation = (callback) => {
+  return onSnapshot(
+    doc(db, 'companyPolicies', 'officeLocation'),
+    (snap) => {
+      if (!snap.exists()) {
+        callback({ ...DEFAULT_OFFICE_LOCATION })
+        return
+      }
+      callback(normalizeOfficeLocation(snap.data()))
+    },
+    (err) => {
+      console.error('Error listening to office location:', err)
+      callback({ ...DEFAULT_OFFICE_LOCATION })
+    }
+  )
+}
+
+/**
+ * Save office geofence to Firestore /companyPolicies/officeLocation
+ */
+export const saveOfficeLocation = async ({ lat, lng, radiusMeters, label }, updatedBy) => {
+  const normalized = normalizeOfficeLocation({ lat, lng, radiusMeters, label })
+  const payload = {
+    lat: normalized.lat,
+    lng: normalized.lng,
+    radiusMeters: normalized.radiusMeters,
+    label: normalized.label || 'Office',
+    updatedBy: updatedBy || 'Admin',
+    updatedAt: serverTimestamp(),
+  }
+  try {
+    await setDoc(doc(db, 'companyPolicies', 'officeLocation'), payload, { merge: true })
+    return { ...payload, updatedAt: new Date().toISOString() }
+  } catch (err) {
+    console.error('Error saving office location:', err)
+    return payload
+  }
+}
+
+/**
+ * Fetch attendance logs whose date falls within a calendar month (YYYY-MM).
+ * @param {string} month
+ * @returns {Promise<object[]>}
+ */
+export const getAttendanceLogsForMonth = async (month) => {
+  const { start, end } = getMonthDateBounds(month)
+  try {
+    const q = query(
+      collection(db, 'attendanceLogs'),
+      where('date', '>=', start),
+      where('date', '<=', end)
+    )
+    const snap = await getDocs(q)
+    return snap.docs.map((d) => ({ id: d.id, ...d.data() }))
+  } catch (err) {
+    console.error('Error fetching attendance logs for month:', err)
+    // Fallback: full scan + client filter (avoids composite-index failures)
+    try {
+      const snap = await getDocs(collection(db, 'attendanceLogs'))
+      return snap.docs
+        .map((d) => ({ id: d.id, ...d.data() }))
+        .filter((log) => log.date && log.date >= start && log.date <= end)
+    } catch (fallbackErr) {
+      console.error('Fallback attendance month fetch failed:', fallbackErr)
+      return []
+    }
+  }
+}
+
+/**
+ * Leave requests that overlap a calendar month.
+ * @param {string} month
+ * @returns {Promise<object[]>}
+ */
+export const getLeaveRequestsForMonth = async (month) => {
+  const { start, end } = getMonthDateBounds(month)
+  try {
+    const all = await getLeaveRequests()
+    return (all || []).filter((leave) => leaveDatesInMonth(leave, month).length > 0 || (
+      leave.startDate && leave.startDate <= end && (leave.endDate || leave.startDate) >= start
+    ))
+  } catch (err) {
+    console.error('Error fetching leave requests for month:', err)
+    return []
+  }
+}
+
+/**
+ * Fetch work timeline entries overlapping a month (optionally for one uid).
+ * @param {string} month
+ * @param {string} [uid]
+ * @returns {Promise<object[]>}
+ */
+export const getTimelineEntriesForMonth = async (month, uid = null) => {
+  const { start, end } = getMonthDateBounds(month)
+  try {
+    let snap
+    if (uid) {
+      const q = query(collection(db, 'workTimelineEntries'), where('uid', '==', uid))
+      snap = await getDocs(q)
+    } else {
+      snap = await getDocs(collection(db, 'workTimelineEntries'))
+    }
+    return snap.docs
+      .map((d) => ({ entryId: d.id, ...d.data() }))
+      .filter((e) => e.date && e.date >= start && e.date <= end)
+  } catch (err) {
+    console.error('Error fetching timeline entries for month:', err)
+    return []
+  }
+}
+
+/**
+ * Read a stored monthly report snapshot.
+ * @param {string} uid
+ * @param {string} month
+ * @returns {Promise<object|null>}
+ */
+export const getMonthlyReport = async (uid, month) => {
+  if (!uid || !month) return null
+  try {
+    const docId = monthlyReportDocId(uid, month)
+    const snap = await getDoc(doc(db, 'employeeMonthlyReports', docId))
+    if (!snap.exists()) return null
+    return { id: snap.id, ...snap.data() }
+  } catch (err) {
+    console.error('Error fetching monthly report:', err)
+    return null
+  }
+}
+
+/**
+ * List stored monthly reports for a month (all employees).
+ * @param {{ month: string }} opts
+ * @returns {Promise<object[]>}
+ */
+export const listMonthlyReports = async ({ month } = {}) => {
+  try {
+    if (month) {
+      const q = query(collection(db, 'employeeMonthlyReports'), where('month', '==', month))
+      const snap = await getDocs(q)
+      return snap.docs.map((d) => ({ id: d.id, ...d.data() }))
+    }
+    const snap = await getDocs(collection(db, 'employeeMonthlyReports'))
+    return snap.docs.map((d) => ({ id: d.id, ...d.data() }))
+  } catch (err) {
+    console.error('Error listing monthly reports:', err)
+    return []
+  }
+}
+
+/**
+ * Persist a monthly report snapshot.
+ * @param {object} report
+ * @returns {Promise<object>}
+ */
+export const saveMonthlyReport = async (report) => {
+  if (!report?.uid || !report?.month) {
+    throw new Error('saveMonthlyReport requires uid and month')
+  }
+  const docId = monthlyReportDocId(report.uid, report.month)
+  const payload = {
+    ...report,
+    docId,
+    updatedAt: serverTimestamp(),
+  }
+  try {
+    await setDoc(doc(db, 'employeeMonthlyReports', docId), payload, { merge: true })
+    return { id: docId, ...report, docId }
+  } catch (err) {
+    console.error('Error saving monthly report:', err)
+    throw err
+  }
+}
+
+/**
+ * Aggregate live data for one employee-month and save the snapshot.
+ * @param {object} employee
+ * @param {string} month
+ * @param {string} [generatedBy]
+ * @param {object} [preloaded] - optional shared month datasets
+ * @returns {Promise<object>}
+ */
+export const generateEmployeeMonthlyReport = async (
+  employee,
+  month,
+  generatedBy = 'Admin',
+  preloaded = null
+) => {
+  const uid = employee?.uid || employee?.employeeId || employee?.id
+  if (!uid || !month) throw new Error('generateEmployeeMonthlyReport requires employee uid and month')
+
+  const [attendanceLogs, leaveRequests, timelineEntries, holidays] = await Promise.all([
+    preloaded?.attendanceLogs
+      ? Promise.resolve(preloaded.attendanceLogs.filter((l) => !l.uid || String(l.uid) === String(uid)))
+      : getAttendanceLogsForMonth(month).then((logs) =>
+          logs.filter((l) => !l.uid || String(l.uid) === String(uid))
+        ),
+    preloaded?.leaveRequests
+      ? Promise.resolve(preloaded.leaveRequests)
+      : getLeaveRequestsForMonth(month),
+    preloaded?.timelineEntries
+      ? Promise.resolve(
+          preloaded.timelineEntries.filter((e) => !e.uid || String(e.uid) === String(uid))
+        )
+      : getTimelineEntriesForMonth(month, uid),
+    preloaded?.holidays ? Promise.resolve(preloaded.holidays) : getCompanyHolidays(),
+  ])
+
+  const report = buildEmployeeMonthlyReport({
+    employee,
+    month,
+    attendanceLogs,
+    leaveRequests,
+    timelineEntries,
+    holidays,
+    generatedBy,
+  })
+
+  return saveMonthlyReport(report)
+}
+
+/**
+ * Generate & store monthly reports for all employees for a given month.
+ * @param {string} month
+ * @param {string} [generatedBy]
+ * @returns {Promise<object[]>}
+ */
+export const generateAllEmployeesMonthlyReports = async (month, generatedBy = 'Admin') => {
+  const [employees, attendanceLogs, leaveRequests, timelineEntries, holidays] = await Promise.all([
+    getEmployees(),
+    getAttendanceLogsForMonth(month),
+    getLeaveRequestsForMonth(month),
+    getTimelineEntriesForMonth(month),
+    getCompanyHolidays(),
+  ])
+
+  const preloaded = { attendanceLogs, leaveRequests, timelineEntries, holidays }
+  const results = []
+  for (const emp of employees || []) {
+    try {
+      const report = await generateEmployeeMonthlyReport(emp, month, generatedBy, preloaded)
+      results.push(report)
+    } catch (err) {
+      console.error('Failed generating report for employee:', emp?.uid || emp?.email, err)
+    }
+  }
+  return results
 }

@@ -1,58 +1,109 @@
-import React, { useState } from 'react'
+import React, { useEffect, useMemo } from 'react'
 import { NavLink, useNavigate } from 'react-router-dom'
 import { PageHeader } from '../../components/layout/PageHeader'
 import { Card } from '../../components/ui/Card'
 import { Button } from '../../components/ui/Button'
 import { Input } from '../../components/ui/Input'
 import { useKPIStore } from './stores/kpiStore'
-import { createKpiDefinition } from './services/kpiService'
-import { Activity, SlidersHorizontal, Save } from 'lucide-react'
+import { PILLAR_LABELS } from './services/healthScoreDefaults'
+import {
+  Activity,
+  SlidersHorizontal,
+  Save,
+  RotateCcw,
+  Loader2,
+} from 'lucide-react'
+
+const TARGET_FIELDS = [
+  { key: 'winRate', label: 'Win Rate target (%)', min: 1, max: 100, step: 1 },
+  { key: 'pipelineCoverage', label: 'Pipeline coverage target (×)', min: 1, max: 10, step: 0.5 },
+  { key: 'pipelineHygiene', label: 'Pipeline hygiene target (%)', min: 1, max: 100, step: 1 },
+  { key: 'momGrowth', label: 'MoM revenue growth target (%)', min: 0, max: 100, step: 1 },
+  { key: 'collectionRate', label: 'Collection rate target (%)', min: 1, max: 100, step: 1 },
+  { key: 'overdueMaxPct', label: 'Max overdue of billed (%)', min: 1, max: 50, step: 1 },
+  { key: 'onTimeTaskRate', label: 'On-time task rate target (%)', min: 1, max: 100, step: 1 },
+  { key: 'activeProjectHealth', label: 'Active project health target (%)', min: 1, max: 100, step: 1 },
+  { key: 'completionRate', label: 'Project completion rate target (%)', min: 1, max: 100, step: 1 },
+  { key: 'headcountUtilization', label: 'Headcount utilization target (%)', min: 1, max: 100, step: 1 },
+  { key: 'leaveMaxPct', label: 'Max team on leave (%)', min: 1, max: 50, step: 1 },
+]
 
 export const KpiBuilder = () => {
   const navigate = useNavigate()
-  const { addKpiDefinition } = useKPIStore()
+  const {
+    config,
+    isLoading,
+    isSavingConfig,
+    error,
+    loadHealthData,
+    updateConfigDraft,
+    saveConfig,
+    resetConfigToDefaults,
+  } = useKPIStore()
 
-  const [name, setName] = useState('')
-  const [module, setModule] = useState('crm')
-  const [formula, setFormula] = useState('(Won Deals / Total Closed Deals) * 100')
-  const [targetValue, setTargetValue] = useState(80)
-  const [unit, setUnit] = useState('%')
-  const [weight, setWeight] = useState(0.25)
-  const [isSaving, setIsSaving] = useState(false)
+  useEffect(() => {
+    // Load config without forcing recalculate
+    loadHealthData({ autoRecalculateIfStale: false })
+  }, [loadHealthData])
 
-  const handleSaveKpi = async (e) => {
-    e.preventDefault()
-    if (!name.trim()) return
-
-    setIsSaving(true)
-
-    const kpiData = {
-      name,
-      module,
-      formula,
-      targetValue: Number(targetValue),
-      targetOperator: 'gte',
-      unit,
-      healthScoreWeight: Number(weight),
+  const normalizedPillarWeights = useMemo(() => {
+    const w = config.pillarWeights || {}
+    const total =
+      Number(w.crm || 0) +
+      Number(w.finance || 0) +
+      Number(w.projects || 0) +
+      Number(w.team || 0)
+    if (total <= 0) {
+      return { crm: 0, finance: 0, projects: 0, team: 0, total: 0 }
     }
+    return {
+      crm: (Number(w.crm || 0) / total) * 100,
+      finance: (Number(w.finance || 0) / total) * 100,
+      projects: (Number(w.projects || 0) / total) * 100,
+      team: (Number(w.team || 0) / total) * 100,
+      total,
+    }
+  }, [config.pillarWeights])
 
-    // Save to Firestore first, get the real ID back
-    const saved = await createKpiDefinition(kpiData)
+  const setPillarWeight = (key, value) => {
+    updateConfigDraft({
+      pillarWeights: {
+        ...config.pillarWeights,
+        [key]: Number(value),
+      },
+    })
+  }
 
-    // Update the local store with the Firestore-assigned kpiId
-    addKpiDefinition({ ...kpiData, kpiId: saved.kpiId })
+  const setTarget = (key, value) => {
+    updateConfigDraft({
+      targets: {
+        ...config.targets,
+        [key]: Number(value),
+      },
+    })
+  }
 
-    setIsSaving(false)
-    navigate('/kpi')
+  const setBand = (key, value) => {
+    updateConfigDraft({
+      bands: {
+        ...config.bands,
+        [key]: Number(value),
+      },
+    })
+  }
+
+  const handleSave = async (e) => {
+    e.preventDefault()
+    const saved = await saveConfig({ recalculate: true })
+    if (saved) navigate('/kpi')
   }
 
   return (
     <div className="space-y-6">
-      {/* Header & Sub Nav */}
       <div className="space-y-4">
         <PageHeader
-          title="KPI Rules & Target Builder"
-          description="Define custom organization metrics, mathematical aggregation formulas, and health score weightings"
+          title="Health Score Settings"
+          description="Adjust pillar weights, metric targets, and health bands. Scores recompute from live CRM data."
         />
 
         <div className="flex items-center gap-2 border-b border-slate-200 dark:border-slate-800 pb-3">
@@ -79,89 +130,167 @@ export const KpiBuilder = () => {
               }`
             }
           >
-            <SlidersHorizontal className="w-3.5 h-3.5" /> KPI Rules Builder
+            <SlidersHorizontal className="w-3.5 h-3.5" /> Score Settings
           </NavLink>
         </div>
       </div>
 
-      <Card className="max-w-xl space-y-4 border-slate-200 dark:border-slate-800 bg-white dark:bg-[#181C27]">
-        <form onSubmit={handleSaveKpi} className="space-y-4">
-          <Input
-            label="KPI Name"
-            placeholder="e.g. Lead Conversion Velocity"
-            value={name}
-            onChange={(e) => setName(e.target.value)}
-            required
-          />
+      {error && (
+        <Card className="p-4 border-rose-200 dark:border-rose-500/30 bg-rose-50 dark:bg-rose-500/10 text-rose-700 dark:text-rose-300 text-sm">
+          {error}
+        </Card>
+      )}
 
-          <div className="grid grid-cols-2 gap-3">
-            <div className="space-y-1.5 text-left">
-              <label className="block text-xs font-medium text-slate-700 dark:text-slate-300">Target Module</label>
-              <select
-                value={module}
-                onChange={(e) => setModule(e.target.value)}
-                className="w-full bg-slate-100/80 dark:bg-[#11141E] border border-slate-300 dark:border-slate-800 text-slate-900 dark:text-slate-100 text-sm rounded-xl py-2.5 px-3.5 focus:outline-none focus:border-indigo-500 focus:ring-1 focus:ring-indigo-500 transition-all cursor-pointer"
-              >
-                <option value="crm" className="bg-white dark:bg-[#11141E] text-slate-900 dark:text-slate-100">CRM & Pipeline</option>
-                <option value="finance" className="bg-white dark:bg-[#11141E] text-slate-900 dark:text-slate-100">Finance & Revenue</option>
-                <option value="projects" className="bg-white dark:bg-[#11141E] text-slate-900 dark:text-slate-100">Projects & Delivery</option>
-                <option value="team" className="bg-white dark:bg-[#11141E] text-slate-900 dark:text-slate-100">Team & Personnel</option>
-              </select>
+      {isLoading ? (
+        <div className="flex items-center justify-center py-16">
+          <Loader2 className="w-8 h-8 text-indigo-400 animate-spin" />
+          <span className="ml-3 text-slate-400 text-sm">Loading settings…</span>
+        </div>
+      ) : (
+        <form onSubmit={handleSave} className="space-y-6 max-w-3xl">
+          {/* Pillar weights */}
+          <Card className="space-y-4 border-slate-200 dark:border-slate-800">
+            <div>
+              <h3 className="font-bold text-slate-900 dark:text-slate-100 text-sm">
+                Pillar Weights
+              </h3>
+              <p className="text-xs text-slate-500 dark:text-slate-400 mt-1">
+                Relative importance of each pillar. Values are auto-normalized to 100%.
+              </p>
             </div>
 
-            <Input
-              label="Unit Label"
-              placeholder="%, INR, count, hours"
-              value={unit}
-              onChange={(e) => setUnit(e.target.value)}
-            />
-          </div>
+            <div className="h-3 rounded-full overflow-hidden flex bg-slate-100 dark:bg-slate-800">
+              {['crm', 'finance', 'projects', 'team'].map((key, i) => {
+                const colors = [
+                  'bg-indigo-500',
+                  'bg-emerald-500',
+                  'bg-amber-500',
+                  'bg-sky-500',
+                ]
+                const pct = normalizedPillarWeights[key] || 0
+                if (pct <= 0) return null
+                return (
+                  <div
+                    key={key}
+                    className={`${colors[i]} h-full`}
+                    style={{ width: `${pct}%` }}
+                    title={`${PILLAR_LABELS[key]}: ${pct.toFixed(0)}%`}
+                  />
+                )
+              })}
+            </div>
 
-          <Input
-            label="Formula Description"
-            placeholder="e.g. (Total Revenue / Total Expenses)"
-            value={formula}
-            onChange={(e) => setFormula(e.target.value)}
-          />
+            <div className="grid grid-cols-2 sm:grid-cols-4 gap-3 text-[10px] text-slate-500">
+              {['crm', 'finance', 'projects', 'team'].map((key) => (
+                <span key={key}>
+                  {PILLAR_LABELS[key]}:{' '}
+                  <strong className="text-slate-800 dark:text-slate-200">
+                    {normalizedPillarWeights[key].toFixed(0)}%
+                  </strong>
+                </span>
+              ))}
+            </div>
 
-          <div className="grid grid-cols-2 gap-3">
-            <Input
-              label="Target Threshold Value"
-              type="number"
-              value={targetValue}
-              onChange={(e) => setTargetValue(e.target.value)}
-            />
+            <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
+              {['crm', 'finance', 'projects', 'team'].map((key) => (
+                <Input
+                  key={key}
+                  label={`${PILLAR_LABELS[key]} weight`}
+                  type="number"
+                  step="0.05"
+                  min="0"
+                  max="1"
+                  value={config.pillarWeights?.[key] ?? 0}
+                  onChange={(e) => setPillarWeight(key, e.target.value)}
+                />
+              ))}
+            </div>
+          </Card>
 
-            <div className="space-y-1.5 text-left">
-              <label className="block text-xs font-medium text-slate-700 dark:text-slate-300">Health Weight (0 - 1.0)</label>
-              <input
+          {/* Bands */}
+          <Card className="space-y-4 border-slate-200 dark:border-slate-800">
+            <div>
+              <h3 className="font-bold text-slate-900 dark:text-slate-100 text-sm">
+                Health Bands
+              </h3>
+              <p className="text-xs text-slate-500 dark:text-slate-400 mt-1">
+                Score thresholds for Healthy / Watch / At risk.
+              </p>
+            </div>
+            <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
+              <Input
+                label="Healthy at or above"
                 type="number"
-                step="0.05"
-                min="0"
-                max="1"
-                value={weight}
-                onChange={(e) => setWeight(e.target.value)}
-                className="w-full bg-slate-100/80 dark:bg-[#11141E] border border-slate-300 dark:border-slate-800 text-slate-900 dark:text-slate-100 text-sm rounded-xl py-2.5 px-3.5 focus:outline-none focus:border-indigo-500 focus:ring-1 focus:ring-indigo-500 transition-all"
+                min="1"
+                max="100"
+                value={config.bands?.healthy ?? 80}
+                onChange={(e) => setBand('healthy', e.target.value)}
+              />
+              <Input
+                label="Watch at or above (below = At risk)"
+                type="number"
+                min="1"
+                max="100"
+                value={config.bands?.watch ?? 60}
+                onChange={(e) => setBand('watch', e.target.value)}
               />
             </div>
-          </div>
+          </Card>
 
-          <div className="flex gap-3 pt-2">
-            <Button type="button" variant="secondary" onClick={() => navigate('/kpi')} className="w-1/3">
+          {/* Targets */}
+          <Card className="space-y-4 border-slate-200 dark:border-slate-800">
+            <div>
+              <h3 className="font-bold text-slate-900 dark:text-slate-100 text-sm">
+                Metric Targets
+              </h3>
+              <p className="text-xs text-slate-500 dark:text-slate-400 mt-1">
+                Each live metric is scored 0–100 against these targets.
+              </p>
+            </div>
+            <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
+              {TARGET_FIELDS.map((field) => (
+                <Input
+                  key={field.key}
+                  label={field.label}
+                  type="number"
+                  min={field.min}
+                  max={field.max}
+                  step={field.step}
+                  value={config.targets?.[field.key] ?? ''}
+                  onChange={(e) => setTarget(field.key, e.target.value)}
+                />
+              ))}
+            </div>
+          </Card>
+
+          <div className="flex flex-wrap gap-3">
+            <Button
+              type="button"
+              variant="secondary"
+              icon={RotateCcw}
+              onClick={() => resetConfigToDefaults()}
+            >
+              Reset Defaults
+            </Button>
+            <Button
+              type="button"
+              variant="secondary"
+              onClick={() => navigate('/kpi')}
+              className="sm:ml-auto"
+            >
               Cancel
             </Button>
             <Button
               type="submit"
               variant="primary"
-              className="w-2/3"
               icon={Save}
-              disabled={isSaving}
+              disabled={isSavingConfig}
             >
-              {isSaving ? 'Saving...' : 'Save KPI Rule'}
+              {isSavingConfig ? 'Saving…' : 'Save & Recalculate'}
             </Button>
           </div>
         </form>
-      </Card>
+      )}
     </div>
   )
 }

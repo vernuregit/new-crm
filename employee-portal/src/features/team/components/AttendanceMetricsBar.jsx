@@ -1,6 +1,6 @@
 import React, { useState, useEffect } from 'react'
 import { Card } from '../../../components/ui/Card'
-import { useTeamStore } from '../stores/teamStore'
+import { useTeamStore, OFFICE_START_HOUR, OFFICE_START_MINUTE } from '../stores/teamStore'
 import { UserCheck, LogIn, LogOut, Timer, AlertCircle } from 'lucide-react'
 
 export const AttendanceMetricsBar = () => {
@@ -52,35 +52,40 @@ export const AttendanceMetricsBar = () => {
     return `${hrs}h ${mins}m`
   }
 
-  // Calculate Late By logic relative to 10:30 AM shift start
+  // Late By vs 10:30 AM — use day's first clock-in time (not latest session timestamp)
   const getLateByInfo = () => {
     if (!clockInTime && !clockInTimestamp) {
       return { text: 'On time', isLate: false }
     }
 
-    const startHour = 10
-    const startMin = 30
-
     let clockInDate = null
-    if (clockInTimestamp) {
-      clockInDate = new Date(clockInTimestamp)
-    } else if (clockInTime) {
-      const match = clockInTime.match(/(\d+):(\d+)\s*(AM|PM)/i)
+
+    // Prefer displayed first-of-day clockInTime so re-clock-ins don't inflate lateness
+    if (clockInTime) {
+      const match = clockInTime.match(/(\d+):(\d+)(?::\d+)?\s*(AM|PM)?/i)
       if (match) {
         let hrs = parseInt(match[1], 10)
         const mins = parseInt(match[2], 10)
-        const ampm = match[3].toUpperCase()
+        const ampm = match[3] ? match[3].toUpperCase() : null
         if (ampm === 'PM' && hrs < 12) hrs += 12
         if (ampm === 'AM' && hrs === 12) hrs = 0
+        // 24h locale strings without AM/PM (e.g. "10:28")
+        if (!ampm && hrs <= 23) {
+          // keep hrs as-is
+        }
         clockInDate = new Date()
         clockInDate.setHours(hrs, mins, 0, 0)
       }
     }
 
+    if (!clockInDate && clockInTimestamp) {
+      clockInDate = new Date(clockInTimestamp)
+    }
+
     if (!clockInDate) return { text: 'On time', isLate: false }
 
     const targetDate = new Date(clockInDate)
-    targetDate.setHours(startHour, startMin, 0, 0)
+    targetDate.setHours(OFFICE_START_HOUR, OFFICE_START_MINUTE, 0, 0)
 
     const diffMs = clockInDate.getTime() - targetDate.getTime()
     if (diffMs <= 0) {

@@ -115,10 +115,10 @@ export const getHealthScore = async () => {
   if (!snap.empty) {
     const d = snap.docs[0].data()
     return {
-      overall: d.overall ?? d.score ?? null,
-      crm: d.crm ?? null,
-      finance: d.finance ?? null,
-      projects: d.projects ?? null,
+      overall: d.overall ?? d.overallScore ?? d.score ?? null,
+      crm: d.crm ?? d.breakdown?.crm?.score ?? null,
+      finance: d.finance ?? d.breakdown?.finance?.score ?? null,
+      projects: d.projects ?? d.breakdown?.projects?.score ?? null,
     }
   }
   return { overall: null, crm: null, finance: null, projects: null }

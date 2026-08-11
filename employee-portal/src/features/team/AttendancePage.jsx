@@ -1,4 +1,4 @@
-import React, { useEffect } from 'react'
+import React, { useEffect, useState } from 'react'
 import { NavLink } from 'react-router-dom'
 import { PageHeader } from '../../components/layout/PageHeader'
 import { Card } from '../../components/ui/Card'
@@ -7,15 +7,29 @@ import { Button } from '../../components/ui/Button'
 import { useTeamStore } from './stores/teamStore'
 import { useUserStore } from '../../stores/userStore'
 import { getEmployees, recordAttendanceInDb } from './services/teamService'
+import { prepareClockInGate } from './services/wfhAttendanceUtils'
 import { AttendanceMetricsBar } from './components/AttendanceMetricsBar'
-import { Users, CheckCircle2, Calendar, Clock, LogIn, LogOut } from 'lucide-react'
+import { collection, onSnapshot } from 'firebase/firestore'
+import { db } from '../../shared/services/firebaseService'
+import { Users, CheckCircle2, Calendar, Clock, LogIn, LogOut, AlertCircle, Loader2 } from 'lucide-react'
 
 export const AttendancePage = () => {
-  const { employees, setEmployees, clockedIn, clockInTime, toggleClockIn, loadUserAttendance } = useTeamStore()
+  const {
+    employees,
+    setEmployees,
+    leaveRequests,
+    setLeaveRequests,
+    clockedIn,
+    clockInTime,
+    toggleClockIn,
+    loadUserAttendance,
+  } = useTeamStore()
   const { user, userDoc } = useUserStore()
 
   const activeUid = userDoc?.uid || user?.uid
   const loggedInName = userDoc?.displayName || user?.displayName || user?.email || ''
+  const [clockBusy, setClockBusy] = useState(false)
+  const [clockError, setClockError] = useState('')
 
   useEffect(() => {
     if (activeUid) {
@@ -31,19 +45,87 @@ export const AttendancePage = () => {
     }
   }, [employees.length, setEmployees])
 
+  useEffect(() => {
+    const unsub = onSnapshot(
+      collection(db, 'leaveRequests'),
+      (snap) => {
+        setLeaveRequests(snap.docs.map((d) => ({ leaveId: d.id, ...d.data() })))
+      },
+      (err) => console.error('Error listening to leave requests:', err)
+    )
+    return () => unsub()
+  }, [setLeaveRequests])
+
+  const currentEmp =
+    employees.find(
+      (e) =>
+        (activeUid && (e.uid === activeUid || e.employeeId === activeUid)) ||
+        (user?.email && e.email?.toLowerCase() === user.email.toLowerCase())
+    ) || userDoc || {}
+
   const handleClockToggle = async () => {
-    toggleClockIn({
+    setClockError('')
+    const meta = {
       uid: activeUid,
       displayName: loggedInName,
       departmentName: userDoc?.departmentName || '',
-    })
-    await recordAttendanceInDb({
-      uid: activeUid,
-      displayName: loggedInName,
-      action: clockedIn ? 'clock_out' : 'clock_in',
-      time: new Date().toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' }),
-      date: new Date().toISOString().split('T')[0],
-    })
+    }
+
+    if (clockedIn) {
+      toggleClockIn(meta)
+      await recordAttendanceInDb({
+        uid: activeUid,
+        displayName: loggedInName,
+        action: 'clock_out',
+        time: new Date().toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' }),
+        date: new Date().toISOString().split('T')[0],
+      })
+      return
+    }
+
+    setClockBusy(true)
+    try {
+      const gate = await prepareClockInGate({
+        emp: currentEmp,
+        leaveRequests,
+        employeeFilter: {
+          employeeId: activeUid,
+          uid: activeUid,
+          employeeEmail: user?.email || userDoc?.email || currentEmp?.email,
+          employeeName: loggedInName,
+        },
+      })
+
+      if (!gate.ok) {
+        setClockError(gate.error || 'Unable to clock in.')
+        return
+      }
+
+      const result = toggleClockIn(meta, {
+        requireOfficeLocation: gate.requireOfficeLocation,
+        locationVerified: gate.locationVerified,
+        wfhExempt: gate.wfhExempt,
+        coords: gate.coords,
+      })
+
+      if (result && result.success === false) {
+        setClockError(result.error || 'Unable to clock in.')
+        return
+      }
+
+      await recordAttendanceInDb({
+        uid: activeUid,
+        displayName: loggedInName,
+        action: 'clock_in',
+        time: new Date().toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' }),
+        date: new Date().toISOString().split('T')[0],
+      })
+    } catch (err) {
+      console.error('Clock-in gate error:', err)
+      setClockError('Unable to verify location. Try again.')
+    } finally {
+      setClockBusy(false)
+    }
   }
 
   // Only show the currently logged-in employee's record
@@ -118,10 +200,26 @@ export const AttendancePage = () => {
             </p>
           </div>
         </div>
-        <div className="flex items-center gap-3">
-          <Badge variant={clockedIn ? 'success' : 'warning'}>
-            {clockedIn ? 'On Duty' : 'Off Duty'}
-          </Badge>
+        <div className="flex flex-col items-end gap-2">
+          {clockError && (
+            <div className="flex items-start gap-2 text-xs text-rose-600 dark:text-rose-300 bg-rose-500/10 border border-rose-500/30 rounded-xl px-3 py-2 max-w-xs">
+              <AlertCircle className="w-3.5 h-3.5 shrink-0 mt-0.5" />
+              <span>{clockError}</span>
+            </div>
+          )}
+          <div className="flex items-center gap-3">
+            <Badge variant={clockedIn ? 'success' : 'warning'}>
+              {clockedIn ? 'On Duty' : 'Off Duty'}
+            </Badge>
+            <Button
+              variant={clockedIn ? 'danger' : 'primary'}
+              onClick={handleClockToggle}
+              disabled={clockBusy}
+              icon={clockBusy ? Loader2 : clockedIn ? LogOut : LogIn}
+            >
+              {clockBusy ? 'Checking…' : clockedIn ? 'Clock Out' : 'Check In'}
+            </Button>
+          </div>
         </div>
       </Card>
 

@@ -152,7 +152,12 @@ export const AttendanceCalendarWidget = () => {
       const isPresentToday =
         clockedIn ||
         (todayShiftLogs && todayShiftLogs.length > 0) ||
-        (recordForToday && (recordForToday.clockedIn || recordForToday.regularSeconds > 0))
+        (recordForToday &&
+          (recordForToday.clockedIn ||
+            recordForToday.regularSeconds > 0 ||
+            recordForToday.onDuty === true ||
+            recordForToday.present === true ||
+            recordForToday.source === 'on_duty'))
       
       if (isPresentToday) {
         return 'present'
@@ -189,7 +194,10 @@ export const AttendanceCalendarWidget = () => {
         pastRecord.clockedIn ||
         (pastRecord.regularSeconds && pastRecord.regularSeconds > 0) ||
         (pastRecord.shiftLogs && pastRecord.shiftLogs.length > 0) ||
-        (pastRecord.todayShiftLogs && pastRecord.todayShiftLogs.length > 0)
+        (pastRecord.todayShiftLogs && pastRecord.todayShiftLogs.length > 0) ||
+        pastRecord.onDuty === true ||
+        pastRecord.present === true ||
+        pastRecord.source === 'on_duty'
       if (isPresent) return 'present'
     }
 

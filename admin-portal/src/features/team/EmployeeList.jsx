@@ -1,25 +1,29 @@
 import React, { useState, useEffect } from 'react'
-import { NavLink } from 'react-router-dom'
-import { collection, query, where, onSnapshot } from 'firebase/firestore'
-import { db } from '../../shared/services/firebaseService'
+import { Link } from 'react-router-dom'
 import { PageHeader } from '../../components/layout/PageHeader'
 import { Card } from '../../components/ui/Card'
-import { Badge } from '../../components/ui/Badge'
 import { Button } from '../../components/ui/Button'
 import { Input } from '../../components/ui/Input'
 import { useTeamStore } from './stores/teamStore'
 import { useSettingsStore } from '../settings/stores/settingsStore'
-import { getEmployees, getDepartments, createEmployee, deleteEmployeeFromDb, createDepartment, updateEmployeeInDb } from './services/teamService'
+import {
+  getEmployees,
+  getDepartments,
+  createEmployee,
+  deleteEmployeeFromDb,
+  createDepartment,
+  updateEmployeeInDb,
+  listMonthlyReports,
+} from './services/teamService'
+import { currentMonthStr } from './services/monthlyReportEngine'
 import { createEmployeeAccount, createAdminAccount } from '../../shared/services/authService'
+import { TeamSubNav } from './components/TeamSubNav'
 import {
   Users,
   UserPlus,
   Search,
   Mail,
-  Phone,
   Building,
-  CheckCircle2,
-  Calendar,
   X,
   Trash2,
   TrendingUp,
@@ -30,9 +34,11 @@ import {
   Tag,
   Plus,
   FileText,
-  Percent,
   Sparkles,
   CalendarDays,
+  CheckCircle2,
+  AlertCircle,
+  Clock,
 } from 'lucide-react'
 
 export const EmployeeList = () => {
@@ -47,7 +53,6 @@ export const EmployeeList = () => {
   const [showEditModal, setShowEditModal] = useState(false)
   const [editingEmployee, setEditingEmployee] = useState(null)
   const [deleteConfirmEmp, setDeleteConfirmEmp] = useState(null)
-  const [todayAttendanceMap, setTodayAttendanceMap] = useState({})
 
   // New member form
   const [name, setName] = useState('')
@@ -69,57 +74,28 @@ export const EmployeeList = () => {
   const [skillInput, setSkillInput] = useState('')
   const [joiningDate, setJoiningDate] = useState('')
   const [bio, setBio] = useState('')
+  const [monthReportMap, setMonthReportMap] = useState({})
+  const thisMonth = currentMonthStr()
 
   const createdRoles = customRoles.filter((r) => !r.isSystem)
 
   useEffect(() => {
     const fetchRealEmployees = async () => {
-      const [emps, depts] = await Promise.all([getEmployees(), getDepartments()])
+      const [emps, depts, reports] = await Promise.all([
+        getEmployees(),
+        getDepartments(),
+        listMonthlyReports({ month: thisMonth }),
+      ])
       if (emps) setEmployees(emps)
       if (depts) setDepartments(depts)
+      const map = {}
+      ;(reports || []).forEach((r) => {
+        if (r.uid) map[r.uid] = r
+      })
+      setMonthReportMap(map)
     }
     fetchRealEmployees()
-  }, [setEmployees, setDepartments])
-
-  // Real-time subscription to today's attendance logs for live Present / Absent status
-  useEffect(() => {
-    const todayStr = new Date().toISOString().split('T')[0]
-    const q = query(
-      collection(db, 'attendanceLogs'),
-      where('date', '==', todayStr)
-    )
-
-    const unsub = onSnapshot(
-      q,
-      (snap) => {
-        const map = {}
-        snap.docs.forEach((doc) => {
-          const data = doc.data()
-          const isPresent =
-            data.clockedIn === true ||
-            (data.regularSeconds && data.regularSeconds > 0) ||
-            Boolean(data.clockInTime)
-          if (data.uid) {
-            map[data.uid] = isPresent
-          }
-        })
-        setTodayAttendanceMap(map)
-      },
-      (err) => {
-        console.error('Error fetching today attendance map:', err)
-      }
-    )
-
-    return () => unsub()
-  }, [])
-
-  const isEmpPresent = (emp) => {
-    const empUid = emp.uid || emp.id
-    if (empUid && todayAttendanceMap[empUid] !== undefined) {
-      return todayAttendanceMap[empUid]
-    }
-    return false
-  }
+  }, [setEmployees, setDepartments, thisMonth])
 
   const uniqueDepartments = Array.from(
     new Set(employees.map((emp) => emp.departmentName || emp.department).filter(Boolean))
@@ -151,7 +127,6 @@ export const EmployeeList = () => {
 
   // Team Metrics
   const totalHeadcount = employees.length
-  const presentCount = employees.filter((e) => isEmpPresent(e)).length
 
   const handleInviteMember = async (e) => {
     e.preventDefault()
@@ -345,54 +320,9 @@ export const EmployeeList = () => {
           }
         />
 
-        <div className="flex items-center justify-between border-b border-slate-200 dark:border-slate-800 pb-3">
-          <div className="flex items-center gap-2">
-            <NavLink
-              to="/team/employees"
-              className={({ isActive }) =>
-                `flex items-center gap-2 px-3 py-1.5 rounded-xl text-xs font-semibold transition-colors ${isActive
-                  ? 'bg-indigo-50 dark:bg-indigo-600/20 text-indigo-600 dark:text-indigo-400 border border-indigo-200 dark:border-indigo-500/30'
-                  : 'text-slate-600 dark:text-slate-400 hover:text-slate-900 dark:hover:text-slate-200 hover:bg-slate-100 dark:hover:bg-slate-800'
-                }`
-              }
-            >
-              <Users className="w-3.5 h-3.5" /> Employee Directory
-            </NavLink>
-            <NavLink
-              to="/team/attendance"
-              className={({ isActive }) =>
-                `flex items-center gap-2 px-3 py-1.5 rounded-xl text-xs font-semibold transition-colors ${isActive
-                  ? 'bg-indigo-50 dark:bg-indigo-600/20 text-indigo-600 dark:text-indigo-400 border border-indigo-200 dark:border-indigo-500/30'
-                  : 'text-slate-600 dark:text-slate-400 hover:text-slate-900 dark:hover:text-slate-200 hover:bg-slate-100 dark:hover:bg-slate-800'
-                }`
-              }
-            >
-              <CheckCircle2 className="w-3.5 h-3.5" /> Attendance Tracker
-            </NavLink>
-            <NavLink
-              to="/team/leave"
-              className={({ isActive }) =>
-                `flex items-center gap-2 px-3 py-1.5 rounded-xl text-xs font-semibold transition-colors ${isActive
-                  ? 'bg-indigo-50 dark:bg-indigo-600/20 text-indigo-600 dark:text-indigo-400 border border-indigo-200 dark:border-indigo-500/30'
-                  : 'text-slate-600 dark:text-slate-400 hover:text-slate-900 dark:hover:text-slate-200 hover:bg-slate-100 dark:hover:bg-slate-800'
-                }`
-              }
-            >
-              <Calendar className="w-3.5 h-3.5" /> Leave Management
-            </NavLink>
-            <NavLink
-              to="/team/timeline"
-              className={({ isActive }) =>
-                `flex items-center gap-2 px-3 py-1.5 rounded-xl text-xs font-semibold transition-colors ${isActive
-                  ? 'bg-indigo-50 dark:bg-indigo-600/20 text-indigo-600 dark:text-indigo-400 border border-indigo-200 dark:border-indigo-500/30'
-                  : 'text-slate-600 dark:text-slate-400 hover:text-slate-900 dark:hover:text-slate-200 hover:bg-slate-100 dark:hover:bg-slate-800'
-                }`
-              }
-            >
-              <CalendarDays className="w-3.5 h-3.5" /> Work Timeline
-            </NavLink>
-          </div>
+        <TeamSubNav />
 
+        <div className="flex items-center justify-end gap-3">
           <div className="flex items-center gap-3">
             <select
               value={selectedDept}
@@ -435,41 +365,28 @@ export const EmployeeList = () => {
       </div>
 
       {/* Summary Metrics */}
-      <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
-        <Card className="p-4 flex items-center justify-between border-slate-200 dark:border-slate-800/80">
-          <div>
-            <span className="text-[11px] font-medium text-slate-500 dark:text-slate-400 uppercase tracking-wider">
-              Total Team Members
-            </span>
-            <p className="text-xl font-bold text-slate-900 dark:text-slate-100 mt-1">{totalHeadcount} Members</p>
-          </div>
-          <div className="w-9 h-9 rounded-xl bg-indigo-50 dark:bg-indigo-500/10 text-indigo-600 dark:text-indigo-400 flex items-center justify-center">
-            <Users className="w-5 h-5" />
-          </div>
-        </Card>
-
-        <Card className="p-4 flex items-center justify-between border-slate-200 dark:border-slate-800/80">
-          <div>
-            <span className="text-[11px] font-medium text-slate-500 dark:text-slate-400 uppercase tracking-wider">
-              Today's Attendance
-            </span>
-            <p className="text-xl font-bold text-emerald-600 dark:text-emerald-400 mt-1">
-              {presentCount} / {totalHeadcount} Present
-            </p>
-          </div>
-          <div className="w-9 h-9 rounded-xl bg-emerald-50 dark:bg-emerald-500/10 text-emerald-600 dark:text-emerald-400 flex items-center justify-center">
-            <CheckCircle2 className="w-5 h-5" />
-          </div>
-        </Card>
-      </div>
+      <Card className="p-4 flex items-center justify-between border-slate-200 dark:border-slate-800/80 max-w-sm">
+        <div>
+          <span className="text-[11px] font-medium text-slate-500 dark:text-slate-400 uppercase tracking-wider">
+            Total Team Members
+          </span>
+          <p className="text-xl font-bold text-slate-900 dark:text-slate-100 mt-1">{totalHeadcount} Members</p>
+        </div>
+        <div className="w-9 h-9 rounded-xl bg-indigo-50 dark:bg-indigo-500/10 text-indigo-600 dark:text-indigo-400 flex items-center justify-center">
+          <Users className="w-5 h-5" />
+        </div>
+      </Card>
 
       {/* Employee Cards Grid */}
       <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-5">
         {filtered.map((emp) => {
-          const present = isEmpPresent(emp)
+          const empUid = emp.uid || emp.employeeId || emp.id
+          const monthSnap = monthReportMap[empUid]
+          const att = monthSnap?.attendance
+          const leaveDays = monthSnap?.leave?.approvedDays
 
           return (
-            <Card key={emp.uid || emp.id} hover className="space-y-3.5 border-slate-200 dark:border-slate-800 relative group">
+            <Card key={empUid} hover className="space-y-3.5 border-slate-200 dark:border-slate-800 relative group">
               <div className="flex items-start justify-between">
                 <div className="flex items-center gap-3">
                   <div className="w-10 h-10 rounded-xl bg-gradient-to-tr from-indigo-600 to-indigo-400 text-white font-bold flex items-center justify-center text-sm shadow-md shadow-indigo-600/20">
@@ -482,12 +399,6 @@ export const EmployeeList = () => {
                     <p className="text-xs text-slate-500 dark:text-slate-400">{emp.roleName}</p>
                   </div>
                 </div>
-                <Badge variant={present ? 'success' : 'danger'}>
-                  <span className="flex items-center gap-1.5 font-semibold">
-                    <span className={`w-1.5 h-1.5 rounded-full ${present ? 'bg-emerald-500' : 'bg-rose-500'}`} />
-                    {present ? 'Present' : 'Absent'}
-                  </span>
-                </Badge>
               </div>
 
               <div className="space-y-1 text-xs text-slate-500 dark:text-slate-400 pt-1">
@@ -499,6 +410,37 @@ export const EmployeeList = () => {
                   <Mail className="w-3.5 h-3.5 text-slate-400 dark:text-slate-500" />
                   <span className="truncate text-slate-600 dark:text-slate-400">{emp.email}</span>
                 </div>
+              </div>
+
+              {/* Current month quick stats */}
+              <div className="flex flex-wrap gap-1.5 pt-1">
+                <span
+                  className="inline-flex items-center gap-1 px-2 py-0.5 rounded-md bg-emerald-50 dark:bg-emerald-500/10 border border-emerald-200/60 dark:border-emerald-500/20 text-[10px] font-medium text-emerald-700 dark:text-emerald-400"
+                  title={`${thisMonth} present days`}
+                >
+                  <CheckCircle2 className="w-3 h-3" />
+                  Present {att?.presentDays ?? '—'}
+                </span>
+                <span
+                  className="inline-flex items-center gap-1 px-2 py-0.5 rounded-md bg-amber-50 dark:bg-amber-500/10 border border-amber-200/60 dark:border-amber-500/20 text-[10px] font-medium text-amber-700 dark:text-amber-400"
+                  title={`${thisMonth} late days`}
+                >
+                  <AlertCircle className="w-3 h-3" />
+                  Late {att?.lateDays ?? '—'}
+                </span>
+                <span
+                  className="inline-flex items-center gap-1 px-2 py-0.5 rounded-md bg-indigo-50 dark:bg-indigo-500/10 border border-indigo-200/60 dark:border-indigo-500/20 text-[10px] font-medium text-indigo-700 dark:text-indigo-400"
+                  title={`${thisMonth} leave days`}
+                >
+                  Leave {leaveDays ?? '—'}
+                </span>
+                <span
+                  className="inline-flex items-center gap-1 px-2 py-0.5 rounded-md bg-slate-100 dark:bg-slate-900 border border-slate-200 dark:border-slate-800 text-[10px] font-medium text-slate-700 dark:text-slate-300"
+                  title={`${thisMonth} avg hours`}
+                >
+                  <Clock className="w-3 h-3" />
+                  {att?.avgHours || '—'}
+                </span>
               </div>
 
               {(emp.quote || emp.proverb) && (
@@ -523,21 +465,46 @@ export const EmployeeList = () => {
               </div>
 
               {/* Clean Footer */}
-              <div className="pt-3 border-t border-slate-200 dark:border-slate-800/60 flex items-center justify-end gap-1">
-                <button
-                  onClick={() => handleEditClick(emp)}
-                  className="p-1.5 text-slate-400 dark:text-slate-500 hover:text-indigo-600 dark:hover:text-indigo-400 rounded-lg hover:bg-slate-100 dark:hover:bg-slate-800 transition-colors"
-                  title="Edit Member"
-                >
-                  <Edit className="w-4 h-4" />
-                </button>
-                <button
-                  onClick={() => setDeleteConfirmEmp(emp)}
-                  className="p-1.5 text-slate-400 dark:text-slate-500 hover:text-rose-600 dark:hover:text-rose-400 rounded-lg hover:bg-slate-100 dark:hover:bg-slate-800 transition-colors"
-                  title="Remove Member"
-                >
-                  <Trash2 className="w-4 h-4" />
-                </button>
+              <div className="pt-3 border-t border-slate-200 dark:border-slate-800/60 flex items-center justify-between gap-1">
+                <div className="flex items-center gap-0.5">
+                  <Link
+                    to="/team/attendance"
+                    className="p-1.5 text-slate-400 dark:text-slate-500 hover:text-emerald-600 dark:hover:text-emerald-400 rounded-lg hover:bg-slate-100 dark:hover:bg-slate-800 transition-colors"
+                    title="Attendance"
+                  >
+                    <CheckCircle2 className="w-4 h-4" />
+                  </Link>
+                  <Link
+                    to={`/team/timeline?uid=${encodeURIComponent(empUid)}`}
+                    className="p-1.5 text-slate-400 dark:text-slate-500 hover:text-indigo-600 dark:hover:text-indigo-400 rounded-lg hover:bg-slate-100 dark:hover:bg-slate-800 transition-colors"
+                    title="Work Timeline"
+                  >
+                    <CalendarDays className="w-4 h-4" />
+                  </Link>
+                  <Link
+                    to={`/team/reports?uid=${encodeURIComponent(empUid)}&month=${thisMonth}`}
+                    className="p-1.5 text-slate-400 dark:text-slate-500 hover:text-indigo-600 dark:hover:text-indigo-400 rounded-lg hover:bg-slate-100 dark:hover:bg-slate-800 transition-colors"
+                    title="Monthly Report"
+                  >
+                    <FileText className="w-4 h-4" />
+                  </Link>
+                </div>
+                <div className="flex items-center gap-1">
+                  <button
+                    onClick={() => handleEditClick(emp)}
+                    className="p-1.5 text-slate-400 dark:text-slate-500 hover:text-indigo-600 dark:hover:text-indigo-400 rounded-lg hover:bg-slate-100 dark:hover:bg-slate-800 transition-colors"
+                    title="Edit Member"
+                  >
+                    <Edit className="w-4 h-4" />
+                  </button>
+                  <button
+                    onClick={() => setDeleteConfirmEmp(emp)}
+                    className="p-1.5 text-slate-400 dark:text-slate-500 hover:text-rose-600 dark:hover:text-rose-400 rounded-lg hover:bg-slate-100 dark:hover:bg-slate-800 transition-colors"
+                    title="Remove Member"
+                  >
+                    <Trash2 className="w-4 h-4" />
+                  </button>
+                </div>
               </div>
             </Card>
           )

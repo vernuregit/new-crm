@@ -18,12 +18,65 @@ import {
 } from 'lucide-react'
 
 const DAY_LABELS = ['Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat']
+const TARGET_DAY_HOURS = 8
+const ENTRY_TYPES = [
+  { id: 'work', label: 'Work' },
+  { id: 'upskilling', label: 'Upskilling' },
+]
 
 function formatHours(hours) {
   const n = Number(hours) || 0
   if (n === 0) return '0h'
   if (Number.isInteger(n)) return `${n}h`
   return `${n}h`
+}
+
+function entryTypeLabel(entryType) {
+  return entryType === 'upskilling' ? 'Upskilling' : 'Work'
+}
+
+function TimelineEntryCard({ entry, interactive = false, onEdit }) {
+  const type = entry.entryType === 'upskilling' ? 'upskilling' : 'work'
+  return (
+    <div
+      role={interactive ? 'button' : undefined}
+      tabIndex={interactive ? 0 : undefined}
+      onClick={interactive ? onEdit : undefined}
+      onKeyDown={
+        interactive
+          ? (e) => {
+              if (e.key === 'Enter' || e.key === ' ') {
+                e.preventDefault()
+                onEdit?.(e)
+              }
+            }
+          : undefined
+      }
+      className={`rounded-xl bg-slate-50 dark:bg-[#1a1f2e] border border-slate-200 dark:border-slate-700/70 p-2.5 ${
+        interactive
+          ? 'hover:border-indigo-300 dark:hover:border-indigo-500/40 transition-colors cursor-pointer'
+          : ''
+      }`}
+    >
+      <p className="w-full text-xs text-slate-800 dark:text-slate-100 leading-snug break-words line-clamp-4">
+        {entry.description}
+      </p>
+      <div className="mt-2 flex items-center justify-between gap-2">
+        <p
+          className={`text-[10px] ${
+            type === 'upskilling'
+              ? 'text-violet-500 dark:text-violet-400'
+              : 'text-slate-400 dark:text-slate-500'
+          }`}
+        >
+          {entryTypeLabel(type)}
+        </p>
+        <span className="shrink-0 text-[10px] font-semibold text-slate-600 dark:text-slate-300 bg-slate-200/80 dark:bg-slate-700/80 rounded-md px-1.5 py-0.5">
+          {formatHours(entry.hours)}
+        </span>
+      </div>
+    </div>
+  )
 }
 
 function weekRangeLabel(days) {
@@ -64,6 +117,7 @@ export const WorkTimelinePage = () => {
   const [modalOpen, setModalOpen] = useState(false)
   const [selectedDate, setSelectedDate] = useState(null)
   const [editingEntry, setEditingEntry] = useState(null)
+  const [entryType, setEntryType] = useState('work')
   const [description, setDescription] = useState('')
   const [hoursInput, setHoursInput] = useState('')
   const [saving, setSaving] = useState(false)
@@ -96,6 +150,7 @@ export const WorkTimelinePage = () => {
     if (dateStr < today) return
     setSelectedDate(dateStr)
     setEditingEntry(null)
+    setEntryType('work')
     setDescription('')
     setHoursInput('')
     setFormError('')
@@ -108,6 +163,7 @@ export const WorkTimelinePage = () => {
     if (entry.date < today) return
     setSelectedDate(entry.date)
     setEditingEntry(entry)
+    setEntryType(entry.entryType === 'upskilling' ? 'upskilling' : 'work')
     setDescription(entry.description || '')
     setHoursInput(String(entry.hours ?? ''))
     setFormError('')
@@ -117,6 +173,7 @@ export const WorkTimelinePage = () => {
   const closeModal = () => {
     setModalOpen(false)
     setEditingEntry(null)
+    setEntryType('work')
     setDescription('')
     setHoursInput('')
     setFormError('')
@@ -141,7 +198,11 @@ export const WorkTimelinePage = () => {
     const hours = Number(hoursInput)
 
     if (!trimmed) {
-      setFormError('Please describe what you worked on.')
+      setFormError(
+        entryType === 'upskilling'
+          ? 'Please describe what you are upskilling on.'
+          : 'Please describe what you worked on.'
+      )
       return
     }
     if (!hoursInput || Number.isNaN(hours) || hours <= 0) {
@@ -159,6 +220,7 @@ export const WorkTimelinePage = () => {
         const ok = await editEntry(editingEntry.entryId, {
           description: trimmed,
           hours,
+          entryType,
         })
         if (!ok) {
           setFormError('Could not update entry. Try again.')
@@ -171,6 +233,7 @@ export const WorkTimelinePage = () => {
           date: selectedDate,
           description: trimmed,
           hours,
+          entryType,
         })
         if (!created) {
           setFormError('Could not save entry. Try again.')
@@ -268,6 +331,7 @@ export const WorkTimelinePage = () => {
           )
           const isToday = dateStr === todayStr
           const isPast = dateStr < todayStr
+          const isFullDay = dayTotal >= TARGET_DAY_HOURS
 
           return (
             <Card
@@ -285,91 +349,63 @@ export const WorkTimelinePage = () => {
                       }
                     }
               }
-              className={`flex flex-col min-h-[220px] !p-3 border transition-colors ${
+              className={`flex flex-col min-h-[260px] !p-3 border transition-colors ${
                 isPast
-                  ? 'border-slate-200 dark:border-slate-800 opacity-70 cursor-default'
+                  ? 'border-slate-200 dark:border-slate-800 cursor-default'
                   : isToday
                     ? 'border-indigo-400 dark:border-indigo-500/50 ring-1 ring-indigo-500/20 cursor-pointer hover:border-indigo-300 dark:hover:border-indigo-500/40'
                     : 'border-slate-200 dark:border-slate-800 cursor-pointer hover:border-indigo-300 dark:hover:border-indigo-500/40'
               }`}
             >
-              <div className="w-full text-left mb-2 pb-2 border-b border-slate-200 dark:border-slate-800 group pointer-events-none">
-                <div className="flex items-center justify-between">
+              <div className="w-full text-left mb-3 pointer-events-none">
+                <div className="flex items-start justify-between gap-2">
+                  <div>
+                    <div
+                      className={`text-xs font-bold uppercase tracking-wide ${
+                        isToday
+                          ? 'text-indigo-600 dark:text-indigo-400'
+                          : 'text-slate-700 dark:text-slate-200'
+                      }`}
+                    >
+                      {DAY_LABELS[idx]} {day.getDate()}
+                    </div>
+                    {isPast ? (
+                      <p className="text-[10px] text-slate-400 mt-0.5">View only</p>
+                    ) : isToday ? (
+                      <p className="text-[10px] text-indigo-500/80 mt-0.5">Today</p>
+                    ) : null}
+                  </div>
                   <span
-                    className={`text-xs font-bold uppercase tracking-wide ${
-                      isToday
-                        ? 'text-indigo-600 dark:text-indigo-400'
-                        : 'text-slate-500 dark:text-slate-400'
+                    className={`shrink-0 text-[10px] font-semibold rounded-full px-2 py-0.5 border ${
+                      isFullDay
+                        ? 'text-emerald-600 dark:text-emerald-400 border-emerald-400/60 bg-emerald-50 dark:bg-emerald-500/10'
+                        : 'text-slate-500 dark:text-slate-400 border-slate-300 dark:border-slate-600'
                     }`}
                   >
-                    {DAY_LABELS[idx]}
+                    {formatHours(dayTotal)} of {TARGET_DAY_HOURS}h
                   </span>
-                  {!isPast && (
-                    <Plus className="w-3.5 h-3.5 text-slate-400 group-hover:text-indigo-500 transition-colors" />
-                  )}
                 </div>
-                <div className="text-sm font-semibold text-slate-800 dark:text-slate-100 mt-0.5">
-                  {day.toLocaleDateString([], { month: 'short', day: 'numeric' })}
-                </div>
-                {isPast && (
-                  <p className="text-[10px] text-slate-400 mt-1">Past</p>
-                )}
               </div>
 
-              <div className="flex-1 space-y-2 overflow-y-auto max-h-48">
+              <div className="flex-1 space-y-2 overflow-y-auto max-h-56">
                 {loading && dayEntries.length === 0 ? (
                   <p className="text-[11px] text-slate-400 py-4 text-center pointer-events-none">
                     Loading…
                   </p>
                 ) : dayEntries.length === 0 ? (
-                  <p className="w-full py-6 text-[11px] text-slate-400 text-center pointer-events-none">
+                  <div className="rounded-xl border border-dashed border-slate-300 dark:border-slate-700 py-8 text-[11px] text-slate-400 text-center pointer-events-none">
                     {isPast ? 'No entries' : 'Click to add'}
-                  </p>
+                  </div>
                 ) : (
-                  dayEntries.map((entry) =>
-                    isPast ? (
-                      <div
-                        key={entry.entryId}
-                        className="w-full text-left rounded-lg bg-slate-50 dark:bg-slate-800/50 border border-slate-200 dark:border-slate-700/60 p-2"
-                      >
-                        <p className="text-xs text-slate-800 dark:text-slate-200 line-clamp-3">
-                          {entry.description}
-                        </p>
-                        <span className="inline-block mt-1 text-[10px] font-semibold text-indigo-600 dark:text-indigo-400">
-                          {formatHours(entry.hours)}
-                        </span>
-                      </div>
-                    ) : (
-                      <div
-                        key={entry.entryId}
-                        role="button"
-                        tabIndex={0}
-                        onClick={(e) => openEditModal(entry, e)}
-                        onKeyDown={(e) => {
-                          if (e.key === 'Enter' || e.key === ' ') {
-                            e.preventDefault()
-                            openEditModal(entry, e)
-                          }
-                        }}
-                        className="w-full text-left rounded-lg bg-slate-50 dark:bg-slate-800/50 border border-slate-200 dark:border-slate-700/60 p-2 hover:border-indigo-300 dark:hover:border-indigo-500/40 transition-colors cursor-pointer"
-                      >
-                        <p className="text-xs text-slate-800 dark:text-slate-200 line-clamp-3">
-                          {entry.description}
-                        </p>
-                        <span className="inline-block mt-1 text-[10px] font-semibold text-indigo-600 dark:text-indigo-400">
-                          {formatHours(entry.hours)}
-                        </span>
-                      </div>
-                    )
-                  )
+                  dayEntries.map((entry) => (
+                    <TimelineEntryCard
+                      key={entry.entryId}
+                      entry={entry}
+                      interactive={!isPast}
+                      onEdit={(e) => openEditModal(entry, e)}
+                    />
+                  ))
                 )}
-              </div>
-
-              <div className="mt-2 pt-2 border-t border-slate-200 dark:border-slate-800 flex items-center justify-between pointer-events-none">
-                <span className="text-[10px] text-slate-500">Day total</span>
-                <span className="text-xs font-bold text-slate-800 dark:text-slate-100">
-                  {formatHours(dayTotal)}
-                </span>
               </div>
             </Card>
           )
@@ -386,7 +422,7 @@ export const WorkTimelinePage = () => {
           <div className="relative w-full max-w-md bg-white dark:bg-[#161A24] rounded-2xl border border-slate-200 dark:border-slate-700 shadow-xl p-5 space-y-4">
             <div className="flex items-center justify-between">
               <h3 className="text-sm font-bold text-slate-900 dark:text-slate-100">
-                {editingEntry ? 'Edit entry' : 'Add work entry'}
+                {editingEntry ? 'Edit entry' : 'Add entry'}
               </h3>
               <button
                 type="button"
@@ -407,16 +443,48 @@ export const WorkTimelinePage = () => {
                 })}
             </p>
 
+            <div
+              role="tablist"
+              aria-label="Entry type"
+              className="grid grid-cols-2 gap-1 p-1 rounded-xl bg-slate-100 dark:bg-[#11141E] border border-slate-200 dark:border-slate-800"
+            >
+              {ENTRY_TYPES.map((tab) => {
+                const selected = entryType === tab.id
+                return (
+                  <button
+                    key={tab.id}
+                    type="button"
+                    role="tab"
+                    aria-selected={selected}
+                    onClick={() => setEntryType(tab.id)}
+                    className={`px-3 py-2 rounded-lg text-xs font-semibold transition-colors cursor-pointer ${
+                      selected
+                        ? 'bg-white dark:bg-slate-800 text-indigo-600 dark:text-indigo-400 shadow-sm'
+                        : 'text-slate-500 dark:text-slate-400 hover:text-slate-800 dark:hover:text-slate-200'
+                    }`}
+                  >
+                    {tab.label}
+                  </button>
+                )
+              })}
+            </div>
+
             <form onSubmit={handleSave} className="space-y-4">
               <div className="space-y-1.5">
                 <label className="block text-xs font-medium text-slate-700 dark:text-slate-300">
-                  What are you working on?
+                  {entryType === 'upskilling'
+                    ? 'What are you upskilling on?'
+                    : 'What are you working on?'}
                 </label>
                 <textarea
                   value={description}
                   onChange={(e) => setDescription(e.target.value)}
                   rows={3}
-                  placeholder="e.g. API integration for client portal"
+                  placeholder={
+                    entryType === 'upskilling'
+                      ? 'e.g. React advanced patterns course'
+                      : 'e.g. API integration for client portal'
+                  }
                   className="w-full bg-slate-100/80 dark:bg-[#11141E] border border-slate-300 dark:border-slate-800 text-slate-900 dark:text-slate-100 placeholder-slate-400 text-sm rounded-xl py-2.5 px-3.5 focus:outline-none focus:ring-2 focus:ring-indigo-500/20 focus:border-indigo-500 resize-none"
                 />
               </div>

@@ -1,54 +1,137 @@
-import React, { useState } from 'react'
+import React, { useState, useEffect } from 'react'
 import { Badge } from '../../../components/ui/Badge'
 import { Button } from '../../../components/ui/Button'
 import { useProjectStore } from '../stores/projectStore'
+import { useUserStore } from '../../../stores/userStore'
+import { getTimerElapsedMs, formatElapsed } from '../services/projectService'
 import {
   Plus,
   Trash2,
-  Sparkles,
   Check,
   Award,
   Layers,
   Clock,
   AlignLeft,
+  Pause,
+  Play,
+  User,
+  Flag,
+  Pencil,
 } from 'lucide-react'
 
+const SUBTASK_PRIORITIES = [
+  { value: 'low', label: 'Low' },
+  { value: 'medium', label: 'Medium' },
+  { value: 'high', label: 'High' },
+]
+
+const INPUT_CLASS =
+  'w-full bg-white dark:bg-[#181C27] border border-slate-300 dark:border-slate-800 rounded-xl px-3 py-2 text-xs text-slate-900 dark:text-slate-100 focus:outline-none focus:border-indigo-500 focus:ring-1 focus:ring-indigo-500 transition-all placeholder:text-slate-400 dark:placeholder:text-slate-600'
+
+const getPriorityBadgeVariant = (priority) => {
+  if (priority === 'high') return 'danger'
+  if (priority === 'low') return 'neutral'
+  return 'warning'
+}
+
 export const SubtaskStepper = ({ taskId, subtasks = [], compact = false }) => {
-  const { addSubtask, toggleSubtask, deleteSubtask, autoDecomposeTask } = useProjectStore()
+  const {
+    addSubtask,
+    updateSubtask,
+    toggleSubtask,
+    deleteSubtask,
+    pauseSubtaskTimer,
+    resumeSubtaskTimer,
+  } = useProjectStore()
+  const { user, userDoc } = useUserStore()
 
   const [showAddForm, setShowAddForm] = useState(false)
   const [newTitle, setNewTitle] = useState('')
   const [newDesc, setNewDesc] = useState('')
-  const [newTime, setNewTime] = useState('')
+  const [newPriority, setNewPriority] = useState('medium')
+  const [editingId, setEditingId] = useState(null)
+  const [editTitle, setEditTitle] = useState('')
+  const [editDesc, setEditDesc] = useState('')
+  const [editPriority, setEditPriority] = useState('medium')
+  const [nowTick, setNowTick] = useState(Date.now())
 
   const totalCount = subtasks.length
   const completedCount = subtasks.filter((st) => st.isCompleted).length
   const progressPercent = totalCount > 0 ? Math.round((completedCount / totalCount) * 100) : 0
   const isAllCompleted = totalCount > 0 && completedCount === totalCount
 
+  useEffect(() => {
+    const hasRunning = subtasks.some((st) => st.timerStatus === 'running')
+    if (!hasRunning) return undefined
+    const id = setInterval(() => setNowTick(Date.now()), 1000)
+    return () => clearInterval(id)
+  }, [subtasks])
+
+  const formatSubtaskTimer = (st) => {
+    void nowTick
+    const elapsed = formatElapsed(getTimerElapsedMs(st))
+    if (st?.timerStatus === 'paused') return `Paused · ${elapsed}`
+    return elapsed
+  }
+
   const handleAddSubtaskSubmit = (e) => {
     e.preventDefault()
     if (!newTitle.trim()) return
+
+    const creatorName =
+      userDoc?.displayName || user?.displayName || userDoc?.email || user?.email || 'Employee'
+    const creatorId = userDoc?.uid || user?.uid || null
+    const creatorEmail = userDoc?.email || user?.email || null
 
     if (addSubtask) {
       addSubtask(taskId, {
         title: newTitle.trim(),
         description: newDesc.trim() || null,
-        estimatedTime: newTime ? Number(newTime) : null,
+        priority: newPriority || 'medium',
+        createdBy: creatorId,
+        createdByEmail: creatorEmail,
+        createdByName: creatorName,
       })
     }
 
     setNewTitle('')
     setNewDesc('')
-    setNewTime('')
+    setNewPriority('medium')
     setShowAddForm(false)
   }
 
   const handleCancel = () => {
     setNewTitle('')
     setNewDesc('')
-    setNewTime('')
+    setNewPriority('medium')
     setShowAddForm(false)
+  }
+
+  const startEdit = (st) => {
+    setShowAddForm(false)
+    setEditingId(st.id)
+    setEditTitle(st.title || '')
+    setEditDesc(st.description || '')
+    setEditPriority(st.priority || 'medium')
+  }
+
+  const cancelEdit = () => {
+    setEditingId(null)
+    setEditTitle('')
+    setEditDesc('')
+    setEditPriority('medium')
+  }
+
+  const handleEditSubmit = (e) => {
+    e.preventDefault()
+    if (!editTitle.trim() || !editingId || !updateSubtask) return
+
+    updateSubtask(taskId, editingId, {
+      title: editTitle.trim(),
+      description: editDesc.trim() || null,
+      priority: editPriority || 'medium',
+    })
+    cancelEdit()
   }
 
   // Compact View for Kanban Cards
@@ -107,22 +190,13 @@ export const SubtaskStepper = ({ taskId, subtasks = [], compact = false }) => {
         </div>
 
         <div className="flex items-center gap-2">
-          {totalCount === 0 && autoDecomposeTask && (
-            <Button
-              size="sm"
-              variant="secondary"
-              onClick={() => autoDecomposeTask(taskId)}
-              className="text-xs text-indigo-600 dark:text-indigo-300 bg-indigo-50 dark:bg-indigo-950/50 hover:bg-indigo-100 dark:hover:bg-indigo-900/50 border-indigo-200 dark:border-indigo-800"
-              icon={Sparkles}
-            >
-              AI Auto-Breakdown
-            </Button>
-          )}
-
           <Button
             size="sm"
             variant="secondary"
-            onClick={() => setShowAddForm(!showAddForm)}
+            onClick={() => {
+              cancelEdit()
+              setShowAddForm(!showAddForm)
+            }}
             icon={Plus}
           >
             Add Subtask
@@ -158,7 +232,6 @@ export const SubtaskStepper = ({ taskId, subtasks = [], compact = false }) => {
             <Plus className="w-3.5 h-3.5 text-indigo-500" /> Create New Subtask
           </div>
 
-          {/* Title — required */}
           <div className="space-y-1">
             <label className="block text-[11px] font-semibold text-slate-600 dark:text-slate-400 uppercase tracking-wide">
               Title <span className="text-rose-500">*</span>
@@ -168,13 +241,12 @@ export const SubtaskStepper = ({ taskId, subtasks = [], compact = false }) => {
               placeholder="Subtask title (e.g. Code Review, Testing)..."
               value={newTitle}
               onChange={(e) => setNewTitle(e.target.value)}
-              className="w-full bg-white dark:bg-[#181C27] border border-slate-300 dark:border-slate-800 rounded-xl px-3 py-2 text-xs text-slate-900 dark:text-slate-100 focus:outline-none focus:border-indigo-500 focus:ring-1 focus:ring-indigo-500 transition-all placeholder:text-slate-400 dark:placeholder:text-slate-600"
+              className={INPUT_CLASS}
               autoFocus
               required
             />
           </div>
 
-          {/* Description — optional */}
           <div className="space-y-1">
             <label className="block text-[11px] font-semibold text-slate-600 dark:text-slate-400 uppercase tracking-wide flex items-center gap-1">
               <AlignLeft className="w-3 h-3" />
@@ -186,41 +258,39 @@ export const SubtaskStepper = ({ taskId, subtasks = [], compact = false }) => {
               value={newDesc}
               onChange={(e) => setNewDesc(e.target.value)}
               rows={2}
-              className="w-full bg-white dark:bg-[#181C27] border border-slate-300 dark:border-slate-800 rounded-xl px-3 py-2 text-xs text-slate-900 dark:text-slate-100 focus:outline-none focus:border-indigo-500 focus:ring-1 focus:ring-indigo-500 transition-all placeholder:text-slate-400 dark:placeholder:text-slate-600 resize-none"
+              className={`${INPUT_CLASS} resize-none`}
             />
           </div>
 
-          {/* Estimated Time — optional */}
           <div className="space-y-1">
             <label className="block text-[11px] font-semibold text-slate-600 dark:text-slate-400 uppercase tracking-wide flex items-center gap-1">
-              <Clock className="w-3 h-3" />
-              Estimated Time
-              <span className="text-slate-400 dark:text-slate-600 font-normal normal-case tracking-normal ml-1">(optional)</span>
+              <Flag className="w-3 h-3" />
+              Priority
             </label>
-            <div className="relative flex items-center">
-              <input
-                type="number"
-                min="0.25"
-                max="99"
-                step="0.25"
-                placeholder="0"
-                value={newTime}
-                onChange={(e) => setNewTime(e.target.value)}
-                className="w-full bg-white dark:bg-[#181C27] border border-slate-300 dark:border-slate-800 rounded-xl pl-3 pr-14 py-2 text-xs text-slate-900 dark:text-slate-100 focus:outline-none focus:border-indigo-500 focus:ring-1 focus:ring-indigo-500 transition-all placeholder:text-slate-400 dark:placeholder:text-slate-600"
-              />
-              <span className="absolute right-3 text-[10px] font-semibold text-slate-400 dark:text-slate-600 pointer-events-none">
-                hrs
-              </span>
-            </div>
+            <select
+              value={newPriority}
+              onChange={(e) => setNewPriority(e.target.value)}
+              className={`${INPUT_CLASS} cursor-pointer`}
+            >
+              {SUBTASK_PRIORITIES.map((p) => (
+                <option
+                  key={p.value}
+                  value={p.value}
+                  className="bg-white dark:bg-slate-900 text-slate-900 dark:text-slate-100"
+                >
+                  {p.label}
+                </option>
+              ))}
+            </select>
           </div>
 
+          <p className="text-[11px] text-slate-500 dark:text-slate-400 flex items-center gap-1.5">
+            <Clock className="w-3.5 h-3.5 text-indigo-500" />
+            Timer starts automatically when the subtask is created.
+          </p>
+
           <div className="flex justify-end gap-2 pt-1">
-            <Button
-              type="button"
-              size="sm"
-              variant="ghost"
-              onClick={handleCancel}
-            >
+            <Button type="button" size="sm" variant="ghost" onClick={handleCancel}>
               Cancel
             </Button>
             <Button type="submit" size="sm" variant="primary">
@@ -234,33 +304,32 @@ export const SubtaskStepper = ({ taskId, subtasks = [], compact = false }) => {
       {totalCount === 0 ? (
         <div className="text-center py-6 border border-dashed border-slate-200 dark:border-slate-800 rounded-2xl bg-slate-50/50 dark:bg-slate-900/20">
           <p className="text-xs text-slate-500 dark:text-slate-400">
-            No subtasks added yet. Click "Add Subtask" or use AI Auto-Breakdown.
+            No subtasks added yet. Click &quot;Add Subtask&quot; to create one.
           </p>
         </div>
       ) : (
         <div className="relative pl-7 space-y-4 my-2">
-          {/* Continuous Vertical Connecting Line */}
           <div className="absolute left-[13px] top-3 bottom-3 w-[2px] bg-slate-200 dark:bg-slate-800 pointer-events-none" />
 
           {subtasks.map((st, index) => {
             const isCompleted = st.isCompleted
             const isLast = index === subtasks.length - 1
+            const isEditing = editingId === st.id
 
             return (
               <div key={st.id} className="relative flex items-start justify-between group py-1">
-                {/* Active Connected Progress Line Segment */}
                 {isCompleted && !isLast && (
-                  <div
-                    className="absolute left-[-15px] top-[14px] w-[2px] h-[calc(100%+16px)] bg-emerald-500 dark:bg-emerald-400 transition-all duration-500 z-0"
-                  />
+                  <div className="absolute left-[-15px] top-[14px] w-[2px] h-[calc(100%+16px)] bg-emerald-500 dark:bg-emerald-400 transition-all duration-500 z-0" />
                 )}
 
-                {/* Clickable Circle Icon Node */}
                 <button
                   type="button"
-                  onClick={() => toggleSubtask && toggleSubtask(taskId, st.id)}
+                  onClick={() => !isEditing && toggleSubtask && toggleSubtask(taskId, st.id)}
                   title={isCompleted ? 'Click to mark incomplete' : 'Click to complete subtask'}
-                  className={`absolute -left-7 top-0.5 z-10 w-7 h-7 rounded-full flex items-center justify-center transition-all duration-300 cursor-pointer ${
+                  disabled={isEditing}
+                  className={`absolute -left-7 top-0.5 z-10 w-7 h-7 rounded-full flex items-center justify-center transition-all duration-300 ${
+                    isEditing ? 'cursor-default' : 'cursor-pointer'
+                  } ${
                     isCompleted
                       ? 'bg-emerald-500 text-white shadow-md shadow-emerald-500/30 scale-105 hover:scale-110'
                       : 'bg-white dark:bg-[#181C27] border-2 border-slate-300 dark:border-slate-700 text-slate-400 hover:border-emerald-500 hover:text-emerald-500 hover:scale-110'
@@ -273,56 +342,155 @@ export const SubtaskStepper = ({ taskId, subtasks = [], compact = false }) => {
                   )}
                 </button>
 
-                {/* Subtask Content */}
-                <div
-                  onClick={() => toggleSubtask && toggleSubtask(taskId, st.id)}
-                  className={`flex-1 ml-3 cursor-pointer transition-all ${
-                    isCompleted ? 'opacity-60' : ''
-                  }`}
-                >
-                  <h5
-                    className={`text-sm font-semibold transition-colors leading-snug ${
-                      isCompleted
-                        ? 'line-through text-slate-400 dark:text-slate-500'
-                        : 'text-slate-800 dark:text-slate-200 hover:text-indigo-600 dark:hover:text-indigo-400'
-                    }`}
+                {isEditing ? (
+                  <form
+                    onSubmit={handleEditSubmit}
+                    className="flex-1 ml-3 p-3 rounded-xl bg-slate-50 dark:bg-slate-900/60 border border-indigo-200 dark:border-indigo-500/30 space-y-2.5"
                   >
-                    {st.title}
-                  </h5>
+                    <div className="text-[11px] font-bold text-slate-800 dark:text-slate-200 flex items-center gap-1.5">
+                      <Pencil className="w-3 h-3 text-indigo-500" /> Edit Subtask
+                    </div>
+                    <input
+                      type="text"
+                      value={editTitle}
+                      onChange={(e) => setEditTitle(e.target.value)}
+                      className={INPUT_CLASS}
+                      autoFocus
+                      required
+                      placeholder="Subtask title..."
+                    />
+                    <textarea
+                      value={editDesc}
+                      onChange={(e) => setEditDesc(e.target.value)}
+                      rows={2}
+                      className={`${INPUT_CLASS} resize-none`}
+                      placeholder="Description (optional)..."
+                    />
+                    <select
+                      value={editPriority}
+                      onChange={(e) => setEditPriority(e.target.value)}
+                      className={`${INPUT_CLASS} cursor-pointer`}
+                    >
+                      {SUBTASK_PRIORITIES.map((p) => (
+                        <option
+                          key={p.value}
+                          value={p.value}
+                          className="bg-white dark:bg-slate-900 text-slate-900 dark:text-slate-100"
+                        >
+                          {p.label}
+                        </option>
+                      ))}
+                    </select>
+                    <div className="flex justify-end gap-2 pt-0.5">
+                      <Button type="button" size="sm" variant="ghost" onClick={cancelEdit}>
+                        Cancel
+                      </Button>
+                      <Button type="submit" size="sm" variant="primary">
+                        Save Changes
+                      </Button>
+                    </div>
+                  </form>
+                ) : (
+                  <>
+                    <div className={`flex-1 ml-3 transition-all ${isCompleted ? 'opacity-60' : ''}`}>
+                      <h5
+                        onClick={() => toggleSubtask && toggleSubtask(taskId, st.id)}
+                        className={`text-sm font-semibold transition-colors leading-snug cursor-pointer ${
+                          isCompleted
+                            ? 'line-through text-slate-400 dark:text-slate-500'
+                            : 'text-slate-800 dark:text-slate-200 hover:text-indigo-600 dark:hover:text-indigo-400'
+                        }`}
+                      >
+                        {st.title}
+                      </h5>
 
-                  {/* Optional Description */}
-                  {st.description && (
-                    <p className={`text-[11px] mt-0.5 leading-relaxed flex items-start gap-1 ${
-                      isCompleted ? 'text-slate-400 dark:text-slate-600' : 'text-slate-500 dark:text-slate-400'
-                    }`}>
-                      <AlignLeft className="w-3 h-3 mt-0.5 shrink-0 text-slate-400 dark:text-slate-600" />
-                      {st.description}
-                    </p>
-                  )}
+                      {st.description && (
+                        <p
+                          className={`text-[11px] mt-0.5 leading-relaxed flex items-start gap-1 ${
+                            isCompleted
+                              ? 'text-slate-400 dark:text-slate-600'
+                              : 'text-slate-500 dark:text-slate-400'
+                          }`}
+                        >
+                          <AlignLeft className="w-3 h-3 mt-0.5 shrink-0 text-slate-400 dark:text-slate-600" />
+                          {st.description}
+                        </p>
+                      )}
 
-                  {/* Optional Estimated Time */}
-                  {st.estimatedTime && (
-                    <span className={`inline-flex items-center gap-1 mt-1 text-[10px] font-semibold px-1.5 py-0.5 rounded-md ${
-                      isCompleted
-                        ? 'bg-slate-100 dark:bg-slate-800/50 text-slate-400 dark:text-slate-600'
-                        : 'bg-blue-50 dark:bg-blue-500/10 text-blue-600 dark:text-blue-400 border border-blue-200 dark:border-blue-500/20'
-                    }`}>
-                      <Clock className="w-2.5 h-2.5" />
-                      {st.estimatedTime}h
-                    </span>
-                  )}
-                </div>
+                      <div className="flex flex-wrap items-center gap-2 mt-1.5">
+                        {st.priority && (
+                          <Badge
+                            variant={getPriorityBadgeVariant(st.priority)}
+                            className="!text-[10px] !px-1.5 !py-0.5 capitalize"
+                          >
+                            {st.priority}
+                          </Badge>
+                        )}
+                        {st.createdByName && (
+                          <span className="inline-flex items-center gap-1 text-[10px] font-semibold px-1.5 py-0.5 rounded-md bg-slate-100 dark:bg-slate-800 text-slate-600 dark:text-slate-300 border border-slate-200 dark:border-slate-700">
+                            <User className="w-2.5 h-2.5" />
+                            {st.createdByName}
+                          </span>
+                        )}
+                        <span
+                          className={`inline-flex items-center gap-1 text-[10px] font-semibold px-1.5 py-0.5 rounded-md ${
+                            isCompleted || st.timerStatus === 'stopped'
+                              ? 'bg-slate-100 dark:bg-slate-800/50 text-slate-400 dark:text-slate-600'
+                              : st.timerStatus === 'paused'
+                                ? 'bg-amber-50 dark:bg-amber-500/10 text-amber-600 dark:text-amber-400 border border-amber-200 dark:border-amber-500/20'
+                                : 'bg-blue-50 dark:bg-blue-500/10 text-blue-600 dark:text-blue-400 border border-blue-200 dark:border-blue-500/20'
+                          }`}
+                        >
+                          <Clock className="w-2.5 h-2.5" />
+                          {formatSubtaskTimer(st)}
+                        </span>
 
-                {/* Delete Action Button */}
-                {deleteSubtask && (
-                  <button
-                    type="button"
-                    onClick={() => deleteSubtask(taskId, st.id)}
-                    title="Delete subtask"
-                    className="opacity-0 group-hover:opacity-100 p-1.5 text-slate-400 hover:text-rose-500 hover:bg-slate-100 dark:hover:bg-slate-800 transition-all rounded-lg mt-0.5 shrink-0"
-                  >
-                    <Trash2 className="w-3.5 h-3.5" />
-                  </button>
+                        {!isCompleted && st.timerStatus === 'running' && (
+                          <button
+                            type="button"
+                            onClick={() => pauseSubtaskTimer(taskId, st.id)}
+                            className="inline-flex items-center gap-1 text-[10px] font-semibold px-1.5 py-0.5 rounded-md bg-slate-100 dark:bg-slate-800 text-slate-600 dark:text-slate-300 hover:bg-amber-50 hover:text-amber-600 dark:hover:bg-amber-500/10 dark:hover:text-amber-400 transition-colors"
+                            title="Pause timer"
+                          >
+                            <Pause className="w-2.5 h-2.5" /> Pause
+                          </button>
+                        )}
+                        {!isCompleted && st.timerStatus === 'paused' && (
+                          <button
+                            type="button"
+                            onClick={() => resumeSubtaskTimer(taskId, st.id)}
+                            className="inline-flex items-center gap-1 text-[10px] font-semibold px-1.5 py-0.5 rounded-md bg-indigo-50 dark:bg-indigo-500/10 text-indigo-600 dark:text-indigo-400 hover:bg-indigo-100 dark:hover:bg-indigo-500/20 transition-colors"
+                            title="Resume timer"
+                          >
+                            <Play className="w-2.5 h-2.5" /> Resume
+                          </button>
+                        )}
+                      </div>
+                    </div>
+
+                    <div className="flex items-start gap-0.5 mt-0.5 shrink-0 opacity-0 group-hover:opacity-100 transition-all">
+                      {updateSubtask && (
+                        <button
+                          type="button"
+                          onClick={() => startEdit(st)}
+                          title="Edit subtask"
+                          className="p-1.5 text-slate-400 hover:text-indigo-500 hover:bg-slate-100 dark:hover:bg-slate-800 rounded-lg"
+                        >
+                          <Pencil className="w-3.5 h-3.5" />
+                        </button>
+                      )}
+                      {deleteSubtask && (
+                        <button
+                          type="button"
+                          onClick={() => deleteSubtask(taskId, st.id)}
+                          title="Delete subtask"
+                          className="p-1.5 text-slate-400 hover:text-rose-500 hover:bg-slate-100 dark:hover:bg-slate-800 rounded-lg"
+                        >
+                          <Trash2 className="w-3.5 h-3.5" />
+                        </button>
+                      )}
+                    </div>
+                  </>
                 )}
               </div>
             )

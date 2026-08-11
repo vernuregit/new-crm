@@ -1,10 +1,19 @@
 import React, { useState, useEffect, useMemo } from 'react'
-import { NavLink } from 'react-router-dom'
 import { PageHeader } from '../../components/layout/PageHeader'
 import { Card } from '../../components/ui/Card'
 import { Badge } from '../../components/ui/Badge'
+import { Button } from '../../components/ui/Button'
+import { Input } from '../../components/ui/Input'
 import { useTeamStore } from './stores/teamStore'
+import { useUserStore } from '../../stores/userStore'
 import { db } from '../../shared/services/firebaseService'
+import {
+  setEmployeeAttendanceStatus,
+  subscribeToOfficeLocation,
+  saveOfficeLocation,
+} from './services/teamService'
+import { OfficeLocationPickerMap } from './components/OfficeLocationPickerMap'
+import { TeamSubNav } from './components/TeamSubNav'
 import { computeRealAttendanceStats, timeStrToMinutes } from './services/attendanceStatsUtils'
 import {
   collection,
@@ -18,7 +27,6 @@ import {
 import {
   Users,
   CheckCircle2,
-  Calendar,
   Clock,
   LogIn,
   LogOut,
@@ -28,11 +36,16 @@ import {
   AlertCircle,
   Wifi,
   WifiOff,
-  TrendingUp,
   Edit,
   Save,
   X,
-  CalendarDays,
+  UserCheck,
+  UserX,
+  MapPin,
+  ChevronDown,
+  ChevronUp,
+  Navigation,
+  Loader2,
 } from 'lucide-react'
 
 // Today's date in YYYY-MM-DD
@@ -60,6 +73,45 @@ function secToHrsStr(totalSec) {
   return `${hrs}h ${mins}m`
 }
 
+/**
+ * Regular hours from clock-in → clock-out (capped at 8h).
+ * If still "In office", uses now for today / 7:00 PM for past dates.
+ */
+function computeRegularSecondsFromTimes(clockInStr, clockOutStr, dateStr, breakSec = 0) {
+  const inMins = timeStrToMinutes(clockInStr)
+  if (inMins === null) return 0
+
+  let outMins = null
+  if (clockOutStr && clockOutStr !== 'In office' && clockOutStr !== '—') {
+    outMins = timeStrToMinutes(clockOutStr)
+  } else {
+    const today = todayStr()
+    if (dateStr && dateStr < today) {
+      outMins = 19 * 60 // 7:00 PM auto end for past days
+    } else if (!dateStr || dateStr === today) {
+      const now = new Date()
+      outMins = now.getHours() * 60 + now.getMinutes()
+    } else {
+      // Future date with no clock-out yet
+      return 0
+    }
+  }
+
+  if (outMins === null || outMins <= inMins) return 0
+  return Math.min(28800, Math.max(0, (outMins - inMins) * 60 - (breakSec || 0)))
+}
+
+/** Build a Date timestamp for YYYY-MM-DD + time string like "09:30 AM" */
+function timestampFromDateAndTime(dateStr, timeStr) {
+  const inMins = timeStrToMinutes(timeStr)
+  if (!dateStr || inMins === null) return null
+  const [y, m, d] = dateStr.split('-').map(Number)
+  if (!y || !m || !d) return null
+  const hrs = Math.floor(inMins / 60)
+  const mins = inMins % 60
+  return new Date(y, m - 1, d, hrs, mins, 0, 0).getTime()
+}
+
 function formatDate(dateStr) {
   if (!dateStr) return '—'
   const d = new Date(dateStr)
@@ -68,6 +120,8 @@ function formatDate(dateStr) {
 
 export const AttendancePage = () => {
   const { employees } = useTeamStore()
+  const { user } = useUserStore()
+  const adminName = user?.displayName || user?.email || 'Admin'
 
   const [selectedDate, setSelectedDate] = useState(todayStr)
   const [attendanceLogs, setAttendanceLogs] = useState([])
@@ -82,6 +136,112 @@ export const AttendancePage = () => {
   const [editClockIn, setEditClockIn] = useState('')
   const [editClockOut, setEditClockOut] = useState('')
   const [savingEdit, setSavingEdit] = useState(false)
+  const [togglingAttendanceUid, setTogglingAttendanceUid] = useState(null)
+
+  // Office location geofence
+  const [showOfficePanel, setShowOfficePanel] = useState(false)
+  const [officeLat, setOfficeLat] = useState('')
+  const [officeLng, setOfficeLng] = useState('')
+  const [officeRadius, setOfficeRadius] = useState(200)
+  const [officeLoaded, setOfficeLoaded] = useState(false)
+  const [savingOffice, setSavingOffice] = useState(false)
+  const [officeSaved, setOfficeSaved] = useState(false)
+  const [officeError, setOfficeError] = useState('')
+  const [locatingDevice, setLocatingDevice] = useState(false)
+
+  useEffect(() => {
+    const unsub = subscribeToOfficeLocation((loc) => {
+      setOfficeLat(loc.lat != null ? String(loc.lat) : '')
+      setOfficeLng(loc.lng != null ? String(loc.lng) : '')
+      setOfficeRadius(loc.radiusMeters || 200)
+      setOfficeLoaded(true)
+    })
+    return () => unsub()
+  }, [])
+
+  const persistOfficeLocation = async (lat, lng, radiusMeters = officeRadius) => {
+    const radius = Math.max(50, Number(radiusMeters) || 200)
+    if (!Number.isFinite(lat) || !Number.isFinite(lng)) {
+      setOfficeError('Enter valid latitude and longitude.')
+      return false
+    }
+    if (lat < -90 || lat > 90 || lng < -180 || lng > 180) {
+      setOfficeError('Latitude must be -90–90 and longitude -180–180.')
+      return false
+    }
+    setSavingOffice(true)
+    setOfficeError('')
+    await saveOfficeLocation({ lat, lng, radiusMeters: radius, label: 'Office' }, adminName)
+    setOfficeLat(String(Number(lat.toFixed(6))))
+    setOfficeLng(String(Number(lng.toFixed(6))))
+    setOfficeRadius(radius)
+    setSavingOffice(false)
+    setOfficeSaved(true)
+    setTimeout(() => setOfficeSaved(false), 2000)
+    return true
+  }
+
+  const handleSaveOfficeLocation = async (e) => {
+    e.preventDefault()
+    await persistOfficeLocation(Number(officeLat), Number(officeLng), officeRadius)
+  }
+
+  const handleUseDeviceLocation = () => {
+    setOfficeError('')
+    if (typeof navigator === 'undefined' || !navigator.geolocation) {
+      setOfficeError('Geolocation is not supported on this device.')
+      return
+    }
+    setLocatingDevice(true)
+    navigator.geolocation.getCurrentPosition(
+      async (pos) => {
+        const lat = pos.coords.latitude
+        const lng = pos.coords.longitude
+        setOfficeLat(String(Number(lat.toFixed(6))))
+        setOfficeLng(String(Number(lng.toFixed(6))))
+        await persistOfficeLocation(lat, lng, officeRadius)
+        setLocatingDevice(false)
+      },
+      (err) => {
+        setLocatingDevice(false)
+        if (err?.code === 1) {
+          setOfficeError('Location permission denied. Allow location access for this browser.')
+        } else if (err?.code === 2) {
+          setOfficeError('Location unavailable. Try again near the office.')
+        } else if (err?.code === 3) {
+          setOfficeError('Location request timed out. Try again.')
+        } else {
+          setOfficeError('Unable to get your device location.')
+        }
+      },
+      { enableHighAccuracy: true, timeout: 15000, maximumAge: 0 }
+    )
+  }
+
+  const isRowPresent = (row) => Boolean(row?.present)
+
+  const handleTogglePresentAbsent = async (row) => {
+    if (!row?.uid || togglingAttendanceUid) return
+
+    const nextPresent = !isRowPresent(row)
+    setTogglingAttendanceUid(row.uid)
+
+    try {
+      await setEmployeeAttendanceStatus(
+        {
+          uid: row.uid,
+          displayName: row.displayName,
+          departmentName: row.departmentName,
+        },
+        nextPresent,
+        selectedDate
+      )
+    } catch (err) {
+      console.error('Failed to toggle present/absent:', err)
+    } finally {
+      setTogglingAttendanceUid(null)
+    }
+  }
 
   const handleSaveEdit = async (e) => {
     e.preventDefault()
@@ -89,28 +249,35 @@ export const AttendancePage = () => {
     setSavingEdit(true)
     try {
       const docId = `${selectedDate}_${editingRow.uid}`
-      const inMins = timeStrToMinutes(editClockIn)
-      const outMins = editClockOut && editClockOut !== 'In office' ? timeStrToMinutes(editClockOut) : null
-
-      let regSec = editingRow.regularSeconds || 0
-      if (inMins !== null && outMins !== null && outMins > inMins) {
-        regSec = Math.min(28800, (outMins - inMins) * 60)
-      } else if (inMins !== null && (editClockOut === 'In office' || !editClockOut)) {
-        regSec = Math.min(28800, regSec || 28800)
-      }
-
       const isClockedIn = editClockOut === 'In office' || !editClockOut
+      const breakSec = editingRow.accumulatedBreakSeconds || 0
+
+      // Always recompute regular hours from the edited start/end times
+      const regSec = computeRegularSecondsFromTimes(
+        editClockIn,
+        isClockedIn ? 'In office' : editClockOut,
+        selectedDate,
+        breakSec
+      )
+
+      const clockInTimestamp = timestampFromDateAndTime(selectedDate, editClockIn)
+
       const updatedData = {
         uid: editingRow.uid,
         displayName: editingRow.displayName,
         departmentName: editingRow.departmentName,
         date: selectedDate,
         clockInTime: editClockIn || '—',
+        clockInTimestamp: clockInTimestamp || null,
         clockOutTime: isClockedIn ? null : editClockOut,
         clockedIn: isClockedIn,
+        present: true,
+        onDuty: false,
         regularSeconds: regSec,
+        accumulatedWorkSeconds: regSec,
         regularHours: secToHrsStr(regSec),
         autoClockOut: false,
+        source: 'admin_edit',
       }
 
       await setDoc(doc(db, 'attendanceLogs', docId), updatedData, { merge: true })
@@ -121,6 +288,18 @@ export const AttendancePage = () => {
       setSavingEdit(false)
     }
   }
+
+  const editPreviewRegularHours = useMemo(
+    () =>
+      secToHrsStr(
+        computeRegularSecondsFromTimes(
+          editClockIn,
+          editClockOut === 'In office' || !editClockOut ? 'In office' : editClockOut,
+          selectedDate
+        )
+      ),
+    [editClockIn, editClockOut, selectedDate]
+  )
 
   useEffect(() => {
     const fetchAllLogs = async () => {
@@ -202,107 +381,124 @@ export const AttendancePage = () => {
     return () => unsub()
   }, [selectedDate])
 
-  // Merge: start from employees list and overlay Firestore attendance data
+  // Merge: show all employees, overlay Firestore attendance data for selected date
   const rows = React.useMemo(() => {
     const today = todayStr()
     const isPastDate = selectedDate < today
     const isToday = selectedDate === today
-    const now = new Date()
-    const currentHour = now.getHours()
-    const nowMins = currentHour * 60 + now.getMinutes()
+    const currentHour = new Date().getHours()
 
-    if (attendanceLogs.length > 0) {
-      // We have real Firestore data — use it directly
-      return attendanceLogs.map((log) => {
-        const emp = employeeMap[log.uid] || {}
+    const logByUid = {}
+    attendanceLogs.forEach((log) => {
+      if (log.uid) logByUid[log.uid] = log
+    })
 
-        let isCurrentlyClockedIn = Boolean(log.clockedIn)
-        let resolvedClockOut = log.clockOutTime || null
-        let isAutoClockOut = Boolean(log.autoClockOut)
-        let calculatedRegularSec = log.regularSeconds || log.accumulatedWorkSeconds || 0
+    const buildRowFromLog = (log, emp = {}) => {
+      let isCurrentlyClockedIn = Boolean(log.clockedIn)
+      let resolvedClockOut = log.clockOutTime || null
+      let isAutoClockOut = Boolean(log.autoClockOut)
+      const breakSec = log.accumulatedBreakSeconds || 0
 
-        if (isToday) {
-          // If log was prematurely auto-clocked out at 7:00 PM before 7:00 PM actually arrived today
-          if (isAutoClockOut && currentHour < 19 && log.clockInTime && log.clockInTime !== '—') {
-            isAutoClockOut = false
-            resolvedClockOut = null
-            isCurrentlyClockedIn = true
+      if (isToday) {
+        // If log was prematurely auto-clocked out at 7:00 PM before 7:00 PM actually arrived today
+        if (isAutoClockOut && currentHour < 19 && log.clockInTime && log.clockInTime !== '—') {
+          isAutoClockOut = false
+          resolvedClockOut = null
+          isCurrentlyClockedIn = true
+        }
+
+        if (isCurrentlyClockedIn && !resolvedClockOut) {
+          // Prefer clock-in time string so admin start-time edits update live hours immediately
+          let liveShiftSec = computeRegularSecondsFromTimes(
+            log.clockInTime,
+            'In office',
+            selectedDate,
+            breakSec
+          )
+
+          // Fallback to timestamp if time string couldn't be parsed
+          if (liveShiftSec <= 0 && log.clockInTimestamp) {
+            liveShiftSec = Math.min(
+              28800,
+              Math.max(0, Math.floor((Date.now() - log.clockInTimestamp) / 1000) - breakSec)
+            )
           }
 
-          if (isCurrentlyClockedIn) {
-            let elapsedSec = 0
-            if (log.clockInTimestamp) {
-              elapsedSec = Math.max(0, Math.floor((Date.now() - log.clockInTimestamp) / 1000))
-            } else if (log.clockInTime && log.clockInTime !== '—') {
-              const inMins = timeStrToMinutes(log.clockInTime)
-              if (inMins !== null && nowMins >= inMins) {
-                elapsedSec = (nowMins - inMins) * 60
-              }
-            }
-            const breakSec = log.accumulatedBreakSeconds || 0
-            const liveShiftSec = Math.max(0, elapsedSec - breakSec)
-
-            // Dynamic live working seconds for today's active shift (capped at standard 8h = 28,800 sec max)
-            calculatedRegularSec = Math.min(28800, liveShiftSec)
-
-            // Auto clock-out ONLY if current time is past 7:00 PM (hour >= 19) or elapsed shift >= 8 hours
-            if ((currentHour >= 19 || liveShiftSec >= 28800) && !resolvedClockOut) {
-              resolvedClockOut = '07:00 PM'
-              isAutoClockOut = true
-              isCurrentlyClockedIn = false
-            }
-          } else {
-            // For completed/clocked out shifts today
-            calculatedRegularSec = Math.min(28800, calculatedRegularSec)
-          }
-        } else if (isPastDate) {
-          // FOR PAST DATES: If employee didn't clock out, auto clock-out at 07:00 PM & cap regular hours to 8 hours max
-          if (isCurrentlyClockedIn && !resolvedClockOut) {
-            isCurrentlyClockedIn = false
+          // Auto clock-out ONLY if current time is past 7:00 PM (hour >= 19) or elapsed shift >= 8 hours
+          if ((currentHour >= 19 || liveShiftSec >= 28800) && !resolvedClockOut) {
             resolvedClockOut = '07:00 PM'
             isAutoClockOut = true
-          }
-          if (calculatedRegularSec <= 0 && log.clockInTime && log.clockInTime !== '—') {
-            const inMins = timeStrToMinutes(log.clockInTime)
-            const outMins = timeStrToMinutes(resolvedClockOut) || 19 * 60 // 7:00 PM
-            if (inMins !== null && outMins > inMins) {
-              const breakSec = log.accumulatedBreakSeconds || 0
-              calculatedRegularSec = Math.min(28800, Math.max(0, (outMins - inMins) * 60 - breakSec))
-            } else {
-              calculatedRegularSec = 28800 // 8 hours default
-            }
-          } else {
-            calculatedRegularSec = Math.min(28800, calculatedRegularSec)
+            isCurrentlyClockedIn = false
           }
         }
+      } else if (isPastDate) {
+        // FOR PAST DATES: If employee didn't clock out, auto clock-out at 07:00 PM
+        if (isCurrentlyClockedIn && !resolvedClockOut) {
+          isCurrentlyClockedIn = false
+          resolvedClockOut = '07:00 PM'
+          isAutoClockOut = true
+        }
+      }
 
-        return {
-          uid: log.uid,
-          displayName: log.displayName || emp.displayName || '—',
-          departmentName: log.departmentName || emp.departmentName || '—',
-          clockInTime: formatTimeStr(log.clockInTime),
-          clockOutTime: formatTimeStr(resolvedClockOut),
-          clockedIn: isCurrentlyClockedIn,
-          isOnBreak: log.isOnBreak || false,
-          isInExtraTime: log.isInExtraTime || false,
-          regularHours: secToHrsStr(calculatedRegularSec),
-          extraHours: log.extraHours || secToHrsStr(log.extraSeconds),
-          regularSeconds: calculatedRegularSec,
-          extraSeconds: log.extraSeconds || 0,
-          autoClockOut: isAutoClockOut,
-          shiftLogs: log.shiftLogs || [],
-        }
-      })
+      // Always derive regular hours from start/end times when available
+      let calculatedRegularSec = 0
+      if (log.clockInTime && log.clockInTime !== '—') {
+        calculatedRegularSec = computeRegularSecondsFromTimes(
+          log.clockInTime,
+          resolvedClockOut || (isCurrentlyClockedIn ? 'In office' : null),
+          selectedDate,
+          breakSec
+        )
+      }
+      // Fallback to stored value only if times couldn't produce a duration
+      if (calculatedRegularSec <= 0) {
+        calculatedRegularSec = Math.min(
+          28800,
+          Number(log.regularSeconds) || Number(log.accumulatedWorkSeconds) || 0
+        )
+      }
+
+      const isOnDuty = log.onDuty === true || log.source === 'on_duty'
+      // Explicit admin Absent must win over any leftover clock fields
+      const isPresentFlag =
+        log.present === false
+          ? false
+          : log.present === true ||
+            isCurrentlyClockedIn ||
+            Boolean(resolvedClockOut) ||
+            isOnDuty ||
+            (Boolean(log.clockInTime) && log.clockInTime !== '—')
+
+      return {
+        uid: log.uid,
+        displayName: log.displayName || emp.displayName || '—',
+        departmentName: log.departmentName || emp.departmentName || '—',
+        clockInTime: formatTimeStr(log.clockInTime) || '—',
+        clockOutTime: formatTimeStr(resolvedClockOut) || null,
+        clockedIn: isCurrentlyClockedIn,
+        onDuty: isOnDuty,
+        present: isPresentFlag,
+        isOnBreak: log.isOnBreak || false,
+        isInExtraTime: log.isInExtraTime || false,
+        accumulatedBreakSeconds: breakSec,
+        regularHours: secToHrsStr(calculatedRegularSec),
+        extraHours: log.extraHours || secToHrsStr(log.extraSeconds),
+        regularSeconds: calculatedRegularSec,
+        extraSeconds: log.extraSeconds || 0,
+        autoClockOut: isAutoClockOut,
+        shiftLogs: log.shiftLogs || [],
+      }
     }
 
-    // Fallback: show employees without attendance data for today
-    return employees.map((emp) => ({
+    const emptyRow = (emp) => ({
       uid: emp.uid,
       displayName: emp.displayName || '—',
       departmentName: emp.departmentName || '—',
       clockInTime: '—',
       clockOutTime: null,
       clockedIn: false,
+      onDuty: false,
+      present: false,
       isOnBreak: false,
       isInExtraTime: false,
       regularHours: '0h 0m',
@@ -311,10 +507,37 @@ export const AttendancePage = () => {
       extraSeconds: 0,
       autoClockOut: false,
       shiftLogs: [],
-    }))
-  }, [attendanceLogs, employees, employeeMap])
+    })
 
-  const presentCount = rows.filter((r) => r.clockedIn || r.clockOutTime).length
+    // Prefer full employee directory so admin can mark anyone Present/Absent
+    if (employees.length > 0) {
+      const seen = new Set()
+      const merged = employees
+        .filter((emp) => emp.uid)
+        .map((emp) => {
+          seen.add(emp.uid)
+          const log = logByUid[emp.uid]
+          return log ? buildRowFromLog(log, emp) : emptyRow(emp)
+        })
+
+      // Include any attendance logs for people not in the current employees list
+      attendanceLogs.forEach((log) => {
+        if (log.uid && !seen.has(log.uid)) {
+          merged.push(buildRowFromLog(log, employeeMap[log.uid] || {}))
+        }
+      })
+
+      return merged
+    }
+
+    if (attendanceLogs.length > 0) {
+      return attendanceLogs.map((log) => buildRowFromLog(log, employeeMap[log.uid] || {}))
+    }
+
+    return []
+  }, [attendanceLogs, employees, employeeMap, selectedDate])
+
+  const presentCount = rows.filter((r) => isRowPresent(r)).length
   const activeNow = rows.filter((r) => r.clockedIn && !r.isOnBreak).length
   const onBreakCount = rows.filter((r) => r.isOnBreak).length
   const extraTimeCount = rows.filter((r) => r.isInExtraTime).length
@@ -338,8 +561,22 @@ export const AttendancePage = () => {
         </Badge>
       )
     }
+    if (row.onDuty) {
+      return (
+        <Badge variant="success" className="flex items-center gap-1">
+          On Duty
+        </Badge>
+      )
+    }
     if (row.clockOutTime) {
       return <Badge variant="secondary">Clocked Out</Badge>
+    }
+    if (row.present) {
+      return (
+        <Badge variant="success" className="flex items-center gap-1">
+          Present
+        </Badge>
+      )
     }
     return <Badge variant="danger">Absent</Badge>
   }
@@ -353,57 +590,114 @@ export const AttendancePage = () => {
           description="Real-time employee clock-in/out tracking, shift logs, and presence status"
         />
 
-        <div className="flex items-center gap-2 border-b border-slate-800 pb-3">
-          <NavLink
-            to="/team/employees"
-            className={({ isActive }) =>
-              `flex items-center gap-2 px-3 py-1.5 rounded-xl text-xs font-semibold transition-colors ${
-                isActive
-                  ? 'bg-indigo-600/20 text-indigo-400 border border-indigo-500/30'
-                  : 'text-slate-400 hover:text-slate-200 hover:bg-slate-800'
-              }`
-            }
-          >
-            <Users className="w-3.5 h-3.5" /> Employee Directory
-          </NavLink>
-          <NavLink
-            to="/team/attendance"
-            className={({ isActive }) =>
-              `flex items-center gap-2 px-3 py-1.5 rounded-xl text-xs font-semibold transition-colors ${
-                isActive
-                  ? 'bg-indigo-600/20 text-indigo-400 border border-indigo-500/30'
-                  : 'text-slate-400 hover:text-slate-200 hover:bg-slate-800'
-              }`
-            }
-          >
-            <CheckCircle2 className="w-3.5 h-3.5" /> Attendance Tracker
-          </NavLink>
-          <NavLink
-            to="/team/leave"
-            className={({ isActive }) =>
-              `flex items-center gap-2 px-3 py-1.5 rounded-xl text-xs font-semibold transition-colors ${
-                isActive
-                  ? 'bg-indigo-600/20 text-indigo-400 border border-indigo-500/30'
-                  : 'text-slate-400 hover:text-slate-200 hover:bg-slate-800'
-              }`
-            }
-          >
-            <Calendar className="w-3.5 h-3.5" /> Leave Management
-          </NavLink>
-          <NavLink
-            to="/team/timeline"
-            className={({ isActive }) =>
-              `flex items-center gap-2 px-3 py-1.5 rounded-xl text-xs font-semibold transition-colors ${
-                isActive
-                  ? 'bg-indigo-600/20 text-indigo-400 border border-indigo-500/30'
-                  : 'text-slate-400 hover:text-slate-200 hover:bg-slate-800'
-              }`
-            }
-          >
-            <CalendarDays className="w-3.5 h-3.5" /> Work Timeline
-          </NavLink>
-        </div>
+        <TeamSubNav />
       </div>
+
+      {/* Office Location geofence */}
+      <Card className="border-slate-700 bg-[#181C27] p-4 space-y-3">
+        <button
+          type="button"
+          onClick={() => setShowOfficePanel((v) => !v)}
+          className="w-full flex items-center justify-between text-left"
+        >
+          <div className="flex items-center gap-2">
+            <MapPin className="w-4 h-4 text-emerald-400" />
+            <div>
+              <h3 className="text-sm font-bold text-slate-100">Office Location</h3>
+              <p className="text-[11px] text-slate-400 mt-0.5">
+                Employees must be inside this radius to clock in (unless Full WFH or approved WFH today).
+              </p>
+            </div>
+          </div>
+          {showOfficePanel ? (
+            <ChevronUp className="w-4 h-4 text-slate-400" />
+          ) : (
+            <ChevronDown className="w-4 h-4 text-slate-400" />
+          )}
+        </button>
+
+        {officeLoaded && !showOfficePanel && (
+          <p className="text-[11px] text-slate-500 pl-6">
+            {officeLat && officeLng
+              ? `Configured: ${officeLat}, ${officeLng} · ${officeRadius}m radius`
+              : 'Not configured — office clock-in will be blocked until you set coordinates.'}
+          </p>
+        )}
+
+        {showOfficePanel && (
+          <form onSubmit={handleSaveOfficeLocation} className="space-y-3 pt-1 border-t border-slate-800">
+            {officeError && (
+              <p className="text-xs text-rose-400">{officeError}</p>
+            )}
+
+            <div className="flex flex-wrap items-center gap-2">
+              <Button
+                type="button"
+                variant="secondary"
+                icon={locatingDevice ? Loader2 : Navigation}
+                disabled={locatingDevice || savingOffice}
+                onClick={handleUseDeviceLocation}
+                className={locatingDevice ? '[&_svg]:animate-spin' : ''}
+              >
+                {locatingDevice
+                  ? 'Getting your location…'
+                  : officeSaved
+                    ? 'Office location saved'
+                    : 'Use my device location'}
+              </Button>
+              <p className="text-[11px] text-slate-400">
+                Stand at the office and tap this to set and save the office pin from your GPS.
+              </p>
+            </div>
+
+            <OfficeLocationPickerMap
+              lat={officeLat}
+              lng={officeLng}
+              radiusMeters={officeRadius}
+              onPick={(lat, lng) => {
+                setOfficeLat(String(Number(lat.toFixed(6))))
+                setOfficeLng(String(Number(lng.toFixed(6))))
+                setOfficeError('')
+              }}
+            />
+
+            <div className="grid grid-cols-1 sm:grid-cols-3 gap-3">
+              <Input
+                label="Latitude"
+                type="number"
+                step="any"
+                value={officeLat}
+                onChange={(e) => setOfficeLat(e.target.value)}
+                placeholder="Device GPS or map click"
+                required
+              />
+              <Input
+                label="Longitude"
+                type="number"
+                step="any"
+                value={officeLng}
+                onChange={(e) => setOfficeLng(e.target.value)}
+                placeholder="Device GPS or map click"
+                required
+              />
+              <Input
+                label="Radius (meters)"
+                type="number"
+                min={50}
+                max={5000}
+                value={officeRadius}
+                onChange={(e) => setOfficeRadius(Math.max(50, Number(e.target.value) || 200))}
+                required
+              />
+            </div>
+            <div className="flex justify-end">
+              <Button type="submit" variant="primary" icon={Save} disabled={savingOffice || !officeLoaded || locatingDevice}>
+                {savingOffice ? 'Saving…' : officeSaved ? 'Saved' : 'Save Office Location'}
+              </Button>
+            </div>
+          </form>
+        )}
+      </Card>
 
       {/* Live status bar + date picker */}
       <div className="flex flex-wrap items-center justify-between gap-3">
@@ -514,8 +808,8 @@ export const AttendancePage = () => {
         ) : rows.length === 0 ? (
           <div className="flex flex-col items-center justify-center py-16 text-slate-500 text-sm gap-2">
             <Users className="w-8 h-8 opacity-30" />
-            <p>No attendance records for {formatDate(selectedDate)}</p>
-            <p className="text-xs text-slate-600">Employees will appear here once they clock in.</p>
+            <p>No employees found for {formatDate(selectedDate)}</p>
+            <p className="text-xs text-slate-600">Add employees in the directory, then mark them Present or Absent here.</p>
           </div>
         ) : (
           <table className="w-full text-left border-collapse text-xs">
@@ -564,7 +858,7 @@ export const AttendancePage = () => {
                     <div className="flex items-center gap-1.5">
                       <LogOut className="w-3.5 h-3.5 text-rose-500 shrink-0" />
                       <span className={!row.clockOutTime ? 'text-slate-600 italic' : 'text-slate-200 font-mono'}>
-                        {row.clockOutTime || (row.clockedIn ? 'In office' : '—')}
+                        {row.clockOutTime || (row.clockedIn ? 'In office' : row.onDuty ? 'On Duty' : '—')}
                       </span>
                       {row.autoClockOut && (
                         <span className="ml-1 px-1.5 py-0.5 bg-amber-500/10 border border-amber-500/20 text-amber-400 text-[10px] rounded-md">
@@ -596,19 +890,41 @@ export const AttendancePage = () => {
                   {/* Status */}
                   <td className="p-4">{getStatusBadge(row)}</td>
 
-                  {/* Admin Edit Action */}
+                  {/* Admin Edit Actions */}
                   <td className="p-4 text-right">
-                    <button
-                      onClick={() => {
-                        setEditingRow(row)
-                        setEditClockIn(row.clockInTime === '—' ? '09:00 AM' : row.clockInTime)
-                        setEditClockOut(row.clockOutTime || 'In office')
-                      }}
-                      className="p-1.5 bg-slate-100 hover:bg-slate-200 dark:bg-slate-800 dark:hover:bg-slate-700 text-indigo-600 dark:text-indigo-400 rounded-lg border border-slate-300 dark:border-slate-700 transition-colors inline-flex items-center gap-1 text-[11px] font-medium"
-                      title="Edit Employee Time"
-                    >
-                      <Edit className="w-3.5 h-3.5" /> Edit Time
-                    </button>
+                    <div className="inline-flex items-center justify-end gap-1.5 flex-wrap">
+                      <button
+                        type="button"
+                        onClick={() => handleTogglePresentAbsent(row)}
+                        disabled={togglingAttendanceUid === row.uid}
+                        title={isRowPresent(row) ? 'Mark as Absent' : 'Mark as Present'}
+                        className={`p-1.5 rounded-lg border transition-colors inline-flex items-center gap-1 text-[11px] font-medium disabled:opacity-60 disabled:cursor-wait ${
+                          isRowPresent(row)
+                            ? 'bg-rose-500/10 hover:bg-rose-500/20 text-rose-400 border-rose-500/30'
+                            : 'bg-emerald-500/10 hover:bg-emerald-500/20 text-emerald-400 border-emerald-500/30'
+                        }`}
+                      >
+                        {togglingAttendanceUid === row.uid ? (
+                          <RefreshCw className="w-3.5 h-3.5 animate-spin" />
+                        ) : isRowPresent(row) ? (
+                          <UserX className="w-3.5 h-3.5" />
+                        ) : (
+                          <UserCheck className="w-3.5 h-3.5" />
+                        )}
+                        {isRowPresent(row) ? 'Mark Absent' : 'Mark Present'}
+                      </button>
+                      <button
+                        onClick={() => {
+                          setEditingRow(row)
+                          setEditClockIn(row.clockInTime === '—' ? '09:00 AM' : row.clockInTime)
+                          setEditClockOut(row.clockOutTime || 'In office')
+                        }}
+                        className="p-1.5 bg-slate-100 hover:bg-slate-200 dark:bg-slate-800 dark:hover:bg-slate-700 text-indigo-600 dark:text-indigo-400 rounded-lg border border-slate-300 dark:border-slate-700 transition-colors inline-flex items-center gap-1 text-[11px] font-medium"
+                        title="Edit Employee Time"
+                      >
+                        <Edit className="w-3.5 h-3.5" /> Edit Time
+                      </button>
+                    </div>
                   </td>
                 </tr>
               ))}
@@ -759,6 +1075,20 @@ export const AttendancePage = () => {
                   placeholder="06:00 PM or In office"
                   className="w-full bg-slate-100 dark:bg-slate-900 border border-slate-300 dark:border-slate-800 text-slate-900 dark:text-slate-100 text-sm rounded-xl py-2 px-3 focus:outline-none focus:border-indigo-500"
                 />
+              </div>
+
+              <div className="rounded-xl border border-indigo-500/20 bg-indigo-500/10 px-3 py-2.5 flex items-center justify-between gap-3">
+                <div className="text-left">
+                  <div className="text-[10px] uppercase tracking-wider font-semibold text-indigo-400">
+                    Regular Hours (auto)
+                  </div>
+                  <p className="text-[11px] text-slate-500 dark:text-slate-400 mt-0.5">
+                    Recalculated from clock-in → clock-out (max 8h)
+                  </p>
+                </div>
+                <div className="font-mono text-sm font-bold text-indigo-400 shrink-0">
+                  {editPreviewRegularHours}
+                </div>
               </div>
 
               <div className="flex gap-3 pt-2">

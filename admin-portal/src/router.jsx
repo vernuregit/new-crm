@@ -17,7 +17,9 @@ import { EmployeeList } from './features/team/EmployeeList'
 import { AttendancePage } from './features/team/AttendancePage'
 import { LeaveManagement } from './features/team/LeaveManagement'
 import { HolidayManager } from './features/team/HolidayManager'
+import { WfhPolicyPage } from './features/team/WfhPolicyPage'
 import { EmployeeTimelinePage } from './features/team/EmployeeTimelinePage'
+import { EmployeeMonthlyReportPage } from './features/team/EmployeeMonthlyReportPage'
 import { CampaignList } from './features/marketing/CampaignList'
 import { ContentCalendar } from './features/marketing/ContentCalendar'
 import { UtmBuilder } from './features/marketing/UtmBuilder'
@@ -76,7 +78,9 @@ export const router = createBrowserRouter([
           { path: 'attendance', element: <AttendancePage /> },
           { path: 'leave', element: <LeaveManagement /> },
           { path: 'holidays', element: <HolidayManager /> },
+          { path: 'wfh-policy', element: <WfhPolicyPage /> },
           { path: 'timeline', element: <EmployeeTimelinePage /> },
+          { path: 'reports', element: <EmployeeMonthlyReportPage /> },
         ],
       },
 

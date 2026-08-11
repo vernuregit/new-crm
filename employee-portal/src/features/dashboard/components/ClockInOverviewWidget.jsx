@@ -5,8 +5,12 @@ import { Badge } from '../../../components/ui/Badge'
 import { Button } from '../../../components/ui/Button'
 import { useTeamStore } from '../../team/stores/teamStore'
 import { useUserStore } from '../../../stores/userStore'
+import { getEmployees } from '../../team/services/teamService'
+import { prepareClockInGate } from '../../team/services/wfhAttendanceUtils'
 import { AttendanceCalendarWidget } from './AttendanceCalendarWidget'
 import { AttendanceMetricsBar } from '../../team/components/AttendanceMetricsBar'
+import { collection, onSnapshot } from 'firebase/firestore'
+import { db } from '../../../shared/services/firebaseService'
 import {
   Clock,
   LogIn,
@@ -19,7 +23,9 @@ import {
   ListFilter,
   History,
   AlertCircle,
-  Zap
+  Zap,
+  Loader2,
+  MapPin,
 } from 'lucide-react'
 
 export const ClockInOverviewWidget = () => {
@@ -29,6 +35,10 @@ export const ClockInOverviewWidget = () => {
   const departmentName = userDoc?.departmentName || ''
 
   const {
+    employees,
+    setEmployees,
+    leaveRequests,
+    setLeaveRequests,
     clockedIn,
     clockInTime,
     clockInTimestamp,
@@ -53,6 +63,9 @@ export const ClockInOverviewWidget = () => {
   const [elapsedSeconds, setElapsedSeconds] = useState(0)
   const [elapsedExtraSec, setElapsedExtraSec] = useState(0)
   const [showLogs, setShowLogs] = useState(false)
+  const [clockBusy, setClockBusy] = useState(false)
+  const [clockError, setClockError] = useState('')
+  const [clockHint, setClockHint] = useState('')
 
   // Fetch today's attendance log for the active logged-in employee
   useEffect(() => {
@@ -60,6 +73,80 @@ export const ClockInOverviewWidget = () => {
       loadUserAttendance(activeUid)
     }
   }, [activeUid, loadUserAttendance])
+
+  useEffect(() => {
+    getEmployees().then((list) => {
+      if (list?.length) setEmployees(list)
+    })
+  }, [setEmployees])
+
+  useEffect(() => {
+    const unsub = onSnapshot(
+      collection(db, 'leaveRequests'),
+      (snap) => {
+        setLeaveRequests(snap.docs.map((d) => ({ leaveId: d.id, ...d.data() })))
+      },
+      (err) => console.error('Error listening to leave requests:', err)
+    )
+    return () => unsub()
+  }, [setLeaveRequests])
+
+  const currentEmp =
+    employees.find(
+      (e) =>
+        (activeUid && (e.uid === activeUid || e.employeeId === activeUid)) ||
+        (user?.email && e.email?.toLowerCase() === user.email.toLowerCase())
+    ) || userDoc || {}
+
+  const handleClockToggle = async () => {
+    setClockError('')
+    setClockHint('')
+    const meta = { uid: activeUid, displayName, departmentName }
+
+    if (clockedIn) {
+      toggleClockIn(meta)
+      return
+    }
+
+    setClockBusy(true)
+    try {
+      const gate = await prepareClockInGate({
+        emp: currentEmp,
+        leaveRequests,
+        employeeFilter: {
+          employeeId: activeUid,
+          uid: activeUid,
+          employeeEmail: user?.email || userDoc?.email || currentEmp?.email,
+          employeeName: displayName,
+        },
+      })
+
+      if (!gate.ok) {
+        setClockError(gate.error || 'Unable to clock in.')
+        return
+      }
+
+      if (gate.wfhExempt) {
+        setClockHint(gate.reason || 'WFH — location not required')
+      }
+
+      const result = toggleClockIn(meta, {
+        requireOfficeLocation: gate.requireOfficeLocation,
+        locationVerified: gate.locationVerified,
+        wfhExempt: gate.wfhExempt,
+        coords: gate.coords,
+      })
+
+      if (result && result.success === false) {
+        setClockError(result.error || 'Unable to clock in.')
+      }
+    } catch (err) {
+      console.error('Clock-in gate error:', err)
+      setClockError('Unable to verify location. Try again.')
+    } finally {
+      setClockBusy(false)
+    }
+  }
 
   const currentHour = new Date().getHours()
 
@@ -117,22 +204,9 @@ export const ClockInOverviewWidget = () => {
         const nowMs = Date.now()
         let currentSessionSec = 0
 
+        // Session length must use this session's timestamp (not day's first clockInTime)
         if (clockInTimestamp) {
           currentSessionSec = Math.max(0, Math.floor((nowMs - clockInTimestamp) / 1000))
-        } else if (clockInTime) {
-          const match = clockInTime.match(/(\d+):(\d+)(?::\d+)?\s*(AM|PM)?/i)
-          if (match) {
-            let hrs = parseInt(match[1], 10)
-            const mins = parseInt(match[2], 10)
-            const ampm = match[3] ? match[3].toUpperCase() : null
-            if (ampm === 'PM' && hrs < 12) hrs += 12
-            if (ampm === 'AM' && hrs === 12) hrs = 0
-            const clockInMins = hrs * 60 + mins
-            const nowMins = now.getHours() * 60 + now.getMinutes()
-            if (nowMins >= clockInMins) {
-              currentSessionSec = (nowMins - clockInMins) * 60 + now.getSeconds()
-            }
-          }
         }
 
         // Subtract break duration
@@ -142,14 +216,8 @@ export const ClockInOverviewWidget = () => {
         }
 
         const netSec = Math.max(0, currentSessionSec - activeBreakSec)
-        let validAccSec = accumulatedWorkSeconds || 0
-
-        // Sanitize stale carry-over from previous days
-        if (validAccSec > netSec + 3600 && !clockOutTime) {
-          validAccSec = 0
-        }
-
-        const calculatedTotal = validAccSec + netSec
+        // Prior completed sessions today + current open session
+        const calculatedTotal = (accumulatedWorkSeconds || 0) + netSec
         // Cap regular shift hours at 8 hours max (28,800 seconds)
         setElapsedSeconds(Math.min(8 * 3600, calculatedTotal))
       } else {
@@ -161,9 +229,7 @@ export const ClockInOverviewWidget = () => {
     return () => clearInterval(timer)
   }, [
     clockedIn,
-    clockInTime,
     clockInTimestamp,
-    clockOutTime,
     isOnBreak,
     breakStartTime,
     accumulatedBreakSeconds,
@@ -306,16 +372,34 @@ export const ClockInOverviewWidget = () => {
           </div>
 
           {/* Action Button Strip */}
-          <div className="pt-3 flex items-center gap-2.5">
+          <div className="pt-3 space-y-2">
+            {clockError && (
+              <div className="flex items-start gap-2 text-xs text-rose-600 dark:text-rose-300 bg-rose-500/10 border border-rose-500/30 rounded-xl px-3 py-2">
+                <AlertCircle className="w-3.5 h-3.5 shrink-0 mt-0.5" />
+                <span>{clockError}</span>
+              </div>
+            )}
+            {clockHint && !clockError && (
+              <div className="flex items-start gap-2 text-xs text-emerald-700 dark:text-emerald-300 bg-emerald-500/10 border border-emerald-500/30 rounded-xl px-3 py-2">
+                <MapPin className="w-3.5 h-3.5 shrink-0 mt-0.5" />
+                <span>{clockHint}</span>
+              </div>
+            )}
+            <div className="flex items-center gap-2.5">
             <Button
-              onClick={() => toggleClockIn({ uid: activeUid, displayName, departmentName })}
+              onClick={handleClockToggle}
+              disabled={clockBusy}
               className={`flex-1 justify-center py-2.5 font-extrabold shadow-md transition-all text-sm sm:text-base rounded-xl ${
                 clockedIn
                   ? 'bg-gradient-to-r from-rose-600 to-rose-500 hover:from-rose-500 hover:to-rose-600 text-white shadow-rose-500/20'
                   : 'bg-emerald-700 hover:bg-emerald-800 text-white shadow-emerald-700/20'
               }`}
             >
-              {clockedIn ? (
+              {clockBusy ? (
+                <>
+                  <Loader2 className="w-4 h-4 sm:w-5 sm:h-5 mr-2 animate-spin" /> Checking location…
+                </>
+              ) : clockedIn ? (
                 <>
                   <LogOut className="w-4 h-4 sm:w-5 sm:h-5 mr-2" /> Clock Out
                 </>
@@ -345,6 +429,7 @@ export const ClockInOverviewWidget = () => {
             >
               <History className="w-4 h-4 sm:w-5 sm:h-5" />
             </Button>
+            </div>
           </div>
 
           {/* Extra Work Hours / Overtime Section */}

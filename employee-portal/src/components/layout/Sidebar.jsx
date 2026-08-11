@@ -7,20 +7,14 @@ import {
   DollarSign,
   UserCheck,
   Megaphone,
-  BookOpen,
   Activity,
   GitBranch,
-  Settings,
   ChevronLeft,
   ChevronRight,
-  Shield,
   Layers,
-  Clock,
   FileText,
   Download,
-  FolderKanban,
   CheckCircle2,
-  Crown,
   User
 } from 'lucide-react'
 import haloLogo from '../../assets/halologo.png'
@@ -52,10 +46,8 @@ export const Sidebar = () => {
       return [
         { name: 'Dashboard', path: '/dashboard', icon: LayoutDashboard },
         { name: 'Sprint Task Board', path: '/projects/tasks', icon: Briefcase },
-        { name: 'Time Tracking', path: '/projects/time', icon: Clock },
         { name: 'Team Directory', path: '/team/employees', icon: Users },
         { name: 'Attendance', path: '/team/attendance', icon: CheckCircle2 },
-        { name: 'Knowledge Base', path: '/knowledge', icon: BookOpen },
       ]
     }
 
@@ -69,7 +61,6 @@ export const Sidebar = () => {
       { name: 'Marketing Hub', path: '/marketing', icon: Megaphone },
       { name: 'KPIs & Health', path: '/kpi', icon: Activity },
       { name: 'Workflows', path: '/workflows', icon: GitBranch },
-      { name: 'Knowledge Base', path: '/knowledge', icon: BookOpen },
       { name: 'My Profile', path: '/settings/profile', icon: User },
     ]
   }

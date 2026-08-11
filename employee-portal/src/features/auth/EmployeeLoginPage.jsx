@@ -65,7 +65,7 @@ export const EmployeeLoginPage = () => {
             <img src={haloLogo} alt="The Halo Effect Consulting" className="w-full h-full object-contain rounded-full" />
           </div>
           <h2 className="text-2xl font-bold text-slate-900 dark:text-slate-100 tracking-tight">Employee   EMPLOYEE PORTAL</h2>
-          <p className="text-xs text-slate-500 dark:text-slate-400">Sprint Tasks, Time Tracker & Attendance Workspace</p>
+          <p className="text-xs text-slate-500 dark:text-slate-400">Sprint Tasks & Attendance Workspace</p>
         </div>
 
         {error && (

@@ -67,7 +67,7 @@ export const Sidebar = () => {
       { name: 'Finance & Invoicing', path: '/finance', icon: DollarSign },
       { name: 'Team Management', path: '/team', icon: UserCheck },
       { name: 'Marketing Hub', path: '/marketing', icon: Megaphone },
-      { name: 'KPIs & Health', path: '/kpi', icon: Activity },
+      { name: 'Business Health', path: '/kpi', icon: Activity },
       { name: 'Workflows', path: '/workflows', icon: GitBranch },
       { name: 'Knowledge Base', path: '/knowledge', icon: BookOpen },
       { name: 'My Profile', path: '/settings/profile', icon: User },

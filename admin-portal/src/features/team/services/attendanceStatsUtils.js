@@ -3,6 +3,11 @@
  * for individual employees and team-wide.
  */
 
+/** Office start used for late detection (matches employee portal). */
+export const OFFICE_START_HOUR = 10
+export const OFFICE_START_MINUTE = 30
+export const OFFICE_START_MINUTES = OFFICE_START_HOUR * 60 + OFFICE_START_MINUTE
+
 export function timeStrToMinutes(timeStr) {
   if (!timeStr || typeof timeStr !== 'string') return null
   const match = timeStr.match(/(\d+):(\d+)(?::\d+)?\s*(AM|PM)?/i)
@@ -14,6 +19,56 @@ export function timeStrToMinutes(timeStr) {
   if (ampm === 'PM' && hrs < 12) hrs += 12
   if (ampm === 'AM' && hrs === 12) hrs = 0
   return hrs * 60 + mins
+}
+
+/**
+ * Late minutes past office start (10:30 AM). Returns 0 if on time / missing clock-in.
+ * @param {string|null} clockInTime
+ * @returns {number}
+ */
+export function getLateMinutes(clockInTime) {
+  const mins = timeStrToMinutes(clockInTime)
+  if (mins === null) return 0
+  return Math.max(0, mins - OFFICE_START_MINUTES)
+}
+
+/**
+ * @param {string|null} clockInTime
+ * @returns {{ isLate: boolean, lateMinutes: number }}
+ */
+export function getLateInfo(clockInTime) {
+  const lateMinutes = getLateMinutes(clockInTime)
+  return { isLate: lateMinutes > 0, lateMinutes }
+}
+
+/**
+ * Whether an attendance log counts as present.
+ * @param {object} log
+ * @returns {boolean}
+ */
+export function isAttendancePresent(log) {
+  if (!log) return false
+  if (log.present === false) return false
+  return (
+    log.present === true ||
+    log.onDuty === true ||
+    log.source === 'on_duty' ||
+    Boolean(log.clockedIn) ||
+    (Boolean(log.clockInTime) && log.clockInTime !== '—') ||
+    (Number(log.regularSeconds) || Number(log.accumulatedWorkSeconds) || 0) > 0
+  )
+}
+
+/**
+ * Cap regular seconds at 8 hours.
+ * @param {object} log
+ * @returns {number}
+ */
+export function getCappedRegularSeconds(log) {
+  if (!log) return 0
+  let sec = Number(log.regularSeconds) || Number(log.accumulatedWorkSeconds) || 0
+  if (sec > 28800) sec = 28800
+  return Math.max(0, sec)
 }
 
 export function minutesToTimeStr(totalMinutes) {
@@ -130,7 +185,14 @@ export function computeRealAttendanceStats(logs = [], currentLiveState = null) {
     : null
   const avgCheckOut = minutesToTimeStr(avgCheckOutMins) || currentLiveState?.clockOutTime || '—'
 
-  const presentDays = records.filter((r) => r.clockInTime || (r.regularSeconds && r.regularSeconds > 0)).length
+  const presentDays = records.filter(
+    (r) =>
+      r.clockInTime ||
+      (r.regularSeconds && r.regularSeconds > 0) ||
+      r.onDuty === true ||
+      r.present === true ||
+      r.source === 'on_duty'
+  ).length
 
   return {
     totalDays: records.length,

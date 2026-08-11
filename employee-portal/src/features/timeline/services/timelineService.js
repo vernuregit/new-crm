@@ -61,6 +61,10 @@ export const fetchTimelineEntries = async (uid, startDate, endDate) => {
   if (IS_MOCK) {
     return mockEntries
       .filter((e) => e.uid === uid && e.date >= startDate && e.date <= endDate)
+      .map((e) => ({
+        ...e,
+        entryType: e.entryType === 'upskilling' ? 'upskilling' : 'work',
+      }))
       .sort((a, b) => {
         if (a.date !== b.date) return a.date.localeCompare(b.date)
         return String(a.createdAt || '').localeCompare(String(b.createdAt || ''))
@@ -70,7 +74,14 @@ export const fetchTimelineEntries = async (uid, startDate, endDate) => {
   try {
     const q = query(collection(db, 'workTimelineEntries'), where('uid', '==', uid))
     const snap = await getDocs(q)
-    const entries = snap.docs.map((d) => ({ entryId: d.id, ...d.data() }))
+    const entries = snap.docs.map((d) => {
+      const data = d.data()
+      return {
+        entryId: d.id,
+        ...data,
+        entryType: data.entryType === 'upskilling' ? 'upskilling' : 'work',
+      }
+    })
     return entries
       .filter((e) => e.date >= startDate && e.date <= endDate)
       .sort((a, b) => {
@@ -83,14 +94,19 @@ export const fetchTimelineEntries = async (uid, startDate, endDate) => {
   }
 }
 
+const normalizeEntryType = (entryType) =>
+  entryType === 'upskilling' ? 'upskilling' : 'work'
+
 /**
  * Create a new timeline entry.
  *
- * @param {{ uid: string, employeeName?: string, date: string, description: string, hours: number }} payload
+ * @param {{ uid: string, employeeName?: string, date: string, description: string, hours: number, entryType?: 'work'|'upskilling' }} payload
  * @returns {Promise<object|null>}
  */
 export const createTimelineEntry = async (payload) => {
   if (!payload?.uid || !payload?.date) return null
+
+  const entryType = normalizeEntryType(payload.entryType)
 
   if (IS_MOCK) {
     const created = {
@@ -100,6 +116,7 @@ export const createTimelineEntry = async (payload) => {
       date: payload.date,
       description: payload.description || '',
       hours: Number(payload.hours) || 0,
+      entryType,
       createdAt: new Date().toISOString(),
       updatedAt: new Date().toISOString(),
     }
@@ -114,6 +131,7 @@ export const createTimelineEntry = async (payload) => {
       date: payload.date,
       description: payload.description || '',
       hours: Number(payload.hours) || 0,
+      entryType,
       createdAt: serverTimestamp(),
       updatedAt: serverTimestamp(),
     })
@@ -124,6 +142,7 @@ export const createTimelineEntry = async (payload) => {
       date: payload.date,
       description: payload.description || '',
       hours: Number(payload.hours) || 0,
+      entryType,
     }
   } catch (err) {
     console.error('[timelineService] createTimelineEntry error:', err)
@@ -135,7 +154,7 @@ export const createTimelineEntry = async (payload) => {
  * Update an existing timeline entry.
  *
  * @param {string} entryId
- * @param {{ description?: string, hours?: number, date?: string }} updates
+ * @param {{ description?: string, hours?: number, date?: string, entryType?: 'work'|'upskilling' }} updates
  * @returns {Promise<boolean>}
  */
 export const updateTimelineEntry = async (entryId, updates) => {
@@ -148,6 +167,10 @@ export const updateTimelineEntry = async (entryId, updates) => {
             ...e,
             ...updates,
             hours: updates.hours !== undefined ? Number(updates.hours) || 0 : e.hours,
+            entryType:
+              updates.entryType !== undefined
+                ? normalizeEntryType(updates.entryType)
+                : e.entryType || 'work',
             updatedAt: new Date().toISOString(),
           }
         : e
@@ -160,6 +183,7 @@ export const updateTimelineEntry = async (entryId, updates) => {
     if (updates.description !== undefined) payload.description = updates.description
     if (updates.hours !== undefined) payload.hours = Number(updates.hours) || 0
     if (updates.date !== undefined) payload.date = updates.date
+    if (updates.entryType !== undefined) payload.entryType = normalizeEntryType(updates.entryType)
     await updateDoc(doc(db, 'workTimelineEntries', entryId), payload)
     return true
   } catch (err) {

@@ -10,7 +10,6 @@ import {
   CheckCircle2,
   Clock,
   Calendar,
-  BookOpen,
   TrendingUp,
   Briefcase,
   Star,
@@ -24,42 +23,15 @@ import {
   CalendarDays,
 } from 'lucide-react'
 import { NavLink } from 'react-router-dom'
-
-const isTaskVisibleToUser = (t, user, userDoc, claims) => {
-  if (!t) return false
-  const currentUserId = userDoc?.uid || user?.uid || userDoc?.id
-  const currentUserEmail = userDoc?.email || user?.email
-  const currentDisplayName = userDoc?.displayName || user?.displayName
-
-  const rawRole = claims?.role || userDoc?.role || 'employee'
-  const isAdmin =
-    rawRole === 'admin' ||
-    rawRole === 'owner' ||
-    rawRole === 'superadmin'
-
-  if (isAdmin) return true
-
-  const isCreatorByUid =
-    t.createdBy && currentUserId && String(t.createdBy) === String(currentUserId)
-  const isCreatorByEmail =
-    t.createdByEmail && currentUserEmail && String(t.createdByEmail).toLowerCase() === String(currentUserEmail).toLowerCase()
-  const isCreatorByName =
-    t.createdByName && currentDisplayName && String(t.createdByName).toLowerCase() === String(currentDisplayName).toLowerCase()
-  const isAssigneeByName =
-    t.assigneeName && currentDisplayName && String(t.assigneeName).toLowerCase() === String(currentDisplayName).toLowerCase()
-
-  return Boolean(isCreatorByUid || isCreatorByEmail || isCreatorByName || isAssigneeByName)
-}
+import { isTaskVisibleToUser, isUserOnProject } from '../projects/services/projectService'
 
 const quickLinks = [
   { name: 'Projects', path: '/projects/list', icon: FolderKanban, color: 'indigo', desc: 'Overview of active projects & completion status' },
   { name: 'Sprint Task Board', path: '/tasks', icon: Briefcase, color: 'indigo', desc: 'View and manage sprint task assignments' },
-  { name: 'Time Tracking', path: '/time', icon: Clock, color: 'blue', desc: 'Log billable hours and track task time' },
   { name: 'Work Timeline', path: '/timeline', icon: CalendarDays, color: 'blue', desc: 'Daily Mon–Sat log of what you worked on' },
   { name: 'Team Directory', path: '/directory', icon: Users, color: 'purple', desc: 'Browse team directory and skills' },
   { name: 'Attendance', path: '/attendance', icon: Calendar, color: 'emerald', desc: 'Clock in/out and view presence status' },
   { name: 'Leave & PTO', path: '/team/leave', icon: Calendar, color: 'emerald', desc: 'Request annual/sick leave & check PTO balance' },
-  { name: 'Knowledge Base', path: '/knowledge', icon: BookOpen, color: 'amber', desc: 'Access SOPs and internal documentation' },
 ]
 
 const colorMap = {
@@ -67,7 +39,6 @@ const colorMap = {
   blue: 'bg-blue-500/10 text-blue-400 border-blue-500/20',
   purple: 'bg-purple-500/10 text-purple-400 border-purple-500/20',
   emerald: 'bg-emerald-500/10 text-emerald-400 border-emerald-500/20',
-  amber: 'bg-amber-500/10 text-amber-400 border-amber-500/20',
 }
 
 export const EmployeeDashboard = () => {
@@ -111,11 +82,11 @@ export const EmployeeDashboard = () => {
     return () => clearInterval(timer)
   }, [])
 
-  // Time-based condition: 10 AM to 6 PM (10:00 - 17:59) is bright sun; after 6 PM (18:00+) & early morning is moon
-  const isBrightSun = currentHour >= 10 && currentHour < 18
+  // Time-based condition: 10 AM to 5 PM (10:00 - 16:59) is bright sun; after 5 PM (17:00+) & early morning is moon
+  const isBrightSun = currentHour >= 10 && currentHour < 17
 
-  // Filter tasks visible to current user (hide other employees' created tasks unless admin)
-  const visibleTasks = tasks.filter((t) => isTaskVisibleToUser(t, user, userDoc, claims))
+  // Filter tasks visible to current user (creator, assignee, or project member)
+  const visibleTasks = tasks.filter((t) => isTaskVisibleToUser(t, user, userDoc, claims, projects))
 
   // Filter tasks assigned to logged-in user or open team tasks
   const userTasks = visibleTasks.filter((t) => !t.assigneeName || t.assigneeName === displayName)
@@ -124,7 +95,12 @@ export const EmployeeDashboard = () => {
   // Computed Production Metrics
   const assignedTaskCount = displayTasks.length
   const totalHoursLogged = displayTasks.reduce((sum, t) => sum + (Number(t.loggedHours) || 0), 0)
-  const activeProjectCount = projects.filter((p) => p.status === 'active').length
+  const activeProjectCount = projects.filter((p) => {
+    if (p.status !== 'active') return false
+    if (isAdmin) return true
+    const isLegacy = !p.createdBy && (!p.members || p.members.length === 0)
+    return isLegacy || isUserOnProject(p, user, userDoc)
+  }).length
 
   const today = new Date().toLocaleDateString('en-US', {
     weekday: 'long',
@@ -177,7 +153,7 @@ export const EmployeeDashboard = () => {
             </div>
             <div>
               <h1 className="text-2xl font-bold text-slate-900 dark:text-slate-100">
-                Good {currentHour < 12 ? 'Morning' : currentHour < 18 ? 'Afternoon' : 'Evening'}, {firstName}!
+                Good {currentHour < 12 ? 'Morning' : currentHour < 17 ? 'Afternoon' : 'Evening'}, {firstName}!
               </h1>
               <p className="text-slate-500 dark:text-slate-400 text-sm mt-0.5">{today}</p>
             </div>
@@ -196,14 +172,14 @@ export const EmployeeDashboard = () => {
           <div className="flex items-center justify-center shrink-0">
             {isBrightSun ? (
               <div
-                title="10:00 AM - 6:00 PM: Bright Sun"
+                title="10:00 AM - 5:00 PM: Bright Sun"
                 className="p-3.5 rounded-2xl bg-amber-500/15 border border-amber-500/30 text-amber-500 dark:text-amber-400 shadow-[0_0_20px_rgba(245,158,11,0.45)] animate-pulse flex items-center justify-center"
               >
                 <Sun className="w-10 h-10 fill-amber-400/40 text-amber-500 dark:text-amber-400 drop-shadow-[0_0_12px_rgba(245,158,11,0.9)]" />
               </div>
             ) : (
               <div
-                title="After 6:00 PM / Night: Moon"
+                title="After 5:00 PM / Night: Moon"
                 className="p-3.5 rounded-2xl bg-indigo-500/15 border border-indigo-500/30 text-indigo-400 dark:text-indigo-300 shadow-[0_0_20px_rgba(99,102,241,0.35)] flex items-center justify-center"
               >
                 <Moon className="w-10 h-10 fill-indigo-400/30 text-indigo-400 dark:text-indigo-300 drop-shadow-[0_0_12px_rgba(129,140,248,0.9)]" />

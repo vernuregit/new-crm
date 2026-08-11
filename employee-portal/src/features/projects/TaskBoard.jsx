@@ -10,6 +10,9 @@ import { useProjectStore } from './stores/projectStore'
 import { useTeamStore } from '../team/stores/teamStore'
 import { useUserStore } from '../../stores/userStore'
 import { getEmployees } from '../team/services/teamService'
+import { isTaskVisibleToUser, isUserOnProject, getTimerElapsedMs, formatElapsed } from './services/projectService'
+import { TaskListView } from './components/TaskListView'
+import { TaskCalendarView } from './components/TaskCalendarView'
 import {
   FolderKanban,
   Kanban,
@@ -20,33 +23,11 @@ import {
   Trash2,
   Search,
   Filter,
+  Pause,
+  Play,
+  List,
+  Calendar,
 } from 'lucide-react'
-
-const isTaskVisibleToUser = (t, user, userDoc, claims) => {
-  if (!t) return false
-  const currentUserId = userDoc?.uid || user?.uid || userDoc?.id
-  const currentUserEmail = userDoc?.email || user?.email
-  const currentDisplayName = userDoc?.displayName || user?.displayName
-
-  const rawRole = claims?.role || userDoc?.role || 'employee'
-  const isAdmin =
-    rawRole === 'admin' ||
-    rawRole === 'owner' ||
-    rawRole === 'superadmin'
-
-  if (isAdmin) return true
-
-  const isCreatorByUid =
-    t.createdBy && currentUserId && String(t.createdBy) === String(currentUserId)
-  const isCreatorByEmail =
-    t.createdByEmail && currentUserEmail && String(t.createdByEmail).toLowerCase() === String(currentUserEmail).toLowerCase()
-  const isCreatorByName =
-    t.createdByName && currentDisplayName && String(t.createdByName).toLowerCase() === String(currentDisplayName).toLowerCase()
-  const isAssigneeByName =
-    t.assigneeName && currentDisplayName && String(t.assigneeName).toLowerCase() === String(currentDisplayName).toLowerCase()
-
-  return Boolean(isCreatorByUid || isCreatorByEmail || isCreatorByName || isAssigneeByName)
-}
 
 const STATUS_DOT_COLORS = {
   todo: 'bg-sky-500 dark:bg-sky-400',
@@ -83,7 +64,8 @@ export const TaskBoard = () => {
     addTask,
     updateTaskStatus,
     deleteTask,
-    logHoursToTask,
+    pauseTaskTimer,
+    resumeTaskTimer,
     fetchProjectsAndTasks,
     addCustomStatus,
     deleteCustomStatus,
@@ -146,13 +128,14 @@ export const TaskBoard = () => {
   }
 
   const [searchQuery, setSearchQuery] = useState('')
+  const [viewMode, setViewMode] = useState('board') // board | list | calendar
 
   const [showAddModal, setShowAddModal] = useState(false)
   const [showAddStatusModal, setShowAddStatusModal] = useState(false)
   const [selectedTask, setSelectedTask] = useState(null)
   const [deleteConfirmTask, setDeleteConfirmTask] = useState(null)
   const [deleteConfirmStatus, setDeleteConfirmStatus] = useState(null)
-  const [hoursToLog, setHoursToLog] = useState('')
+  const [nowTick, setNowTick] = useState(Date.now())
 
   // Drag & Drop State
   const [draggedOverCol, setDraggedOverCol] = useState(null)
@@ -211,17 +194,6 @@ export const TaskBoard = () => {
   const [taskDesc, setTaskDesc] = useState('')
   const [projectId, setProjectId] = useState(defaultProjId)
   const [priority, setPriority] = useState('medium')
-  const [estimatedHours, setEstimatedHours] = useState('10')
-
-  useEffect(() => {
-    if (showAddModal) {
-      setProjectId(
-        selectedProjectId && selectedProjectId !== 'all'
-          ? selectedProjectId
-          : projects[0]?.projectId || projects[0]?.id || ''
-      )
-    }
-  }, [showAddModal, selectedProjectId, projects])
 
   useEffect(() => {
     fetchProjectsAndTasks()
@@ -249,14 +221,22 @@ export const TaskBoard = () => {
     (p) => p.projectId === selectedProjectId || p.id === selectedProjectId
   )
 
-  const filteredTasks = tasks.filter((t) => {
-    if (!isTaskVisibleToUser(t, user, userDoc, claims)) return false
+  const visibleProjects = isAdmin
+    ? projects
+    : projects.filter((p) => {
+        const isLegacy = !p.createdBy && (!p.members || p.members.length === 0)
+        return isLegacy || isUserOnProject(p, user, userDoc)
+      })
 
-    // Filter strictly by project if a project is selected
+  const filteredTasks = tasks.filter((t) => {
+    if (!isTaskVisibleToUser(t, user, userDoc, claims, projects)) return false
+
     if (selectedProjectId && selectedProjectId !== 'all') {
       const isProjectMatch =
         t.projectId === selectedProjectId ||
-        (activeProject && t.projectName && t.projectName.toLowerCase() === activeProject.name.toLowerCase())
+        (activeProject &&
+          t.projectName &&
+          t.projectName.toLowerCase() === activeProject.name.toLowerCase())
       if (!isProjectMatch) return false
     }
 
@@ -267,9 +247,30 @@ export const TaskBoard = () => {
     return matchesSearch
   })
 
+  useEffect(() => {
+    if (showAddModal) {
+      const fallbackId = visibleProjects[0]?.projectId || visibleProjects[0]?.id || ''
+      setProjectId(
+        selectedProjectId && selectedProjectId !== 'all' ? selectedProjectId : fallbackId
+      )
+    }
+  }, [showAddModal, selectedProjectId, visibleProjects])
+
   const liveSelectedTask = selectedTask
     ? tasks.find((t) => t.taskId === selectedTask.taskId) || null
     : null
+
+  useEffect(() => {
+    const hasRunning =
+      tasks.some(
+        (t) =>
+          t.timerStatus === 'running' ||
+          (t.subtasks || []).some((st) => st.timerStatus === 'running')
+      )
+    if (!hasRunning) return undefined
+    const id = setInterval(() => setNowTick(Date.now()), 1000)
+    return () => clearInterval(id)
+  }, [tasks])
 
   const handleCreateTask = (e) => {
     e.preventDefault()
@@ -286,7 +287,6 @@ export const TaskBoard = () => {
       projectName: proj?.name || 'Project Work',
       priority,
       assigneeName: employeeName,
-      estimatedHours: Number(estimatedHours) || 0,
       dueDate: new Date(Date.now() + 86400000 * 7).toISOString().split('T')[0],
       createdBy: currentUserId || null,
       createdByEmail: currentUserEmail || null,
@@ -321,12 +321,13 @@ export const TaskBoard = () => {
     setShowAddStatusModal(false)
   }
 
-  const handleLogHours = (e) => {
-    e.preventDefault()
-    if (!selectedTask || !hoursToLog || Number(hoursToLog) <= 0) return
-
-    logHoursToTask(selectedTask.taskId, Number(hoursToLog))
-    setHoursToLog('')
+  const formatTaskTimerLabel = (task) => {
+    void nowTick
+    const elapsed = formatElapsed(getTimerElapsedMs(task))
+    if (task?.timerStatus === 'paused') return `Paused · ${elapsed}`
+    if (task?.timerStatus === 'stopped') return elapsed
+    if (task?.timerStatus === 'running') return elapsed
+    return elapsed
   }
 
   return (
@@ -369,18 +370,6 @@ export const TaskBoard = () => {
             >
               <Kanban className="w-3.5 h-3.5" /> Task Board
             </NavLink>
-            <NavLink
-              to="/projects/time"
-              className={({ isActive }) =>
-                `flex items-center gap-2 px-3 py-1.5 rounded-xl text-xs font-semibold transition-colors ${
-                  isActive
-                    ? 'bg-indigo-50 dark:bg-indigo-600/20 text-indigo-600 dark:text-indigo-400 border border-indigo-200 dark:border-indigo-500/30'
-                    : 'text-slate-600 dark:text-slate-400 hover:text-slate-900 dark:hover:text-slate-200 hover:bg-slate-100 dark:hover:bg-slate-800'
-                }`
-              }
-            >
-              <Clock className="w-3.5 h-3.5" /> Time Tracking
-            </NavLink>
           </div>
 
           <div className="flex flex-wrap items-center gap-3">
@@ -394,8 +383,8 @@ export const TaskBoard = () => {
                 onChange={(e) => handleProjectFilterChange(e.target.value)}
                 className="bg-slate-100 dark:bg-[#181C27] border border-slate-300 dark:border-slate-800 text-xs text-slate-900 dark:text-slate-100 font-semibold rounded-xl px-3 py-1.5 focus:outline-none focus:border-indigo-500 cursor-pointer transition-colors"
               >
-                <option value="all">All Projects ({projects.length})</option>
-                {projects.map((p) => (
+                <option value="all">All Projects ({visibleProjects.length})</option>
+                {visibleProjects.map((p) => (
                   <option key={p.projectId || p.id} value={p.projectId || p.id}>
                     {p.name}
                   </option>
@@ -412,6 +401,28 @@ export const TaskBoard = () => {
                 onChange={(e) => setSearchQuery(e.target.value)}
                 className="w-full bg-slate-100 dark:bg-[#181C27] border border-slate-300 dark:border-slate-800 text-xs text-slate-800 dark:text-slate-200 placeholder-slate-400 dark:placeholder-slate-500 rounded-xl pl-8 pr-3 py-1.5 focus:outline-none transition-colors"
               />
+            </div>
+
+            <div className="flex items-center gap-1 bg-slate-100 dark:bg-[#181C27] border border-slate-300 dark:border-slate-800 rounded-xl p-0.5">
+              {[
+                { id: 'board', label: 'Board', icon: Kanban },
+                { id: 'list', label: 'List', icon: List },
+                { id: 'calendar', label: 'Calendar', icon: Calendar },
+              ].map(({ id, label, icon: Icon }) => (
+                <button
+                  key={id}
+                  type="button"
+                  onClick={() => setViewMode(id)}
+                  className={`flex items-center gap-1.5 px-2.5 py-1.5 rounded-lg text-[11px] font-semibold transition-colors ${
+                    viewMode === id
+                      ? 'bg-indigo-600 text-white shadow-sm'
+                      : 'text-slate-600 dark:text-slate-400 hover:text-slate-900 dark:hover:text-slate-200'
+                  }`}
+                >
+                  <Icon className="w-3.5 h-3.5" />
+                  {label}
+                </button>
+              ))}
             </div>
           </div>
         </div>
@@ -440,7 +451,27 @@ export const TaskBoard = () => {
         </div>
       )}
 
-      {/* Dynamic Task Kanban Columns */}
+      {/* Task Views: Board / List / Calendar */}
+      {viewMode === 'list' && (
+        <TaskListView
+          tasks={filteredTasks}
+          statuses={visibleStatuses}
+          onTaskClick={setSelectedTask}
+          onStatusChange={updateTaskStatus}
+          metaLabel="Timer"
+          getMetaValue={formatTaskTimerLabel}
+        />
+      )}
+
+      {viewMode === 'calendar' && (
+        <TaskCalendarView
+          tasks={filteredTasks}
+          statuses={visibleStatuses}
+          onTaskClick={setSelectedTask}
+        />
+      )}
+
+      {viewMode === 'board' && (
       <div className="flex gap-4 overflow-x-auto pb-4 items-start min-h-[500px]">
         {visibleStatuses.map((status) => {
           const colTasks = filteredTasks.filter((t) => t.status === status.id)
@@ -526,7 +557,8 @@ export const TaskBoard = () => {
 
                         <div className="flex items-center justify-between text-xs pt-2 border-t border-slate-200 dark:border-slate-800/60">
                           <span className="flex items-center gap-1 text-[11px] text-slate-500 dark:text-slate-400">
-                            <Clock className="w-3 h-3 text-indigo-600 dark:text-indigo-400" /> {t.loggedHours} / {t.estimatedHours}h
+                            <Clock className="w-3 h-3 text-indigo-600 dark:text-indigo-400" />{' '}
+                            {formatTaskTimerLabel(t)}
                           </span>
                           <span className="flex items-center gap-1 text-[10px] text-slate-500 dark:text-slate-400">
                             <User className="w-3 h-3 text-slate-400 dark:text-slate-500" /> {t.assigneeName}
@@ -571,6 +603,7 @@ export const TaskBoard = () => {
           </button>
         </div>
       </div>
+      )}
 
       {/* New Task Modal */}
       {showAddModal && (
@@ -602,7 +635,7 @@ export const TaskBoard = () => {
                   onChange={(e) => setProjectId(e.target.value)}
                   className="w-full bg-slate-100/80 dark:bg-slate-900 border border-slate-300 dark:border-slate-800 text-slate-900 dark:text-slate-100 text-sm rounded-xl py-2.5 px-3.5 focus:outline-none focus:border-indigo-500 cursor-pointer"
                 >
-                  {projects.map((p) => (
+                  {visibleProjects.map((p) => (
                     <option
                       key={p.projectId || p.id}
                       value={p.projectId || p.id}
@@ -614,28 +647,24 @@ export const TaskBoard = () => {
                 </select>
               </div>
 
-              <div className="grid grid-cols-2 gap-3">
-                <div className="space-y-1.5 text-left">
-                  <label className="block text-xs font-medium text-slate-700 dark:text-slate-300">Priority</label>
-                  <select
-                    value={priority}
-                    onChange={(e) => setPriority(e.target.value)}
-                    className="w-full bg-slate-100/80 dark:bg-slate-900 border border-slate-300 dark:border-slate-800 text-slate-900 dark:text-slate-100 text-sm rounded-xl py-2.5 px-3.5 focus:outline-none focus:border-indigo-500 cursor-pointer"
-                  >
-                    <option value="low" className="bg-white dark:bg-slate-900 text-slate-900 dark:text-slate-100">Low</option>
-                    <option value="medium" className="bg-white dark:bg-slate-900 text-slate-900 dark:text-slate-100">Medium</option>
-                    <option value="high" className="bg-white dark:bg-slate-900 text-slate-900 dark:text-slate-100">High</option>
-                    <option value="critical" className="bg-white dark:bg-slate-900 text-slate-900 dark:text-slate-100">Critical</option>
-                  </select>
-                </div>
-
-                <Input
-                  label="Estimated Hours"
-                  type="number"
-                  value={estimatedHours}
-                  onChange={(e) => setEstimatedHours(e.target.value)}
-                />
+              <div className="space-y-1.5 text-left">
+                <label className="block text-xs font-medium text-slate-700 dark:text-slate-300">Priority</label>
+                <select
+                  value={priority}
+                  onChange={(e) => setPriority(e.target.value)}
+                  className="w-full bg-slate-100/80 dark:bg-slate-900 border border-slate-300 dark:border-slate-800 text-slate-900 dark:text-slate-100 text-sm rounded-xl py-2.5 px-3.5 focus:outline-none focus:border-indigo-500 cursor-pointer"
+                >
+                  <option value="low" className="bg-white dark:bg-slate-900 text-slate-900 dark:text-slate-100">Low</option>
+                  <option value="medium" className="bg-white dark:bg-slate-900 text-slate-900 dark:text-slate-100">Medium</option>
+                  <option value="high" className="bg-white dark:bg-slate-900 text-slate-900 dark:text-slate-100">High</option>
+                  <option value="critical" className="bg-white dark:bg-slate-900 text-slate-900 dark:text-slate-100">Critical</option>
+                </select>
               </div>
+
+              <p className="text-[11px] text-slate-500 dark:text-slate-400 flex items-center gap-1.5">
+                <Clock className="w-3.5 h-3.5 text-indigo-500" />
+                Timer starts automatically when the task is created.
+              </p>
 
               <div className="flex gap-3 pt-2">
                 <Button type="button" variant="secondary" onClick={() => setShowAddModal(false)} className="w-1/3">
@@ -650,7 +679,7 @@ export const TaskBoard = () => {
         </div>
       )}
 
-      {/* Task Log Hours & Subtask Timeline Detail Modal */}
+      {/* Task Time & Subtask Timeline Detail Modal */}
       {liveSelectedTask && (
         <div className="fixed inset-0 z-50 bg-black/70 backdrop-blur-sm flex items-center justify-center p-4 overflow-y-auto">
           <Card className="w-full max-w-2xl p-6 space-y-6 border-slate-200 dark:border-slate-800 shadow-2xl relative bg-white dark:bg-[#181C27] max-h-[90vh] overflow-y-auto">
@@ -673,24 +702,19 @@ export const TaskBoard = () => {
                 <span className="text-slate-900 dark:text-slate-100 font-bold">{liveSelectedTask.createdByName || liveSelectedTask.assigneeName || 'Employee'}</span>
               </div>
               <div className="space-y-1">
-                <span className="text-slate-500 dark:text-slate-400 block">Logged / Target Work</span>
-                <span className="text-emerald-600 dark:text-emerald-400 font-bold">{liveSelectedTask.loggedHours} / {liveSelectedTask.estimatedHours} hrs</span>
+                <span className="text-slate-500 dark:text-slate-400 block">Timer</span>
+                <span className="text-emerald-600 dark:text-emerald-400 font-bold flex items-center gap-1.5">
+                  <Clock className="w-3.5 h-3.5" />
+                  {formatTaskTimerLabel(liveSelectedTask)}
+                </span>
               </div>
             </div>
 
             {/* Interactive Vertical Subtask Timeline */}
             <SubtaskStepper taskId={liveSelectedTask.taskId} subtasks={liveSelectedTask.subtasks || []} />
 
-            {/* Quick Log Additional Hours */}
-            <form onSubmit={handleLogHours} className="space-y-3 pt-3 border-t border-slate-200 dark:border-slate-800">
-              <Input
-                label="Log Additional Hours"
-                type="number"
-                placeholder="e.g. 4"
-                value={hoursToLog}
-                onChange={(e) => setHoursToLog(e.target.value)}
-              />
-
+            {/* Task Timer Controls */}
+            <div className="space-y-3 pt-3 border-t border-slate-200 dark:border-slate-800">
               <div className="flex gap-3 pt-1">
                 <Button
                   type="button"
@@ -704,11 +728,37 @@ export const TaskBoard = () => {
                 >
                   Delete Task
                 </Button>
-                <Button type="submit" variant="primary" size="sm" className="flex-1" icon={Clock}>
-                  Log Hours
-                </Button>
+                {liveSelectedTask.timerStatus === 'running' && liveSelectedTask.status !== 'done' && (
+                  <Button
+                    type="button"
+                    variant="secondary"
+                    size="sm"
+                    className="flex-1"
+                    icon={Pause}
+                    onClick={() => pauseTaskTimer(liveSelectedTask.taskId)}
+                  >
+                    Pause Timer
+                  </Button>
+                )}
+                {liveSelectedTask.timerStatus === 'paused' && liveSelectedTask.status !== 'done' && (
+                  <Button
+                    type="button"
+                    variant="primary"
+                    size="sm"
+                    className="flex-1"
+                    icon={Play}
+                    onClick={() => resumeTaskTimer(liveSelectedTask.taskId)}
+                  >
+                    Resume Timer
+                  </Button>
+                )}
+                {(liveSelectedTask.timerStatus === 'stopped' || liveSelectedTask.status === 'done') && (
+                  <div className="flex-1 flex items-center justify-center text-xs font-semibold text-slate-500 dark:text-slate-400 bg-slate-100 dark:bg-slate-900/60 rounded-xl px-3">
+                    Timer stopped
+                  </div>
+                )}
               </div>
-            </form>
+            </div>
           </Card>
         </div>
       )}

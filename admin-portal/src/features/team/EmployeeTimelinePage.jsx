@@ -1,5 +1,5 @@
 import React, { useEffect, useMemo, useState } from 'react'
-import { NavLink } from 'react-router-dom'
+import { useSearchParams } from 'react-router-dom'
 import { PageHeader } from '../../components/layout/PageHeader'
 import { Card } from '../../components/ui/Card'
 import { Button } from '../../components/ui/Button'
@@ -10,24 +10,47 @@ import {
   getWeekDates,
   toDateStr,
 } from './services/timelineService'
+import { TeamSubNav } from './components/TeamSubNav'
 import {
-  Users,
-  CheckCircle2,
-  Calendar,
-  CalendarDays,
   ChevronLeft,
   ChevronRight,
   Clock,
-  PartyPopper,
+  CalendarDays,
 } from 'lucide-react'
 
 const DAY_LABELS = ['Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat']
+const TARGET_DAY_HOURS = 8
 
 function formatHours(hours) {
   const n = Number(hours) || 0
   if (n === 0) return '0h'
   if (Number.isInteger(n)) return `${n}h`
   return `${n}h`
+}
+
+function TimelineEntryCard({ entry }) {
+  const type = entry.entryType === 'upskilling' ? 'upskilling' : 'work'
+  return (
+    <div className="rounded-xl bg-slate-50 dark:bg-[#1a1f2e] border border-slate-200 dark:border-slate-700/70 p-2.5">
+      <p className="w-full text-xs text-slate-800 dark:text-slate-100 leading-snug break-words whitespace-pre-wrap">
+        {entry.description}
+      </p>
+      <div className="mt-2 flex items-center justify-between gap-2">
+        <p
+          className={`text-[10px] ${
+            type === 'upskilling'
+              ? 'text-violet-500 dark:text-violet-400'
+              : 'text-slate-400 dark:text-slate-500'
+          }`}
+        >
+          {type === 'upskilling' ? 'Upskilling' : 'Work'}
+        </p>
+        <span className="shrink-0 text-[10px] font-semibold text-slate-600 dark:text-slate-300 bg-slate-200/80 dark:bg-slate-700/80 rounded-md px-1.5 py-0.5">
+          {formatHours(entry.hours)}
+        </span>
+      </div>
+    </div>
+  )
 }
 
 function weekRangeLabel(days) {
@@ -45,17 +68,11 @@ function weekRangeLabel(days) {
   return `${startStr} – ${endStr}${year}`
 }
 
-const subNavClass = ({ isActive }) =>
-  `flex items-center gap-2 px-3 py-1.5 rounded-xl text-xs font-semibold transition-colors ${
-    isActive
-      ? 'bg-indigo-50 dark:bg-indigo-600/20 text-indigo-600 dark:text-indigo-400 border border-indigo-200 dark:border-indigo-500/30'
-      : 'text-slate-600 dark:text-slate-400 hover:text-slate-900 dark:hover:text-slate-200 hover:bg-slate-100 dark:hover:bg-slate-800'
-  }`
-
 export function EmployeeTimelinePage() {
   const { employees, setEmployees } = useTeamStore()
+  const [searchParams, setSearchParams] = useSearchParams()
 
-  const [selectedUid, setSelectedUid] = useState('')
+  const [selectedUid, setSelectedUid] = useState(() => searchParams.get('uid') || '')
   const [weekAnchor, setWeekAnchor] = useState(() => new Date())
   const [entries, setEntries] = useState([])
   const [loading, setLoading] = useState(false)
@@ -69,10 +86,22 @@ export function EmployeeTimelinePage() {
   }, [setEmployees])
 
   useEffect(() => {
+    const fromQuery = searchParams.get('uid')
+    if (fromQuery && fromQuery !== selectedUid) {
+      setSelectedUid(fromQuery)
+      return
+    }
     if (!selectedUid && employees.length > 0) {
       setSelectedUid(employees[0].uid || employees[0].employeeId || '')
     }
-  }, [employees, selectedUid])
+  }, [employees, selectedUid, searchParams])
+
+  useEffect(() => {
+    if (!selectedUid) return
+    if (searchParams.get('uid') !== selectedUid) {
+      setSearchParams({ uid: selectedUid }, { replace: true })
+    }
+  }, [selectedUid, searchParams, setSearchParams])
 
   useEffect(() => {
     if (!selectedUid) {
@@ -132,24 +161,7 @@ export function EmployeeTimelinePage() {
           title="Employee Work Timeline"
           description="View what each employee logged for Mon–Sat"
         />
-
-        <div className="flex items-center gap-2 border-b border-slate-200 dark:border-slate-800 pb-3 flex-wrap">
-          <NavLink to="/team/employees" className={subNavClass}>
-            <Users className="w-3.5 h-3.5" /> Employee Directory
-          </NavLink>
-          <NavLink to="/team/attendance" className={subNavClass}>
-            <CheckCircle2 className="w-3.5 h-3.5" /> Attendance Tracker
-          </NavLink>
-          <NavLink to="/team/leave" className={subNavClass}>
-            <Calendar className="w-3.5 h-3.5" /> Leave Management
-          </NavLink>
-          <NavLink to="/team/holidays" className={subNavClass}>
-            <PartyPopper className="w-3.5 h-3.5" /> Public Holidays
-          </NavLink>
-          <NavLink to="/team/timeline" className={subNavClass}>
-            <CalendarDays className="w-3.5 h-3.5" /> Work Timeline
-          </NavLink>
-        </div>
+        <TeamSubNav />
       </div>
 
       {/* Filters */}
@@ -227,58 +239,55 @@ export function EmployeeTimelinePage() {
             0
           )
           const isToday = dateStr === todayStr
+          const isFullDay = dayTotal >= TARGET_DAY_HOURS
 
           return (
             <Card
               key={dateStr}
-              className={`flex flex-col min-h-[220px] p-3 border ${
+              className={`flex flex-col min-h-[260px] p-3 border ${
                 isToday
                   ? 'border-indigo-400 dark:border-indigo-500/50 ring-1 ring-indigo-500/20'
                   : 'border-slate-200 dark:border-slate-800'
               }`}
             >
-              <div className="mb-2 pb-2 border-b border-slate-200 dark:border-slate-800">
-                <span
-                  className={`text-xs font-bold uppercase tracking-wide ${
-                    isToday
-                      ? 'text-indigo-600 dark:text-indigo-400'
-                      : 'text-slate-500 dark:text-slate-400'
-                  }`}
-                >
-                  {DAY_LABELS[idx]}
-                </span>
-                <div className="text-sm font-semibold text-slate-800 dark:text-slate-100 mt-0.5">
-                  {day.toLocaleDateString([], { month: 'short', day: 'numeric' })}
+              <div className="mb-3">
+                <div className="flex items-start justify-between gap-2">
+                  <div>
+                    <div
+                      className={`text-xs font-bold uppercase tracking-wide ${
+                        isToday
+                          ? 'text-indigo-600 dark:text-indigo-400'
+                          : 'text-slate-700 dark:text-slate-200'
+                      }`}
+                    >
+                      {DAY_LABELS[idx]} {day.getDate()}
+                    </div>
+                    <p className="text-[10px] text-slate-400 mt-0.5">View only</p>
+                  </div>
+                  <span
+                    className={`shrink-0 text-[10px] font-semibold rounded-full px-2 py-0.5 border ${
+                      isFullDay
+                        ? 'text-emerald-600 dark:text-emerald-400 border-emerald-400/60 bg-emerald-50 dark:bg-emerald-500/10'
+                        : 'text-slate-500 dark:text-slate-400 border-slate-300 dark:border-slate-600'
+                    }`}
+                  >
+                    {formatHours(dayTotal)} of {TARGET_DAY_HOURS}h
+                  </span>
                 </div>
               </div>
 
-              <div className="flex-1 space-y-2 overflow-y-auto max-h-48">
+              <div className="flex-1 space-y-2 overflow-y-auto max-h-72">
                 {loading ? (
                   <p className="text-[11px] text-slate-400 py-4 text-center">Loading…</p>
                 ) : dayEntries.length === 0 ? (
-                  <p className="text-[11px] text-slate-400 py-6 text-center">No entries</p>
+                  <div className="rounded-xl border border-dashed border-slate-300 dark:border-slate-700 py-8 text-[11px] text-slate-400 text-center">
+                    No entries
+                  </div>
                 ) : (
                   dayEntries.map((entry) => (
-                    <div
-                      key={entry.entryId}
-                      className="rounded-lg bg-slate-50 dark:bg-slate-800/50 border border-slate-200 dark:border-slate-700/60 p-2"
-                    >
-                      <p className="text-xs text-slate-800 dark:text-slate-200 line-clamp-4">
-                        {entry.description}
-                      </p>
-                      <span className="inline-block mt-1 text-[10px] font-semibold text-indigo-600 dark:text-indigo-400">
-                        {formatHours(entry.hours)}
-                      </span>
-                    </div>
+                    <TimelineEntryCard key={entry.entryId} entry={entry} />
                   ))
                 )}
-              </div>
-
-              <div className="mt-2 pt-2 border-t border-slate-200 dark:border-slate-800 flex items-center justify-between">
-                <span className="text-[10px] text-slate-500">Day total</span>
-                <span className="text-xs font-bold text-slate-800 dark:text-slate-100">
-                  {formatHours(dayTotal)}
-                </span>
               </div>
             </Card>
           )

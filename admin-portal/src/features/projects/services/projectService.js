@@ -59,6 +59,7 @@ export const createProject = async (projectData) => {
   try {
     const docRef = await addDoc(collection(db, 'projects'), {
       ...projectData,
+      estimatedDate: projectData.estimatedDate || null,
       createdAt: new Date().toISOString(),
     })
     return { projectId: docRef.id, id: docRef.id, ...projectData }

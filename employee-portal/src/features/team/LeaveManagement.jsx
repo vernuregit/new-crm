@@ -4,19 +4,35 @@ import { PageHeader } from '../../components/layout/PageHeader'
 import { Card } from '../../components/ui/Card'
 import { Badge } from '../../components/ui/Badge'
 import { Button } from '../../components/ui/Button'
-import { Input } from '../../components/ui/Input'
 import { useTeamStore } from './stores/teamStore'
 import { useUserStore } from '../../stores/userStore'
-import { getEmployees, getLeaveRequests, createLeaveRequest, updateLeaveStatusInDb } from './services/teamService'
-import { Users, CheckCircle2, Calendar, Plus, Check, X, Loader2, Clock, AlertCircle, AlertTriangle, ShieldCheck, User, ChevronLeft, ChevronRight } from 'lucide-react'
+import { getEmployees, createLeaveRequest, updateLeaveStatusInDb, deleteLeaveRequestFromDb } from './services/teamService'
+import {
+  resolveEmployeeWfhPolicy,
+  countUsedWfhDays,
+  validateWfhRequest,
+  getWfhAllowanceLabel,
+  getWfhLeaveStatus,
+} from './services/wfhPolicyUtils'
+import { Users, CheckCircle2, Calendar, Plus, X, Clock, AlertCircle, AlertTriangle, ShieldCheck, ChevronLeft, ChevronRight, Trash2, Ban } from 'lucide-react'
 import { collection, onSnapshot } from 'firebase/firestore'
 import { db } from '../../shared/services/firebaseService'
 
+const SINGLE_DAY_LEAVE_TYPES = new Set([
+  'Work From Home',
+  'Sick Leave',
+  'Casual Leave',
+  'Emergency Leave',
+])
+
+const isSingleDayLeaveType = (type) => SINGLE_DAY_LEAVE_TYPES.has(type)
+
 // ─── Modern Interactive Calendar Picker Component ─────────────────────────────
-const InteractiveCalendarPicker = ({ startDate, setStartDate, endDate, setEndDate, isMultiDay, setIsMultiDay, leaveType, setValidationError }) => {
+const InteractiveCalendarPicker = ({ startDate, setStartDate, endDate, setEndDate, leaveType, setValidationError }) => {
   const [isOpen, setIsOpen] = useState(false)
   const [currentYear, setCurrentYear] = useState(new Date().getFullYear())
   const [currentMonth, setCurrentMonth] = useState(new Date().getMonth())
+  const singleDayOnly = isSingleDayLeaveType(leaveType)
 
   const months = ['January', 'February', 'March', 'April', 'May', 'June', 'July', 'August', 'September', 'October', 'November', 'December']
   const weekDays = ['Sun', 'Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat']
@@ -42,27 +58,40 @@ const InteractiveCalendarPicker = ({ startDate, setStartDate, endDate, setEndDat
   const firstDayIndex = new Date(currentYear, currentMonth, 1).getDay()
   const totalDays = new Date(currentYear, currentMonth + 1, 0).getDate()
 
-  const todayStr = new Date().toISOString().split('T')[0]
+  const toLocalDateStr = (d) => {
+    const y = d.getFullYear()
+    const m = String(d.getMonth() + 1).padStart(2, '0')
+    const day = String(d.getDate()).padStart(2, '0')
+    return `${y}-${m}-${day}`
+  }
 
-  // Dynamic min allowed date calculation:
-  // Company works Mon-Sat (6 days). Sunday = 0 is non-working.
+  const todayLocal = new Date()
+  todayLocal.setHours(0, 0, 0, 0)
+  const todayStr = toLocalDateStr(todayLocal)
+
+  // Min selectable date by leave type.
+  // Casual Leave: exactly 3 calendar days in advance (today + 3).
+  // Urgent types: today onwards.
   const getMinAllowedDate = () => {
-    const today = new Date()
-    today.setHours(0, 0, 0, 0)
-
-    if (leaveType === 'Sick Leave' || leaveType === 'Emergency Leave' || leaveType === 'Work From Home') {
+    if (
+      leaveType === 'Sick Leave' ||
+      leaveType === 'Emergency Leave' ||
+      leaveType === 'Work From Home' ||
+      leaveType === 'On Duty'
+    ) {
       return todayStr
     }
 
-    let workingDaysAdded = 0
-    const cursor = new Date(today)
-    while (workingDaysAdded < 3) {
-      cursor.setDate(cursor.getDate() + 1)
-      if (cursor.getDay() !== 0) {
-        workingDaysAdded++
-      }
+    if (leaveType === 'Casual Leave') {
+      const cursor = new Date(todayLocal)
+      cursor.setDate(cursor.getDate() + 3)
+      return toLocalDateStr(cursor)
     }
-    return cursor.toISOString().split('T')[0]
+
+    // Other standard leave types: 3 calendar days advance
+    const cursor = new Date(todayLocal)
+    cursor.setDate(cursor.getDate() + 3)
+    return toLocalDateStr(cursor)
   }
 
   const minAllowedDate = getMinAllowedDate()
@@ -73,17 +102,33 @@ const InteractiveCalendarPicker = ({ startDate, setStartDate, endDate, setEndDat
     const clickedDate = `${currentYear}-${mStr}-${dStr}`
 
     if (clickedDate < minAllowedDate) {
-      if (leaveType === 'Sick Leave' || leaveType === 'Emergency Leave' || leaveType === 'Work From Home') {
+      if (
+        leaveType === 'Sick Leave' ||
+        leaveType === 'Emergency Leave' ||
+        leaveType === 'Work From Home' ||
+        leaveType === 'On Duty'
+      ) {
         setValidationError('Past dates cannot be selected.')
+      } else if (leaveType === 'Casual Leave') {
+        setValidationError(
+          `Casual Leave can only be selected at least 3 days in advance. Earliest available date is ${minAllowedDate}.`
+        )
       } else {
-        setValidationError(`Standard leaves require 3 working days advance notice. Earliest available date is ${minAllowedDate}.`)
+        setValidationError(`Standard leaves require 3 days advance notice. Earliest available date is ${minAllowedDate}.`)
       }
       return
     }
 
     setValidationError('')
 
-    // Intuitive Range / Single Date Selection
+    // WFH / Sick / Casual / Emergency: single date only (1 Day)
+    if (singleDayOnly) {
+      setStartDate(clickedDate)
+      setEndDate(clickedDate)
+      return
+    }
+
+    // On Duty and other types: allow start–end range
     if (!startDate || (startDate && endDate && startDate !== endDate)) {
       setStartDate(clickedDate)
       setEndDate(clickedDate)
@@ -97,9 +142,11 @@ const InteractiveCalendarPicker = ({ startDate, setStartDate, endDate, setEndDat
     }
   }
 
-  const daysCount = startDate && endDate
-    ? Math.max(1, Math.round((new Date(endDate) - new Date(startDate)) / 86400000) + 1)
-    : 1
+  const daysCount = singleDayOnly
+    ? 1
+    : startDate && endDate
+      ? Math.max(1, Math.round((new Date(endDate) - new Date(startDate)) / 86400000) + 1)
+      : 1
 
   return (
     <div className="space-y-2">
@@ -112,17 +159,19 @@ const InteractiveCalendarPicker = ({ startDate, setStartDate, endDate, setEndDat
         <div className="flex items-center gap-2.5">
           <Calendar className="w-4 h-4 text-indigo-400 group-hover:scale-110 transition-transform" />
           {startDate ? (
-            endDate && endDate !== startDate ? (
-              <span className="text-slate-200">
-                Leave: <strong className="text-indigo-400 font-semibold">{startDate}</strong> to <strong className="text-indigo-400 font-semibold">{endDate}</strong> ({daysCount} Days)
-              </span>
-            ) : (
+            singleDayOnly || !endDate || endDate === startDate ? (
               <span className="text-slate-200">
                 Leave Date: <strong className="text-indigo-400 font-semibold">{startDate}</strong> (1 Day)
               </span>
+            ) : (
+              <span className="text-slate-200">
+                Leave: <strong className="text-indigo-400 font-semibold">{startDate}</strong> to <strong className="text-indigo-400 font-semibold">{endDate}</strong> ({daysCount} Days)
+              </span>
             )
           ) : (
-            <span className="text-slate-400">Click to choose leave date from calendar...</span>
+            <span className="text-slate-400">
+              {singleDayOnly ? 'Click to choose leave date from calendar...' : 'Click to choose leave dates from calendar...'}
+            </span>
           )}
         </div>
         <span className="text-[11px] text-indigo-400 font-semibold bg-indigo-500/10 px-2.5 py-1 rounded-lg border border-indigo-500/20">
@@ -177,8 +226,8 @@ const InteractiveCalendarPicker = ({ startDate, setStartDate, endDate, setEndDat
               const isToday = dateStr === todayStr
               const isDisabled = dateStr < minAllowedDate
               const isSelectedStart = dateStr === startDate
-              const isSelectedEnd = dateStr === endDate
-              const isInRange = startDate && endDate && dateStr > startDate && dateStr < endDate
+              const isSelectedEnd = !singleDayOnly && dateStr === endDate && endDate !== startDate
+              const isInRange = !singleDayOnly && startDate && endDate && dateStr > startDate && dateStr < endDate
 
               let cellClass = 'text-slate-700 dark:text-slate-200 hover:bg-indigo-50 dark:hover:bg-indigo-600/20 hover:text-indigo-600 dark:hover:text-indigo-300 font-medium'
               if (isDisabled) {
@@ -208,7 +257,11 @@ const InteractiveCalendarPicker = ({ startDate, setStartDate, endDate, setEndDat
 
           <div className="pt-2 border-t border-slate-800/80 flex items-center justify-between text-[11px]">
             <span className="text-slate-400 font-medium">
-              Click start and end dates to select leave range
+              {leaveType === 'Casual Leave'
+                ? `Casual Leave: select a date from ${minAllowedDate} onwards (3 days advance)`
+                : singleDayOnly
+                  ? 'Select a single date (1 Day)'
+                  : 'Click start and end dates to select leave range'}
             </span>
 
             <button
@@ -226,7 +279,7 @@ const InteractiveCalendarPicker = ({ startDate, setStartDate, endDate, setEndDat
 }
 
 export const LeaveManagement = () => {
-  const { employees, setEmployees, leaveRequests, setLeaveRequests, addLeaveRequest, updateLeaveStatus } = useTeamStore()
+  const { employees, setEmployees, leaveRequests, setLeaveRequests, addLeaveRequest, updateLeaveStatus, removeLeaveRequest } = useTeamStore()
   const { user, userDoc } = useUserStore()
 
   // Match current user in employees list or derive from userDoc / user / email
@@ -261,13 +314,17 @@ export const LeaveManagement = () => {
   const [leaveType, setLeaveType] = useState('Casual Leave')
   const [startDate, setStartDate] = useState('')
   const [endDate, setEndDate] = useState('')
-  const [isMultiDay, setIsMultiDay] = useState(false)
   const [reason, setReason] = useState('')
   const [validationError, setValidationError] = useState('')
   const [loadingLeave, setLoadingLeave] = useState(false)
+  const [confirmAction, setConfirmAction] = useState(null) // { type: 'cancel' | 'delete', request }
+  const [actionLoading, setActionLoading] = useState(false)
+  const singleDayOnly = isSingleDayLeaveType(leaveType)
 
   const currentMonthStr = new Date().toISOString().slice(0, 7) // "YYYY-MM"
   const currentMonthName = new Date().toLocaleString('default', { month: 'long', year: 'numeric' })
+
+  const wfhPolicy = resolveEmployeeWfhPolicy(currentEmp || userDoc || {})
 
   // Real-time Firestore sync for leave requests
   useEffect(() => {
@@ -290,6 +347,12 @@ export const LeaveManagement = () => {
     return () => unsub()
   }, [setLeaveRequests, setEmployees])
 
+  useEffect(() => {
+    if (!wfhPolicy.canRequest && leaveType === 'Work From Home') {
+      setLeaveType('Casual Leave')
+    }
+  }, [wfhPolicy.canRequest, leaveType])
+
   // Filter this employee's own leave requests using UID, Email, or Name for robust persistence across refreshes
   const myLeaveRequests = leaveRequests.filter((l) => {
     if (resolvedEmployeeId && (l.employeeId === resolvedEmployeeId || l.employeeId === user?.uid)) return true
@@ -303,9 +366,9 @@ export const LeaveManagement = () => {
   const approvedRequests = myLeaveRequests.filter((l) => l.status === 'approved')
   const rejectedRequests = myLeaveRequests.filter((l) => l.status === 'rejected')
 
-  // Filter non-rejected leaves for current month (pending + approved both count towards quota)
+  // Pending + approved count toward quota; rejected/cancelled do not
   const currentMonthRequests = myLeaveRequests.filter((l) => {
-    if (l.status === 'rejected') return false
+    if (l.status === 'rejected' || l.status === 'cancelled') return false
     return l.startDate && l.startDate.startsWith(currentMonthStr)
   })
 
@@ -324,6 +387,19 @@ export const LeaveManagement = () => {
 
   const remainingCasualDays = Math.max(0, 1 - usedCasualDaysThisMonth)
   const remainingSickDays = Math.max(0, 1 - usedSickDaysThisMonth)
+
+  const employeeWfhFilter = {
+    employeeId: resolvedEmployeeId,
+    uid: user?.uid,
+    employeeEmail: resolvedEmployeeEmail,
+    employeeName: resolvedEmployeeName,
+  }
+
+  const wfhReferenceDate = startDate || new Date().toISOString().split('T')[0]
+  const usedWfhDays = countUsedWfhDays(myLeaveRequests, employeeWfhFilter, wfhPolicy, wfhReferenceDate)
+  const remainingWfhDays = wfhPolicy.canRequest
+    ? Math.max(0, (Number(wfhPolicy.limit) || 1) - usedWfhDays)
+    : null
 
   const handleRequestLeave = async (e) => {
     e.preventDefault()
@@ -347,21 +423,36 @@ export const LeaveManagement = () => {
 
     const diffDays = Math.ceil((reqStartDate - today) / (1000 * 60 * 60 * 24))
 
-    // ─── 3-Day Advance Notice Rule ───
-    // Emergency, Sick Leave, and Work From Home are exempt from the 3-day advance notice rule.
-    const isUrgentLeave = leaveType === 'Sick Leave' || leaveType === 'Emergency Leave' || leaveType === 'Work From Home'
-
-    if (!isUrgentLeave && diffDays < 3) {
+    // Casual Leave requires at least 3 calendar days advance notice
+    if (leaveType === 'Casual Leave' && diffDays < 3) {
       setValidationError(
-        'Standard leave must be requested at least 3 days in advance. For urgent situations, please select "Sick Leave", "Emergency Leave", or "Work From Home".'
+        'Casual Leave can only be requested at least 3 days in advance. Please select a later date.'
       )
       return
     }
 
-    const finalEndDate = isMultiDay && endDate ? endDate : startDate
-    const daysCount = isMultiDay && startDate && endDate
-      ? Math.max(1, Math.round((new Date(endDate) - new Date(startDate)) / 86400000) + 1)
-      : 1
+    // ─── 3-Day Advance Notice Rule ───
+    // Emergency, Sick Leave, Work From Home, and On Duty are exempt from the 3-day advance notice rule.
+    const isUrgentLeave =
+      leaveType === 'Sick Leave' ||
+      leaveType === 'Emergency Leave' ||
+      leaveType === 'Work From Home' ||
+      leaveType === 'On Duty'
+
+    if (!isUrgentLeave && leaveType !== 'Casual Leave' && diffDays < 3) {
+      setValidationError(
+        'Standard leave must be requested at least 3 days in advance. For urgent situations, please select "Sick Leave", "Emergency Leave", "Work From Home", or "On Duty".'
+      )
+      return
+    }
+
+    // WFH / Sick / Casual / Emergency are always 1 day
+    const finalEndDate = singleDayOnly ? startDate : (endDate || startDate)
+    const daysCount = singleDayOnly
+      ? 1
+      : startDate && endDate
+        ? Math.max(1, Math.round((new Date(endDate) - new Date(startDate)) / 86400000) + 1)
+        : 1
 
     // Monthly Quota Validation: Maximum 1 Sick Leave & 1 Casual Leave per month
     if ((leaveType === 'Casual Leave' || leaveType === 'Annual Leave') && (usedCasualDaysThisMonth + daysCount > 1)) {
@@ -378,6 +469,24 @@ export const LeaveManagement = () => {
       return
     }
 
+    let wfhStatus = 'pending'
+    let wfhAutoApproved = false
+    if (leaveType === 'Work From Home') {
+      const usedForRequest = countUsedWfhDays(
+        myLeaveRequests,
+        employeeWfhFilter,
+        wfhPolicy,
+        startDate
+      )
+      const wfhError = validateWfhRequest(wfhPolicy, usedForRequest, daysCount)
+      if (wfhError) {
+        setValidationError(wfhError)
+        return
+      }
+      wfhStatus = getWfhLeaveStatus(wfhPolicy, { createdByAdmin: false })
+      wfhAutoApproved = wfhStatus === 'approved'
+    }
+
     const leaveData = {
       employeeName: resolvedEmployeeName,
       employeeId: resolvedEmployeeId,
@@ -387,6 +496,13 @@ export const LeaveManagement = () => {
       endDate: finalEndDate,
       days: daysCount,
       reason: reason.trim(),
+      ...(leaveType === 'Work From Home'
+        ? {
+            status: wfhStatus,
+            autoApproved: wfhAutoApproved,
+            reviewedBy: wfhAutoApproved ? 'WFH Policy' : undefined,
+          }
+        : {}),
     }
 
     const created = await createLeaveRequest(leaveData)
@@ -395,15 +511,70 @@ export const LeaveManagement = () => {
     setLeaveType('Casual Leave')
     setStartDate('')
     setEndDate('')
-    setIsMultiDay(false)
     setReason('')
     setValidationError('')
     setShowAddModal(false)
   }
 
-  const handleUpdateLeaveStatus = async (leaveId, newStatus) => {
-    updateLeaveStatus(leaveId, newStatus)
-    await updateLeaveStatusInDb(leaveId, newStatus)
+  const isOwnRequest = (req) => {
+    if (!req) return false
+    if (resolvedEmployeeId && (req.employeeId === resolvedEmployeeId || req.employeeId === user?.uid)) return true
+    if (resolvedEmployeeEmail && req.employeeEmail?.toLowerCase() === resolvedEmployeeEmail.toLowerCase()) return true
+    if (req.employeeName && req.employeeName !== 'Team Staff' && req.employeeName === resolvedEmployeeName) return true
+    return false
+  }
+
+  const isOwnPendingRequest = (req) => isOwnRequest(req) && req.status === 'pending'
+
+  /** Employees may delete their own pending or cancelled requests only */
+  const canDeleteOwnRequest = (req) =>
+    isOwnRequest(req) && (req.status === 'pending' || req.status === 'cancelled')
+
+  const handleConfirmAction = async () => {
+    if (!confirmAction?.request) return
+    const req = confirmAction.request
+
+    if (confirmAction.type === 'cancel') {
+      if (!isOwnPendingRequest(req)) {
+        setConfirmAction(null)
+        return
+      }
+    } else if (confirmAction.type === 'delete') {
+      if (!canDeleteOwnRequest(req)) {
+        setConfirmAction(null)
+        return
+      }
+    } else {
+      setConfirmAction(null)
+      return
+    }
+
+    setActionLoading(true)
+    try {
+      if (confirmAction.type === 'cancel') {
+        const extras = {
+          cancelledBy: resolvedEmployeeName,
+          cancelledAt: new Date().toISOString(),
+        }
+        updateLeaveStatus(req.leaveId, 'cancelled', extras)
+        await updateLeaveStatusInDb(req.leaveId, 'cancelled', extras)
+      } else if (confirmAction.type === 'delete') {
+        await deleteLeaveRequestFromDb(req.leaveId)
+        removeLeaveRequest(req.leaveId)
+      }
+    } catch (err) {
+      console.error('Failed to update leave request:', err)
+    } finally {
+      setActionLoading(false)
+      setConfirmAction(null)
+    }
+  }
+
+  const getStatusBadge = (status) => {
+    if (status === 'approved') return { variant: 'success', label: 'Granted' }
+    if (status === 'rejected') return { variant: 'danger', label: 'Declined' }
+    if (status === 'cancelled') return { variant: 'neutral', label: 'Cancelled' }
+    return { variant: 'warning', label: 'Pending Review' }
   }
 
   return (
@@ -472,7 +643,9 @@ export const LeaveManagement = () => {
                 Your leave is granted!
               </h4>
               <p className="text-xs text-emerald-800 dark:text-slate-300 mt-0.5">
-                {approvedRequests[0].leaveType} ({approvedRequests[0].startDate} to {approvedRequests[0].endDate}) for {approvedRequests[0].employeeName} has been approved
+                {approvedRequests[0].leaveType} ({approvedRequests[0].startDate === approvedRequests[0].endDate || Number(approvedRequests[0].days) === 1
+                  ? `${approvedRequests[0].startDate} (1 Day)`
+                  : `${approvedRequests[0].startDate} to ${approvedRequests[0].endDate}`}) for {approvedRequests[0].employeeName} has been approved
                 {approvedRequests[0].reviewedBy ? ` by ${approvedRequests[0].reviewedBy}` : ' by management'}.
               </p>
             </div>
@@ -591,50 +764,140 @@ export const LeaveManagement = () => {
               <th className="p-4 font-semibold">Leave Type</th>
               <th className="p-4 font-semibold">Duration</th>
               <th className="p-4 font-semibold">Reason</th>
-              <th className="p-4 font-semibold text-right">Status</th>
+              <th className="p-4 font-semibold">Status</th>
+              <th className="p-4 font-semibold text-right">Actions</th>
             </tr>
           </thead>
           <tbody className="divide-y divide-slate-200 dark:divide-slate-800/60">
             {myLeaveRequests.length === 0 ? (
               <tr>
-                <td colSpan="4" className="p-6 text-center text-slate-500 dark:text-slate-400 text-xs">
+                <td colSpan="5" className="p-6 text-center text-slate-500 dark:text-slate-400 text-xs">
                   No leave requests submitted yet. Click "Request Leave" above to apply.
                 </td>
               </tr>
             ) : (
-              myLeaveRequests.map((req) => (
-                <tr key={req.leaveId} className="hover:bg-slate-50 dark:hover:bg-slate-800/30 transition-colors text-slate-700 dark:text-slate-300">
-                  <td className="p-4 text-slate-800 dark:text-slate-300 font-medium">{req.leaveType}</td>
-                  <td className="p-4 text-slate-600 dark:text-slate-400">
-                    {req.startDate} to {req.endDate} ({req.days} days)
-                  </td>
-                  <td className="p-4 text-slate-600 dark:text-slate-400 max-w-xs truncate">{req.reason}</td>
-                  <td className="p-4 text-right">
-                    <div className="flex flex-col items-end gap-1">
-                      <Badge
-                        variant={
-                          req.status === 'approved'
-                            ? 'success'
-                            : req.status === 'rejected'
-                            ? 'danger'
-                            : 'warning'
-                        }
-                      >
-                        {req.status === 'approved' ? 'Granted' : req.status === 'rejected' ? 'Declined' : 'Pending Review'}
-                      </Badge>
-                      {req.reviewedBy && req.status !== 'pending' && (
-                        <span className="text-[10px] text-slate-500 dark:text-slate-400 font-medium">
-                          by {req.reviewedBy}
-                        </span>
+              myLeaveRequests.map((req) => {
+                const statusBadge = getStatusBadge(req.status)
+                const canCancel = isOwnPendingRequest(req)
+                const canDelete = canDeleteOwnRequest(req)
+                return (
+                  <tr key={req.leaveId} className="hover:bg-slate-50 dark:hover:bg-slate-800/30 transition-colors text-slate-700 dark:text-slate-300">
+                    <td className="p-4 text-slate-800 dark:text-slate-300 font-medium">{req.leaveType}</td>
+                    <td className="p-4 text-slate-600 dark:text-slate-400">
+                      {req.startDate === req.endDate || Number(req.days) === 1
+                        ? `${req.startDate} (1 Day)`
+                        : `${req.startDate} to ${req.endDate} (${req.days} days)`}
+                    </td>
+                    <td className="p-4 text-slate-600 dark:text-slate-400 max-w-xs truncate">{req.reason}</td>
+                    <td className="p-4">
+                      <div className="flex flex-col gap-1">
+                        <Badge variant={statusBadge.variant}>
+                          {statusBadge.label}
+                        </Badge>
+                        {req.reviewedBy && req.status !== 'pending' && req.status !== 'cancelled' && (
+                          <span className="text-[10px] text-slate-500 dark:text-slate-400 font-medium">
+                            by {req.reviewedBy}
+                          </span>
+                        )}
+                        {req.status === 'cancelled' && req.cancelledBy && (
+                          <span className="text-[10px] text-slate-500 dark:text-slate-400 font-medium">
+                            by {req.cancelledBy}
+                          </span>
+                        )}
+                      </div>
+                    </td>
+                    <td className="p-4 text-right">
+                      {canCancel || canDelete ? (
+                        <div className="flex items-center justify-end gap-2">
+                          {canCancel && (
+                            <button
+                              type="button"
+                              onClick={() => setConfirmAction({ type: 'cancel', request: req })}
+                              className="inline-flex items-center gap-1 px-2.5 py-1.5 rounded-lg text-[11px] font-semibold bg-slate-100 dark:bg-slate-800 text-slate-700 dark:text-slate-300 border border-slate-200 dark:border-slate-700 hover:bg-slate-200 dark:hover:bg-slate-700 transition-colors"
+                              title="Cancel Request"
+                            >
+                              <Ban className="w-3.5 h-3.5" />
+                              Cancel Request
+                            </button>
+                          )}
+                          {canDelete && (
+                            <button
+                              type="button"
+                              onClick={() => setConfirmAction({ type: 'delete', request: req })}
+                              className="inline-flex items-center gap-1 px-2.5 py-1.5 rounded-lg text-[11px] font-semibold bg-rose-50 dark:bg-rose-500/10 text-rose-600 dark:text-rose-400 border border-rose-200 dark:border-rose-500/30 hover:bg-rose-100 dark:hover:bg-rose-500/20 transition-colors"
+                              title="Delete Request"
+                            >
+                              <Trash2 className="w-3.5 h-3.5" />
+                              Delete
+                            </button>
+                          )}
+                        </div>
+                      ) : (
+                        <span className="text-[11px] text-slate-400 dark:text-slate-500">—</span>
                       )}
-                    </div>
-                  </td>
-                </tr>
-              ))
+                    </td>
+                  </tr>
+                )
+              })
             )}
           </tbody>
         </table>
       </Card>
+
+      {/* Cancel / Delete Confirmation Modal */}
+      {confirmAction && (
+        <div className="fixed inset-0 z-50 bg-black/70 backdrop-blur-sm flex items-center justify-center p-4">
+          <Card className="w-full max-w-md p-6 space-y-4 border-slate-200 dark:border-slate-800 shadow-2xl rounded-2xl bg-white dark:bg-[#181C27]">
+            <div className="flex items-start gap-3">
+              <div
+                className={`w-10 h-10 rounded-xl flex items-center justify-center shrink-0 border ${
+                  confirmAction.type === 'delete'
+                    ? 'bg-rose-50 dark:bg-rose-500/10 text-rose-600 dark:text-rose-400 border-rose-200 dark:border-rose-500/30'
+                    : 'bg-slate-100 dark:bg-slate-800 text-slate-600 dark:text-slate-300 border-slate-200 dark:border-slate-700'
+                }`}
+              >
+                {confirmAction.type === 'delete' ? <Trash2 className="w-5 h-5" /> : <Ban className="w-5 h-5" />}
+              </div>
+              <div>
+                <h3 className="font-bold text-slate-900 dark:text-slate-100 text-sm">
+                  {confirmAction.type === 'delete' ? 'Delete Leave Request?' : 'Cancel Leave Request?'}
+                </h3>
+                <p className="text-xs text-slate-600 dark:text-slate-400 mt-1.5 leading-relaxed">
+                  {confirmAction.type === 'delete'
+                    ? `This will permanently remove your ${confirmAction.request.leaveType} request for ${confirmAction.request.startDate}. This cannot be undone.`
+                    : `Your ${confirmAction.request.leaveType} request for ${confirmAction.request.startDate} will be marked as Cancelled. It will not count against your leave balance.`}
+                </p>
+              </div>
+            </div>
+
+            <div className="flex gap-3 pt-1">
+              <Button
+                type="button"
+                variant="secondary"
+                onClick={() => !actionLoading && setConfirmAction(null)}
+                className="w-1/3"
+                disabled={actionLoading}
+              >
+                Keep Request
+              </Button>
+              <Button
+                type="button"
+                variant={confirmAction.type === 'delete' ? 'danger' : 'primary'}
+                onClick={handleConfirmAction}
+                className="w-2/3"
+                disabled={actionLoading}
+                icon={confirmAction.type === 'delete' ? Trash2 : Ban}
+              >
+                {actionLoading
+                  ? 'Please wait…'
+                  : confirmAction.type === 'delete'
+                    ? 'Delete Permanently'
+                    : 'Confirm Cancel'}
+              </Button>
+            </div>
+          </Card>
+        </div>
+      )}
 
       {/* Request Leave Modal */}
       {showAddModal && (
@@ -668,20 +931,62 @@ export const LeaveManagement = () => {
                 <select
                   value={leaveType}
                   onChange={(e) => {
-                    setLeaveType(e.target.value)
+                    const nextType = e.target.value
+                    setLeaveType(nextType)
                     setValidationError('')
+                    // Collapse any prior range when switching to a single-day leave type
+                    if (isSingleDayLeaveType(nextType) && startDate) {
+                      setEndDate(startDate)
+                    }
+                    // Casual Leave requires 3 calendar days advance — clear too-early dates
+                    if (nextType === 'Casual Leave' && startDate) {
+                      const today = new Date()
+                      today.setHours(0, 0, 0, 0)
+                      const cursor = new Date(today)
+                      cursor.setDate(cursor.getDate() + 3)
+                      const y = cursor.getFullYear()
+                      const m = String(cursor.getMonth() + 1).padStart(2, '0')
+                      const d = String(cursor.getDate()).padStart(2, '0')
+                      const minCasual = `${y}-${m}-${d}`
+                      if (startDate < minCasual) {
+                        setStartDate('')
+                        setEndDate('')
+                        setValidationError(
+                          `Casual Leave can only be selected at least 3 days in advance. Earliest available date is ${minCasual}.`
+                        )
+                      }
+                    }
                   }}
                   className="w-full bg-slate-100 dark:bg-slate-900 border border-slate-300 dark:border-slate-800 text-slate-800 dark:text-slate-100 text-sm rounded-xl py-2.5 px-3.5 focus:outline-none focus:border-indigo-500"
                 >
-                  <option value="Casual Leave">Casual Leave (1 Day / Month)</option>
+                  <option value="Casual Leave">Casual Leave (1 Day / Month · 3 days advance)</option>
                   <option value="Sick Leave">Sick Leave (1 Day / Month)</option>
-                  <option value="Work From Home">Work From Home</option>
+                  {wfhPolicy.canRequest && (
+                    <option value="Work From Home">
+                      Work From Home ({getWfhAllowanceLabel(wfhPolicy)})
+                      {wfhPolicy.mode === 'monthly' ? ' — needs approval' : ' — auto-approved'}
+                    </option>
+                  )}
+                  <option value="On Duty">On Duty (outdoor / official work)</option>
                   <option value="Emergency Leave">Emergency Leave</option>
                 </select>
+                {wfhPolicy.canRequest && leaveType === 'Work From Home' && remainingWfhDays !== null && (
+                  <p className="text-[11px] text-slate-500 dark:text-slate-400 mt-1">
+                    Remaining this {wfhPolicy.mode === 'weekly' ? 'week' : 'month'}: {remainingWfhDays} of {wfhPolicy.limit} day(s)
+                    {wfhPolicy.mode === 'monthly' ? '. Admin approval required.' : '. Approved automatically within your weekly limit.'}
+                  </p>
+                )}
+                {wfhPolicy.mode === 'full' && (
+                  <p className="text-[11px] text-slate-500 dark:text-slate-400 mt-1">
+                    You are on Full WFH — no leave request is required.
+                  </p>
+                )}
               </div>
 
               <div className="space-y-1.5 text-left">
-                <label className="block text-xs font-medium text-slate-700 dark:text-slate-300">Select Date Range</label>
+                <label className="block text-xs font-medium text-slate-700 dark:text-slate-300">
+                  {singleDayOnly ? 'Select Leave Date' : 'Select Date Range'}
+                </label>
                 <InteractiveCalendarPicker
                   startDate={startDate}
                   setStartDate={setStartDate}

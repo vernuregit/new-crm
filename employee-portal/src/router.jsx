@@ -5,11 +5,9 @@ import { EmployeeLoginPage } from './features/auth/EmployeeLoginPage'
 import { EmployeeDashboard } from './features/dashboard/EmployeeDashboard'
 import { ProjectList } from './features/projects/ProjectList'
 import { TaskBoard } from './features/projects/TaskBoard'
-import { TimeTracker } from './features/projects/TimeTracker'
 import { EmployeeList } from './features/team/EmployeeList'
 import { AttendancePage } from './features/team/AttendancePage'
 import { LeaveManagement } from './features/team/LeaveManagement'
-import { KnowledgeBase } from './features/knowledge/KnowledgeBase'
 import { EmployeeProfile } from './features/profile/EmployeeProfile'
 import { WellnessSettings } from './features/wellness/WellnessSettings'
 import { WorkTimelinePage } from './features/timeline/WorkTimelinePage'
@@ -30,11 +28,9 @@ export const router = createBrowserRouter([
       { path: 'projects', element: <Navigate to="/projects/list" replace /> },
       { path: 'projects/list', element: <ProjectList /> },
       { path: 'projects/tasks', element: <TaskBoard /> },
-      { path: 'projects/time', element: <TimeTracker /> },
       { path: 'tasks', element: <TaskBoard /> },
-      { path: 'time', element: <TimeTracker /> },
 
-      // Work Timeline (daily work diary — separate from project time tracking)
+      // Work Timeline (daily work diary)
       { path: 'timeline', element: <WorkTimelinePage /> },
 
       // Team Sub-routes & Aliases
@@ -46,9 +42,6 @@ export const router = createBrowserRouter([
       { path: 'attendance', element: <AttendancePage /> },
       { path: 'leave', element: <LeaveManagement /> },
 
-      // Knowledge Base
-      { path: 'knowledge/*', element: <KnowledgeBase /> },
-
       // Wellness
       { path: 'wellness', element: <WellnessSettings /> },
 
@@ -58,4 +51,3 @@ export const router = createBrowserRouter([
   },
   { path: '*', element: <Navigate to="/dashboard" replace /> },
 ])
-

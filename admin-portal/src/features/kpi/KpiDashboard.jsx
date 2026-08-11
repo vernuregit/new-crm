@@ -1,93 +1,138 @@
-import React, { useEffect } from 'react'
+import React, { useEffect, useMemo, useState } from 'react'
 import { NavLink } from 'react-router-dom'
 import { PageHeader } from '../../components/layout/PageHeader'
 import { Card } from '../../components/ui/Card'
 import { Badge } from '../../components/ui/Badge'
 import { Button } from '../../components/ui/Button'
 import { useKPIStore } from './stores/kpiStore'
-import {
-  getKpiDefinitions,
-  getLatestHealthScore,
-  deleteKpiDefinitionFromDb,
-  saveHealthScore,
-} from './services/kpiService'
+import { PILLAR_LABELS } from './services/healthScoreDefaults'
 import {
   Activity,
   RefreshCw,
   TrendingUp,
   TrendingDown,
   AlertTriangle,
-  CheckCircle2,
   SlidersHorizontal,
   Lightbulb,
-  Plus,
-  Trash2,
   Loader2,
+  Minus,
+  ChevronDown,
+  ChevronRight,
+  CheckCircle2,
 } from 'lucide-react'
+
+const formatRaw = (metric) => {
+  if (metric.displayRaw != null) {
+    return `${Number(metric.displayRaw).toFixed(1)}${metric.unit === '%' ? '%' : ''}`
+  }
+  if (metric.rawValue == null) return '—'
+  if (metric.unit === '×') return `${Number(metric.rawValue).toFixed(2)}×`
+  if (metric.unit === '%') return `${Number(metric.rawValue).toFixed(1)}%`
+  return String(Number(metric.rawValue).toFixed(1))
+}
+
+const bandVariant = (band) => {
+  if (band === 'healthy') return 'success'
+  if (band === 'watch') return 'warning'
+  if (band === 'at_risk') return 'danger'
+  return 'brand'
+}
+
+const ScoreSparkline = ({ history }) => {
+  const points = useMemo(() => {
+    const chron = [...(history || [])]
+      .filter((h) => h.overallScore != null)
+      .reverse()
+    if (chron.length === 0) return null
+    const values = chron.map((h) => h.overallScore)
+    const w = 160
+    const h = 40
+    const min = Math.min(...values, 0)
+    const max = Math.max(...values, 100)
+    const range = max - min || 1
+    const coords = values.map((v, i) => {
+      const x = values.length === 1 ? w / 2 : (i / (values.length - 1)) * w
+      const y = h - ((v - min) / range) * (h - 4) - 2
+      return `${x},${y}`
+    })
+    return { polyline: coords.join(' '), w, h, chron }
+  }, [history])
+
+  if (!points) {
+    return (
+      <p className="text-xs text-slate-500 dark:text-slate-400">
+        No history yet — recalculate to start tracking trend.
+      </p>
+    )
+  }
+
+  return (
+    <div className="space-y-2">
+      <svg
+        viewBox={`0 0 ${points.w} ${points.h}`}
+        className="w-full max-w-[200px] h-10 text-indigo-500"
+        preserveAspectRatio="none"
+      >
+        <polyline
+          fill="none"
+          stroke="currentColor"
+          strokeWidth="2"
+          strokeLinejoin="round"
+          strokeLinecap="round"
+          points={points.polyline}
+        />
+      </svg>
+      <p className="text-[10px] text-slate-500 dark:text-slate-400">
+        Last {points.chron.length} snapshot{points.chron.length === 1 ? '' : 's'}
+      </p>
+    </div>
+  )
+}
 
 export const KpiDashboard = () => {
   const {
-    kpiDefinitions,
     latestScore,
+    history,
     isLoading,
-    setKpiDefinitions,
-    setLatestScore,
-    setIsLoading,
-    deleteKpiDefinition,
+    isRecalculating,
+    error,
+    loadHealthData,
     recalculateHealthScore,
   } = useKPIStore()
 
-  // Fetch KPI definitions and latest health score from Firestore on mount
+  const [expandedPillar, setExpandedPillar] = useState(null)
+
   useEffect(() => {
-    const fetchData = async () => {
-      setIsLoading(true)
-      const [defs, score] = await Promise.all([
-        getKpiDefinitions(),
-        getLatestHealthScore(),
-      ])
-      if (defs && defs.length > 0) setKpiDefinitions(defs)
-      if (score) setLatestScore(score)
-      setIsLoading(false)
-    }
-    fetchData()
-  }, [setKpiDefinitions, setLatestScore, setIsLoading])
+    loadHealthData({ autoRecalculateIfStale: true })
+  }, [loadHealthData])
 
-  const handleRecalculate = async () => {
-    recalculateHealthScore()
-    // Save the newly computed score to Firestore after store update
-    setTimeout(async () => {
-      const { latestScore: updated } = useKPIStore.getState()
-      await saveHealthScore(updated)
-    }, 50)
-  }
+  const score = latestScore?.overallScore
+  const prev = latestScore?.previousScore
+  const scoreDiff =
+    score != null && prev != null ? score - prev : 0
 
-  const handleDelete = async (kpiId) => {
-    deleteKpiDefinition(kpiId)
-    await deleteKpiDefinitionFromDb(kpiId)
-  }
-
-  const scoreDiff = latestScore.overallScore - latestScore.previousScore
+  const pillars = ['crm', 'finance', 'projects', 'team']
 
   return (
     <div className="space-y-6">
-      {/* Header & Sub Nav */}
       <div className="space-y-4">
         <PageHeader
-          title="Business Health Score & KPI Engine"
-          description="Composite 0-100 health scoring, automated KPI snapshots, risk indicators, and executive recommendations"
+          title="Business Health Score"
+          description="Live composite 0–100 health from pipeline, revenue, delivery, and team signals"
           actions={
             <div className="flex items-center gap-3">
               <NavLink to="/kpi/builder">
-                <Button icon={Plus} variant="secondary">
-                  Define New KPI
+                <Button icon={SlidersHorizontal} variant="secondary">
+                  Score Settings
                 </Button>
               </NavLink>
               <Button
                 icon={RefreshCw}
                 variant="primary"
-                onClick={handleRecalculate}
+                onClick={() => recalculateHealthScore()}
+                disabled={isRecalculating}
               >
-                Recalculate Score
+                {isRecalculating ? 'Calculating…' : 'Recalculate Score'}
               </Button>
             </div>
           }
@@ -117,171 +162,348 @@ export const KpiDashboard = () => {
               }`
             }
           >
-            <SlidersHorizontal className="w-3.5 h-3.5" /> KPI Rules Builder
+            <SlidersHorizontal className="w-3.5 h-3.5" /> Score Settings
           </NavLink>
         </div>
       </div>
 
-      {/* Loading State */}
+      {error && (
+        <Card className="p-4 border-rose-200 dark:border-rose-500/30 bg-rose-50 dark:bg-rose-500/10 text-rose-700 dark:text-rose-300 text-sm">
+          {error}
+        </Card>
+      )}
+
       {isLoading && (
         <div className="flex items-center justify-center py-16">
           <Loader2 className="w-8 h-8 text-indigo-400 animate-spin" />
-          <span className="ml-3 text-slate-400 text-sm">Loading KPI data...</span>
+          <span className="ml-3 text-slate-400 text-sm">Loading health data…</span>
         </div>
       )}
 
       {!isLoading && (
         <>
-          {/* Hero Health Score Card */}
+          {/* Hero */}
           <Card className="p-6 border-indigo-200 dark:border-indigo-500/30 bg-gradient-to-r from-slate-100 via-indigo-50/50 to-slate-100 dark:from-[#181C27] dark:via-[#151924] dark:to-[#12151E] relative overflow-hidden">
-            <div className="flex flex-col md:flex-row items-start md:items-center justify-between gap-6 relative z-10">
+            <div className="flex flex-col lg:flex-row items-start lg:items-center justify-between gap-6 relative z-10">
               <div className="space-y-2">
-                <div className="flex items-center gap-2">
+                <div className="flex items-center gap-2 flex-wrap">
                   <Badge variant="brand">Weighted Health Index</Badge>
-                  {scoreDiff !== 0 && (
-                    <span className={`text-xs flex items-center gap-1 ${scoreDiff >= 0 ? 'text-emerald-600 dark:text-emerald-400' : 'text-rose-600 dark:text-rose-400'}`}>
-                      {scoreDiff >= 0
-                        ? <TrendingUp className="w-3.5 h-3.5" />
-                        : <TrendingDown className="w-3.5 h-3.5" />}
-                      {scoreDiff >= 0 ? '+' : ''}{scoreDiff}% vs previous run
+                  <Badge variant={bandVariant(latestScore.band)}>
+                    {latestScore.bandLabel || 'Insufficient Data'}
+                  </Badge>
+                  {score != null && prev != null && scoreDiff !== 0 && (
+                    <span
+                      className={`text-xs flex items-center gap-1 ${
+                        scoreDiff >= 0
+                          ? 'text-emerald-600 dark:text-emerald-400'
+                          : 'text-rose-600 dark:text-rose-400'
+                      }`}
+                    >
+                      {scoreDiff >= 0 ? (
+                        <TrendingUp className="w-3.5 h-3.5" />
+                      ) : (
+                        <TrendingDown className="w-3.5 h-3.5" />
+                      )}
+                      {scoreDiff >= 0 ? '+' : ''}
+                      {scoreDiff} vs previous
+                    </span>
+                  )}
+                  {latestScore.trend === 'stable' && score != null && prev != null && (
+                    <span className="text-xs flex items-center gap-1 text-slate-500">
+                      <Minus className="w-3.5 h-3.5" /> Stable
                     </span>
                   )}
                 </div>
                 <div className="flex items-baseline gap-4">
                   <h2 className="text-5xl font-black text-transparent bg-clip-text bg-gradient-to-r from-indigo-600 via-purple-600 to-emerald-600 dark:from-indigo-400 dark:via-purple-300 dark:to-emerald-400">
-                    {latestScore.overallScore} / 100
+                    {score != null ? `${score} / 100` : '— / 100'}
                   </h2>
-                  <span className="text-xs font-semibold text-slate-700 dark:text-slate-300">
-                    {latestScore.overallScore >= 80
-                      ? 'Optimal Growth Status'
-                      : latestScore.overallScore >= 60
-                      ? 'Moderate Performance'
-                      : 'Needs Attention'}
-                  </span>
                 </div>
                 <p className="text-xs text-slate-500 dark:text-slate-400">
                   {latestScore.calculatedAt
                     ? `Last calculated: ${new Date(latestScore.calculatedAt).toLocaleString()}`
-                    : 'No score calculated yet. Add KPIs and click Recalculate.'}
+                    : 'No score yet. Click Recalculate to compute from live CRM data.'}
+                  {isRecalculating && ' · Recalculating…'}
                 </p>
               </div>
 
-              {/* Module Health Gauges */}
-              {Object.keys(latestScore.breakdown || {}).length > 0 && (
-                <div className="grid grid-cols-2 sm:grid-cols-4 gap-3 w-full md:w-auto">
-                  {Object.entries(latestScore.breakdown).map(([mod, data]) => (
-                    <div key={mod} className="p-3 rounded-xl bg-slate-50 dark:bg-slate-900/80 border border-slate-200 dark:border-slate-800 text-center space-y-1">
-                      <span className="text-[10px] text-slate-500 dark:text-slate-400 uppercase font-bold tracking-wider">{mod}</span>
-                      <p className="text-lg font-bold text-slate-900 dark:text-slate-100">{data.score}%</p>
+              <div className="flex flex-col sm:flex-row gap-6 w-full lg:w-auto items-start">
+                <div className="grid grid-cols-2 sm:grid-cols-4 gap-3 w-full lg:w-auto">
+                  {pillars.map((key) => {
+                    const p = latestScore.breakdown?.[key]
+                    const label = p?.label || PILLAR_LABELS[key]
+                    const pScore = p?.score
+                    return (
+                      <div
+                        key={key}
+                        className="p-3 rounded-xl bg-slate-50 dark:bg-slate-900/80 border border-slate-200 dark:border-slate-800 text-center space-y-1 min-w-[88px]"
+                      >
+                        <span className="text-[10px] text-slate-500 dark:text-slate-400 uppercase font-bold tracking-wider">
+                          {label}
+                        </span>
+                        <p className="text-lg font-bold text-slate-900 dark:text-slate-100">
+                          {pScore != null ? `${pScore}%` : '—'}
+                        </p>
+                        {!p?.hasData && (
+                          <span className="text-[9px] text-slate-400">No data</span>
+                        )}
+                      </div>
+                    )
+                  })}
+                </div>
+                <div className="shrink-0">
+                  <p className="text-[10px] uppercase font-bold tracking-wider text-slate-500 mb-1">
+                    Trend
+                  </p>
+                  <ScoreSparkline history={history} />
+                </div>
+              </div>
+            </div>
+          </Card>
+
+          {/* Why this score */}
+          {(latestScore.contributors?.positive?.length > 0 ||
+            latestScore.contributors?.negative?.length > 0) && (
+            <Card className="p-4 border-slate-200 dark:border-slate-800 space-y-3">
+              <h3 className="font-bold text-slate-900 dark:text-slate-100 text-sm">
+                Why this score
+              </h3>
+              <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                <div className="space-y-2">
+                  <p className="text-[10px] uppercase font-bold text-emerald-600 dark:text-emerald-400 tracking-wider">
+                    Strengths
+                  </p>
+                  {latestScore.contributors.positive.length === 0 ? (
+                    <p className="text-xs text-slate-500">No strong contributors yet.</p>
+                  ) : (
+                    latestScore.contributors.positive.map((m) => (
+                      <div
+                        key={m.key}
+                        className="flex items-center justify-between text-xs p-2 rounded-lg bg-emerald-50 dark:bg-emerald-500/10 border border-emerald-200 dark:border-emerald-500/20"
+                      >
+                        <span className="text-slate-800 dark:text-slate-200">{m.label}</span>
+                        <span className="font-bold text-emerald-700 dark:text-emerald-400">
+                          {m.score}
+                        </span>
+                      </div>
+                    ))
+                  )}
+                </div>
+                <div className="space-y-2">
+                  <p className="text-[10px] uppercase font-bold text-amber-600 dark:text-amber-400 tracking-wider">
+                    Dragging down
+                  </p>
+                  {latestScore.contributors.negative.length === 0 ? (
+                    <p className="text-xs text-slate-500">No weak contributors.</p>
+                  ) : (
+                    latestScore.contributors.negative.map((m) => (
+                      <div
+                        key={m.key}
+                        className="flex items-center justify-between text-xs p-2 rounded-lg bg-amber-50 dark:bg-amber-500/10 border border-amber-200 dark:border-amber-500/20"
+                      >
+                        <span className="text-slate-800 dark:text-slate-200">{m.label}</span>
+                        <span className="font-bold text-amber-700 dark:text-amber-400">
+                          {m.score}
+                        </span>
+                      </div>
+                    ))
+                  )}
+                </div>
+              </div>
+            </Card>
+          )}
+
+          {/* Risks & Recommendations */}
+          <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
+            <Card className="space-y-4 border-slate-200 dark:border-slate-800">
+              <div className="flex items-center gap-2 pb-3 border-b border-slate-200 dark:border-slate-800 text-slate-900 dark:text-slate-100 font-bold text-sm">
+                <AlertTriangle className="w-4 h-4 text-amber-500" />
+                <span>Active Risk Alerts</span>
+              </div>
+              {!latestScore.risks?.length ? (
+                <div className="flex items-start gap-2 text-xs text-slate-500 dark:text-slate-400 p-1">
+                  <CheckCircle2 className="w-4 h-4 text-emerald-500 shrink-0" />
+                  <span>No active risks — all scored metrics are in acceptable range.</span>
+                </div>
+              ) : (
+                <div className="space-y-3">
+                  {latestScore.risks.map((risk, idx) => (
+                    <div
+                      key={idx}
+                      className="p-3 rounded-xl bg-amber-50 dark:bg-amber-500/10 border border-amber-200 dark:border-amber-500/20 text-amber-800 dark:text-amber-300 text-xs flex items-start gap-2.5"
+                    >
+                      <AlertTriangle className="w-4 h-4 shrink-0 mt-0.5" />
+                      <span>{risk.message}</span>
                     </div>
                   ))}
                 </div>
               )}
-            </div>
-          </Card>
+            </Card>
 
-          {/* Risk Alert & Recommendations Grid */}
-          {(latestScore.risks?.length > 0 || latestScore.recommendations?.length > 0) && (
-            <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
-              {/* Risk Alerts */}
-              {latestScore.risks?.length > 0 && (
-                <Card className="space-y-4 border-slate-200 dark:border-slate-800">
-                  <div className="flex items-center gap-2 pb-3 border-b border-slate-200 dark:border-slate-800 text-slate-900 dark:text-slate-100 font-bold text-sm">
-                    <AlertTriangle className="w-4 h-4 text-amber-500" />
-                    <span>Active Risk Alerts</span>
-                  </div>
-                  <div className="space-y-3">
-                    {latestScore.risks.map((risk, idx) => (
-                      <div key={idx} className="p-3 rounded-xl bg-amber-50 dark:bg-amber-500/10 border border-amber-200 dark:border-amber-500/20 text-amber-800 dark:text-amber-300 text-xs flex items-start gap-2.5">
-                        <AlertTriangle className="w-4 h-4 shrink-0 mt-0.5" />
-                        <span>{risk.message}</span>
-                      </div>
-                    ))}
-                  </div>
-                </Card>
-              )}
-
-              {/* Recommended Actions */}
-              {latestScore.recommendations?.length > 0 && (
-                <Card className="space-y-4 border-slate-200 dark:border-slate-800">
-                  <div className="flex items-center gap-2 pb-3 border-b border-slate-200 dark:border-slate-800 text-slate-900 dark:text-slate-100 font-bold text-sm">
-                    <Lightbulb className="w-4 h-4 text-indigo-600 dark:text-indigo-400" />
-                    <span>Recommended Executive Actions</span>
-                  </div>
-                  <div className="space-y-3">
-                    {latestScore.recommendations.map((rec, idx) => (
-                      <div key={idx} className="p-3 rounded-xl bg-slate-50 dark:bg-slate-900 border border-slate-200 dark:border-slate-800 text-xs space-y-1">
-                        <div className="flex items-center justify-between">
-                          <Badge variant="brand">{rec.category}</Badge>
-                          <span className="text-[10px] text-slate-500">Priority #{rec.priority}</span>
-                        </div>
-                        <p className="text-slate-800 dark:text-slate-200 font-medium">{rec.text}</p>
-                      </div>
-                    ))}
-                  </div>
-                </Card>
-              )}
-            </div>
-          )}
-
-          {/* Active KPI Definitions Table */}
-          <Card className="space-y-4 border-slate-200 dark:border-slate-800 p-0 overflow-x-auto">
-            <div className="p-4 border-b border-slate-200 dark:border-slate-800 flex items-center justify-between">
-              <h3 className="font-bold text-slate-900 dark:text-slate-100 text-sm">Active Organization KPI Definitions</h3>
-              <span className="text-xs text-slate-500 dark:text-slate-400">{kpiDefinitions.length} KPI Rules Active</span>
-            </div>
-
-            {kpiDefinitions.length === 0 ? (
-              <div className="py-16 text-center space-y-3">
-                <CheckCircle2 className="w-10 h-10 text-slate-400 dark:text-slate-600 mx-auto" />
-                <p className="text-slate-500 dark:text-slate-400 text-sm">No KPI rules defined yet.</p>
-                <NavLink to="/kpi/builder">
-                  <Button icon={Plus} variant="secondary" className="mx-auto">
-                    Define Your First KPI
-                  </Button>
-                </NavLink>
+            <Card className="space-y-4 border-slate-200 dark:border-slate-800">
+              <div className="flex items-center gap-2 pb-3 border-b border-slate-200 dark:border-slate-800 text-slate-900 dark:text-slate-100 font-bold text-sm">
+                <Lightbulb className="w-4 h-4 text-indigo-600 dark:text-indigo-400" />
+                <span>Recommended Actions</span>
               </div>
-            ) : (
-              <table className="w-full text-left border-collapse text-xs">
-                <thead>
-                  <tr className="bg-slate-100 dark:bg-slate-900/80 border-b border-slate-200 dark:border-slate-800 text-slate-700 dark:text-slate-400 font-semibold">
-                    <th className="p-4 font-semibold">KPI Name</th>
-                    <th className="p-4 font-semibold">Module</th>
-                    <th className="p-4 font-semibold">Formula</th>
-                    <th className="p-4 font-semibold">Target</th>
-                    <th className="p-4 font-semibold">Current Value</th>
-                    <th className="p-4 font-semibold">Weight</th>
-                    <th className="p-4 font-semibold">Status</th>
-                    <th className="p-4 font-semibold text-right">Action</th>
-                  </tr>
-                </thead>
-                <tbody className="divide-y divide-slate-200 dark:divide-slate-800/60 text-slate-700 dark:text-slate-300">
-                  {kpiDefinitions.map((kpi) => (
-                    <tr key={kpi.kpiId} className="hover:bg-slate-50 dark:hover:bg-slate-800/30 transition-colors">
-                      <td className="p-4 font-bold text-slate-900 dark:text-slate-200">{kpi.name}</td>
-                      <td className="p-4 uppercase text-slate-500 dark:text-slate-400 font-mono text-[11px]">{kpi.module}</td>
-                      <td className="p-4 text-slate-500 dark:text-slate-400 font-mono text-[11px] max-w-xs truncate">{kpi.formula}</td>
-                      <td className="p-4 text-slate-800 dark:text-slate-300 font-medium">≥ {kpi.targetValue}{kpi.unit}</td>
-                      <td className="p-4 font-bold text-emerald-600 dark:text-emerald-400">{kpi.currentValue}{kpi.unit}</td>
-                      <td className="p-4 text-slate-500 dark:text-slate-400">{(kpi.healthScoreWeight * 100).toFixed(0)}%</td>
-                      <td className="p-4">
-                        <Badge variant={kpi.status === 'exceeded' || kpi.status === 'on_track' ? 'success' : 'danger'}>
-                          {kpi.status}
-                        </Badge>
-                      </td>
-                      <td className="p-4 text-right">
-                        <button
-                          onClick={() => handleDelete(kpi.kpiId)}
-                          className="p-1.5 text-slate-400 dark:text-slate-500 hover:text-rose-600 dark:hover:text-rose-400 rounded-lg hover:bg-slate-100 dark:hover:bg-slate-800 transition-colors"
-                        >
-                          <Trash2 className="w-4 h-4" />
-                        </button>
-                      </td>
-                    </tr>
+              {!latestScore.recommendations?.length ? (
+                <p className="text-xs text-slate-500 dark:text-slate-400">
+                  No recommendations right now. Keep monitoring weekly.
+                </p>
+              ) : (
+                <div className="space-y-3">
+                  {latestScore.recommendations.map((rec, idx) => (
+                    <div
+                      key={idx}
+                      className="p-3 rounded-xl bg-slate-50 dark:bg-slate-900 border border-slate-200 dark:border-slate-800 text-xs space-y-1"
+                    >
+                      <div className="flex items-center justify-between">
+                        <Badge variant="brand">{rec.category}</Badge>
+                        <span className="text-[10px] text-slate-500">
+                          Priority #{rec.priority}
+                        </span>
+                      </div>
+                      <p className="text-slate-800 dark:text-slate-200 font-medium">
+                        {rec.text}
+                      </p>
+                    </div>
                   ))}
-                </tbody>
-              </table>
-            )}
+                </div>
+              )}
+            </Card>
+          </div>
+
+          {/* Pillar metric drill-down */}
+          <Card className="space-y-0 border-slate-200 dark:border-slate-800 p-0 overflow-hidden">
+            <div className="p-4 border-b border-slate-200 dark:border-slate-800">
+              <h3 className="font-bold text-slate-900 dark:text-slate-100 text-sm">
+                Pillar & Metric Breakdown
+              </h3>
+              <p className="text-xs text-slate-500 dark:text-slate-400 mt-1">
+                Expand a pillar to see raw values, targets, and normalized scores.
+              </p>
+            </div>
+
+            {pillars.map((key) => {
+              const p = latestScore.breakdown?.[key]
+              const isOpen = expandedPillar === key
+              const metrics =
+                p?.metrics?.length > 0
+                  ? p.metrics
+                  : Object.values(latestScore.metrics || {}).filter(
+                      (m) => m.pillar === key
+                    )
+
+              return (
+                <div
+                  key={key}
+                  className="border-b border-slate-200 dark:border-slate-800 last:border-b-0"
+                >
+                  <button
+                    type="button"
+                    onClick={() => setExpandedPillar(isOpen ? null : key)}
+                    className="w-full flex items-center justify-between p-4 text-left hover:bg-slate-50 dark:hover:bg-slate-800/40 transition-colors"
+                  >
+                    <div className="flex items-center gap-3">
+                      {isOpen ? (
+                        <ChevronDown className="w-4 h-4 text-slate-400" />
+                      ) : (
+                        <ChevronRight className="w-4 h-4 text-slate-400" />
+                      )}
+                      <div>
+                        <p className="text-sm font-bold text-slate-900 dark:text-slate-100">
+                          {p?.label || PILLAR_LABELS[key]}
+                        </p>
+                        <p className="text-[10px] text-slate-500">
+                          Weight{' '}
+                          {p?.weight != null
+                            ? `${Math.round(p.weight * 100)}%`
+                            : '—'}
+                          {!p?.hasData ? ' · No usable data' : ''}
+                        </p>
+                      </div>
+                    </div>
+                    <span className="text-lg font-bold text-slate-900 dark:text-slate-100">
+                      {p?.score != null ? p.score : '—'}
+                    </span>
+                  </button>
+
+                  {isOpen && (
+                    <div className="px-4 pb-4 overflow-x-auto">
+                      {metrics.length === 0 ? (
+                        <p className="text-xs text-slate-500 py-2">
+                          No metrics available for this pillar.
+                        </p>
+                      ) : (
+                        <table className="w-full text-left text-xs border-collapse">
+                          <thead>
+                            <tr className="text-slate-500 dark:text-slate-400 border-b border-slate-200 dark:border-slate-800">
+                              <th className="py-2 pr-3 font-semibold">Metric</th>
+                              <th className="py-2 pr-3 font-semibold">Current</th>
+                              <th className="py-2 pr-3 font-semibold">Target</th>
+                              <th className="py-2 pr-3 font-semibold">Score</th>
+                              <th className="py-2 font-semibold">Weight</th>
+                            </tr>
+                          </thead>
+                          <tbody className="divide-y divide-slate-100 dark:divide-slate-800/60">
+                            {metrics.map((m) => (
+                              <tr key={m.key}>
+                                <td className="py-2.5 pr-3 font-medium text-slate-800 dark:text-slate-200">
+                                  {m.label}
+                                </td>
+                                <td className="py-2.5 pr-3 text-slate-600 dark:text-slate-300">
+                                  {formatRaw(m)}
+                                  {m.key === 'overdueHealth' && m.displayRaw != null && (
+                                    <span className="text-slate-400 ml-1">
+                                      overdue
+                                    </span>
+                                  )}
+                                  {m.key === 'leaveLoadHealth' && m.displayRaw != null && (
+                                    <span className="text-slate-400 ml-1">
+                                      on leave
+                                    </span>
+                                  )}
+                                </td>
+                                <td className="py-2.5 pr-3 text-slate-600 dark:text-slate-300">
+                                  {m.unit === '×'
+                                    ? `${m.target}×`
+                                    : m.key === 'overdueHealth'
+                                      ? `≤ ${100 - (m.target || 90)}% overdue`
+                                      : m.key === 'leaveLoadHealth'
+                                        ? `≤ ${100 - (m.target || 80)}% on leave`
+                                        : `≥ ${m.target}${m.unit || ''}`}
+                                </td>
+                                <td className="py-2.5 pr-3">
+                                  {m.score != null ? (
+                                    <Badge
+                                      variant={
+                                        m.score >= 80
+                                          ? 'success'
+                                          : m.score >= 60
+                                            ? 'warning'
+                                            : 'danger'
+                                      }
+                                    >
+                                      {m.score}
+                                    </Badge>
+                                  ) : (
+                                    <span className="text-slate-400">—</span>
+                                  )}
+                                </td>
+                                <td className="py-2.5 text-slate-500">
+                                  {m.weight != null
+                                    ? `${Math.round(m.weight * 100)}%`
+                                    : '—'}
+                                </td>
+                              </tr>
+                            ))}
+                          </tbody>
+                        </table>
+                      )}
+                    </div>
+                  )}
+                </div>
+              )
+            })}
           </Card>
         </>
       )}

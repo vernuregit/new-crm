@@ -81,7 +81,10 @@ export const EmployeeList = () => {
           const isPresent =
             data.clockedIn === true ||
             (data.regularSeconds && data.regularSeconds > 0) ||
-            Boolean(data.clockInTime)
+            Boolean(data.clockInTime) ||
+            data.onDuty === true ||
+            data.present === true ||
+            data.source === 'on_duty'
           if (data.uid) {
             map[data.uid] = isPresent
           }

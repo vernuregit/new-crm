@@ -1,0 +1,58 @@
+import React from 'react'
+import { NavLink } from 'react-router-dom'
+import {
+  Users,
+  CheckCircle2,
+  Calendar,
+  CalendarDays,
+  PartyPopper,
+  Home,
+  FileText,
+} from 'lucide-react'
+
+const linkClass = ({ isActive }) =>
+  `flex items-center gap-2 px-3 py-1.5 rounded-xl text-xs font-semibold transition-colors ${
+    isActive
+      ? 'bg-indigo-50 dark:bg-indigo-600/20 text-indigo-600 dark:text-indigo-400 border border-indigo-200 dark:border-indigo-500/30'
+      : 'text-slate-600 dark:text-slate-400 hover:text-slate-900 dark:hover:text-slate-200 hover:bg-slate-100 dark:hover:bg-slate-800'
+  }`
+
+const wfhClass = ({ isActive }) =>
+  `flex items-center gap-2 px-3 py-1.5 rounded-xl text-xs font-semibold transition-colors ${
+    isActive
+      ? 'bg-emerald-50 dark:bg-emerald-500/20 text-emerald-600 dark:text-emerald-400 border border-emerald-200 dark:border-emerald-500/30'
+      : 'text-slate-600 dark:text-slate-400 hover:text-slate-900 dark:hover:text-slate-200 hover:bg-slate-100 dark:hover:bg-slate-800'
+  }`
+
+/**
+ * Shared Team module sub-navigation.
+ */
+export function TeamSubNav({ className = '' }) {
+  return (
+    <div
+      className={`flex items-center gap-2 border-b border-slate-200 dark:border-slate-800 pb-3 flex-wrap ${className}`}
+    >
+      <NavLink to="/team/employees" className={linkClass}>
+        <Users className="w-3.5 h-3.5" /> Employee Directory
+      </NavLink>
+      <NavLink to="/team/attendance" className={linkClass}>
+        <CheckCircle2 className="w-3.5 h-3.5" /> Attendance Tracker
+      </NavLink>
+      <NavLink to="/team/leave" className={linkClass}>
+        <Calendar className="w-3.5 h-3.5" /> Leave Management
+      </NavLink>
+      <NavLink to="/team/holidays" className={linkClass}>
+        <PartyPopper className="w-3.5 h-3.5" /> Public Holidays
+      </NavLink>
+      <NavLink to="/team/wfh-policy" className={wfhClass}>
+        <Home className="w-3.5 h-3.5" /> WFH Policy
+      </NavLink>
+      <NavLink to="/team/timeline" className={linkClass}>
+        <CalendarDays className="w-3.5 h-3.5" /> Work Timeline
+      </NavLink>
+      <NavLink to="/team/reports" className={linkClass}>
+        <FileText className="w-3.5 h-3.5" /> Monthly Reports
+      </NavLink>
+    </div>
+  )
+}

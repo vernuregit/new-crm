@@ -26,6 +26,7 @@ import {
   Trash2,
   Loader2,
   ShieldCheck,
+  Calendar,
 } from 'lucide-react'
 
 export const ProjectList = () => {
@@ -50,6 +51,7 @@ export const ProjectList = () => {
   const [selectedEmployeeId, setSelectedEmployeeId] = useState('')
   const [budget, setBudget] = useState('')
   const [description, setDescription] = useState('')
+  const [estimatedDate, setEstimatedDate] = useState('')
 
   // Dropdown data from Firestore
   const [clients, setClients] = useState([])
@@ -202,6 +204,7 @@ export const ProjectList = () => {
       ownerRole: selectedEmployee?.role || '',
       budget: Number(budget) || 0,
       description,
+      estimatedDate: estimatedDate || null,
       status: 'active',
       completionPercent: 0,
       totalTaskCount: 0,
@@ -218,6 +221,7 @@ export const ProjectList = () => {
     setSelectedEmployeeId('')
     setBudget('')
     setDescription('')
+    setEstimatedDate('')
     setShowAddModal(false)
   }
 
@@ -510,9 +514,16 @@ export const ProjectList = () => {
                       {proj.clientName || 'Independent'}
                     </span>
                   </div>
-                  <div className="flex items-center gap-1">
-                    <span className="font-medium text-slate-700 dark:text-slate-300">Lead: </span>
-                    <span className="truncate max-w-[100px]">{proj.ownerName || 'Unassigned'}</span>
+                  <div className="flex items-center gap-3">
+                    {proj.estimatedDate && (
+                      <span className="flex items-center gap-1 text-amber-600 dark:text-amber-400 font-semibold">
+                        <Calendar className="w-3 h-3" /> {proj.estimatedDate}
+                      </span>
+                    )}
+                    <div className="flex items-center gap-1">
+                      <span className="font-medium text-slate-700 dark:text-slate-300">Lead: </span>
+                      <span className="truncate max-w-[100px]">{proj.ownerName || 'Unassigned'}</span>
+                    </div>
                   </div>
                 </div>
               </Card>
@@ -690,6 +701,14 @@ export const ProjectList = () => {
                   </select>
                 )}
               </div>
+
+              <Input
+                label="Estimated Date"
+                type="date"
+                value={estimatedDate}
+                onChange={(e) => setEstimatedDate(e.target.value)}
+                required
+              />
 
               <div className="flex gap-3 pt-2">
                 <Button type="button" variant="secondary" onClick={() => setShowAddModal(false)} className="w-1/3">

@@ -17,9 +17,47 @@ export const DEFAULT_TASK_STATUSES = [
 ]
 
 /**
- * Helper to check if a task should be visible to the current user
+ * Check whether the current user is creator/owner/member of a project
  */
-export const isTaskVisibleToUser = (t, user, userDoc, claims) => {
+export const isUserOnProject = (project, user, userDoc) => {
+  if (!project) return false
+  const currentUserId = userDoc?.uid || user?.uid || userDoc?.id
+  const currentUserEmail = userDoc?.email || user?.email
+  const currentDisplayName = userDoc?.displayName || user?.displayName || userDoc?.name
+
+  const matchesIdentity = (id, email, name) =>
+    Boolean(
+      (currentUserId && id && String(id) === String(currentUserId)) ||
+        (currentUserEmail &&
+          email &&
+          String(email).toLowerCase() === String(currentUserEmail).toLowerCase()) ||
+        (currentDisplayName &&
+          name &&
+          String(name).toLowerCase() === String(currentDisplayName).toLowerCase())
+    )
+
+  if (
+    matchesIdentity(project.createdBy, project.createdByEmail, project.createdByName) ||
+    matchesIdentity(null, null, project.ownerName)
+  ) {
+    return true
+  }
+
+  const members = Array.isArray(project.members) ? project.members : []
+  return members.some((m) => {
+    if (m == null) return false
+    if (typeof m !== 'object') {
+      return matchesIdentity(m, m, m)
+    }
+    return matchesIdentity(m.uid || m.id, m.email, m.name || m.displayName)
+  })
+}
+
+/**
+ * Helper to check if a task should be visible to the current user.
+ * Includes tasks on projects where the user was added as a member.
+ */
+export const isTaskVisibleToUser = (t, user, userDoc, claims, projects = []) => {
   if (!t) return false
   const currentUserId = userDoc?.uid || user?.uid || userDoc?.id
   const currentUserEmail = userDoc?.email || user?.email
@@ -41,8 +79,58 @@ export const isTaskVisibleToUser = (t, user, userDoc, claims) => {
     t.createdByName && currentDisplayName && String(t.createdByName).toLowerCase() === String(currentDisplayName).toLowerCase()
   const isAssigneeByName =
     t.assigneeName && currentDisplayName && String(t.assigneeName).toLowerCase() === String(currentDisplayName).toLowerCase()
+  const isAssigneeById =
+    t.assigneeId && currentUserId && String(t.assigneeId) === String(currentUserId)
+  const isAssigneeByEmail =
+    t.assigneeEmail &&
+    currentUserEmail &&
+    String(t.assigneeEmail).toLowerCase() === String(currentUserEmail).toLowerCase()
 
-  return Boolean(isCreatorByUid || isCreatorByEmail || isCreatorByName || isAssigneeByName)
+  if (
+    isCreatorByUid ||
+    isCreatorByEmail ||
+    isCreatorByName ||
+    isAssigneeByName ||
+    isAssigneeById ||
+    isAssigneeByEmail
+  ) {
+    return true
+  }
+
+  // Show project tasks to employees who were added as project members
+  if (Array.isArray(projects) && projects.length > 0) {
+    const project = projects.find(
+      (p) =>
+        (t.projectId && (p.projectId === t.projectId || p.id === t.projectId)) ||
+        (t.projectName && p.name && String(p.name).toLowerCase() === String(t.projectName).toLowerCase())
+    )
+    if (project && isUserOnProject(project, user, userDoc)) {
+      return true
+    }
+  }
+
+  return false
+}
+
+/**
+ * Derive project card metrics from the live task list
+ */
+export const computeProjectMetrics = (projectId, tasks = []) => {
+  const projTasks = (tasks || []).filter(
+    (t) => t.projectId === projectId || t.projectId === String(projectId)
+  )
+  const totalTaskCount = projTasks.length
+  const completedTaskCount = projTasks.filter((t) => t.status === 'done').length
+  const totalHoursLogged = projTasks.reduce((sum, t) => sum + (Number(t.loggedHours) || 0), 0)
+  const completionPercent =
+    totalTaskCount > 0 ? Math.round((completedTaskCount / totalTaskCount) * 100) : 0
+
+  return {
+    totalTaskCount,
+    completedTaskCount,
+    totalHoursLogged,
+    completionPercent,
+  }
 }
 
 // ─── Fetch Task Statuses ───────────────────────────────────────────────────────
@@ -134,6 +222,7 @@ export const createProjectInDb = async (projData) => {
       totalTaskCount: projData.totalTaskCount || 0,
       completedTaskCount: projData.completedTaskCount || 0,
       totalHoursLogged: projData.totalHoursLogged || 0,
+      estimatedDate: projData.estimatedDate || null,
       createdAt: serverTimestamp(),
     }
     await setDoc(doc(db, 'projects', projectId), payload)
@@ -158,6 +247,22 @@ export const updateProjectMembersInDb = async (projectId, members) => {
   }
 }
 
+// ─── Update Project Stats ─────────────────────────────────────────────────────
+export const updateProjectStatsInDb = async (projectId, stats) => {
+  try {
+    if (!projectId || !stats) return
+    await updateDoc(doc(db, 'projects', projectId), {
+      totalTaskCount: Number(stats.totalTaskCount) || 0,
+      completedTaskCount: Number(stats.completedTaskCount) || 0,
+      completionPercent: Number(stats.completionPercent) || 0,
+      totalHoursLogged: Number(stats.totalHoursLogged) || 0,
+      updatedAt: serverTimestamp(),
+    })
+  } catch (err) {
+    console.error('Error updating project stats in Firestore:', err)
+  }
+}
+
 // ─── Delete Project ───────────────────────────────────────────────────────────
 export const deleteProjectFromDb = async (projectId) => {
   try {
@@ -169,17 +274,98 @@ export const deleteProjectFromDb = async (projectId) => {
 }
 
 
+// ─── Timer helpers ─────────────────────────────────────────────────────────────
+export const startTimerFields = (now = new Date().toISOString()) => ({
+  timerStatus: 'running',
+  timerAccumulatedMs: 0,
+  timerStartedAt: now,
+  timerStoppedAt: null,
+})
+
+export const getTimerElapsedMs = (entity, nowMs = Date.now()) => {
+  if (!entity) return 0
+  const accumulated = Number(entity.timerAccumulatedMs) || 0
+  if (entity.timerStatus === 'running' && entity.timerStartedAt) {
+    const started = new Date(entity.timerStartedAt).getTime()
+    if (!Number.isNaN(started)) {
+      return Math.max(0, accumulated + (nowMs - started))
+    }
+  }
+  return Math.max(0, accumulated)
+}
+
+export const formatElapsed = (ms) => {
+  const totalSec = Math.max(0, Math.floor(Number(ms) / 1000))
+  const h = Math.floor(totalSec / 3600)
+  const m = Math.floor((totalSec % 3600) / 60)
+  const s = totalSec % 60
+  if (h > 0) {
+    return `${h}h ${String(m).padStart(2, '0')}m ${String(s).padStart(2, '0')}s`
+  }
+  return `${m}m ${String(s).padStart(2, '0')}s`
+}
+
+export const msToLoggedHours = (ms) => Math.round((Math.max(0, Number(ms) || 0) / 3600000) * 100) / 100
+
+export const pauseTimerFields = (entity, now = new Date().toISOString()) => {
+  const elapsed = getTimerElapsedMs(entity, new Date(now).getTime())
+  return {
+    timerStatus: 'paused',
+    timerAccumulatedMs: elapsed,
+    timerStartedAt: null,
+    timerStoppedAt: null,
+    loggedHours: msToLoggedHours(elapsed),
+  }
+}
+
+export const resumeTimerFields = (entity, now = new Date().toISOString()) => {
+  if (entity?.timerStatus === 'stopped') return entity
+  return {
+    timerStatus: 'running',
+    timerAccumulatedMs: Number(entity?.timerAccumulatedMs) || 0,
+    timerStartedAt: now,
+    timerStoppedAt: null,
+  }
+}
+
+export const stopTimerFields = (entity, now = new Date().toISOString()) => {
+  if (entity?.timerStatus === 'stopped') {
+    const elapsed = getTimerElapsedMs(entity)
+    return {
+      timerStatus: 'stopped',
+      timerAccumulatedMs: elapsed,
+      timerStartedAt: null,
+      timerStoppedAt: entity.timerStoppedAt || now,
+      loggedHours: msToLoggedHours(elapsed),
+    }
+  }
+  const elapsed = getTimerElapsedMs(entity, new Date(now).getTime())
+  return {
+    timerStatus: 'stopped',
+    timerAccumulatedMs: elapsed,
+    timerStartedAt: null,
+    timerStoppedAt: now,
+    loggedHours: msToLoggedHours(elapsed),
+  }
+}
+
 // ─── Create Task ───────────────────────────────────────────────────────────────
 export const createTaskInDb = async (taskData) => {
   try {
     const taskId = taskData.taskId || `task_${Date.now()}`
+    const timerDefaults = startTimerFields()
     const payload = {
+      ...timerDefaults,
       ...taskData,
       taskId,
       id: taskId,
       status: taskData.status || 'todo',
       priority: taskData.priority || 'medium',
       loggedHours: Number(taskData.loggedHours) || 0,
+      timerStatus: taskData.timerStatus || timerDefaults.timerStatus,
+      timerAccumulatedMs: Number(taskData.timerAccumulatedMs) || 0,
+      timerStartedAt: taskData.timerStartedAt || timerDefaults.timerStartedAt,
+      timerStoppedAt: taskData.timerStoppedAt || null,
       createdAt: serverTimestamp(),
     }
     await setDoc(doc(db, 'tasks', taskId), payload)
@@ -192,13 +378,15 @@ export const createTaskInDb = async (taskData) => {
 }
 
 // ─── Update Task Status ────────────────────────────────────────────────────────
-export const updateTaskStatusInDb = async (taskId, newStatus) => {
+export const updateTaskStatusInDb = async (taskId, newStatus, timerPatch = null) => {
   try {
     if (!taskId) return
-    await updateDoc(doc(db, 'tasks', taskId), {
+    const payload = {
       status: newStatus,
       updatedAt: serverTimestamp(),
-    })
+    }
+    if (timerPatch) Object.assign(payload, timerPatch)
+    await updateDoc(doc(db, 'tasks', taskId), payload)
   } catch (err) {
     console.error('Error updating task status in Firestore:', err)
   }
@@ -215,6 +403,19 @@ export const logHoursToTaskInDb = async (taskId, additionalHours, currentHours =
     })
   } catch (err) {
     console.error('Error logging hours in Firestore:', err)
+  }
+}
+
+// ─── Update Task Timer Fields ──────────────────────────────────────────────────
+export const updateTaskTimerInDb = async (taskId, timerFields) => {
+  try {
+    if (!taskId || !timerFields) return
+    await updateDoc(doc(db, 'tasks', taskId), {
+      ...timerFields,
+      updatedAt: serverTimestamp(),
+    })
+  } catch (err) {
+    console.error('Error updating task timer in Firestore:', err)
   }
 }
 

@@ -44,13 +44,14 @@ export const useTimelineStore = create((set, get) => ({
     }
   },
 
-  addEntry: async ({ uid, employeeName, date, description, hours }) => {
+  addEntry: async ({ uid, employeeName, date, description, hours, entryType }) => {
     const created = await createTimelineEntry({
       uid,
       employeeName,
       date,
       description,
       hours,
+      entryType,
     })
     if (!created) return null
 
@@ -69,6 +70,12 @@ export const useTimelineStore = create((set, get) => ({
               ...e,
               ...updates,
               hours: updates.hours !== undefined ? Number(updates.hours) || 0 : e.hours,
+              entryType:
+                updates.entryType !== undefined
+                  ? updates.entryType === 'upskilling'
+                    ? 'upskilling'
+                    : 'work'
+                  : e.entryType || 'work',
             }
           : e
       ),

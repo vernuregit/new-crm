@@ -15,7 +15,6 @@ import {
   Briefcase,
   CheckCircle2,
   Clock,
-  DollarSign,
   User,
   Users,
   UserPlus,
@@ -27,6 +26,7 @@ import {
   Trash2,
   Loader2,
   ShieldCheck,
+  Calendar,
 } from 'lucide-react'
 
 // Default fallback client list
@@ -73,6 +73,7 @@ export const ProjectList = () => {
   const [selectedClientId, setSelectedClientId] = useState('')
   const [budget, setBudget] = useState('')
   const [description, setDescription] = useState('')
+  const [estimatedDate, setEstimatedDate] = useState('')
 
   // Client dropdown data
   const [clients, setClients] = useState([])
@@ -129,7 +130,7 @@ export const ProjectList = () => {
     fetchClients()
   }, [showAddModal])
 
-  // Fetch available employees when Member Modal opens
+  // Fetch available employees when Member Modal opens (employees collection only)
   useEffect(() => {
     if (!memberModalProj) return
     const fetchTeamEmployees = async () => {
@@ -137,17 +138,36 @@ export const ProjectList = () => {
       try {
         const empSnap = await getDocs(collection(db, 'employees'))
 
-        const empList = empSnap.docs.map((d) => {
+        const byKey = new Map()
+
+        const upsert = (entry) => {
+          const key = String(entry.uid || entry.id || entry.email || '').toLowerCase()
+          if (!key) return
+          const existing = byKey.get(key)
+          byKey.set(key, existing ? { ...existing, ...entry } : entry)
+        }
+
+        const isEmployeeOnly = (role) => {
+          const normalized = String(role || 'employee').toLowerCase().trim()
+          return normalized !== 'admin' && normalized !== 'client' && normalized !== 'superadmin'
+        }
+
+        empSnap.docs.forEach((d) => {
           const data = d.data()
-          const id = d.id
-          const name = data.name || data.fullName || data.displayName || 'Employee'
-          const email = data.email || ''
           const role = data.role || 'employee'
-          return { id, uid: id, name, email, role }
+          if (!isEmployeeOnly(role)) return
+          const id = data.uid || data.authUid || d.id
+          upsert({
+            id,
+            uid: id,
+            name: data.name || data.fullName || data.displayName || 'Employee',
+            email: data.email || '',
+            role,
+          })
         })
 
+        const empList = Array.from(byKey.values())
         setAllEmployees(empList)
-
 
         // Initialize selected members set based on current project members
         const currentMembers = memberModalProj.members || []
@@ -260,6 +280,7 @@ export const ProjectList = () => {
       clientName: effectiveClientName,
       budget: Number(budget) || 0,
       description,
+      estimatedDate: estimatedDate || null,
       ownerName: currentDisplayName,
       createdBy: currentUserId || null,
       createdByEmail: currentUserEmail || null,
@@ -273,6 +294,7 @@ export const ProjectList = () => {
     setSelectedClientId('')
     setBudget('')
     setDescription('')
+    setEstimatedDate('')
     setShowAddModal(false)
   }
 
@@ -306,6 +328,23 @@ export const ProjectList = () => {
         email: emp.email,
         role: emp.role,
       }))
+
+    // Always keep project creator on the member list
+    if (memberModalProj.createdBy) {
+      const creatorId = String(memberModalProj.createdBy)
+      const hasCreator = updatedMembersList.some(
+        (m) => String(m.uid) === creatorId || String(m.id) === creatorId
+      )
+      if (!hasCreator) {
+        updatedMembersList.unshift({
+          uid: memberModalProj.createdBy,
+          id: memberModalProj.createdBy,
+          name: memberModalProj.createdByName || memberModalProj.ownerName || 'Creator',
+          email: memberModalProj.createdByEmail || '',
+          role: memberModalProj.createdByRole || 'employee',
+        })
+      }
+    }
 
     await updateProjectMembers(pId, updatedMembersList)
     setMemberModalProj(null)
@@ -350,18 +389,6 @@ export const ProjectList = () => {
               }
             >
               <Kanban className="w-3.5 h-3.5" /> Task Board
-            </NavLink>
-            <NavLink
-              to="/projects/time"
-              className={({ isActive }) =>
-                `flex items-center gap-2 px-3 py-1.5 rounded-xl text-xs font-semibold transition-colors ${
-                  isActive
-                    ? 'bg-indigo-50 dark:bg-indigo-600/20 text-indigo-600 dark:text-indigo-400 border border-indigo-200 dark:border-indigo-500/30'
-                    : 'text-slate-600 dark:text-slate-400 hover:text-slate-900 dark:hover:text-slate-200 hover:bg-slate-100 dark:hover:bg-slate-800'
-                }`
-              }
-            >
-              <Clock className="w-3.5 h-3.5" /> Time Tracking
             </NavLink>
           </div>
 
@@ -505,13 +532,13 @@ export const ProjectList = () => {
                   <div className="flex justify-between text-xs text-slate-600 dark:text-slate-400">
                     <span>Completion Velocity</span>
                     <span className="font-bold text-emerald-600 dark:text-emerald-400">
-                      {proj.completionPercent}%
+                      {proj.completionPercent || 0}%
                     </span>
                   </div>
                   <div className="w-full bg-slate-200 dark:bg-slate-800 h-2 rounded-full overflow-hidden border border-slate-300/40 dark:border-slate-700/50">
                     <div
                       className="bg-emerald-500 dark:bg-emerald-400 h-full transition-all duration-500 rounded-full"
-                      style={{ width: `${proj.completionPercent}%` }}
+                      style={{ width: `${proj.completionPercent || 0}%` }}
                     />
                   </div>
                 </div>
@@ -565,11 +592,18 @@ export const ProjectList = () => {
                 <div className="flex items-center justify-between text-xs text-slate-500 dark:text-slate-400 pt-2 border-t border-slate-200 dark:border-slate-800/60">
                   <span className="flex items-center gap-1 text-slate-700 dark:text-slate-300 font-semibold">
                     <CheckCircle2 className="w-3.5 h-3.5 text-emerald-600 dark:text-emerald-400" />{' '}
-                    {proj.completedTaskCount} / {proj.totalTaskCount} tasks
+                    {proj.completedTaskCount || 0} / {proj.totalTaskCount || 0} tasks
                   </span>
-                  <span className="flex items-center gap-1 text-emerald-600 dark:text-emerald-400 font-semibold">
-                    <DollarSign className="w-3.5 h-3.5" /> ${proj.budget?.toLocaleString()}
-                  </span>
+                  <div className="flex items-center gap-3">
+                    {proj.estimatedDate && (
+                      <span className="flex items-center gap-1 text-amber-600 dark:text-amber-400 font-semibold">
+                        <Calendar className="w-3.5 h-3.5" /> {proj.estimatedDate}
+                      </span>
+                    )}
+                    <span className="flex items-center gap-1 text-indigo-600 dark:text-indigo-400 font-semibold">
+                      <Clock className="w-3.5 h-3.5" /> {proj.totalHoursLogged || 0} hrs
+                    </span>
+                  </div>
                 </div>
               </Card>
             )
@@ -727,7 +761,7 @@ export const ProjectList = () => {
                   )}
                 </div>
                 <Input
-                  label="Project Budget ($ USD)"
+                  label="Project Budget"
                   type="number"
                   placeholder="45000"
                   value={budget}
@@ -744,6 +778,14 @@ export const ProjectList = () => {
                   className="w-full bg-slate-100/80 dark:bg-[#11141E] border border-slate-300 dark:border-slate-800 text-slate-900 dark:text-slate-100 placeholder-slate-400 dark:placeholder-slate-500 text-xs rounded-xl p-3 h-20 focus:outline-none focus:border-indigo-500 focus:ring-1 focus:ring-indigo-500 transition-all"
                 />
               </div>
+
+              <Input
+                label="Estimated Date"
+                type="date"
+                value={estimatedDate}
+                onChange={(e) => setEstimatedDate(e.target.value)}
+                required
+              />
 
               <div className="flex gap-3 pt-2">
                 <Button type="button" variant="secondary" onClick={() => setShowAddModal(false)} className="w-1/3">

@@ -131,11 +131,16 @@ export const useTeamStore = create(
           ],
         })),
 
-      updateLeaveStatus: (leaveId, newStatus) =>
+      updateLeaveStatus: (leaveId, newStatus, extras = {}) =>
         set((state) => ({
           leaveRequests: state.leaveRequests.map((l) =>
-            l.leaveId === leaveId ? { ...l, status: newStatus } : l
+            l.leaveId === leaveId ? { ...l, status: newStatus, ...extras } : l
           ),
+        })),
+
+      removeLeaveRequest: (leaveId) =>
+        set((state) => ({
+          leaveRequests: state.leaveRequests.filter((l) => l.leaveId !== leaveId),
         })),
 
       /**
@@ -183,39 +188,9 @@ export const useTeamStore = create(
 
           let todayState = {}
           if (todayLog && todayLog.date === todayDateStr()) {
-            let rawWorkSec = todayLog.regularSeconds ?? todayLog.accumulatedWorkSeconds ?? 0
-
-            // Sanitize stale accumulated hours carried over from previous days
-            if (todayLog.clockedIn && !todayLog.clockOutTime) {
-              let maxPossibleSec = 0
-              if (todayLog.clockInTimestamp) {
-                maxPossibleSec = Math.max(0, Math.floor((Date.now() - todayLog.clockInTimestamp) / 1000))
-              } else if (todayLog.clockInTime) {
-                const match = todayLog.clockInTime.match(/(\d+):(\d+)(?::\d+)?\s*(AM|PM)?/i)
-                if (match) {
-                  let hrs = parseInt(match[1], 10)
-                  const mins = parseInt(match[2], 10)
-                  const ampm = match[3] ? match[3].toUpperCase() : null
-                  if (ampm === 'PM' && hrs < 12) hrs += 12
-                  if (ampm === 'AM' && hrs === 12) hrs = 0
-                  const clockInMins = hrs * 60 + mins
-                  const nowMins = new Date().getHours() * 60 + new Date().getMinutes()
-                  if (nowMins >= clockInMins) {
-                    maxPossibleSec = (nowMins - clockInMins) * 60 + 300
-                  }
-                }
-              }
-
-              if (rawWorkSec > maxPossibleSec + 60) {
-                rawWorkSec = 0
-                // Correct today's Firestore document asynchronously
-                upsertAttendanceLog(uid, {
-                  regularSeconds: 0,
-                  regularHours: '0h 0m',
-                  accumulatedWorkSeconds: 0,
-                })
-              }
-            }
+            // Trust today's stored totals — prior completed sessions are valid
+            // even when the current open session is short (multi-session days).
+            const rawWorkSec = todayLog.regularSeconds ?? todayLog.accumulatedWorkSeconds ?? 0
 
             todayState = {
               clockedIn: Boolean(todayLog.clockedIn),
@@ -359,8 +334,11 @@ export const useTeamStore = create(
       /**
        * Toggle normal clock in / clock out.
        * @param {object} userMeta - { uid, displayName, departmentName }
+       * @param {object} gate - clock-in location gate
+       *   { requireOfficeLocation, locationVerified, wfhExempt, coords }
+       * @returns {{ success: boolean, error?: string }}
        */
-      toggleClockIn: (userMeta = {}) => {
+      toggleClockIn: (userMeta = {}, gate = {}) => {
         const meta = resolveUserMeta(userMeta)
         const state = get()
         const now = new Date()
@@ -368,6 +346,19 @@ export const useTeamStore = create(
 
         if (!state.clockedIn) {
           // --- Clocking In ---
+          const requireOffice = gate.requireOfficeLocation === true
+          const allowed =
+            !requireOffice ||
+            gate.locationVerified === true ||
+            gate.wfhExempt === true
+
+          if (!allowed) {
+            return {
+              success: false,
+              error: gate.error || 'You must be at the office to clock in.',
+            }
+          }
+
           const nowMs = Date.now()
           const today = todayDateStr()
           const isNewDay = state.lastWorkDate !== today
@@ -377,12 +368,13 @@ export const useTeamStore = create(
           const currentAccExtraSec = isNewDay ? 0 : (state.accumulatedExtraSeconds || 0)
           const currentShiftLogs = isNewDay ? [] : (state.todayShiftLogs || [])
 
-          const initialClockIn = timeStr
+          // Keep the day's first clock-in time for attendance stats; timestamp tracks this session
+          const dayFirstClockIn = !isNewDay && state.clockInTime ? state.clockInTime : timeStr
           const newLogs = [
             {
               id: `log_${nowMs}`,
               type: 'clock_in',
-              label: 'Clocked In',
+              label: gate.wfhExempt ? 'Clocked In (WFH)' : 'Clocked In',
               time: timeStr,
               timestamp: nowMs,
             },
@@ -392,7 +384,7 @@ export const useTeamStore = create(
           set({
             currentUserId: meta.uid || state.currentUserId,
             clockedIn: true,
-            clockInTime: initialClockIn,
+            clockInTime: dayFirstClockIn,
             clockInTimestamp: nowMs,
             clockOutTime: null,
             isOnBreak: false,
@@ -413,7 +405,8 @@ export const useTeamStore = create(
               displayName: meta.displayName || 'Employee',
               departmentName: meta.departmentName || '',
               clockedIn: true,
-              clockInTime: initialClockIn,
+              present: true,
+              clockInTime: dayFirstClockIn,
               clockInTimestamp: nowMs,
               clockOutTime: null,
               autoClockOut: false,
@@ -429,8 +422,12 @@ export const useTeamStore = create(
               date: today,
               todayShiftLogs: newLogs,
               shiftLogs: newLogs,
+              locationVerified: gate.locationVerified === true,
+              wfhExempt: gate.wfhExempt === true,
+              clockInCoords: gate.coords || null,
             })
           }
+          return { success: true }
         } else {
           // --- Clocking Out ---
           const sessionSeconds = state.clockInTimestamp
@@ -493,6 +490,7 @@ export const useTeamStore = create(
               shiftLogs: updatedLogs,
             })
           }
+          return { success: true }
         }
       },
 

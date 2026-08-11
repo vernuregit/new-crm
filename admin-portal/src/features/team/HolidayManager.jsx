@@ -1,5 +1,4 @@
 import React, { useState, useEffect } from 'react'
-import { NavLink } from 'react-router-dom'
 import { PageHeader } from '../../components/layout/PageHeader'
 import { Card } from '../../components/ui/Card'
 import { Button } from '../../components/ui/Button'
@@ -9,17 +8,14 @@ import {
   createCompanyHoliday,
   deleteCompanyHoliday,
 } from './services/teamService'
+import { TeamSubNav } from './components/TeamSubNav'
 import {
-  Users,
-  CheckCircle2,
-  Calendar,
   ChevronLeft,
   ChevronRight,
   Trash2,
   X,
   PartyPopper,
   Plus,
-  CalendarDays,
 } from 'lucide-react'
 
 // ─── Helpers ──────────────────────────────────────────────────────────────────
@@ -119,68 +115,7 @@ export const HolidayManager = () => {
           description="Mark company-wide public holidays. These dates will appear on every employee's attendance calendar."
         />
 
-        <div className="flex items-center gap-2 border-b border-slate-200 dark:border-slate-800 pb-3 flex-wrap">
-          <NavLink
-            to="/team/employees"
-            className={({ isActive }) =>
-              `flex items-center gap-2 px-3 py-1.5 rounded-xl text-xs font-semibold transition-colors ${
-                isActive
-                  ? 'bg-indigo-50 dark:bg-indigo-600/20 text-indigo-600 dark:text-indigo-400 border border-indigo-200 dark:border-indigo-500/30'
-                  : 'text-slate-600 dark:text-slate-400 hover:text-slate-900 dark:hover:text-slate-200 hover:bg-slate-100 dark:hover:bg-slate-800'
-              }`
-            }
-          >
-            <Users className="w-3.5 h-3.5" /> Employee Directory
-          </NavLink>
-          <NavLink
-            to="/team/attendance"
-            className={({ isActive }) =>
-              `flex items-center gap-2 px-3 py-1.5 rounded-xl text-xs font-semibold transition-colors ${
-                isActive
-                  ? 'bg-indigo-50 dark:bg-indigo-600/20 text-indigo-600 dark:text-indigo-400 border border-indigo-200 dark:border-indigo-500/30'
-                  : 'text-slate-600 dark:text-slate-400 hover:text-slate-900 dark:hover:text-slate-200 hover:bg-slate-100 dark:hover:bg-slate-800'
-              }`
-            }
-          >
-            <CheckCircle2 className="w-3.5 h-3.5" /> Attendance Tracker
-          </NavLink>
-          <NavLink
-            to="/team/leave"
-            className={({ isActive }) =>
-              `flex items-center gap-2 px-3 py-1.5 rounded-xl text-xs font-semibold transition-colors ${
-                isActive
-                  ? 'bg-indigo-50 dark:bg-indigo-600/20 text-indigo-600 dark:text-indigo-400 border border-indigo-200 dark:border-indigo-500/30'
-                  : 'text-slate-600 dark:text-slate-400 hover:text-slate-900 dark:hover:text-slate-200 hover:bg-slate-100 dark:hover:bg-slate-800'
-              }`
-            }
-          >
-            <Calendar className="w-3.5 h-3.5" /> Leave Management
-          </NavLink>
-          <NavLink
-            to="/team/holidays"
-            className={({ isActive }) =>
-              `flex items-center gap-2 px-3 py-1.5 rounded-xl text-xs font-semibold transition-colors ${
-                isActive
-                  ? 'bg-amber-50 dark:bg-amber-500/20 text-amber-600 dark:text-amber-400 border border-amber-200 dark:border-amber-500/30'
-                  : 'text-slate-600 dark:text-slate-400 hover:text-slate-900 dark:hover:text-slate-200 hover:bg-slate-100 dark:hover:bg-slate-800'
-              }`
-            }
-          >
-            <PartyPopper className="w-3.5 h-3.5" /> Public Holidays
-          </NavLink>
-          <NavLink
-            to="/team/timeline"
-            className={({ isActive }) =>
-              `flex items-center gap-2 px-3 py-1.5 rounded-xl text-xs font-semibold transition-colors ${
-                isActive
-                  ? 'bg-indigo-50 dark:bg-indigo-600/20 text-indigo-600 dark:text-indigo-400 border border-indigo-200 dark:border-indigo-500/30'
-                  : 'text-slate-600 dark:text-slate-400 hover:text-slate-900 dark:hover:text-slate-200 hover:bg-slate-100 dark:hover:bg-slate-800'
-              }`
-            }
-          >
-            <CalendarDays className="w-3.5 h-3.5" /> Work Timeline
-          </NavLink>
-        </div>
+        <TeamSubNav />
       </div>
 
       {/* ── Main Content: Calendar + Saved List ── */}

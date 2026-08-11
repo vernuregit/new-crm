@@ -10,12 +10,28 @@ import {
   updateTaskStatusInDb,
   updateTaskSubtasksInDb,
   logHoursToTaskInDb,
+  updateTaskTimerInDb,
+  startTimerFields,
+  pauseTimerFields,
+  resumeTimerFields,
+  stopTimerFields,
   deleteTaskFromDb,
   deleteTaskStatusFromDb,
   updateProjectMembersInDb,
+  updateProjectStatsInDb,
   deleteProjectFromDb,
+  computeProjectMetrics,
   DEFAULT_TASK_STATUSES,
 } from '../services/projectService'
+
+const applyMetricsToProjects = (projects = [], tasks = []) =>
+  (projects || []).map((p) => {
+    const pId = p.projectId || p.id
+    return {
+      ...p,
+      ...computeProjectMetrics(pId, tasks),
+    }
+  })
 
 const DEMO_PROJECTS = [
   {
@@ -146,8 +162,11 @@ export const useProjectStore = create(
             }
           })
 
+          // Always derive card metrics from live tasks so counts/velocity stay accurate
+          const projectsWithMetrics = applyMetricsToProjects(projectsData || [], mergedTasks)
+
           set({
-            projects: projectsData || [],
+            projects: projectsWithMetrics,
             tasks: mergedTasks,
             statuses: statusesData && statusesData.length > 0 ? statusesData : DEFAULT_TASK_STATUSES,
             loading: false,
@@ -236,6 +255,7 @@ export const useProjectStore = create(
 
       addTask: async (newTask) => {
         const taskId = `task_${Date.now()}`
+        const timer = startTimerFields()
         const payload = {
           taskId,
           status: 'todo',
@@ -248,24 +268,19 @@ export const useProjectStore = create(
           createdByRole: newTask.createdByRole || 'employee',
           isEmployeeCreated: newTask.isEmployeeCreated !== undefined ? newTask.isEmployeeCreated : true,
           ...newTask,
+          ...timer,
+          taskId,
         }
 
+        let projectStats = null
         set((state) => {
           const updatedTasks = [payload, ...state.tasks]
-
-          const projTasks = updatedTasks.filter((t) => t.projectId === newTask.projectId)
-          const completedCount = projTasks.filter((t) => t.status === 'done').length
-          const totalCount = projTasks.length
-          const completionPercent = totalCount > 0 ? Math.round((completedCount / totalCount) * 100) : 0
+          const metrics = computeProjectMetrics(newTask.projectId, updatedTasks)
+          projectStats = metrics
 
           const updatedProjects = state.projects.map((p) =>
-            p.projectId === newTask.projectId
-              ? {
-                  ...p,
-                  totalTaskCount: totalCount,
-                  completedTaskCount: completedCount,
-                  completionPercent,
-                }
+            p.projectId === newTask.projectId || p.id === newTask.projectId
+              ? { ...p, ...metrics }
               : p
           )
 
@@ -273,70 +288,169 @@ export const useProjectStore = create(
         })
 
         await createTaskInDb(payload)
+        if (newTask.projectId && projectStats) {
+          await updateProjectStatsInDb(newTask.projectId, projectStats)
+        }
       },
 
       updateTaskStatus: async (taskId, newStatus) => {
         let targetSubtasks = []
+        let targetProjectId = null
+        let projectStats = null
+        let timerPatch = null
+
         set((state) => {
           const updatedTasks = state.tasks.map((t) => {
             if (t.taskId !== taskId) return t
             targetSubtasks = t.subtasks || []
-            return { ...t, status: newStatus }
+            let next = { ...t, status: newStatus }
+            if (newStatus === 'done') {
+              if (t.timerStatus !== 'stopped') {
+                timerPatch = stopTimerFields(t)
+                next = { ...next, ...timerPatch }
+              }
+              targetSubtasks = (targetSubtasks || []).map((st) => ({
+                ...st,
+                isCompleted: true,
+                ...(st.timerStatus !== 'stopped' ? stopTimerFields(st) : {}),
+              }))
+              next.subtasks = targetSubtasks
+            }
+            return next
           })
 
           const targetTask = state.tasks.find((t) => t.taskId === taskId)
           if (!targetTask) return { tasks: updatedTasks }
 
-          const projTasks = updatedTasks.filter((t) => t.projectId === targetTask.projectId)
-          const completedCount = projTasks.filter((t) => t.status === 'done').length
-          const totalCount = projTasks.length
-          const completionPercent = totalCount > 0 ? Math.round((completedCount / totalCount) * 100) : 0
+          targetProjectId = targetTask.projectId
+          const metrics = computeProjectMetrics(targetTask.projectId, updatedTasks)
+          projectStats = metrics
 
           const updatedProjects = state.projects.map((p) =>
-            p.projectId === targetTask.projectId
-              ? {
-                  ...p,
-                  completedTaskCount: completedCount,
-                  completionPercent,
-                }
+            p.projectId === targetTask.projectId || p.id === targetTask.projectId
+              ? { ...p, ...metrics }
               : p
           )
 
           return { tasks: updatedTasks, projects: updatedProjects }
         })
 
-        await updateTaskStatusInDb(taskId, newStatus)
+        await updateTaskStatusInDb(taskId, newStatus, timerPatch)
         await updateTaskSubtasksInDb(taskId, targetSubtasks, newStatus)
+        if (targetProjectId && projectStats) {
+          await updateProjectStatsInDb(targetProjectId, projectStats)
+        }
+      },
+
+      pauseTaskTimer: async (taskId) => {
+        const targetTask = get().tasks.find((t) => t.taskId === taskId)
+        if (!targetTask || targetTask.timerStatus !== 'running') return
+
+        const patch = pauseTimerFields(targetTask)
+        let projectStats = null
+        const targetProjectId = targetTask.projectId || null
+
+        set((state) => {
+          const updatedTasks = state.tasks.map((t) =>
+            t.taskId === taskId ? { ...t, ...patch } : t
+          )
+          if (!targetProjectId) return { tasks: updatedTasks }
+          const metrics = computeProjectMetrics(targetProjectId, updatedTasks)
+          projectStats = metrics
+          const updatedProjects = state.projects.map((p) =>
+            p.projectId === targetProjectId || p.id === targetProjectId
+              ? { ...p, ...metrics }
+              : p
+          )
+          return { tasks: updatedTasks, projects: updatedProjects }
+        })
+
+        await updateTaskTimerInDb(taskId, patch)
+        if (targetProjectId && projectStats) {
+          await updateProjectStatsInDb(targetProjectId, projectStats)
+        }
+      },
+
+      resumeTaskTimer: async (taskId) => {
+        const targetTask = get().tasks.find((t) => t.taskId === taskId)
+        if (!targetTask || targetTask.timerStatus !== 'paused') return
+        if (targetTask.status === 'done') return
+
+        const patch = resumeTimerFields(targetTask)
+
+        set((state) => ({
+          tasks: state.tasks.map((t) =>
+            t.taskId === taskId ? { ...t, ...patch } : t
+          ),
+        }))
+
+        await updateTaskTimerInDb(taskId, patch)
       },
 
       logHoursToTask: async (taskId, hours) => {
         const state = get()
         const targetTask = state.tasks.find((t) => t.taskId === taskId)
         const currentHours = targetTask ? Number(targetTask.loggedHours) || 0 : 0
+        let projectStats = null
+        const targetProjectId = targetTask?.projectId || null
 
-        set((state) => ({
-          tasks: state.tasks.map((t) =>
+        set((state) => {
+          const updatedTasks = state.tasks.map((t) =>
             t.taskId === taskId
               ? { ...t, loggedHours: (Number(t.loggedHours) || 0) + Number(hours) }
               : t
-          ),
-        }))
+          )
+
+          if (!targetProjectId) return { tasks: updatedTasks }
+
+          const metrics = computeProjectMetrics(targetProjectId, updatedTasks)
+          projectStats = metrics
+          const updatedProjects = state.projects.map((p) =>
+            p.projectId === targetProjectId || p.id === targetProjectId
+              ? { ...p, ...metrics }
+              : p
+          )
+
+          return { tasks: updatedTasks, projects: updatedProjects }
+        })
 
         await logHoursToTaskInDb(taskId, hours, currentHours)
+        if (targetProjectId && projectStats) {
+          await updateProjectStatsInDb(targetProjectId, projectStats)
+        }
       },
 
       deleteTask: async (taskId) => {
-        set((state) => ({
-          tasks: state.tasks.filter((t) => t.taskId !== taskId),
-        }))
+        const existing = get().tasks.find((t) => t.taskId === taskId)
+        const targetProjectId = existing?.projectId || null
+        let projectStats = null
+
+        set((state) => {
+          const updatedTasks = state.tasks.filter((t) => t.taskId !== taskId)
+          if (!targetProjectId) return { tasks: updatedTasks }
+
+          const metrics = computeProjectMetrics(targetProjectId, updatedTasks)
+          projectStats = metrics
+          const updatedProjects = state.projects.map((p) =>
+            p.projectId === targetProjectId || p.id === targetProjectId
+              ? { ...p, ...metrics }
+              : p
+          )
+
+          return { tasks: updatedTasks, projects: updatedProjects }
+        })
 
         await deleteTaskFromDb(taskId)
+        if (targetProjectId && projectStats) {
+          await updateProjectStatsInDb(targetProjectId, projectStats)
+        }
       },
 
       // Subtask Store Actions with Firestore Persistence
       addSubtask: async (taskId, newSubtask) => {
         let updatedSubtasks = []
         let currentTaskStatus = 'todo'
+        const timer = startTimerFields()
 
         set((state) => ({
           tasks: state.tasks.map((t) => {
@@ -346,8 +460,12 @@ export const useProjectStore = create(
               id: `sub_${Date.now()}_${Math.random().toString(36).substr(2, 4)}`,
               title: newSubtask.title,
               description: newSubtask.description || null,
-              estimatedTime: newSubtask.estimatedTime || null,
+              priority: newSubtask.priority || 'medium',
               isCompleted: false,
+              createdBy: newSubtask.createdBy || null,
+              createdByEmail: newSubtask.createdByEmail || null,
+              createdByName: newSubtask.createdByName || null,
+              ...timer,
             }
             updatedSubtasks = [...existingSubtasks, createdSubtask]
             currentTaskStatus = t.status
@@ -361,31 +479,107 @@ export const useProjectStore = create(
         await updateTaskSubtasksInDb(taskId, updatedSubtasks, currentTaskStatus)
       },
 
-      toggleSubtask: async (taskId, subtaskId) => {
+      pauseSubtaskTimer: async (taskId, subtaskId) => {
         let updatedSubtasks = []
-        let nextStatus = 'todo'
+        let currentTaskStatus = 'todo'
 
         set((state) => ({
           tasks: state.tasks.map((t) => {
             if (t.taskId !== taskId) return t
-            updatedSubtasks = (t.subtasks || []).map((st) =>
-              st.id === subtaskId ? { ...st, isCompleted: !st.isCompleted } : st
-            )
+            currentTaskStatus = t.status
+            updatedSubtasks = (t.subtasks || []).map((st) => {
+              if (st.id !== subtaskId || st.timerStatus !== 'running') return st
+              return { ...st, ...pauseTimerFields(st) }
+            })
+            return { ...t, subtasks: updatedSubtasks }
+          }),
+        }))
 
-            // Check if all subtasks completed
+        await updateTaskSubtasksInDb(taskId, updatedSubtasks, currentTaskStatus)
+      },
+
+      resumeSubtaskTimer: async (taskId, subtaskId) => {
+        let updatedSubtasks = []
+        let currentTaskStatus = 'todo'
+
+        set((state) => ({
+          tasks: state.tasks.map((t) => {
+            if (t.taskId !== taskId) return t
+            currentTaskStatus = t.status
+            updatedSubtasks = (t.subtasks || []).map((st) => {
+              if (st.id !== subtaskId || st.timerStatus !== 'paused' || st.isCompleted) return st
+              return { ...st, ...resumeTimerFields(st) }
+            })
+            return { ...t, subtasks: updatedSubtasks }
+          }),
+        }))
+
+        await updateTaskSubtasksInDb(taskId, updatedSubtasks, currentTaskStatus)
+      },
+
+      toggleSubtask: async (taskId, subtaskId) => {
+        let updatedSubtasks = []
+        let nextStatus = 'todo'
+        let targetProjectId = null
+        let projectStats = null
+        let taskTimerPatch = null
+
+        set((state) => {
+          const updatedTasks = state.tasks.map((t) => {
+            if (t.taskId !== taskId) return t
+            updatedSubtasks = (t.subtasks || []).map((st) => {
+              if (st.id !== subtaskId) return st
+              const willComplete = !st.isCompleted
+              if (willComplete) {
+                return { ...st, isCompleted: true, ...stopTimerFields(st) }
+              }
+              return {
+                ...st,
+                isCompleted: false,
+                ...resumeTimerFields({
+                  ...st,
+                  timerStatus: 'paused',
+                  timerAccumulatedMs: st.timerAccumulatedMs || 0,
+                }),
+              }
+            })
+
             const allDone = updatedSubtasks.length > 0 && updatedSubtasks.every((st) => st.isCompleted)
             nextStatus = allDone ? 'done' : t.status === 'done' ? 'in_progress' : t.status
+            targetProjectId = t.projectId
 
-            return {
+            let nextTask = {
               ...t,
               subtasks: updatedSubtasks,
               status: nextStatus,
             }
-          }),
-        }))
+
+            if (nextStatus === 'done' && t.timerStatus !== 'stopped') {
+              taskTimerPatch = stopTimerFields(t)
+              nextTask = { ...nextTask, ...taskTimerPatch }
+            }
+
+            return nextTask
+          })
+
+          if (!targetProjectId) return { tasks: updatedTasks }
+
+          const metrics = computeProjectMetrics(targetProjectId, updatedTasks)
+          projectStats = metrics
+          const updatedProjects = state.projects.map((p) =>
+            p.projectId === targetProjectId || p.id === targetProjectId
+              ? { ...p, ...metrics }
+              : p
+          )
+
+          return { tasks: updatedTasks, projects: updatedProjects }
+        })
 
         await updateTaskSubtasksInDb(taskId, updatedSubtasks, nextStatus)
-        await updateTaskStatusInDb(taskId, nextStatus)
+        await updateTaskStatusInDb(taskId, nextStatus, taskTimerPatch)
+        if (targetProjectId && projectStats) {
+          await updateProjectStatsInDb(targetProjectId, projectStats)
+        }
       },
 
       deleteSubtask: async (taskId, subtaskId) => {
@@ -407,28 +601,31 @@ export const useProjectStore = create(
         await updateTaskSubtasksInDb(taskId, updatedSubtasks, currentTaskStatus)
       },
 
-      autoDecomposeTask: async (taskId) => {
-        let generatedSubtasks = []
+      updateSubtask: async (taskId, subtaskId, updates) => {
+        let updatedSubtasks = []
         let currentTaskStatus = 'todo'
 
         set((state) => ({
           tasks: state.tasks.map((t) => {
             if (t.taskId !== taskId) return t
-            generatedSubtasks = [
-              { id: `sub_auto_1_${Date.now()}`, title: `Kickoff & Scope Alignment: ${t.title}`, isCompleted: false },
-              { id: `sub_auto_2_${Date.now()}`, title: `Technical Core Implementation`, isCompleted: false },
-              { id: `sub_auto_3_${Date.now()}`, title: `Peer Review & Integration Test`, isCompleted: false },
-              { id: `sub_auto_4_${Date.now()}`, title: `Client Handoff & Documentation`, isCompleted: false },
-            ]
             currentTaskStatus = t.status
-            return {
-              ...t,
-              subtasks: generatedSubtasks,
-            }
+            updatedSubtasks = (t.subtasks || []).map((st) => {
+              if (st.id !== subtaskId) return st
+              return {
+                ...st,
+                title: updates.title?.trim() || st.title,
+                description:
+                  updates.description !== undefined
+                    ? updates.description?.trim() || null
+                    : st.description,
+                priority: updates.priority || st.priority || 'medium',
+              }
+            })
+            return { ...t, subtasks: updatedSubtasks }
           }),
         }))
 
-        await updateTaskSubtasksInDb(taskId, generatedSubtasks, currentTaskStatus)
+        await updateTaskSubtasksInDb(taskId, updatedSubtasks, currentTaskStatus)
       },
     }),
     {
