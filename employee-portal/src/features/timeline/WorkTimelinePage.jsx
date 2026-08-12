@@ -2,7 +2,6 @@ import React, { useEffect, useMemo, useState } from 'react'
 import { PageHeader } from '../../components/layout/PageHeader'
 import { Card } from '../../components/ui/Card'
 import { Button } from '../../components/ui/Button'
-import { Input } from '../../components/ui/Input'
 import { useTimelineStore } from './stores/timelineStore'
 import { getWeekDates, toDateStr } from './services/timelineService'
 import { useUserStore } from '../../stores/userStore'
@@ -19,16 +18,45 @@ import {
 
 const DAY_LABELS = ['Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat']
 const TARGET_DAY_HOURS = 8
+const MINUTE_OPTIONS = ['00', '15', '30', '45']
 const ENTRY_TYPES = [
   { id: 'work', label: 'Work' },
   { id: 'upskilling', label: 'Upskilling' },
 ]
 
+/** Format decimal hours as zero-padded HH:MM (e.g. 1.75 → 01:45). */
 function formatHours(hours) {
   const n = Number(hours) || 0
-  if (n === 0) return '0h'
-  if (Number.isInteger(n)) return `${n}h`
-  return `${n}h`
+  const totalMinutes = Math.round(n * 60)
+  const h = Math.floor(totalMinutes / 60)
+  const m = totalMinutes % 60
+  return `${String(h).padStart(2, '0')}:${String(m).padStart(2, '0')}`
+}
+
+/** Split decimal hours into integer hours + quarter minutes (snap nearest). */
+function decimalToParts(decimalHours) {
+  const n = Number(decimalHours) || 0
+  const totalMinutes = Math.round(n * 60)
+  const h = Math.floor(totalMinutes / 60)
+  const rawMins = totalMinutes % 60
+  const quarters = [0, 15, 30, 45]
+  let nearest = quarters[0]
+  let best = Math.abs(rawMins - nearest)
+  for (const q of quarters) {
+    const d = Math.abs(rawMins - q)
+    if (d < best) {
+      best = d
+      nearest = q
+    }
+  }
+  // If closer to 60 than to 45, roll into next hour
+  if (Math.abs(rawMins - 60) < best) {
+    return { hoursPart: String(Math.min(h + 1, 23)), minutesPart: '00' }
+  }
+  return {
+    hoursPart: String(Math.min(Math.max(h, 0), 23)),
+    minutesPart: String(nearest).padStart(2, '0'),
+  }
 }
 
 function entryTypeLabel(entryType) {
@@ -71,7 +99,7 @@ function TimelineEntryCard({ entry, interactive = false, onEdit }) {
         >
           {entryTypeLabel(type)}
         </p>
-        <span className="shrink-0 text-[10px] font-semibold text-slate-600 dark:text-slate-300 bg-slate-200/80 dark:bg-slate-700/80 rounded-md px-1.5 py-0.5">
+        <span className="shrink-0 text-[10px] font-semibold text-slate-600 dark:text-slate-300 bg-slate-200/80 dark:bg-slate-700/80 rounded-md px-1.5 py-0.5 font-mono">
           {formatHours(entry.hours)}
         </span>
       </div>
@@ -119,7 +147,8 @@ export const WorkTimelinePage = () => {
   const [editingEntry, setEditingEntry] = useState(null)
   const [entryType, setEntryType] = useState('work')
   const [description, setDescription] = useState('')
-  const [hoursInput, setHoursInput] = useState('')
+  const [hoursPart, setHoursPart] = useState('')
+  const [minutesPart, setMinutesPart] = useState('00')
   const [saving, setSaving] = useState(false)
   const [formError, setFormError] = useState('')
 
@@ -144,28 +173,34 @@ export const WorkTimelinePage = () => {
     [entries]
   )
 
+  const durationPreview = useMemo(() => {
+    const h = Number(hoursPart)
+    const m = Number(minutesPart)
+    if (hoursPart === '' || Number.isNaN(h) || Number.isNaN(m)) return '00:00'
+    return formatHours(h + m / 60)
+  }, [hoursPart, minutesPart])
+
   const openAddModal = (dateStr, e) => {
     e?.stopPropagation?.()
-    const today = toDateStr(new Date())
-    if (dateStr < today) return
     setSelectedDate(dateStr)
     setEditingEntry(null)
     setEntryType('work')
     setDescription('')
-    setHoursInput('')
+    setHoursPart('')
+    setMinutesPart('00')
     setFormError('')
     setModalOpen(true)
   }
 
   const openEditModal = (entry, e) => {
     e?.stopPropagation?.()
-    const today = toDateStr(new Date())
-    if (entry.date < today) return
+    const parts = decimalToParts(entry.hours)
     setSelectedDate(entry.date)
     setEditingEntry(entry)
     setEntryType(entry.entryType === 'upskilling' ? 'upskilling' : 'work')
     setDescription(entry.description || '')
-    setHoursInput(String(entry.hours ?? ''))
+    setHoursPart(parts.hoursPart)
+    setMinutesPart(parts.minutesPart)
     setFormError('')
     setModalOpen(true)
   }
@@ -175,7 +210,8 @@ export const WorkTimelinePage = () => {
     setEditingEntry(null)
     setEntryType('work')
     setDescription('')
-    setHoursInput('')
+    setHoursPart('')
+    setMinutesPart('00')
     setFormError('')
   }
 
@@ -188,14 +224,9 @@ export const WorkTimelinePage = () => {
       return
     }
 
-    const today = toDateStr(new Date())
-    if (selectedDate && selectedDate < today) {
-      setFormError('Past days are view-only. You cannot add or edit entries.')
-      return
-    }
-
     const trimmed = description.trim()
-    const hours = Number(hoursInput)
+    const h = Number(hoursPart)
+    const m = Number(minutesPart)
 
     if (!trimmed) {
       setFormError(
@@ -205,8 +236,23 @@ export const WorkTimelinePage = () => {
       )
       return
     }
-    if (!hoursInput || Number.isNaN(hours) || hours <= 0) {
-      setFormError('Enter hours greater than 0.')
+    if (
+      hoursPart === '' ||
+      Number.isNaN(h) ||
+      !Number.isInteger(h) ||
+      h < 0 ||
+      h > 23
+    ) {
+      setFormError('Enter hours as a whole number from 0 to 23.')
+      return
+    }
+    if (!MINUTE_OPTIONS.includes(minutesPart)) {
+      setFormError('Minutes must be 00, 15, 30, or 45.')
+      return
+    }
+    const hours = h + m / 60
+    if (hours <= 0) {
+      setFormError('Duration must be greater than 0.')
       return
     }
     if (!selectedDate) {
@@ -248,8 +294,6 @@ export const WorkTimelinePage = () => {
 
   const handleDelete = async () => {
     if (!editingEntry) return
-    const today = toDateStr(new Date())
-    if (editingEntry.date < today) return
     setSaving(true)
     try {
       await removeEntry(editingEntry.entryId)
@@ -260,6 +304,7 @@ export const WorkTimelinePage = () => {
   }
 
   const todayStr = toDateStr(new Date())
+  const targetLabel = formatHours(TARGET_DAY_HOURS)
 
   return (
     <div className="space-y-6">
@@ -313,14 +358,14 @@ export const WorkTimelinePage = () => {
           <Clock className="w-4 h-4 text-indigo-500" />
           <span>
             Week total:{' '}
-            <strong className="text-slate-900 dark:text-slate-100">
+            <strong className="text-slate-900 dark:text-slate-100 font-mono">
               {formatHours(weekTotal)}
             </strong>
           </span>
         </div>
       </div>
 
-      {/* Mon–Sat grid — past days are view-only */}
+      {/* Mon–Sat grid — all days support add/edit */}
       <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-6 gap-3">
         {weekDays.map((day, idx) => {
           const dateStr = toDateStr(day)
@@ -330,34 +375,18 @@ export const WorkTimelinePage = () => {
             0
           )
           const isToday = dateStr === todayStr
-          const isPast = dateStr < todayStr
           const isFullDay = dayTotal >= TARGET_DAY_HOURS
 
           return (
             <Card
               key={dateStr}
-              role={isPast ? undefined : 'button'}
-              tabIndex={isPast ? undefined : 0}
-              onClick={isPast ? undefined : (e) => openAddModal(dateStr, e)}
-              onKeyDown={
-                isPast
-                  ? undefined
-                  : (e) => {
-                      if (e.key === 'Enter' || e.key === ' ') {
-                        e.preventDefault()
-                        openAddModal(dateStr, e)
-                      }
-                    }
-              }
               className={`flex flex-col min-h-[260px] !p-3 border transition-colors ${
-                isPast
-                  ? 'border-slate-200 dark:border-slate-800 cursor-default'
-                  : isToday
-                    ? 'border-indigo-400 dark:border-indigo-500/50 ring-1 ring-indigo-500/20 cursor-pointer hover:border-indigo-300 dark:hover:border-indigo-500/40'
-                    : 'border-slate-200 dark:border-slate-800 cursor-pointer hover:border-indigo-300 dark:hover:border-indigo-500/40'
+                isToday
+                  ? 'border-indigo-400 dark:border-indigo-500/50 ring-1 ring-indigo-500/20'
+                  : 'border-slate-200 dark:border-slate-800'
               }`}
             >
-              <div className="w-full text-left mb-3 pointer-events-none">
+              <div className="w-full text-left mb-3">
                 <div className="flex items-start justify-between gap-2">
                   <div>
                     <div
@@ -369,43 +398,54 @@ export const WorkTimelinePage = () => {
                     >
                       {DAY_LABELS[idx]} {day.getDate()}
                     </div>
-                    {isPast ? (
-                      <p className="text-[10px] text-slate-400 mt-0.5">View only</p>
-                    ) : isToday ? (
+                    {isToday ? (
                       <p className="text-[10px] text-indigo-500/80 mt-0.5">Today</p>
                     ) : null}
                   </div>
                   <span
-                    className={`shrink-0 text-[10px] font-semibold rounded-full px-2 py-0.5 border ${
+                    className={`shrink-0 text-[10px] font-semibold font-mono rounded-full px-2 py-0.5 border ${
                       isFullDay
                         ? 'text-emerald-600 dark:text-emerald-400 border-emerald-400/60 bg-emerald-50 dark:bg-emerald-500/10'
                         : 'text-slate-500 dark:text-slate-400 border-slate-300 dark:border-slate-600'
                     }`}
                   >
-                    {formatHours(dayTotal)} of {TARGET_DAY_HOURS}h
+                    {formatHours(dayTotal)} of {targetLabel}
                   </span>
                 </div>
               </div>
 
               <div className="flex-1 space-y-2 overflow-y-auto max-h-56">
                 {loading && dayEntries.length === 0 ? (
-                  <p className="text-[11px] text-slate-400 py-4 text-center pointer-events-none">
+                  <p className="text-[11px] text-slate-400 py-4 text-center">
                     Loading…
                   </p>
                 ) : dayEntries.length === 0 ? (
-                  <div className="rounded-xl border border-dashed border-slate-300 dark:border-slate-700 py-8 text-[11px] text-slate-400 text-center pointer-events-none">
-                    {isPast ? 'No entries' : 'Click to add'}
+                  <div className="rounded-xl border border-dashed border-slate-300 dark:border-slate-700 py-6 text-[11px] text-slate-400 text-center">
+                    No entries yet
                   </div>
                 ) : (
                   dayEntries.map((entry) => (
                     <TimelineEntryCard
                       key={entry.entryId}
                       entry={entry}
-                      interactive={!isPast}
+                      interactive
                       onEdit={(e) => openEditModal(entry, e)}
                     />
                   ))
                 )}
+              </div>
+
+              <div className="mt-3 pt-2 border-t border-slate-200 dark:border-slate-800">
+                <Button
+                  type="button"
+                  variant="ghost"
+                  size="sm"
+                  icon={Plus}
+                  className="w-full justify-center text-xs"
+                  onClick={(e) => openAddModal(dateStr, e)}
+                >
+                  Add Entry
+                </Button>
               </div>
             </Card>
           )
@@ -489,15 +529,59 @@ export const WorkTimelinePage = () => {
                 />
               </div>
 
-              <Input
-                label="Hours"
-                type="number"
-                min="0.25"
-                step="0.25"
-                value={hoursInput}
-                onChange={(e) => setHoursInput(e.target.value)}
-                placeholder="e.g. 2"
-              />
+              <div className="space-y-1.5">
+                <p className="block text-xs font-medium text-slate-700 dark:text-slate-300">
+                  Duration
+                </p>
+                <div className="grid grid-cols-2 gap-3">
+                  <div className="space-y-1">
+                    <label
+                      htmlFor="timeline-hours"
+                      className="block text-[10px] font-medium text-slate-500 dark:text-slate-400"
+                    >
+                      Hours
+                    </label>
+                    <input
+                      id="timeline-hours"
+                      type="number"
+                      min={0}
+                      max={23}
+                      step={1}
+                      inputMode="numeric"
+                      value={hoursPart}
+                      onChange={(e) => setHoursPart(e.target.value)}
+                      placeholder="0"
+                      className="w-full bg-slate-100/80 dark:bg-[#11141E] border border-slate-300 dark:border-slate-800 text-slate-900 dark:text-slate-100 placeholder-slate-400 text-sm rounded-xl py-2.5 px-3.5 focus:outline-none focus:ring-2 focus:ring-indigo-500/20 focus:border-indigo-500"
+                    />
+                  </div>
+                  <div className="space-y-1">
+                    <label
+                      htmlFor="timeline-minutes"
+                      className="block text-[10px] font-medium text-slate-500 dark:text-slate-400"
+                    >
+                      Minutes
+                    </label>
+                    <select
+                      id="timeline-minutes"
+                      value={minutesPart}
+                      onChange={(e) => setMinutesPart(e.target.value)}
+                      className="w-full bg-slate-100/80 dark:bg-[#11141E] border border-slate-300 dark:border-slate-800 text-slate-900 dark:text-slate-100 text-sm rounded-xl py-2.5 px-3.5 focus:outline-none focus:ring-2 focus:ring-indigo-500/20 focus:border-indigo-500 cursor-pointer"
+                    >
+                      {MINUTE_OPTIONS.map((opt) => (
+                        <option key={opt} value={opt}>
+                          {opt}
+                        </option>
+                      ))}
+                    </select>
+                  </div>
+                </div>
+                <p className="text-xs text-slate-500 dark:text-slate-400">
+                  Selected:{' '}
+                  <span className="font-mono font-semibold text-slate-800 dark:text-slate-200">
+                    {durationPreview}
+                  </span>
+                </p>
+              </div>
 
               {formError && (
                 <p className="text-xs text-rose-500">{formError}</p>

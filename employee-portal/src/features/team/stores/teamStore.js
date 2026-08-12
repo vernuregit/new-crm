@@ -4,14 +4,14 @@ import { upsertAttendanceLog, getTodayAttendanceLog, getUserMonthlyAttendance } 
 import { computeRealAttendanceStats } from '../services/attendanceStatsUtils'
 import { useUserStore } from '../../../stores/userStore'
 
-// Office hours constants
+// Office hours constants (late-by still uses start time)
 export const OFFICE_START_HOUR = 10
 export const OFFICE_START_MINUTE = 30
 export const OFFICE_END_HOUR = 19
 export const OFFICE_END_MINUTE = 0
 
-// 8.5-hour workday in seconds (10:30 AM – 7:00 PM = 8h 30m)
-export const WORKDAY_SECONDS = 8.5 * 3600
+// Regular workday length: 8 hours from clock-in (auto clock-out; extra hours after)
+export const WORKDAY_SECONDS = 8 * 3600
 
 /**
  * Returns a "YYYY-MM-DD" string for today (local date).
@@ -123,11 +123,11 @@ export const useTeamStore = create(
         set((state) => ({
           leaveRequests: [
             {
-              leaveId: `leave_${Date.now()}`,
               status: 'pending',
               ...newLeave,
+              leaveId: newLeave?.leaveId || `leave_${Date.now()}`,
             },
-            ...state.leaveRequests,
+            ...state.leaveRequests.filter((l) => l.leaveId !== newLeave?.leaveId),
           ],
         })),
 
@@ -247,31 +247,39 @@ export const useTeamStore = create(
       },
 
       /**
-       * Auto clock-out at 7:00 PM. Called by the widget's useEffect.
+       * Auto clock-out after 8 hours of work from clock-in (minus breaks).
+       * Called by useAutoClockOutAfterWorkday when live worked time ≥ WORKDAY_SECONDS.
        * @param {object} userMeta - { uid, displayName, departmentName }
        */
-      autoClockOutAtEndOfDay: (userMeta = {}) => {
+      autoClockOutAfterWorkday: (userMeta = {}) => {
         const meta = resolveUserMeta(userMeta)
         const state = get()
-        if (!state.clockedIn) return
+        if (!state.clockedIn || state.isInExtraTime) return
 
-        const now = new Date()
-        if (now.getHours() < 19) return
-
-        const endTime = new Date(now)
-        endTime.setHours(OFFICE_END_HOUR, OFFICE_END_MINUTE, 0, 0)
-
-        const endTs = endTime.getTime()
-        const timeStr = endTime.toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })
-
+        const nowMs = Date.now()
         let sessionSeconds = 0
         if (state.clockInTimestamp) {
-          const sessionMs = endTs - state.clockInTimestamp
-          sessionSeconds = Math.max(0, Math.floor(sessionMs / 1000))
+          sessionSeconds = Math.max(0, Math.floor((nowMs - state.clockInTimestamp) / 1000))
         }
 
-        const netSeconds = Math.max(0, sessionSeconds - state.accumulatedBreakSeconds)
-        const totalRegularSeconds = Math.min(8 * 3600, state.accumulatedWorkSeconds + netSeconds)
+        let breakSec = state.accumulatedBreakSeconds || 0
+        if (state.isOnBreak && state.breakStartTime) {
+          breakSec += Math.max(0, Math.floor((nowMs - state.breakStartTime) / 1000))
+        }
+
+        const netSeconds = Math.max(0, sessionSeconds - breakSec)
+        const totalSoFar = (state.accumulatedWorkSeconds || 0) + netSeconds
+        if (totalSoFar < WORKDAY_SECONDS) return
+
+        // Cap regular day at 8h; clock-out at the moment the 8h threshold was reached when possible
+        const overflowSec = totalSoFar - WORKDAY_SECONDS
+        const endTs = Math.max(
+          state.clockInTimestamp || nowMs,
+          nowMs - Math.max(0, overflowSec) * 1000
+        )
+        const endTime = new Date(endTs)
+        const timeStr = endTime.toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })
+        const totalRegularSeconds = WORKDAY_SECONDS
 
         const record = {
           id: `ot_${Date.now()}`,
@@ -287,7 +295,7 @@ export const useTeamStore = create(
           {
             id: `log_${Date.now()}`,
             type: 'auto_clock_out',
-            label: 'Auto Clocked Out (EOD)',
+            label: 'Auto Clocked Out (8h)',
             time: timeStr,
             timestamp: endTs,
           },
@@ -307,7 +315,6 @@ export const useTeamStore = create(
           overtimeRecords: [record, ...state.overtimeRecords],
         })
 
-        // Write to Firestore
         if (meta.uid) {
           upsertAttendanceLog(meta.uid, {
             displayName: meta.displayName || 'Employee',

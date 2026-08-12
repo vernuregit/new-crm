@@ -6,12 +6,39 @@ import { Badge } from '../../components/ui/Badge'
 import { Button } from '../../components/ui/Button'
 import { useTeamStore } from './stores/teamStore'
 import { useUserStore } from '../../stores/userStore'
-import { getEmployees, recordAttendanceInDb } from './services/teamService'
-import { prepareClockInGate } from './services/wfhAttendanceUtils'
+import { getEmployees, recordAttendanceInDb, createLeaveRequest } from './services/teamService'
+import {
+  prepareClockInGate,
+  getWeeklyClockInPromptState,
+} from './services/wfhAttendanceUtils'
+import {
+  resolveEmployeeWfhPolicy,
+  countUsedWfhDays,
+  validateWfhRequest,
+} from './services/wfhPolicyUtils'
 import { AttendanceMetricsBar } from './components/AttendanceMetricsBar'
 import { collection, onSnapshot } from 'firebase/firestore'
 import { db } from '../../shared/services/firebaseService'
-import { Users, CheckCircle2, Calendar, Clock, LogIn, LogOut, AlertCircle, Loader2 } from 'lucide-react'
+import {
+  Users,
+  CheckCircle2,
+  Calendar,
+  Clock,
+  LogIn,
+  LogOut,
+  AlertCircle,
+  Loader2,
+  Home,
+  Building2,
+  X,
+} from 'lucide-react'
+
+const toDateKey = (date = new Date()) => {
+  const y = date.getFullYear()
+  const m = String(date.getMonth() + 1).padStart(2, '0')
+  const d = String(date.getDate()).padStart(2, '0')
+  return `${y}-${m}-${d}`
+}
 
 export const AttendancePage = () => {
   const {
@@ -19,6 +46,7 @@ export const AttendancePage = () => {
     setEmployees,
     leaveRequests,
     setLeaveRequests,
+    addLeaveRequest,
     clockedIn,
     clockInTime,
     toggleClockIn,
@@ -30,6 +58,8 @@ export const AttendancePage = () => {
   const loggedInName = userDoc?.displayName || user?.displayName || user?.email || ''
   const [clockBusy, setClockBusy] = useState(false)
   const [clockError, setClockError] = useState('')
+  const [wfhChoiceOpen, setWfhChoiceOpen] = useState(false)
+  const [wfhChoiceMeta, setWfhChoiceMeta] = useState({ remaining: 0, limit: 0 })
 
   useEffect(() => {
     if (activeUid) {
@@ -49,7 +79,7 @@ export const AttendancePage = () => {
     const unsub = onSnapshot(
       collection(db, 'leaveRequests'),
       (snap) => {
-        setLeaveRequests(snap.docs.map((d) => ({ leaveId: d.id, ...d.data() })))
+        setLeaveRequests(snap.docs.map((d) => ({ ...d.data(), leaveId: d.id })))
       },
       (err) => console.error('Error listening to leave requests:', err)
     )
@@ -62,6 +92,57 @@ export const AttendancePage = () => {
         (activeUid && (e.uid === activeUid || e.employeeId === activeUid)) ||
         (user?.email && e.email?.toLowerCase() === user.email.toLowerCase())
     ) || userDoc || {}
+
+  const employeeFilter = {
+    employeeId: activeUid,
+    uid: activeUid,
+    employeeEmail: user?.email || userDoc?.email || currentEmp?.email,
+    employeeName: loggedInName,
+  }
+
+  const completeClockIn = async (gate) => {
+    const meta = {
+      uid: activeUid,
+      displayName: loggedInName,
+      departmentName: userDoc?.departmentName || '',
+    }
+
+    const result = toggleClockIn(meta, {
+      requireOfficeLocation: gate.requireOfficeLocation,
+      locationVerified: gate.locationVerified,
+      wfhExempt: gate.wfhExempt,
+      coords: gate.coords,
+    })
+
+    if (result && result.success === false) {
+      setClockError(result.error || 'Unable to clock in.')
+      return false
+    }
+
+    await recordAttendanceInDb({
+      uid: activeUid,
+      displayName: loggedInName,
+      action: 'clock_in',
+      time: new Date().toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' }),
+      date: toDateKey(),
+    })
+    return true
+  }
+
+  const runOfficeClockIn = async () => {
+    const gate = await prepareClockInGate({
+      emp: currentEmp,
+      leaveRequests,
+      employeeFilter,
+    })
+
+    if (!gate.ok) {
+      setClockError(gate.error || 'Unable to clock in.')
+      return
+    }
+
+    await completeClockIn(gate)
+  }
 
   const handleClockToggle = async () => {
     setClockError('')
@@ -78,51 +159,88 @@ export const AttendancePage = () => {
         displayName: loggedInName,
         action: 'clock_out',
         time: new Date().toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' }),
-        date: new Date().toISOString().split('T')[0],
+        date: toDateKey(),
       })
       return
     }
 
     setClockBusy(true)
     try {
-      const gate = await prepareClockInGate({
+      const prompt = getWeeklyClockInPromptState({
         emp: currentEmp,
         leaveRequests,
-        employeeFilter: {
-          employeeId: activeUid,
-          uid: activeUid,
-          employeeEmail: user?.email || userDoc?.email || currentEmp?.email,
-          employeeName: loggedInName,
-        },
+        employeeFilter,
       })
 
-      if (!gate.ok) {
-        setClockError(gate.error || 'Unable to clock in.')
+      if (prompt.showPrompt) {
+        setWfhChoiceMeta({ remaining: prompt.remaining, limit: prompt.limit })
+        setWfhChoiceOpen(true)
         return
       }
 
-      const result = toggleClockIn(meta, {
-        requireOfficeLocation: gate.requireOfficeLocation,
-        locationVerified: gate.locationVerified,
-        wfhExempt: gate.wfhExempt,
-        coords: gate.coords,
-      })
-
-      if (result && result.success === false) {
-        setClockError(result.error || 'Unable to clock in.')
-        return
-      }
-
-      await recordAttendanceInDb({
-        uid: activeUid,
-        displayName: loggedInName,
-        action: 'clock_in',
-        time: new Date().toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' }),
-        date: new Date().toISOString().split('T')[0],
-      })
+      await runOfficeClockIn()
     } catch (err) {
       console.error('Clock-in gate error:', err)
       setClockError('Unable to verify location. Try again.')
+    } finally {
+      setClockBusy(false)
+    }
+  }
+
+  const handleChooseOffice = async () => {
+    setWfhChoiceOpen(false)
+    setClockError('')
+    setClockBusy(true)
+    try {
+      await runOfficeClockIn()
+    } catch (err) {
+      console.error('Clock-in gate error:', err)
+      setClockError('Unable to verify location. Try again.')
+    } finally {
+      setClockBusy(false)
+    }
+  }
+
+  const handleChooseWfh = async () => {
+    setClockError('')
+    setClockBusy(true)
+    try {
+      const today = toDateKey()
+      const policy = resolveEmployeeWfhPolicy(currentEmp)
+      const used = countUsedWfhDays(leaveRequests, employeeFilter, policy, today)
+      const wfhError = validateWfhRequest(policy, used, 1)
+      if (wfhError) {
+        setClockError(wfhError)
+        setWfhChoiceOpen(false)
+        return
+      }
+
+      const created = await createLeaveRequest({
+        employeeName: loggedInName,
+        employeeId: activeUid,
+        employeeEmail: employeeFilter.employeeEmail || '',
+        leaveType: 'Work From Home',
+        startDate: today,
+        endDate: today,
+        days: 1,
+        reason: 'Weekly WFH selected at clock-in',
+        status: 'approved',
+        autoApproved: true,
+        reviewedBy: 'WFH Clock-In',
+        createdVia: 'clock_in',
+      })
+      addLeaveRequest(created)
+
+      setWfhChoiceOpen(false)
+      await completeClockIn({
+        requireOfficeLocation: false,
+        locationVerified: false,
+        wfhExempt: true,
+        coords: null,
+      })
+    } catch (err) {
+      console.error('Weekly WFH clock-in error:', err)
+      setClockError('Unable to start WFH clock-in. Try again.')
     } finally {
       setClockBusy(false)
     }
@@ -222,6 +340,64 @@ export const AttendancePage = () => {
           </div>
         </div>
       </Card>
+
+      {/* Weekly WFH vs Office choice */}
+      {wfhChoiceOpen && (
+        <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-slate-950/50 backdrop-blur-[2px]">
+          <Card className="w-full max-w-md p-5 border-slate-200 dark:border-slate-700 shadow-xl space-y-4">
+            <div className="flex items-start justify-between gap-3">
+              <div>
+                <h3 className="text-sm font-bold text-slate-900 dark:text-slate-100">
+                  How are you working today?
+                </h3>
+                <p className="text-xs text-slate-500 dark:text-slate-400 mt-1">
+                  Weekly WFH remaining: {wfhChoiceMeta.remaining} of {wfhChoiceMeta.limit} day(s).
+                  Choosing WFH uses 1 day and skips office location.
+                </p>
+              </div>
+              <button
+                type="button"
+                onClick={() => setWfhChoiceOpen(false)}
+                className="p-1.5 rounded-lg text-slate-500 hover:bg-slate-100 dark:hover:bg-slate-800"
+                aria-label="Close"
+              >
+                <X className="w-4 h-4" />
+              </button>
+            </div>
+            <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
+              <button
+                type="button"
+                disabled={clockBusy}
+                onClick={handleChooseWfh}
+                className="flex flex-col items-start gap-2 p-4 rounded-xl border border-indigo-200 dark:border-indigo-500/40 bg-indigo-50/70 dark:bg-indigo-500/10 hover:border-indigo-400 transition-colors text-left disabled:opacity-60"
+              >
+                <Home className="w-5 h-5 text-indigo-600 dark:text-indigo-400" />
+                <span className="text-sm font-semibold text-slate-900 dark:text-slate-100">WFH mode</span>
+                <span className="text-[11px] text-slate-500 dark:text-slate-400">
+                  Work from home — no office GPS required
+                </span>
+              </button>
+              <button
+                type="button"
+                disabled={clockBusy}
+                onClick={handleChooseOffice}
+                className="flex flex-col items-start gap-2 p-4 rounded-xl border border-slate-200 dark:border-slate-700 bg-slate-50 dark:bg-slate-900/60 hover:border-slate-400 dark:hover:border-slate-500 transition-colors text-left disabled:opacity-60"
+              >
+                <Building2 className="w-5 h-5 text-slate-700 dark:text-slate-300" />
+                <span className="text-sm font-semibold text-slate-900 dark:text-slate-100">Office mode</span>
+                <span className="text-[11px] text-slate-500 dark:text-slate-400">
+                  Must be at the office location to check in
+                </span>
+              </button>
+            </div>
+            {clockBusy && (
+              <p className="text-xs text-slate-500 dark:text-slate-400 flex items-center gap-2">
+                <Loader2 className="w-3.5 h-3.5 animate-spin" /> Processing…
+              </p>
+            )}
+          </Card>
+        </div>
+      )}
 
       {/* Personal Summary Metrics: 5-Card Bar (Status, Clock In, Clock Out, Worked Hours, Late By) */}
       <AttendanceMetricsBar />

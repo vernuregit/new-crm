@@ -53,7 +53,7 @@ export const getDepartments = async () => {
 export const getLeaveRequests = async () => {
   try {
     const snap = await getDocs(collection(db, 'leaveRequests'))
-    return snap.docs.map((d) => ({ leaveId: d.id, ...d.data() }))
+    return snap.docs.map((d) => ({ ...d.data(), leaveId: d.id }))
   } catch (err) {
     console.error('Error fetching leave requests from Firestore:', err)
     return []
@@ -98,25 +98,28 @@ export const deleteEmployeeFromDb = async (employeeId) => {
 export const createLeaveRequest = async (leaveData) => {
   const requestedStatus = leaveData?.status === 'approved' ? 'approved' : 'pending'
   const { status: _ignored, ...rest } = leaveData || {}
+  const leaveId = `leave_${Date.now()}`
+  const payload = {
+    ...rest,
+    leaveId,
+    status: requestedStatus,
+    createdAt: serverTimestamp(),
+  }
+  if (requestedStatus === 'approved') {
+    payload.autoApproved = rest.autoApproved === true
+    payload.reviewedBy = rest.reviewedBy || (rest.autoApproved ? 'WFH Policy' : 'Admin')
+    payload.updatedAt = serverTimestamp()
+  }
+  // Firestore rejects undefined field values
+  Object.keys(payload).forEach((key) => {
+    if (payload[key] === undefined) delete payload[key]
+  })
   try {
-    const leaveId = `leave_${Date.now()}`
-    const payload = {
-      ...rest,
-      leaveId,
-      status: requestedStatus,
-      createdAt: serverTimestamp(),
-    }
-    if (requestedStatus === 'approved') {
-      payload.autoApproved = rest.autoApproved === true
-      payload.reviewedBy = rest.reviewedBy || (rest.autoApproved ? 'WFH Policy' : 'Admin')
-      payload.updatedAt = serverTimestamp()
-    }
     await setDoc(doc(db, 'leaveRequests', leaveId), payload)
     return { ...payload, createdAt: new Date().toISOString() }
   } catch (err) {
     console.error('Error creating leave request in Firestore:', err)
-    const leaveId = `leave_${Date.now()}`
-    return { leaveId, ...rest, status: requestedStatus }
+    throw err
   }
 }
 
@@ -306,14 +309,64 @@ export const updateLeaveStatusInDb = async (leaveId, newStatus, reviewedBy) => {
 }
 
 /**
- * Permanently delete a leave request from Firestore
+ * Clear On Duty attendance marks written for a leave request.
+ */
+const clearOnDutyAttendanceForLeave = async (leaveData) => {
+  if (!leaveData || leaveData.leaveType !== 'On Duty') return
+
+  const uid = await resolveEmployeeUidForLeave(leaveData)
+  if (!uid) return
+
+  const dates = expandDateRange(leaveData.startDate, leaveData.endDate)
+  if (dates.length === 0) return
+
+  try {
+    await Promise.all(
+      dates.map(async (date) => {
+        const docId = `${date}_${uid}`
+        const ref = doc(db, 'attendanceLogs', docId)
+        const snap = await getDoc(ref)
+        if (!snap.exists()) return
+        const data = snap.data() || {}
+        // Only clear marks created by this On Duty leave (or legacy on_duty with matching leaveId)
+        const leaveId = leaveData.leaveId || leaveData.id
+        if (data.source !== 'on_duty') return
+        if (data.leaveId && leaveId && data.leaveId !== leaveId) return
+        await setDoc(
+          ref,
+          {
+            onDuty: false,
+            leaveId: null,
+            updatedAt: serverTimestamp(),
+            // Keep real clock-in presence; only drop pure On Duty marks
+            ...(data.clockedIn ||
+            (data.clockInTime && data.clockInTime !== '—') ||
+            (Number(data.regularSeconds) || 0) > 0
+              ? { source: data.source === 'on_duty' ? 'clock' : data.source || 'clock' }
+              : { present: false, source: 'on_duty_revoked' }),
+          },
+          { merge: true }
+        )
+      })
+    )
+  } catch (err) {
+    console.error('Error clearing On Duty attendance after leave revoke:', err)
+  }
+}
+
+/**
+ * Hide a leave request from the admin Leave Management list only.
+ * Keeps the Firestore document so employee leave list and calendar marks stay unchanged.
  */
 export const deleteLeaveRequestFromDb = async (leaveId) => {
   try {
     if (!leaveId) return
-    await deleteDoc(doc(db, 'leaveRequests', leaveId))
+    await updateDoc(doc(db, 'leaveRequests', leaveId), {
+      hiddenFromAdmin: true,
+      updatedAt: serverTimestamp(),
+    })
   } catch (err) {
-    console.error('Error deleting leave request from Firestore:', err)
+    console.error('Error hiding leave request from admin view:', err)
     throw err
   }
 }

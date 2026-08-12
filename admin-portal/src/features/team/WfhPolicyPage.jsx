@@ -32,12 +32,12 @@ const MODE_OPTIONS = [
   {
     value: 'weekly',
     title: 'Weekly',
-    description: 'Request WFH within a weekly day limit. Auto-approved (no admin review).',
+    description: 'At Check In, employee chooses WFH or Office within the weekly day limit. No leave request needed.',
   },
   {
     value: 'monthly',
     title: 'Monthly',
-    description: 'Request WFH within a monthly day limit. Requires admin approval.',
+    description: 'Employee requests WFH within a monthly day limit. Requires admin approval.',
   },
 ]
 

@@ -7,6 +7,7 @@ import { Badge } from '../../components/ui/Badge'
 import { useTeamStore } from './stores/teamStore'
 import { useUserStore } from '../../stores/userStore'
 import { TeamSubNav } from './components/TeamSubNav'
+import { EmployeeAttendanceCalendar } from './components/EmployeeAttendanceCalendar'
 import {
   getEmployees,
   getMonthlyReport,
@@ -113,6 +114,34 @@ export function EmployeeMonthlyReportPage() {
     () => employees.find((e) => (e.uid || e.employeeId) === selectedUid),
     [employees, selectedUid]
   )
+
+  const accountStartDate = useMemo(() => {
+    const emp = selectedEmployee
+    if (!emp) return null
+    const raw = emp.joinedAt || emp.createdAt
+    if (!raw) return null
+    if (typeof raw === 'string' && /^\d{4}-\d{2}-\d{2}/.test(raw)) return raw.slice(0, 10)
+    if (typeof raw?.toDate === 'function') {
+      try {
+        const d = raw.toDate()
+        return `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, '0')}-${String(d.getDate()).padStart(2, '0')}`
+      } catch {
+        return null
+      }
+    }
+    if (typeof raw?.seconds === 'number') {
+      const d = new Date(raw.seconds * 1000)
+      return `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, '0')}-${String(d.getDate()).padStart(2, '0')}`
+    }
+    const d = new Date(raw)
+    if (Number.isNaN(d.getTime())) return null
+    return `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, '0')}-${String(d.getDate()).padStart(2, '0')}`
+  }, [selectedEmployee])
+
+  const todayStr = useMemo(() => {
+    const now = new Date()
+    return `${now.getFullYear()}-${String(now.getMonth() + 1).padStart(2, '0')}-${String(now.getDate()).padStart(2, '0')}`
+  }, [])
 
   const loadStored = useCallback(async () => {
     if (!selectedUid || !month) {
@@ -278,15 +307,28 @@ export function EmployeeMonthlyReportPage() {
           <Loader2 className="w-5 h-5 animate-spin" /> Loading report…
         </Card>
       ) : !report ? (
-        <Card className="p-10 text-center border-dashed border-slate-300 dark:border-slate-700 space-y-3">
-          <FileText className="w-10 h-10 mx-auto text-slate-400" />
-          <p className="text-sm text-slate-600 dark:text-slate-300 font-medium">
-            No stored report for this employee and month.
-          </p>
-          <p className="text-xs text-slate-400">
-            Click <strong>Generate / Refresh</strong> to aggregate attendance, leave, and timeline data and save a snapshot.
-          </p>
-        </Card>
+        <div className="space-y-4">
+          <Card className="p-10 text-center border-dashed border-slate-300 dark:border-slate-700 space-y-3">
+            <FileText className="w-10 h-10 mx-auto text-slate-400" />
+            <p className="text-sm text-slate-600 dark:text-slate-300 font-medium">
+              No stored report for this employee and month.
+            </p>
+            <p className="text-xs text-slate-400">
+              Click <strong>Generate / Refresh</strong> to aggregate attendance, leave, and timeline data and save a snapshot.
+            </p>
+          </Card>
+          {selectedUid && (
+            <div className="max-w-md">
+              <EmployeeAttendanceCalendar
+                employeeUid={selectedUid}
+                employeeEmail={selectedEmployee?.email || ''}
+                employeeName={selectedEmployee?.displayName || selectedEmployee?.name || ''}
+                month={month}
+                accountStartDate={accountStartDate}
+              />
+            </div>
+          )}
+        </div>
       ) : (
         <>
           <div className="flex flex-wrap items-center justify-between gap-2">
@@ -351,8 +393,16 @@ export function EmployeeMonthlyReportPage() {
             />
           </div>
 
-          <div className="grid grid-cols-1 lg:grid-cols-3 gap-4">
-            <Card className="p-4 border-slate-200 dark:border-slate-800 space-y-2 lg:col-span-1">
+          <div className="grid grid-cols-1 lg:grid-cols-4 gap-4">
+            <EmployeeAttendanceCalendar
+              employeeUid={selectedUid}
+              employeeEmail={selectedEmployee?.email || ''}
+              employeeName={selectedEmployee?.displayName || selectedEmployee?.name || report.displayName || ''}
+              month={month}
+              accountStartDate={accountStartDate}
+            />
+
+            <Card className="p-4 border-slate-200 dark:border-slate-800 space-y-2">
               <h4 className="text-xs font-bold uppercase tracking-wider text-slate-500">Averages</h4>
               <div className="text-sm text-slate-700 dark:text-slate-300 space-y-1.5">
                 <div className="flex justify-between"><span>Avg check-in</span><span className="font-mono">{att.avgCheckIn || '—'}</span></div>
@@ -402,6 +452,11 @@ export function EmployeeMonthlyReportPage() {
                           <Badge variant="success">{row.onDuty ? 'On Duty' : 'Present'}</Badge>
                         ) : row.leaveType ? (
                           <Badge variant="warning">Leave</Badge>
+                        ) : row.isFuture ||
+                          row.isBeforeJoin ||
+                          row.date > todayStr ||
+                          (accountStartDate && row.date < accountStartDate) ? (
+                          <span className="text-slate-400">—</span>
                         ) : (
                           <Badge variant="danger">Absent</Badge>
                         )}

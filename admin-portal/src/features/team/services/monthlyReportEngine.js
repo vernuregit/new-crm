@@ -98,6 +98,52 @@ export function getWorkingDaysInMonth(month, holidays = []) {
 }
 
 /**
+ * Normalize joinedAt / createdAt / Firestore Timestamp / Date into YYYY-MM-DD (local).
+ * @param {unknown} raw
+ * @returns {string|null}
+ */
+export function toAccountStartDateStr(raw) {
+  if (!raw) return null
+  if (typeof raw === 'string') {
+    if (/^\d{4}-\d{2}-\d{2}/.test(raw)) return raw.slice(0, 10)
+    const parsed = new Date(raw)
+    if (Number.isNaN(parsed.getTime())) return null
+    return `${parsed.getFullYear()}-${String(parsed.getMonth() + 1).padStart(2, '0')}-${String(parsed.getDate()).padStart(2, '0')}`
+  }
+  if (raw instanceof Date) {
+    if (Number.isNaN(raw.getTime())) return null
+    return `${raw.getFullYear()}-${String(raw.getMonth() + 1).padStart(2, '0')}-${String(raw.getDate()).padStart(2, '0')}`
+  }
+  if (typeof raw === 'object') {
+    if (typeof raw.toDate === 'function') {
+      try {
+        return toAccountStartDateStr(raw.toDate())
+      } catch {
+        return null
+      }
+    }
+    if (typeof raw.seconds === 'number') {
+      return toAccountStartDateStr(new Date(raw.seconds * 1000))
+    }
+  }
+  return null
+}
+
+/**
+ * Employee account start date (joinedAt preferred, then createdAt).
+ * @param {object} employee
+ * @returns {string|null} YYYY-MM-DD
+ */
+export function getEmployeeAccountStartDate(employee) {
+  if (!employee) return null
+  return (
+    toAccountStartDateStr(employee.joinedAt) ||
+    toAccountStartDateStr(employee.createdAt) ||
+    null
+  )
+}
+
+/**
  * Match leave request to employee uid.
  * @param {object} leave
  * @param {object} employee
@@ -197,6 +243,7 @@ export function buildEmployeeMonthlyReport({
 
   const today = new Date()
   const todayStr = `${today.getFullYear()}-${String(today.getMonth() + 1).padStart(2, '0')}-${String(today.getDate()).padStart(2, '0')}`
+  const accountStart = getEmployeeAccountStartDate(employee)
 
   const daily = workingDaysList.map((date) => {
     const log = logsByDate[date]
@@ -219,16 +266,19 @@ export function buildEmployeeMonthlyReport({
     const approvedLeave = dayLeaves.find((l) => l.status === 'approved')
     const leaveType = approvedLeave?.leaveType || (dayLeaves[0]?.leaveType ?? null)
 
-    // Only count absence for past/today working days without present mark and without approved leave
     const isFuture = date > todayStr
-    if (present) {
+    const isBeforeJoin = Boolean(accountStart && date < accountStart)
+    // Eligible for absence: on/after account start, not future, no approved leave
+    const canBeAbsent = !isFuture && !isBeforeJoin && !approvedLeave
+
+    if (present && !isBeforeJoin) {
       presentDays += 1
       if (onDuty) onDutyDays += 1
       if (isLate) lateDays += 1
       else if (clockInTime) onTimeDays += 1
       totalRegularSeconds += regularSeconds
       totalExtraSeconds += extraSeconds
-    } else if (!isFuture && !approvedLeave) {
+    } else if (canBeAbsent && !present) {
       absentDays += 1
     }
 
@@ -244,13 +294,20 @@ export function buildEmployeeMonthlyReport({
       leaveType,
       timelineHours: timelineByDate[date] || 0,
       onDuty,
+      isFuture,
+      isBeforeJoin,
     }
   })
 
   const monthLogs = Object.values(logsByDate)
   const avgStats = computeRealAttendanceStats(monthLogs)
+  const eligibleWorkingDays = workingDaysList.filter((date) => {
+    if (date > todayStr) return false
+    if (accountStart && date < accountStart) return false
+    return true
+  }).length
   const attendancePercentage =
-    workingDays > 0 ? Math.round((presentDays / workingDays) * 100) : 0
+    eligibleWorkingDays > 0 ? Math.round((presentDays / eligibleWorkingDays) * 100) : 0
 
   let approvedDays = 0
   let pendingDays = 0

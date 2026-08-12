@@ -42,7 +42,14 @@ const matchesEmployee = (leave, filter = {}) => {
 
 /**
  * Resolve WFH policy from an employee Firestore document.
- * @returns {{ mode: 'off'|'full'|'weekly'|'monthly', limit: number, enabled: boolean, canRequest: boolean }}
+ * @returns {{
+ *   mode: 'off'|'full'|'weekly'|'monthly',
+ *   limit: number,
+ *   enabled: boolean,
+ *   canRequest: boolean,
+ *   leaveFormEnabled: boolean,
+ *   clockInChoice: boolean,
+ * }}
  */
 export const resolveEmployeeWfhPolicy = (emp) => {
   let mode = emp?.wfhMode
@@ -55,9 +62,12 @@ export const resolveEmployeeWfhPolicy = (emp) => {
 
   const limit = Math.max(1, Number(emp?.wfhLimit ?? emp?.wfhDaysPerMonth) || 1)
   const enabled = mode !== 'off'
-  const canRequest = mode === 'weekly' || mode === 'monthly'
+  // Weekly: consume at clock-in (no leave form). Monthly: leave request + admin approval.
+  const leaveFormEnabled = mode === 'monthly'
+  const clockInChoice = mode === 'weekly'
+  const canRequest = leaveFormEnabled || clockInChoice
 
-  return { mode, limit, enabled, canRequest }
+  return { mode, limit, enabled, canRequest, leaveFormEnabled, clockInChoice }
 }
 
 /**

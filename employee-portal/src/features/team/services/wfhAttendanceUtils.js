@@ -1,7 +1,10 @@
 /**
  * Location-gated clock-in helpers with per-employee WFH exceptions.
  */
-import { resolveEmployeeWfhPolicy } from './wfhPolicyUtils'
+import {
+  resolveEmployeeWfhPolicy,
+  countUsedWfhDays,
+} from './wfhPolicyUtils'
 import { getOfficeLocation } from './teamService'
 
 const toDateKey = (date = new Date()) => {
@@ -45,6 +48,46 @@ export const hasApprovedWfhToday = (leaveRequests, employeeFilter, dateStr) => {
       matchesEmployee(l, employeeFilter) &&
       dateInRange(day, l.startDate, l.endDate)
   )
+}
+
+/**
+ * Weekly employees choose WFH vs Office at clock-in (no leave form).
+ * Prompt only when they still have remaining weekly days and no WFH leave today.
+ */
+export const getWeeklyClockInPromptState = ({
+  emp,
+  leaveRequests,
+  dateStr,
+  employeeFilter,
+} = {}) => {
+  const day = dateStr || toDateKey()
+  const wfh = resolveEmployeeWfhPolicy(emp || {})
+  const filter = employeeFilter || {
+    employeeId: emp?.uid || emp?.employeeId,
+    uid: emp?.uid || emp?.employeeId,
+    employeeEmail: emp?.email,
+    employeeName: emp?.displayName || emp?.name,
+  }
+
+  if (!wfh.clockInChoice) {
+    return {
+      showPrompt: false,
+      remaining: 0,
+      limit: wfh.limit,
+      alreadyWfhToday: false,
+    }
+  }
+
+  const alreadyWfhToday = hasApprovedWfhToday(leaveRequests, filter, day)
+  const used = countUsedWfhDays(leaveRequests, filter, wfh, day)
+  const remaining = Math.max(0, (Number(wfh.limit) || 1) - used)
+
+  return {
+    showPrompt: !alreadyWfhToday && remaining > 0,
+    remaining,
+    limit: wfh.limit,
+    alreadyWfhToday,
+  }
 }
 
 /**

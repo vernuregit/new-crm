@@ -1,15 +1,45 @@
-import React, { useState, useEffect } from 'react'
+import React, { useState, useEffect, useMemo } from 'react'
 import { Card } from '../../../components/ui/Card'
 import { useTeamStore } from '../../team/stores/teamStore'
 import { useUserStore } from '../../../stores/userStore'
 import { getUserMonthlyAttendance } from '../../team/services/attendanceService'
 import { subscribeToCompanyHolidays } from '../../team/services/teamService'
+import { collection, doc, getDoc, onSnapshot } from 'firebase/firestore'
+import { db } from '../../../shared/services/firebaseService'
 import { ChevronLeft, ChevronRight } from 'lucide-react'
+
+const LOP_LEAVE_TYPE = 'LOP (Loss of Pay)'
+/** Approved leave types that mark attendance Present (not absent/LOP overlays). */
+const PRESENT_LEAVE_TYPES = new Set(['On Duty', 'Work From Home'])
+
+const expandDateRange = (startDate, endDate) => {
+  const dates = []
+  if (!startDate) return dates
+  const start = new Date(`${startDate}T00:00:00`)
+  const end = new Date(`${(endDate || startDate)}T00:00:00`)
+  if (Number.isNaN(start.getTime()) || Number.isNaN(end.getTime())) return dates
+  const cursor = new Date(start)
+  while (cursor <= end) {
+    const y = cursor.getFullYear()
+    const m = String(cursor.getMonth() + 1).padStart(2, '0')
+    const d = String(cursor.getDate()).padStart(2, '0')
+    dates.push(`${y}-${m}-${d}`)
+    cursor.setDate(cursor.getDate() + 1)
+  }
+  return dates
+}
+
+const leaveMatchesEmployee = (l, { activeUid, activeEmail, activeName }) =>
+  (activeUid && (l.employeeId === activeUid || l.uid === activeUid)) ||
+  (activeEmail && l.employeeEmail?.toLowerCase() === activeEmail.toLowerCase()) ||
+  (activeName && l.employeeName?.toLowerCase() === activeName.toLowerCase())
 
 export const AttendanceCalendarWidget = () => {
   const { clockedIn, todayShiftLogs } = useTeamStore()
   const { user, userDoc } = useUserStore()
   const activeUid = userDoc?.uid || user?.uid
+  const activeEmail = userDoc?.email || user?.email || ''
+  const activeName = userDoc?.displayName || user?.displayName || ''
 
   // Default view date (current month/year)
   const [currentViewDate, setCurrentViewDate] = useState(() => new Date())
@@ -23,6 +53,8 @@ export const AttendanceCalendarWidget = () => {
   const [monthlyRecords, setMonthlyRecords] = useState({})
   const [isLoadingRecords, setIsLoadingRecords] = useState(true)
   const [companyHolidays, setCompanyHolidays] = useState({})
+  const [leaveRequests, setLeaveRequests] = useState([])
+  const [employeeProfile, setEmployeeProfile] = useState(null)
 
   const year = currentViewDate.getFullYear()
   const month = currentViewDate.getMonth()
@@ -43,6 +75,25 @@ export const AttendanceCalendarWidget = () => {
     }
   }, [activeUid, year, month])
 
+  // Employee profile for joinedAt / createdAt (attendance starts from account creation)
+  useEffect(() => {
+    if (!activeUid) {
+      setEmployeeProfile(null)
+      return
+    }
+    let cancelled = false
+    getDoc(doc(db, 'employees', activeUid))
+      .then((snap) => {
+        if (!cancelled && snap.exists()) setEmployeeProfile(snap.data())
+      })
+      .catch(() => {
+        if (!cancelled) setEmployeeProfile(null)
+      })
+    return () => {
+      cancelled = true
+    }
+  }, [activeUid])
+
   // Subscribe to company-wide holidays in real-time
   useEffect(() => {
     const unsub = subscribeToCompanyHolidays((list) => {
@@ -55,6 +106,38 @@ export const AttendanceCalendarWidget = () => {
     })
     return () => unsub()
   }, [])
+
+  // Live leaveRequests — calendar overlays must clear when Admin deletes/rejects approval
+  useEffect(() => {
+    const unsub = onSnapshot(
+      collection(db, 'leaveRequests'),
+      (snap) => {
+        // Prefer Firestore doc id so deletes always target the real document
+        setLeaveRequests(snap.docs.map((d) => ({ ...d.data(), leaveId: d.id })))
+      },
+      (err) => console.error('Error listening to leave requests:', err)
+    )
+    return () => unsub()
+  }, [])
+
+  /** date → { kind: 'lop' | 'leave', leaveType } from currently approved leave only */
+  const approvedLeaveByDate = useMemo(() => {
+    const map = {}
+    const emp = { activeUid, activeEmail, activeName }
+    leaveRequests.forEach((l) => {
+      if (l.status !== 'approved') return
+      if (!leaveMatchesEmployee(l, emp)) return
+      const type = l.leaveType || 'Leave'
+      if (PRESENT_LEAVE_TYPES.has(type)) return
+      const kind = type === LOP_LEAVE_TYPE ? 'lop' : 'leave'
+      expandDateRange(l.startDate, l.endDate || l.startDate).forEach((d) => {
+        // LOP wins if multiple approved leaves overlap a date
+        if (map[d]?.kind === 'lop') return
+        map[d] = { kind, leaveType: type }
+      })
+    })
+    return map
+  }, [leaveRequests, activeUid, activeEmail, activeName])
 
   // Month name formatting e.g. "July 2026"
   const monthName = currentViewDate.toLocaleDateString('en-US', {
@@ -114,27 +197,84 @@ export const AttendanceCalendarWidget = () => {
   }
 
   // Parse employee account creation date (joinedAt / createdAt / auth creationTime)
-  const getAccountCreatedDate = () => {
-    let rawDate = userDoc?.joinedAt || userDoc?.createdAt || user?.metadata?.creationTime
+  const parseRawDate = (rawDate) => {
     if (!rawDate) return null
-    if (typeof rawDate === 'object' && rawDate.seconds) {
+    if (typeof rawDate?.toDate === 'function') {
+      try {
+        return rawDate.toDate()
+      } catch {
+        return null
+      }
+    }
+    if (typeof rawDate === 'object' && typeof rawDate.seconds === 'number') {
       return new Date(rawDate.seconds * 1000)
     }
     const parsed = new Date(rawDate)
-    return isNaN(parsed.getTime()) ? null : parsed
+    return Number.isNaN(parsed.getTime()) ? null : parsed
+  }
+
+  const getAccountCreatedDate = () => {
+    const candidates = [
+      employeeProfile?.joinedAt,
+      employeeProfile?.createdAt,
+      userDoc?.joinedAt,
+      userDoc?.createdAt,
+      user?.metadata?.creationTime,
+    ]
+    for (const raw of candidates) {
+      const parsed = parseRawDate(raw)
+      if (parsed) return parsed
+    }
+    return null
+  }
+
+  /** Lower bound for inventing Absent: account start, else earliest real activity, else start of current month. */
+  const getAttendanceStartMidnight = () => {
+    const accountCreatedDate = getAccountCreatedDate()
+    if (accountCreatedDate) {
+      return new Date(
+        accountCreatedDate.getFullYear(),
+        accountCreatedDate.getMonth(),
+        accountCreatedDate.getDate()
+      )
+    }
+
+    const activityDates = [
+      ...Object.keys(monthlyRecords || {}),
+      ...Object.keys(approvedLeaveByDate || {}),
+    ]
+      .filter(Boolean)
+      .sort()
+    if (activityDates.length > 0) {
+      const d = new Date(`${activityDates[0]}T00:00:00`)
+      if (!Number.isNaN(d.getTime())) return d
+    }
+
+    return new Date(todayDateObj.getFullYear(), todayDateObj.getMonth(), 1)
   }
 
   // Determine presence/absence status for a date using real Firestore data
+  // Priority: holiday → approved LOP → approved leave (Casual/Sick/etc) → present → unexcused absent
+  // Leave overlays come ONLY from currently approved leaveRequests (deleted/rejected clear immediately)
   const getAttendanceStatus = (dayNum, isCurrentMonth) => {
     if (!isCurrentMonth) return null
 
     const dateKey = `${year}-${String(month + 1).padStart(2, '0')}-${String(dayNum).padStart(2, '0')}`
-
-    // ── Company holiday takes priority over absent marker ──
-    if (companyHolidays[dateKey]) return 'holiday'
-
     const cellDate = new Date(year, month, dayNum)
     cellDate.setHours(0, 0, 0, 0)
+
+    const attendanceStart = getAttendanceStartMidnight()
+    // Before account creation / effective start: show nothing (no full-month Absent)
+    if (cellDate < attendanceStart) return null
+
+    // ── Company holiday takes priority ──
+    if (companyHolidays[dateKey]) return 'holiday'
+
+    // ── Live approved leave overlays (LOP violet, other leave red) ──
+    const approvedLeave = approvedLeaveByDate[dateKey]
+    if (approvedLeave?.kind === 'lop') return 'lop'
+    if (approvedLeave?.kind === 'leave') return 'leave'
+
     const dayOfWeek = cellDate.getDay() // 0 = Sun (Sunday is the only weekend rest day; Saturday is a regular working day)
     const isWeekend = dayOfWeek === 0
 
@@ -168,23 +308,9 @@ export const AttendanceCalendarWidget = () => {
       return 'absent'
     }
 
-    // Future dates show no status dot
+    // Future dates show no status dot (unless covered by approved leave above)
     if (isFuture) {
       return null
-    }
-
-    // Account creation date boundary check:
-    // If the calendar date is BEFORE the employee joined / created account, do NOT mark as absent
-    const accountCreatedDate = getAccountCreatedDate()
-    if (accountCreatedDate) {
-      const createdMidnight = new Date(
-        accountCreatedDate.getFullYear(),
-        accountCreatedDate.getMonth(),
-        accountCreatedDate.getDate()
-      )
-      if (cellDate < createdMidnight) {
-        return null
-      }
     }
 
     // Past dates check Firestore records
@@ -211,7 +337,7 @@ export const AttendanceCalendarWidget = () => {
       return null
     }
 
-    // Past working weekday without presence: mark as absent
+    // Past working weekday without presence and without approved leave: unexcused absent
     return 'absent'
   }
 
@@ -274,6 +400,8 @@ export const AttendanceCalendarWidget = () => {
           <div className="grid grid-cols-7 gap-y-0.5 gap-x-0.5 items-center justify-items-center">
             {gridCells.map((cell) => {
               const status = getAttendanceStatus(cell.day, cell.isCurrentMonth)
+              const dateKey = `${year}-${String(month + 1).padStart(2, '0')}-${String(cell.day).padStart(2, '0')}`
+              const leaveOverlay = approvedLeaveByDate[dateKey]
               const isSelected =
                 cell.isCurrentMonth &&
                 cell.day === selectedDay &&
@@ -298,6 +426,10 @@ export const AttendanceCalendarWidget = () => {
                         : cell.isCurrentMonth
                         ? status === 'holiday'
                           ? 'bg-amber-400/15 text-amber-600 dark:text-amber-400 font-bold'
+                          : status === 'lop'
+                          ? 'bg-violet-500/15 text-violet-600 dark:text-violet-400 font-bold'
+                          : status === 'leave'
+                          ? 'bg-rose-500/15 text-rose-600 dark:text-rose-400 font-bold'
                           : 'text-slate-800 dark:text-slate-200'
                         : 'text-slate-300 dark:text-slate-600 font-normal'
                     }`}
@@ -315,14 +447,30 @@ export const AttendanceCalendarWidget = () => {
                               ? 'bg-emerald-500'
                               : status === 'holiday'
                               ? 'bg-amber-400'
+                              : status === 'lop'
+                              ? 'bg-violet-500'
                               : 'bg-rose-500'
                           }`}
                         />
                         {/* Holiday name tooltip */}
-                        {status === 'holiday' && companyHolidays[`${year}-${String(month + 1).padStart(2, '0')}-${String(cell.day).padStart(2, '0')}`]?.name && (
+                        {status === 'holiday' && companyHolidays[dateKey]?.name && (
                           <div className="absolute bottom-full mb-1.5 left-1/2 -translate-x-1/2 z-20 hidden group-hover/dot:block pointer-events-none">
                             <div className="bg-slate-900 dark:bg-slate-100 text-white dark:text-slate-900 text-[8px] font-semibold rounded-lg px-2 py-1 whitespace-nowrap shadow-xl">
-                              {companyHolidays[`${year}-${String(month + 1).padStart(2, '0')}-${String(cell.day).padStart(2, '0')}`].name}
+                              {companyHolidays[dateKey].name}
+                            </div>
+                          </div>
+                        )}
+                        {status === 'lop' && (
+                          <div className="absolute bottom-full mb-1.5 left-1/2 -translate-x-1/2 z-20 hidden group-hover/dot:block pointer-events-none">
+                            <div className="bg-slate-900 dark:bg-slate-100 text-white dark:text-slate-900 text-[8px] font-semibold rounded-lg px-2 py-1 whitespace-nowrap shadow-xl">
+                              LOP (Loss of Pay)
+                            </div>
+                          </div>
+                        )}
+                        {status === 'leave' && leaveOverlay?.leaveType && (
+                          <div className="absolute bottom-full mb-1.5 left-1/2 -translate-x-1/2 z-20 hidden group-hover/dot:block pointer-events-none">
+                            <div className="bg-slate-900 dark:bg-slate-100 text-white dark:text-slate-900 text-[8px] font-semibold rounded-lg px-2 py-1 whitespace-nowrap shadow-xl">
+                              {leaveOverlay.leaveType}
                             </div>
                           </div>
                         )}
@@ -336,7 +484,7 @@ export const AttendanceCalendarWidget = () => {
         </div>
 
         {/* Legend Footer */}
-        <div className="pt-1.5 mt-1 border-t border-slate-100 dark:border-slate-800/80 flex items-center justify-center gap-4 text-[10px] font-medium text-slate-600 dark:text-slate-400 flex-wrap">
+        <div className="pt-1.5 mt-1 border-t border-slate-100 dark:border-slate-800/80 flex items-center justify-center gap-3 text-[10px] font-medium text-slate-600 dark:text-slate-400 flex-wrap">
           <div className="flex items-center gap-1.5">
             <span className="w-1.5 h-1.5 rounded-full bg-emerald-500" />
             <span>Present</span>
@@ -348,6 +496,10 @@ export const AttendanceCalendarWidget = () => {
           <div className="flex items-center gap-1.5">
             <span className="w-1.5 h-1.5 rounded-full bg-amber-400" />
             <span>Holiday</span>
+          </div>
+          <div className="flex items-center gap-1.5">
+            <span className="w-1.5 h-1.5 rounded-full bg-violet-500" />
+            <span>LOP</span>
           </div>
         </div>
       </div>

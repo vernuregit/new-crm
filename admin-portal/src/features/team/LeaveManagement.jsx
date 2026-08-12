@@ -23,7 +23,6 @@ const SINGLE_DAY_LEAVE_TYPES = new Set([
   'Work From Home',
   'Sick Leave',
   'Casual Leave',
-  'Emergency Leave',
 ])
 
 const isSingleDayLeaveType = (type) => SINGLE_DAY_LEAVE_TYPES.has(type)
@@ -55,7 +54,7 @@ export const LeaveManagement = () => {
     const unsub = onSnapshot(
       collection(db, 'leaveRequests'),
       (snap) => {
-        const list = snap.docs.map((d) => ({ leaveId: d.id, ...d.data() }))
+        const list = snap.docs.map((d) => ({ ...d.data(), leaveId: d.id }))
         setLeaveRequests(list)
       },
       (err) => {
@@ -110,13 +109,20 @@ export const LeaveManagement = () => {
 
     const isUrgentLeave =
       leaveType === 'Sick Leave' ||
-      leaveType === 'Emergency Leave' ||
+      leaveType === 'LOP (Loss of Pay)' ||
       leaveType === 'Work From Home' ||
       leaveType === 'On Duty'
 
+    // LOP may be recorded for past dates; other types cannot use past dates
+    if (leaveType !== 'LOP (Loss of Pay)' && diffDays < 0) {
+      setValidationError('Past dates cannot be selected for this leave type.')
+      return
+    }
+
+    // Non-urgent types (except Casual, already checked) still need 3-day advance
     if (!isUrgentLeave && leaveType !== 'Casual Leave' && diffDays < 3) {
       setValidationError(
-        'Standard leave must be requested at least 3 days in advance. Select "Sick Leave", "Emergency Leave", "Work From Home", or "On Duty" for urgent requests.'
+        'Standard leave must be requested at least 3 days in advance. Select "Sick Leave", "LOP (Loss of Pay)", "Work From Home", or "On Duty" for urgent requests.'
       )
       return
     }
@@ -178,15 +184,25 @@ export const LeaveManagement = () => {
       ...wfhExtras,
     }
 
-    const created = await createLeaveRequest(leaveData)
-    addLeaveRequest(created)
+    if (!leaveData.employeeId && !leaveData.employeeEmail) {
+      setValidationError('Selected employee is missing identity fields. Re-select the employee and try again.')
+      return
+    }
 
-    setLeaveType('Annual Leave')
-    setStartDate('')
-    setEndDate('')
-    setReason('')
-    setValidationError('')
-    setShowAddModal(false)
+    try {
+      const created = await createLeaveRequest(leaveData)
+      addLeaveRequest(created)
+
+      setLeaveType('Annual Leave')
+      setStartDate('')
+      setEndDate('')
+      setReason('')
+      setValidationError('')
+      setShowAddModal(false)
+    } catch (err) {
+      console.error('Failed to create leave request:', err)
+      setValidationError('Failed to create leave request. Please try again.')
+    }
   }
 
   const handleUpdateLeaveStatus = async (leaveId, newStatus) => {
@@ -273,7 +289,9 @@ export const LeaveManagement = () => {
             </tr>
           </thead>
           <tbody className="divide-y divide-slate-200 dark:divide-slate-800/60">
-            {leaveRequests.map((req) => (
+            {leaveRequests
+              .filter((req) => !req.hiddenFromAdmin)
+              .map((req) => (
               <tr key={req.leaveId} className="hover:bg-slate-50 dark:hover:bg-slate-800/30 transition-colors text-slate-700 dark:text-slate-300">
                 <td className="p-4">
                   {(() => {
@@ -366,7 +384,7 @@ export const LeaveManagement = () => {
                     <button
                       onClick={() => setDeleteTarget(req)}
                       className="p-1.5 bg-rose-50 dark:bg-rose-500/10 hover:bg-rose-100 dark:hover:bg-rose-500/20 text-rose-600 dark:text-rose-400 rounded-lg border border-rose-200 dark:border-rose-500/30 transition-colors"
-                      title="Delete Leave Request"
+                      title="Hide Leave Request"
                     >
                       <Trash2 className="w-4 h-4" />
                     </button>
@@ -387,14 +405,14 @@ export const LeaveManagement = () => {
                 <Trash2 className="w-5 h-5" />
               </div>
               <div>
-                <h3 className="font-bold text-slate-900 dark:text-slate-100 text-sm">Delete Leave Request?</h3>
+                <h3 className="font-bold text-slate-900 dark:text-slate-100 text-sm">Hide Leave Request?</h3>
                 <p className="text-xs text-slate-600 dark:text-slate-400 mt-1.5 leading-relaxed">
-                  This will permanently remove the {deleteTarget.leaveType} request for{' '}
+                  This will remove the {deleteTarget.leaveType} request for{' '}
                   {deleteTarget.employeeName || 'this employee'} ({deleteTarget.startDate}
                   {deleteTarget.endDate && deleteTarget.endDate !== deleteTarget.startDate
                     ? ` to ${deleteTarget.endDate}`
                     : ''}
-                  ). This cannot be undone.
+                  ) from this admin list only. The employee leave record and calendar marks will stay unchanged.
                 </p>
               </div>
             </div>
@@ -416,7 +434,7 @@ export const LeaveManagement = () => {
                 disabled={deleteLoading}
                 icon={Trash2}
               >
-                {deleteLoading ? 'Deleting…' : 'Delete Permanently'}
+                {deleteLoading ? 'Hiding…' : 'Hide from Admin'}
               </Button>
             </div>
           </Card>
@@ -480,21 +498,20 @@ export const LeaveManagement = () => {
                   <option value="Annual Leave" className="bg-white dark:bg-[#11141E] text-slate-900 dark:text-slate-100">Annual Leave</option>
                   <option value="Sick Leave" className="bg-white dark:bg-[#11141E] text-slate-900 dark:text-slate-100">Sick Leave</option>
                   <option value="Casual Leave" className="bg-white dark:bg-[#11141E] text-slate-900 dark:text-slate-100">Casual Leave</option>
-                  <option value="Emergency Leave" className="bg-white dark:bg-[#11141E] text-slate-900 dark:text-slate-100">Emergency Leave</option>
                   {selectedWfhPolicy.canRequest && (
                     <option value="Work From Home" className="bg-white dark:bg-[#11141E] text-slate-900 dark:text-slate-100">
                       Work From Home ({getWfhAllowanceLabel(selectedWfhPolicy)})
                     </option>
                   )}
                   <option value="On Duty" className="bg-white dark:bg-[#11141E] text-slate-900 dark:text-slate-100">On Duty (outdoor / official work)</option>
-                  <option value="Unpaid Leave" className="bg-white dark:bg-[#11141E] text-slate-900 dark:text-slate-100">Unpaid Leave</option>
+                  <option value="LOP (Loss of Pay)" className="bg-white dark:bg-[#11141E] text-slate-900 dark:text-slate-100">LOP (Loss of Pay)</option>
                 </select>
                 {selectedEmployee && (
                   <p className="text-[11px] text-slate-500 dark:text-slate-400 mt-1">
                     Employee WFH: {getWfhAllowanceLabel(selectedWfhPolicy)}
                     {selectedWfhPolicy.mode === 'full' ? ' (no leave request needed)' : ''}
                     {selectedWfhPolicy.mode === 'monthly' ? ' (admin approval for employee requests)' : ''}
-                    {selectedWfhPolicy.mode === 'weekly' ? ' (auto-approved for employee requests)' : ''}
+                    {selectedWfhPolicy.mode === 'weekly' ? ' (employee chooses WFH/Office at Check In)' : ''}
                   </p>
                 )}
               </div>
@@ -517,19 +534,35 @@ export const LeaveManagement = () => {
                   )}
                 </div>
               ) : (
-                <div className="grid grid-cols-2 gap-3">
-                  <Input
-                    label="Start Date"
-                    type="date"
-                    value={startDate}
-                    onChange={(e) => setStartDate(e.target.value)}
-                  />
-                  <Input
-                    label="End Date"
-                    type="date"
-                    value={endDate}
-                    onChange={(e) => setEndDate(e.target.value)}
-                  />
+                <div className="space-y-1.5">
+                  <div className="grid grid-cols-2 gap-3">
+                    <Input
+                      label="Start Date"
+                      type="date"
+                      value={startDate}
+                      onChange={(e) => setStartDate(e.target.value)}
+                    />
+                    <Input
+                      label="End Date"
+                      type="date"
+                      value={endDate}
+                      onChange={(e) => setEndDate(e.target.value)}
+                    />
+                  </div>
+                  {startDate && endDate && (
+                    <p className="text-[11px] text-slate-500 dark:text-slate-400">
+                      Selected:{' '}
+                      <span className="font-semibold text-indigo-600 dark:text-indigo-400">{startDate}</span>
+                      {' '}to{' '}
+                      <span className="font-semibold text-indigo-600 dark:text-indigo-400">{endDate}</span>
+                      {' '}(
+                      {Math.max(
+                        1,
+                        Math.round((new Date(endDate) - new Date(startDate)) / 86400000) + 1
+                      )}{' '}
+                      Days)
+                    </p>
+                  )}
                 </div>
               )}
 

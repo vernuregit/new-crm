@@ -40,7 +40,7 @@ export const getDepartments = async () => {
 export const getLeaveRequests = async () => {
   try {
     const snap = await getDocs(collection(db, 'leaveRequests'))
-    return snap.docs.map((d) => ({ leaveId: d.id, ...d.data() }))
+    return snap.docs.map((d) => ({ ...d.data(), leaveId: d.id }))
   } catch (err) {
     console.error('Error fetching leave requests from Firestore:', err)
     return []
@@ -78,25 +78,28 @@ export const deleteEmployeeFromDb = async (uid) => {
 export const createLeaveRequest = async (leaveData) => {
   const requestedStatus = leaveData?.status === 'approved' ? 'approved' : 'pending'
   const { status: _ignored, ...rest } = leaveData || {}
+  const leaveId = `leave_${Date.now()}`
+  const payload = {
+    ...rest,
+    leaveId,
+    status: requestedStatus,
+    createdAt: serverTimestamp(),
+  }
+  if (requestedStatus === 'approved') {
+    payload.autoApproved = rest.autoApproved === true
+    payload.reviewedBy = rest.reviewedBy || (rest.autoApproved ? 'WFH Policy' : 'Admin')
+    payload.updatedAt = serverTimestamp()
+  }
+  // Firestore rejects undefined field values
+  Object.keys(payload).forEach((key) => {
+    if (payload[key] === undefined) delete payload[key]
+  })
   try {
-    const leaveId = `leave_${Date.now()}`
-    const payload = {
-      ...rest,
-      leaveId,
-      status: requestedStatus,
-      createdAt: serverTimestamp(),
-    }
-    if (requestedStatus === 'approved') {
-      payload.autoApproved = rest.autoApproved === true
-      payload.reviewedBy = rest.reviewedBy || (rest.autoApproved ? 'WFH Policy' : 'Admin')
-      payload.updatedAt = serverTimestamp()
-    }
     await setDoc(doc(db, 'leaveRequests', leaveId), payload)
     return { ...payload, createdAt: new Date().toISOString() }
   } catch (err) {
     console.error('Error creating leave request in Firestore:', err)
-    const leaveId = `leave_${Date.now()}`
-    return { leaveId, ...rest, status: requestedStatus }
+    throw err
   }
 }
 

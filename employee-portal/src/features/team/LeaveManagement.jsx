@@ -22,7 +22,6 @@ const SINGLE_DAY_LEAVE_TYPES = new Set([
   'Work From Home',
   'Sick Leave',
   'Casual Leave',
-  'Emergency Leave',
 ])
 
 const isSingleDayLeaveType = (type) => SINGLE_DAY_LEAVE_TYPES.has(type)
@@ -75,7 +74,7 @@ const InteractiveCalendarPicker = ({ startDate, setStartDate, endDate, setEndDat
   const getMinAllowedDate = () => {
     if (
       leaveType === 'Sick Leave' ||
-      leaveType === 'Emergency Leave' ||
+      leaveType === 'LOP (Loss of Pay)' ||
       leaveType === 'Work From Home' ||
       leaveType === 'On Duty'
     ) {
@@ -104,7 +103,7 @@ const InteractiveCalendarPicker = ({ startDate, setStartDate, endDate, setEndDat
     if (clickedDate < minAllowedDate) {
       if (
         leaveType === 'Sick Leave' ||
-        leaveType === 'Emergency Leave' ||
+        leaveType === 'LOP (Loss of Pay)' ||
         leaveType === 'Work From Home' ||
         leaveType === 'On Duty'
       ) {
@@ -121,7 +120,7 @@ const InteractiveCalendarPicker = ({ startDate, setStartDate, endDate, setEndDat
 
     setValidationError('')
 
-    // WFH / Sick / Casual / Emergency: single date only (1 Day)
+    // WFH / Sick / Casual: single date only (1 Day)
     if (singleDayOnly) {
       setStartDate(clickedDate)
       setEndDate(clickedDate)
@@ -332,7 +331,7 @@ export const LeaveManagement = () => {
     const unsub = onSnapshot(
       collection(db, 'leaveRequests'),
       (snap) => {
-        const list = snap.docs.map((d) => ({ leaveId: d.id, ...d.data() }))
+        const list = snap.docs.map((d) => ({ ...d.data(), leaveId: d.id }))
         setLeaveRequests(list)
         setLoadingLeave(false)
       },
@@ -348,17 +347,37 @@ export const LeaveManagement = () => {
   }, [setLeaveRequests, setEmployees])
 
   useEffect(() => {
-    if (!wfhPolicy.canRequest && leaveType === 'Work From Home') {
+    if (!wfhPolicy.leaveFormEnabled && leaveType === 'Work From Home') {
       setLeaveType('Casual Leave')
     }
-  }, [wfhPolicy.canRequest, leaveType])
+  }, [wfhPolicy.leaveFormEnabled, leaveType])
 
   // Filter this employee's own leave requests using UID, Email, or Name for robust persistence across refreshes
   const myLeaveRequests = leaveRequests.filter((l) => {
-    if (resolvedEmployeeId && (l.employeeId === resolvedEmployeeId || l.employeeId === user?.uid)) return true
-    if (resolvedEmployeeEmail && l.employeeEmail?.toLowerCase() === resolvedEmployeeEmail.toLowerCase()) return true
-    if (l.employeeName && l.employeeName !== 'Team Staff' && l.employeeName === resolvedEmployeeName) return true
-    if (l.employeeName === 'Team Staff' && (!l.employeeEmail || l.employeeEmail === resolvedEmployeeEmail)) return true
+    const uid = resolvedEmployeeId || user?.uid || ''
+    if (uid && (l.employeeId === uid || l.uid === uid || l.employeeId === user?.uid)) return true
+    if (
+      resolvedEmployeeEmail &&
+      l.employeeEmail &&
+      l.employeeEmail.toLowerCase() === resolvedEmployeeEmail.toLowerCase()
+    ) {
+      return true
+    }
+    if (
+      l.employeeName &&
+      l.employeeName !== 'Team Staff' &&
+      resolvedEmployeeName &&
+      l.employeeName.toLowerCase() === resolvedEmployeeName.toLowerCase()
+    ) {
+      return true
+    }
+    if (
+      l.employeeName === 'Team Staff' &&
+      resolvedEmployeeEmail &&
+      (!l.employeeEmail || l.employeeEmail.toLowerCase() === resolvedEmployeeEmail.toLowerCase())
+    ) {
+      return true
+    }
     return false
   })
 
@@ -397,9 +416,10 @@ export const LeaveManagement = () => {
 
   const wfhReferenceDate = startDate || new Date().toISOString().split('T')[0]
   const usedWfhDays = countUsedWfhDays(myLeaveRequests, employeeWfhFilter, wfhPolicy, wfhReferenceDate)
-  const remainingWfhDays = wfhPolicy.canRequest
-    ? Math.max(0, (Number(wfhPolicy.limit) || 1) - usedWfhDays)
-    : null
+  const remainingWfhDays =
+    wfhPolicy.leaveFormEnabled || wfhPolicy.clockInChoice
+      ? Math.max(0, (Number(wfhPolicy.limit) || 1) - usedWfhDays)
+      : null
 
   const handleRequestLeave = async (e) => {
     e.preventDefault()
@@ -413,6 +433,16 @@ export const LeaveManagement = () => {
 
     if (!startDate) {
       setValidationError('Please select a leave date.')
+      return
+    }
+
+    const stableEmployeeId = user?.uid || userDoc?.uid || currentEmp?.uid || resolvedEmployeeId
+    const stableEmployeeEmail =
+      user?.email || userDoc?.email || currentEmp?.email || resolvedEmployeeEmail || ''
+    const stableEmployeeName = resolvedEmployeeName
+
+    if (!stableEmployeeId && !stableEmployeeEmail) {
+      setValidationError('Unable to identify your account. Please sign in again and retry.')
       return
     }
 
@@ -432,21 +462,21 @@ export const LeaveManagement = () => {
     }
 
     // ─── 3-Day Advance Notice Rule ───
-    // Emergency, Sick Leave, Work From Home, and On Duty are exempt from the 3-day advance notice rule.
+    // LOP, Sick Leave, Work From Home, and On Duty are exempt from the 3-day advance notice rule.
     const isUrgentLeave =
       leaveType === 'Sick Leave' ||
-      leaveType === 'Emergency Leave' ||
+      leaveType === 'LOP (Loss of Pay)' ||
       leaveType === 'Work From Home' ||
       leaveType === 'On Duty'
 
     if (!isUrgentLeave && leaveType !== 'Casual Leave' && diffDays < 3) {
       setValidationError(
-        'Standard leave must be requested at least 3 days in advance. For urgent situations, please select "Sick Leave", "Emergency Leave", "Work From Home", or "On Duty".'
+        'Standard leave must be requested at least 3 days in advance. For urgent situations, please select "Sick Leave", "LOP (Loss of Pay)", "Work From Home", or "On Duty".'
       )
       return
     }
 
-    // WFH / Sick / Casual / Emergency are always 1 day
+    // WFH / Sick / Casual are always 1 day; LOP / On Duty allow a date range
     const finalEndDate = singleDayOnly ? startDate : (endDate || startDate)
     const daysCount = singleDayOnly
       ? 1
@@ -472,6 +502,14 @@ export const LeaveManagement = () => {
     let wfhStatus = 'pending'
     let wfhAutoApproved = false
     if (leaveType === 'Work From Home') {
+      if (!wfhPolicy.leaveFormEnabled) {
+        setValidationError(
+          wfhPolicy.clockInChoice
+            ? 'Weekly WFH is selected at Check In on Attendance — no leave request needed.'
+            : 'Work From Home leave requests are not available for your account.'
+        )
+        return
+      }
       const usedForRequest = countUsedWfhDays(
         myLeaveRequests,
         employeeWfhFilter,
@@ -488,9 +526,9 @@ export const LeaveManagement = () => {
     }
 
     const leaveData = {
-      employeeName: resolvedEmployeeName,
-      employeeId: resolvedEmployeeId,
-      employeeEmail: resolvedEmployeeEmail,
+      employeeName: stableEmployeeName,
+      employeeId: stableEmployeeId || '',
+      employeeEmail: stableEmployeeEmail,
       leaveType,
       startDate,
       endDate: finalEndDate,
@@ -500,27 +538,50 @@ export const LeaveManagement = () => {
         ? {
             status: wfhStatus,
             autoApproved: wfhAutoApproved,
-            reviewedBy: wfhAutoApproved ? 'WFH Policy' : undefined,
+            ...(wfhAutoApproved ? { reviewedBy: 'WFH Policy' } : {}),
           }
         : {}),
     }
 
-    const created = await createLeaveRequest(leaveData)
-    addLeaveRequest(created)
+    try {
+      const created = await createLeaveRequest(leaveData)
+      addLeaveRequest(created)
 
-    setLeaveType('Casual Leave')
-    setStartDate('')
-    setEndDate('')
-    setReason('')
-    setValidationError('')
-    setShowAddModal(false)
+      setLeaveType('Casual Leave')
+      setStartDate('')
+      setEndDate('')
+      setReason('')
+      setValidationError('')
+      setShowAddModal(false)
+    } catch (err) {
+      console.error('Failed to create leave request:', err)
+      setValidationError(
+        err?.message?.includes('undefined')
+          ? 'Failed to submit leave request due to invalid data. Please try again.'
+          : 'Failed to submit leave request. Please try again.'
+      )
+    }
   }
 
   const isOwnRequest = (req) => {
     if (!req) return false
-    if (resolvedEmployeeId && (req.employeeId === resolvedEmployeeId || req.employeeId === user?.uid)) return true
-    if (resolvedEmployeeEmail && req.employeeEmail?.toLowerCase() === resolvedEmployeeEmail.toLowerCase()) return true
-    if (req.employeeName && req.employeeName !== 'Team Staff' && req.employeeName === resolvedEmployeeName) return true
+    const uid = resolvedEmployeeId || user?.uid || ''
+    if (uid && (req.employeeId === uid || req.uid === uid || req.employeeId === user?.uid)) return true
+    if (
+      resolvedEmployeeEmail &&
+      req.employeeEmail &&
+      req.employeeEmail.toLowerCase() === resolvedEmployeeEmail.toLowerCase()
+    ) {
+      return true
+    }
+    if (
+      req.employeeName &&
+      req.employeeName !== 'Team Staff' &&
+      resolvedEmployeeName &&
+      req.employeeName.toLowerCase() === resolvedEmployeeName.toLowerCase()
+    ) {
+      return true
+    }
     return false
   }
 
@@ -961,19 +1022,22 @@ export const LeaveManagement = () => {
                 >
                   <option value="Casual Leave">Casual Leave (1 Day / Month · 3 days advance)</option>
                   <option value="Sick Leave">Sick Leave (1 Day / Month)</option>
-                  {wfhPolicy.canRequest && (
+                  {wfhPolicy.leaveFormEnabled && (
                     <option value="Work From Home">
-                      Work From Home ({getWfhAllowanceLabel(wfhPolicy)})
-                      {wfhPolicy.mode === 'monthly' ? ' — needs approval' : ' — auto-approved'}
+                      Work From Home ({getWfhAllowanceLabel(wfhPolicy)}) — needs approval
                     </option>
                   )}
                   <option value="On Duty">On Duty (outdoor / official work)</option>
-                  <option value="Emergency Leave">Emergency Leave</option>
+                  <option value="LOP (Loss of Pay)">LOP (Loss of Pay)</option>
                 </select>
-                {wfhPolicy.canRequest && leaveType === 'Work From Home' && remainingWfhDays !== null && (
+                {wfhPolicy.leaveFormEnabled && leaveType === 'Work From Home' && remainingWfhDays !== null && (
                   <p className="text-[11px] text-slate-500 dark:text-slate-400 mt-1">
-                    Remaining this {wfhPolicy.mode === 'weekly' ? 'week' : 'month'}: {remainingWfhDays} of {wfhPolicy.limit} day(s)
-                    {wfhPolicy.mode === 'monthly' ? '. Admin approval required.' : '. Approved automatically within your weekly limit.'}
+                    Remaining this month: {remainingWfhDays} of {wfhPolicy.limit} day(s). Admin approval required.
+                  </p>
+                )}
+                {wfhPolicy.clockInChoice && remainingWfhDays !== null && (
+                  <p className="text-[11px] text-slate-500 dark:text-slate-400 mt-1">
+                    Weekly WFH ({remainingWfhDays} of {wfhPolicy.limit} remaining this week) — choose WFH or Office when you Check In. No leave request needed.
                   </p>
                 )}
                 {wfhPolicy.mode === 'full' && (

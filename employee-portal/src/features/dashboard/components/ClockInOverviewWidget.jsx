@@ -56,7 +56,6 @@ export const ClockInOverviewWidget = () => {
     toggleClockIn,
     toggleBreak,
     toggleExtraTime,
-    autoClockOutAtEndOfDay,
   } = useTeamStore()
 
   const [currentTimeStr, setCurrentTimeStr] = useState('')
@@ -84,7 +83,7 @@ export const ClockInOverviewWidget = () => {
     const unsub = onSnapshot(
       collection(db, 'leaveRequests'),
       (snap) => {
-        setLeaveRequests(snap.docs.map((d) => ({ leaveId: d.id, ...d.data() })))
+        setLeaveRequests(snap.docs.map((d) => ({ ...d.data(), leaveId: d.id })))
       },
       (err) => console.error('Error listening to leave requests:', err)
     )
@@ -148,24 +147,6 @@ export const ClockInOverviewWidget = () => {
     }
   }
 
-  const currentHour = new Date().getHours()
-
-  // Automatic EOD Clock-Out effect: Automatically clock out when time reaches 7:00 PM (19:00+)
-  useEffect(() => {
-    if (!clockedIn || isInExtraTime) return
-
-    const checkAutoClockOut = () => {
-      const hour = new Date().getHours()
-      if (hour >= 19) {
-        autoClockOutAtEndOfDay({ uid: activeUid, displayName, departmentName })
-      }
-    }
-
-    checkAutoClockOut()
-    const interval = setInterval(checkAutoClockOut, 30000)
-    return () => clearInterval(interval)
-  }, [clockedIn, isInExtraTime, autoClockOutAtEndOfDay, activeUid, displayName, departmentName])
-
   // Live real-time ticker for extra work hours
   useEffect(() => {
     let timer
@@ -182,12 +163,10 @@ export const ClockInOverviewWidget = () => {
     return () => clearInterval(timer)
   }, [isInExtraTime, extraTimeStart, accumulatedExtraSeconds])
 
-  // Extra work hours lock condition: Unlocks ONLY when regular 8-hour workday is completed,
-  // or user has clocked out after working today, or after 7:00 PM (hour 19+)
+  // Extra work hours unlock after regular 8-hour workday (or already in overtime)
   const isWorkDone =
     elapsedSeconds >= 8 * 3600 ||
     (!clockedIn && accumulatedWorkSeconds > 0) ||
-    currentHour >= 19 ||
     isInExtraTime
 
 

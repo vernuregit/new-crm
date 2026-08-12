@@ -5,6 +5,7 @@ import { EmployeeTopBar } from './EmployeeTopBar'
 import { useUIStore } from '../../stores/uiStore'
 import { useUserStore } from '../../stores/userStore'
 import { useWellnessNotifications } from '../../features/wellness/hooks/useWellnessNotifications'
+import { useAutoClockOutAfterWorkday } from '../../features/team/hooks/useAutoClockOutAfterWorkday'
 
 export const AppShell = () => {
   const { sidebarOpen } = useUIStore()
@@ -12,6 +13,8 @@ export const AppShell = () => {
 
   // Mount wellness notification timers app-wide
   useWellnessNotifications()
+  // Auto clock-out after 8h worked (runs on all authenticated pages)
+  useAutoClockOutAfterWorkday()
 
   // Auth Guard: Redirect to login if not authenticated
   if (!user) {

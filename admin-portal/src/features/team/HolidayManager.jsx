@@ -16,6 +16,7 @@ import {
   X,
   PartyPopper,
   Plus,
+  Calendar,
 } from 'lucide-react'
 
 // ─── Helpers ──────────────────────────────────────────────────────────────────

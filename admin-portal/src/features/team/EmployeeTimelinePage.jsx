@@ -85,22 +85,22 @@ export function EmployeeTimelinePage() {
     })
   }, [setEmployees])
 
+  // Initialize selection once (from URL, else first employee). Do not sync URL → state
+  // on every selectedUid change — that races the dropdown and snaps back to the old uid.
   useEffect(() => {
+    if (selectedUid || employees.length === 0) return
     const fromQuery = searchParams.get('uid')
-    if (fromQuery && fromQuery !== selectedUid) {
+    if (fromQuery && employees.some((e) => (e.uid || e.employeeId) === fromQuery)) {
       setSelectedUid(fromQuery)
-      return
-    }
-    if (!selectedUid && employees.length > 0) {
+    } else {
       setSelectedUid(employees[0].uid || employees[0].employeeId || '')
     }
   }, [employees, selectedUid, searchParams])
 
   useEffect(() => {
     if (!selectedUid) return
-    if (searchParams.get('uid') !== selectedUid) {
-      setSearchParams({ uid: selectedUid }, { replace: true })
-    }
+    if (searchParams.get('uid') === selectedUid) return
+    setSearchParams({ uid: selectedUid }, { replace: true })
   }, [selectedUid, searchParams, setSearchParams])
 
   useEffect(() => {

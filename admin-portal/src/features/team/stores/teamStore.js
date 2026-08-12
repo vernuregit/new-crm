@@ -45,11 +45,11 @@ export const useTeamStore = create(
         set((state) => ({
           leaveRequests: [
             {
-              leaveId: `leave_${Date.now()}`,
               status: 'pending',
               ...newLeave,
+              leaveId: newLeave?.leaveId || `leave_${Date.now()}`,
             },
-            ...state.leaveRequests,
+            ...state.leaveRequests.filter((l) => l.leaveId !== newLeave?.leaveId),
           ],
         })),
 
