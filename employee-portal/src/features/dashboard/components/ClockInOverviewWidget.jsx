@@ -7,7 +7,7 @@ import { useTeamStore } from '../../team/stores/teamStore'
 import { useUserStore } from '../../../stores/userStore'
 import { getEmployees } from '../../team/services/teamService'
 import { prepareClockInGate, LOCATION_GATE_ENABLED } from '../../team/services/wfhAttendanceUtils'
-import { formatTo12HourTime } from '../../team/services/attendanceStatsUtils'
+import { formatTo12HourTime, computeLiveWorkedSeconds } from '../../team/services/attendanceStatsUtils'
 import { AttendanceCalendarWidget } from './AttendanceCalendarWidget'
 import { AttendanceMetricsBar } from '../../team/components/AttendanceMetricsBar'
 import { collection, onSnapshot } from 'firebase/firestore'
@@ -180,34 +180,26 @@ export const ClockInOverviewWidget = () => {
         now.toLocaleTimeString('en-US', { hour: '2-digit', minute: '2-digit', second: '2-digit', hour12: true })
       )
 
-      if (clockedIn) {
-        const nowMs = Date.now()
-        let currentSessionSec = 0
-
-        // Session length must use this session's timestamp (not day's first clockInTime)
-        if (clockInTimestamp) {
-          currentSessionSec = Math.max(0, Math.floor((nowMs - clockInTimestamp) / 1000))
-        }
-
-        // Subtract break duration
-        let activeBreakSec = accumulatedBreakSeconds || 0
-        if (isOnBreak && breakStartTime) {
-          activeBreakSec += Math.floor((nowMs - breakStartTime) / 1000)
-        }
-
-        const netSec = Math.max(0, currentSessionSec - activeBreakSec)
-        // Prior completed sessions today + current open session
-        const calculatedTotal = (accumulatedWorkSeconds || 0) + netSec
-        setElapsedSeconds(calculatedTotal)
-      } else {
-        setElapsedSeconds(accumulatedWorkSeconds || 0)
-      }
+      setElapsedSeconds(
+        computeLiveWorkedSeconds({
+          clockInTime,
+          clockOutTime,
+          clockedIn,
+          clockInTimestamp,
+          accumulatedBreakSeconds,
+          accumulatedWorkSeconds,
+          isOnBreak,
+          breakStartTime,
+        })
+      )
     }
     updateTicker()
     const timer = setInterval(updateTicker, 1000)
     return () => clearInterval(timer)
   }, [
     clockedIn,
+    clockInTime,
+    clockOutTime,
     clockInTimestamp,
     isOnBreak,
     breakStartTime,

@@ -255,6 +255,8 @@ export const subscribeToWfhPolicy = (callback) => {
 const DEFAULT_OFFICE_LOCATION = {
   lat: null,
   lng: null,
+  networkLat: null,
+  networkLng: null,
   radiusMeters: 200,
   label: 'Office',
 }
@@ -262,10 +264,14 @@ const DEFAULT_OFFICE_LOCATION = {
 export const normalizeOfficeLocation = (data) => {
   const lat = data?.lat != null ? Number(data.lat) : null
   const lng = data?.lng != null ? Number(data.lng) : null
+  const networkLat = data?.networkLat != null ? Number(data.networkLat) : null
+  const networkLng = data?.networkLng != null ? Number(data.networkLng) : null
   const radiusMeters = Math.max(50, Number(data?.radiusMeters) || DEFAULT_OFFICE_LOCATION.radiusMeters)
   return {
     lat: Number.isFinite(lat) ? lat : null,
     lng: Number.isFinite(lng) ? lng : null,
+    networkLat: Number.isFinite(networkLat) ? networkLat : null,
+    networkLng: Number.isFinite(networkLng) ? networkLng : null,
     radiusMeters,
     label: data?.label || 'Office',
     updatedBy: data?.updatedBy || null,
@@ -286,7 +292,7 @@ export const getOfficeLocation = async () => {
     const raw = snap.data() || {}
     const normalized = normalizeOfficeLocation(raw)
     // #region agent log
-    agentDbg('B', 'employee teamService.js:getOfficeLocation', 'officeLocation raw vs normalized', { rawKeys: Object.keys(raw), rawLat: raw.lat, rawLng: raw.lng, rawLatitude: raw.latitude, rawLongitude: raw.longitude, rawRadius: raw.radiusMeters, normLat: normalized.lat, normLng: normalized.lng, normRadius: normalized.radiusMeters })
+    agentDbg('B', 'employee teamService.js:getOfficeLocation', 'officeLocation raw vs normalized', { rawKeys: Object.keys(raw), rawLat: raw.lat, rawLng: raw.lng, rawNetworkLat: raw.networkLat, rawNetworkLng: raw.networkLng, rawRadius: raw.radiusMeters, normLat: normalized.lat, normLng: normalized.lng, normNetworkLat: normalized.networkLat, normNetworkLng: normalized.networkLng, normRadius: normalized.radiusMeters })
     // #endregion
     return normalized
   } catch (err) {

@@ -5,7 +5,9 @@
 
 export function timeStrToMinutes(timeStr) {
   if (!timeStr || typeof timeStr !== 'string') return null
-  const match = timeStr.match(/(\d+):(\d+)(?::\d+)?\s*(AM|PM)?/i)
+  // Windows / locale strings can look like "10 :33 AM" or "10.33 AM"
+  const normalized = timeStr.replace(/\u202f|\u00a0/g, ' ').replace(/\s+/g, ' ').trim()
+  const match = normalized.match(/(\d{1,2})\s*[:.]\s*(\d{1,2})(?:\s*[:.]\s*\d{1,2})?\s*(AM|PM)?/i)
   if (!match) return null
   let hrs = parseInt(match[1], 10)
   const mins = parseInt(match[2], 10)
@@ -41,6 +43,65 @@ export function formatSecondsToHrsMins(totalSec) {
   const hrs = Math.floor(totalSec / 3600)
   const mins = Math.floor((totalSec % 3600) / 60)
   return `${hrs}h ${mins}m`
+}
+
+/** Canonical "hh:mm AM/PM" from a Date — avoids locale strings like "10 :33 AM". */
+export function canonicalTimeFromDate(date = new Date()) {
+  return minutesToTimeStr(date.getHours() * 60 + date.getMinutes())
+}
+
+export function toEpochMs(value) {
+  if (value == null || value === '') return null
+  if (typeof value === 'number' && Number.isFinite(value)) return value
+  if (typeof value?.toMillis === 'function') return value.toMillis()
+  if (typeof value?.seconds === 'number') return value.seconds * 1000
+  const n = new Date(value).getTime()
+  return Number.isNaN(n) ? null : n
+}
+
+export function timestampFromClockInTime(clockInTime, date = new Date()) {
+  const mins = timeStrToMinutes(clockInTime)
+  if (mins === null) return null
+  const d = new Date(date.getFullYear(), date.getMonth(), date.getDate(), 0, 0, 0, 0)
+  return d.getTime() + mins * 60 * 1000
+}
+
+/**
+ * Live worked seconds from the displayed clock-in time (same source as admin),
+ * not leftover stored totals + current session.
+ */
+export function computeLiveWorkedSeconds({
+  clockInTime,
+  clockOutTime,
+  clockedIn,
+  clockInTimestamp,
+  accumulatedBreakSeconds = 0,
+  accumulatedWorkSeconds = 0,
+  isOnBreak = false,
+  breakStartTime = null,
+} = {}) {
+  const now = Date.now()
+  let breakSec = Number(accumulatedBreakSeconds) || 0
+  const breakStartMs = toEpochMs(breakStartTime)
+  if (isOnBreak && breakStartMs) {
+    breakSec += Math.max(0, Math.floor((now - breakStartMs) / 1000))
+  }
+
+  const stillIn = Boolean(clockedIn) || !clockOutTime || clockOutTime === 'In office'
+  const inMins = timeStrToMinutes(clockInTime)
+  const startMs =
+    inMins !== null ? timestampFromClockInTime(clockInTime) : toEpochMs(clockInTimestamp)
+
+  if (startMs != null) {
+    let endMs = now
+    if (!stillIn) {
+      const outMins = timeStrToMinutes(clockOutTime)
+      endMs = outMins !== null ? timestampFromClockInTime(clockOutTime) : now
+    }
+    return Math.max(0, Math.floor((endMs - startMs) / 1000) - breakSec)
+  }
+
+  return Math.max(0, Number(accumulatedWorkSeconds) || 0)
 }
 
 /**

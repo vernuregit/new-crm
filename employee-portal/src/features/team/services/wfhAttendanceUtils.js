@@ -155,25 +155,34 @@ export const distanceMeters = (lat1, lng1, lat2, lng2) => {
   return 2 * R * Math.asin(Math.sqrt(a))
 }
 
-export const isWithinOfficeRadius = (userLat, userLng, office) => {
-  if (
-    userLat == null ||
-    userLng == null ||
-    office?.lat == null ||
-    office?.lng == null
-  ) {
-    return false
-  }
-  const dist = distanceMeters(userLat, userLng, office.lat, office.lng)
-  const radius = Math.max(50, Number(office.radiusMeters) || 200)
-  return dist <= radius
+export const isWithinOfficeRadius = (userLat, userLng, office, accuracy = 0) => {
+  if (userLat == null || userLng == null) return false
+  const radius = Math.max(50, Number(office?.radiusMeters) || 200)
+  const acc = Math.max(0, Number(accuracy) || 0)
+  const allowed = radius + acc
+  const pins = [
+    [office?.lat, office?.lng],
+    [office?.networkLat, office?.networkLng],
+  ]
+  return pins.some(([lat, lng]) => {
+    if (lat == null || lng == null) return false
+    return distanceMeters(userLat, userLng, lat, lng) <= allowed
+  })
+}
+
+const geoErrorMessage = (err) => {
+  let message = 'Unable to get your location.'
+  if (err?.code === 1) message = 'Location permission denied. Allow location access to clock in at the office.'
+  if (err?.code === 2) message = 'Location unavailable. Try again near the office.'
+  if (err?.code === 3) message = 'Location request timed out. Try again.'
+  return message
 }
 
 /**
  * Browser geolocation promise
- * @returns {Promise<{ ok: true, lat: number, lng: number } | { ok: false, error: string }>}
+ * @returns {Promise<{ ok: true, lat: number, lng: number, accuracy?: number, source?: string } | { ok: false, error: string }>}
  */
-export const getCurrentPositionCoords = () =>
+export const getCurrentPositionCoords = (options = { enableHighAccuracy: true, timeout: 15000, maximumAge: 0 }) =>
   new Promise((resolve) => {
     if (typeof navigator === 'undefined' || !navigator.geolocation) {
       resolve({ ok: false, error: 'Geolocation is not supported on this device.' })
@@ -186,21 +195,50 @@ export const getCurrentPositionCoords = () =>
           lat: pos.coords.latitude,
           lng: pos.coords.longitude,
           accuracy: pos.coords.accuracy,
+          source: options.enableHighAccuracy ? 'high' : 'low',
         })
       },
       (err) => {
-        let message = 'Unable to get your location.'
-        if (err?.code === 1) message = 'Location permission denied. Allow location access to clock in at the office.'
-        if (err?.code === 2) message = 'Location unavailable. Try again near the office.'
-        if (err?.code === 3) message = 'Location request timed out. Try again.'
+        const message = geoErrorMessage(err)
         // #region agent log
-        agentDbg('C', 'wfhAttendanceUtils.js:getCurrentPositionCoords', 'employee GPS error', { code: err?.code, message })
+        agentDbg('C', 'wfhAttendanceUtils.js:getCurrentPositionCoords', 'employee GPS error', { code: err?.code, message, highAccuracy: options.enableHighAccuracy === true })
         // #endregion
         resolve({ ok: false, error: message })
       },
-      { enableHighAccuracy: true, timeout: 15000, maximumAge: 0 }
+      options
     )
   })
+
+const nearestOfficeDistance = (lat, lng, office) => {
+  const pins = [
+    [office?.lat, office?.lng],
+    [office?.networkLat, office?.networkLng],
+  ]
+  const distances = pins
+    .filter(([pLat, pLng]) => pLat != null && pLng != null)
+    .map(([pLat, pLng]) => distanceMeters(lat, lng, pLat, pLng))
+  return distances.length ? Math.min(...distances) : Infinity
+}
+
+const collectClockInCoords = async (office) => {
+  const high = await getCurrentPositionCoords({ enableHighAccuracy: true, timeout: 15000, maximumAge: 0 })
+  const samples = []
+  if (high.ok) samples.push(high)
+
+  const highInside = high.ok && isWithinOfficeRadius(high.lat, high.lng, office, high.accuracy)
+  if (!highInside) {
+    const low = await getCurrentPositionCoords({ enableHighAccuracy: false, timeout: 10000, maximumAge: 0 })
+    if (low.ok) samples.push(low)
+  }
+
+  if (!samples.length) return high
+
+  return samples.reduce((best, sample) => {
+    const bestDist = nearestOfficeDistance(best.lat, best.lng, office)
+    const sampleDist = nearestOfficeDistance(sample.lat, sample.lng, office)
+    return sampleDist < bestDist ? sample : best
+  })
+}
 
 /**
  * Full pre-check before clock-in.
@@ -242,7 +280,7 @@ export const prepareClockInGate = async ({ emp, leaveRequests, dateStr, employee
     }
   }
 
-  const coords = await getCurrentPositionCoords()
+  const coords = await collectClockInCoords(office)
   if (!coords.ok) {
     return {
       ok: false,
@@ -251,16 +289,16 @@ export const prepareClockInGate = async ({ emp, leaveRequests, dateStr, employee
     }
   }
 
-  const dist = distanceMeters(coords.lat, coords.lng, office.lat, office.lng)
+  const dist = nearestOfficeDistance(coords.lat, coords.lng, office)
   const distIfSwapped = distanceMeters(coords.lng, coords.lat, office.lat, office.lng)
   const radius = Math.max(50, Number(office.radiusMeters) || 200)
-  const within = dist <= radius
+  const within = isWithinOfficeRadius(coords.lat, coords.lng, office, coords.accuracy)
   const withinWithAccuracy = dist <= radius + (Number(coords.accuracy) || 0)
   // #region agent log
-  agentDbg('C', 'wfhAttendanceUtils.js:prepareClockInGate', 'geofence comparison', { officeLat: office.lat, officeLng: office.lng, radius, userLat: coords.lat, userLng: coords.lng, accuracy: coords.accuracy, dist, distIfSwapped, within, withinWithAccuracy, userLatType: typeof coords.lat, officeLatType: typeof office.lat })
+  agentDbg('C', 'wfhAttendanceUtils.js:prepareClockInGate', 'geofence comparison', { runId: 'post-fix', officeLat: office.lat, officeLng: office.lng, networkLat: office.networkLat, networkLng: office.networkLng, radius, userLat: coords.lat, userLng: coords.lng, accuracy: coords.accuracy, source: coords.source, dist, distIfSwapped, within, withinWithAccuracy })
   // #endregion
 
-  if (!isWithinOfficeRadius(coords.lat, coords.lng, office)) {
+  if (!within) {
     return {
       ok: false,
       requireOfficeLocation: true,

@@ -10,7 +10,9 @@ export const OFFICE_START_MINUTES = OFFICE_START_HOUR * 60 + OFFICE_START_MINUTE
 
 export function timeStrToMinutes(timeStr) {
   if (!timeStr || typeof timeStr !== 'string') return null
-  const match = timeStr.match(/(\d+):(\d+)(?::\d+)?\s*(AM|PM)?/i)
+  // Windows / locale strings can look like "10 :33 AM" or "10.33 AM"
+  const normalized = timeStr.replace(/\u202f|\u00a0/g, ' ').replace(/\s+/g, ' ').trim()
+  const match = normalized.match(/(\d{1,2})\s*[:.]\s*(\d{1,2})(?:\s*[:.]\s*\d{1,2})?\s*(AM|PM)?/i)
   if (!match) return null
   let hrs = parseInt(match[1], 10)
   const mins = parseInt(match[2], 10)

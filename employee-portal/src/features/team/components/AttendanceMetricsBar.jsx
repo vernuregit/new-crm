@@ -1,7 +1,7 @@
 import React, { useState, useEffect } from 'react'
 import { Card } from '../../../components/ui/Card'
 import { useTeamStore, OFFICE_START_HOUR, OFFICE_START_MINUTE } from '../stores/teamStore'
-import { formatTo12HourTime } from '../services/attendanceStatsUtils'
+import { formatTo12HourTime, computeLiveWorkedSeconds } from '../services/attendanceStatsUtils'
 import { UserCheck, LogIn, LogOut, Timer, AlertCircle } from 'lucide-react'
 
 export const AttendanceMetricsBar = () => {
@@ -21,24 +21,26 @@ export const AttendanceMetricsBar = () => {
   // Live timer for Worked Hours ticker
   useEffect(() => {
     const updateTicker = () => {
-      if (clockedIn && clockInTimestamp) {
-        const nowMs = Date.now()
-        let currentSessionSec = Math.floor((nowMs - clockInTimestamp) / 1000)
-        let activeBreakSec = accumulatedBreakSeconds
-        if (isOnBreak && breakStartTime) {
-          activeBreakSec += Math.floor((nowMs - breakStartTime) / 1000)
-        }
-        const netSec = Math.max(0, currentSessionSec - activeBreakSec)
-        setElapsedSeconds(accumulatedWorkSeconds + netSec)
-      } else {
-        setElapsedSeconds(accumulatedWorkSeconds)
-      }
+      setElapsedSeconds(
+        computeLiveWorkedSeconds({
+          clockInTime,
+          clockOutTime,
+          clockedIn,
+          clockInTimestamp,
+          accumulatedBreakSeconds,
+          accumulatedWorkSeconds,
+          isOnBreak,
+          breakStartTime,
+        })
+      )
     }
     updateTicker()
     const timer = setInterval(updateTicker, 1000)
     return () => clearInterval(timer)
   }, [
     clockedIn,
+    clockInTime,
+    clockOutTime,
     clockInTimestamp,
     isOnBreak,
     breakStartTime,

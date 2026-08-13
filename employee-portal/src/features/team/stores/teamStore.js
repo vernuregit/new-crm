@@ -1,7 +1,7 @@
 import { create } from 'zustand'
 import { persist } from 'zustand/middleware'
 import { upsertAttendanceLog, getTodayAttendanceLog, getUserMonthlyAttendance } from '../services/attendanceService'
-import { computeRealAttendanceStats } from '../services/attendanceStatsUtils'
+import { computeRealAttendanceStats, formatTo12HourTime, canonicalTimeFromDate, toEpochMs, timestampFromClockInTime, timeStrToMinutes } from '../services/attendanceStatsUtils'
 import { useUserStore } from '../../../stores/userStore'
 
 // Office hours constants (late-by still uses start time)
@@ -271,12 +271,26 @@ export const useTeamStore = create(
             // Trust today's stored totals — prior completed sessions are valid
             // even when the current open session is short (multi-session days).
             const rawWorkSec = todayLog.regularSeconds ?? todayLog.accumulatedWorkSeconds ?? 0
+            const clockInTime = formatTo12HourTime(todayLog.clockInTime) || todayLog.clockInTime || null
+            let clockInTimestamp = toEpochMs(todayLog.clockInTimestamp)
+            const clockMins = timeStrToMinutes(clockInTime)
+            if (clockMins !== null) {
+              const derived = timestampFromClockInTime(clockInTime)
+              const tsDate = clockInTimestamp != null ? new Date(clockInTimestamp) : null
+              const tsMins = tsDate && !Number.isNaN(tsDate.getTime())
+                ? tsDate.getHours() * 60 + tsDate.getMinutes()
+                : null
+              // Keep the displayed clock-in time as source of truth (matches admin)
+              if (tsMins !== clockMins) {
+                clockInTimestamp = derived
+              }
+            }
 
             todayState = {
               clockedIn: Boolean(todayLog.clockedIn),
-              clockInTime: todayLog.clockInTime || null,
-              clockInTimestamp: todayLog.clockInTimestamp || null,
-              clockOutTime: todayLog.clockOutTime || null,
+              clockInTime,
+              clockInTimestamp,
+              clockOutTime: formatTo12HourTime(todayLog.clockOutTime) || todayLog.clockOutTime || null,
               isOnBreak: Boolean(todayLog.isOnBreak),
               breakStartTime: todayLog.breakStartTime || null,
               accumulatedBreakSeconds: todayLog.accumulatedBreakSeconds || 0,
@@ -383,7 +397,7 @@ export const useTeamStore = create(
           nowMs - Math.max(0, overflowSec) * 1000
         )
         const endTime = new Date(endTs)
-        const timeStr = endTime.toLocaleTimeString('en-US', { hour: '2-digit', minute: '2-digit', hour12: true })
+        const timeStr = canonicalTimeFromDate(endTime)
         const totalRegularSeconds = WORKDAY_SECONDS
 
         const record = {
@@ -454,7 +468,7 @@ export const useTeamStore = create(
         const meta = resolveUserMeta(userMeta)
         const state = get()
         const now = new Date()
-        const timeStr = now.toLocaleTimeString('en-US', { hour: '2-digit', minute: '2-digit', hour12: true })
+        const timeStr = canonicalTimeFromDate(now)
 
         if (!state.clockedIn) {
           // --- Clocking In ---
@@ -614,7 +628,7 @@ export const useTeamStore = create(
         const meta = resolveUserMeta(userMeta)
         const state = get()
         const now = new Date()
-        const timeStr = now.toLocaleTimeString('en-US', { hour: '2-digit', minute: '2-digit', hour12: true })
+        const timeStr = canonicalTimeFromDate(now)
 
         if (!state.isInExtraTime) {
           // If employee was active clockedIn, finalize regular shift first!
@@ -728,7 +742,7 @@ export const useTeamStore = create(
         const state = get()
         if (!state.clockedIn) return
         const now = new Date()
-        const timeStr = now.toLocaleTimeString('en-US', { hour: '2-digit', minute: '2-digit', hour12: true })
+        const timeStr = canonicalTimeFromDate(now)
 
         if (!state.isOnBreak) {
           const breakStartMs = Date.now()

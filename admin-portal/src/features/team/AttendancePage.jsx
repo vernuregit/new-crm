@@ -8,6 +8,7 @@ import { useTeamStore } from './stores/teamStore'
 import { useUserStore } from '../../stores/userStore'
 import { db } from '../../shared/services/firebaseService'
 import {
+  getEmployees,
   setEmployeeAttendanceStatus,
   subscribeToOfficeLocation,
   saveOfficeLocation,
@@ -58,7 +59,11 @@ const agentDbg = (hypothesisId, location, message, data) => {
 
 // Today's date in YYYY-MM-DD
 function todayStr() {
-  return new Date().toISOString().split('T')[0]
+  const d = new Date()
+  const y = d.getFullYear()
+  const m = String(d.getMonth() + 1).padStart(2, '0')
+  const day = String(d.getDate()).padStart(2, '0')
+  return `${y}-${m}-${day}`
 }
 
 function formatTimeStr(timeStr) {
@@ -86,8 +91,14 @@ function secToHrsStr(totalSec) {
  * If still "In office" on today, uses now. Past days without clock-out return 0
  * so the caller can fall back to stored seconds.
  */
-function computeRegularSecondsFromTimes(clockInStr, clockOutStr, dateStr, breakSec = 0) {
-  const inMins = timeStrToMinutes(clockInStr)
+function computeRegularSecondsFromTimes(clockInStr, clockOutStr, dateStr, breakSec = 0, clockInTimestamp = null) {
+  let inMins = timeStrToMinutes(clockInStr)
+  if (inMins === null && clockInTimestamp) {
+    const d = new Date(Number(clockInTimestamp))
+    if (!Number.isNaN(d.getTime())) {
+      inMins = d.getHours() * 60 + d.getMinutes()
+    }
+  }
   if (inMins === null) return 0
 
   let outMins = null
@@ -126,8 +137,110 @@ function formatDate(dateStr) {
   return d.toLocaleDateString([], { weekday: 'short', month: 'short', day: 'numeric' })
 }
 
+function pad2(n) {
+  return String(n).padStart(2, '0')
+}
+
+function timePartsFromStr(timeStr, fallback = { hour: 9, minute: 0, ampm: 'AM' }) {
+  const mins = timeStrToMinutes(timeStr)
+  if (mins === null) return fallback
+  const hrs24 = Math.floor(mins / 60) % 24
+  const minute = Math.round(mins % 60)
+  const ampm = hrs24 >= 12 ? 'PM' : 'AM'
+  const hour = hrs24 % 12 === 0 ? 12 : hrs24 % 12
+  return { hour, minute, ampm }
+}
+
+function timePartsToStr({ hour, minute, ampm }) {
+  return `${pad2(hour)}:${pad2(minute)} ${ampm}`
+}
+
+function canonicalTimeOrDefault(timeStr, fallback = '09:00 AM') {
+  const mins = timeStrToMinutes(timeStr)
+  if (mins === null) return fallback
+  return formatTimeStr(timeStr)
+}
+
+function TimerWheel({ label, value, onUp, onDown }) {
+  return (
+    <div className="flex flex-col items-center gap-1">
+      <button
+        type="button"
+        onClick={onUp}
+        className="p-1 rounded-lg text-slate-400 hover:text-indigo-400 hover:bg-slate-800/80 transition-colors"
+        aria-label={`Increase ${label}`}
+      >
+        <ChevronUp className="w-5 h-5" />
+      </button>
+      <div className="w-16 h-14 rounded-xl bg-slate-100 dark:bg-slate-900 border border-slate-300 dark:border-slate-700 flex items-center justify-center font-mono text-2xl font-black text-slate-900 dark:text-slate-100 tabular-nums">
+        {value}
+      </div>
+      <button
+        type="button"
+        onClick={onDown}
+        className="p-1 rounded-lg text-slate-400 hover:text-indigo-400 hover:bg-slate-800/80 transition-colors"
+        aria-label={`Decrease ${label}`}
+      >
+        <ChevronDown className="w-5 h-5" />
+      </button>
+      <span className="text-[10px] uppercase tracking-wider font-semibold text-slate-500">{label}</span>
+    </div>
+  )
+}
+
+function isTeamEmployee(emp) {
+  if (!emp?.uid) return false
+  const role = String(emp.role || '').toLowerCase()
+  if (role === 'admin' || role === 'owner') return false
+  if (emp.accountType === 'admin') return false
+  return true
+}
+
+function AttendanceTimer({ value, onChange, disabled = false }) {
+  const parts = timePartsFromStr(value)
+  const commit = (next) => onChange(timePartsToStr({ ...parts, ...next }))
+
+  const bumpHour = (dir) => {
+    let hour = parts.hour + dir
+    if (hour > 12) hour = 1
+    if (hour < 1) hour = 12
+    commit({ hour })
+  }
+
+  const bumpMinute = (dir) => {
+    let minute = parts.minute + dir
+    if (minute > 59) minute = 0
+    if (minute < 0) minute = 59
+    commit({ minute })
+  }
+
+  return (
+    <div className={`flex items-end justify-center gap-2 select-none ${disabled ? 'opacity-40 pointer-events-none' : ''}`}>
+      <TimerWheel label="Hour" value={pad2(parts.hour)} onUp={() => bumpHour(1)} onDown={() => bumpHour(-1)} />
+      <span className="text-2xl font-black text-slate-500 pb-8">:</span>
+      <TimerWheel label="Min" value={pad2(parts.minute)} onUp={() => bumpMinute(1)} onDown={() => bumpMinute(-1)} />
+      <div className="flex flex-col gap-1.5 pb-6 ml-1">
+        {['AM', 'PM'].map((period) => (
+          <button
+            key={period}
+            type="button"
+            onClick={() => commit({ ampm: period })}
+            className={`px-3 py-1.5 rounded-lg text-[11px] font-bold border transition-colors ${
+              parts.ampm === period
+                ? 'bg-indigo-600 text-white border-indigo-500'
+                : 'bg-slate-100 dark:bg-slate-800 text-slate-500 border-slate-300 dark:border-slate-700 hover:border-indigo-500/50'
+            }`}
+          >
+            {period}
+          </button>
+        ))}
+      </div>
+    </div>
+  )
+}
+
 export const AttendancePage = () => {
-  const { employees } = useTeamStore()
+  const { employees, setEmployees } = useTeamStore()
   const { user } = useUserStore()
   const adminName = user?.displayName || user?.email || 'Admin'
 
@@ -158,6 +271,12 @@ export const AttendancePage = () => {
   const [locatingDevice, setLocatingDevice] = useState(false)
 
   useEffect(() => {
+    getEmployees().then((emps) => {
+      if (emps?.length) setEmployees(emps)
+    })
+  }, [setEmployees])
+
+  useEffect(() => {
     const unsub = subscribeToOfficeLocation((loc) => {
       setOfficeLat(loc.lat != null ? String(loc.lat) : '')
       setOfficeLng(loc.lng != null ? String(loc.lng) : '')
@@ -167,8 +286,8 @@ export const AttendancePage = () => {
     return () => unsub()
   }, [])
 
-  const persistOfficeLocation = async (lat, lng, radiusMeters = officeRadius) => {
-    const radius = Math.max(50, Number(radiusMeters) || 200)
+  const persistOfficeLocation = async (lat, lng, radiusMeters = officeRadius, extra = {}) => {
+    const radius = Math.max(50, Math.min(50000, Number(radiusMeters) || 200))
     if (!Number.isFinite(lat) || !Number.isFinite(lng)) {
       setOfficeError('Enter valid latitude and longitude.')
       return false
@@ -180,9 +299,9 @@ export const AttendancePage = () => {
     setSavingOffice(true)
     setOfficeError('')
     // #region agent log
-    agentDbg('B', 'admin AttendancePage.jsx:persistOfficeLocation', 'admin saving office location', { lat, lng, radius, latType: typeof lat, lngType: typeof lng })
+    agentDbg('B', 'admin AttendancePage.jsx:persistOfficeLocation', 'admin saving office location', { runId: 'post-fix', lat, lng, radius, networkLat: extra.networkLat, networkLng: extra.networkLng, latType: typeof lat, lngType: typeof lng })
     // #endregion
-    await saveOfficeLocation({ lat, lng, radiusMeters: radius, label: 'Office' }, adminName)
+    await saveOfficeLocation({ lat, lng, radiusMeters: radius, label: 'Office', ...extra }, adminName)
     setOfficeLat(String(Number(lat.toFixed(6))))
     setOfficeLng(String(Number(lng.toFixed(6))))
     setOfficeRadius(radius)
@@ -197,39 +316,114 @@ export const AttendancePage = () => {
     await persistOfficeLocation(Number(officeLat), Number(officeLng), officeRadius)
   }
 
-  const handleUseDeviceLocation = () => {
+  const handleUseDeviceLocation = async () => {
     setOfficeError('')
     if (typeof navigator === 'undefined' || !navigator.geolocation) {
       setOfficeError('Geolocation is not supported on this device.')
       return
     }
+
+    const readPosition = (options) =>
+      new Promise((resolve, reject) => {
+        navigator.geolocation.getCurrentPosition(
+          (pos) =>
+            resolve({
+              lat: pos.coords.latitude,
+              lng: pos.coords.longitude,
+              accuracy: pos.coords.accuracy,
+            }),
+          reject,
+          options
+        )
+      })
+
+    const distMeters = (lat1, lng1, lat2, lng2) => {
+      const toRad = (deg) => (deg * Math.PI) / 180
+      const R = 6371000
+      const dLat = toRad(lat2 - lat1)
+      const dLng = toRad(lng2 - lng1)
+      const a =
+        Math.sin(dLat / 2) ** 2 +
+        Math.cos(toRad(lat1)) * Math.cos(toRad(lat2)) * Math.sin(dLng / 2) ** 2
+      return 2 * R * Math.asin(Math.sqrt(a))
+    }
+
     setLocatingDevice(true)
-    navigator.geolocation.getCurrentPosition(
-      async (pos) => {
-        const lat = pos.coords.latitude
-        const lng = pos.coords.longitude
-        // #region agent log
-        agentDbg('C', 'admin AttendancePage.jsx:handleUseDeviceLocation', 'admin use current location GPS', { lat, lng, accuracy: pos.coords.accuracy, radius: officeRadius })
-        // #endregion
-        setOfficeLat(String(Number(lat.toFixed(6))))
-        setOfficeLng(String(Number(lng.toFixed(6))))
-        await persistOfficeLocation(lat, lng, officeRadius)
-        setLocatingDevice(false)
-      },
-      (err) => {
-        setLocatingDevice(false)
-        if (err?.code === 1) {
-          setOfficeError('Location permission denied. Allow location access for this browser.')
-        } else if (err?.code === 2) {
-          setOfficeError('Location unavailable. Try again near the office.')
-        } else if (err?.code === 3) {
-          setOfficeError('Location request timed out. Try again.')
-        } else {
-          setOfficeError('Unable to get your device location.')
-        }
-      },
-      { enableHighAccuracy: true, timeout: 15000, maximumAge: 0 }
-    )
+    try {
+      let high
+      try {
+        high = await readPosition({ enableHighAccuracy: true, timeout: 15000, maximumAge: 0 })
+      } catch {
+        high = await readPosition({ enableHighAccuracy: false, timeout: 10000, maximumAge: 0 })
+      }
+
+      let low = null
+      try {
+        low = await readPosition({ enableHighAccuracy: false, timeout: 10000, maximumAge: 0 })
+      } catch {
+        low = null
+      }
+
+      const existingLat = Number(officeLat)
+      const existingLng = Number(officeLng)
+      const hasExisting = Number.isFinite(existingLat) && Number.isFinite(existingLng)
+      const radius = Math.max(50, Number(officeRadius) || 200)
+      const distFromExisting = hasExisting
+        ? distMeters(high.lat, high.lng, existingLat, existingLng)
+        : 0
+
+      let pinLat = high.lat
+      let pinLng = high.lng
+      let networkLat = null
+      let networkLng = null
+
+      // Office PCs often report a Wi-Fi location kilometres from GPS.
+      // Keep the existing GPS pin and store this reading as a second allowed point.
+      if (hasExisting && distFromExisting > radius) {
+        pinLat = existingLat
+        pinLng = existingLng
+        networkLat = high.lat
+        networkLng = high.lng
+      } else if (
+        low &&
+        distMeters(low.lat, low.lng, high.lat, high.lng) > radius
+      ) {
+        networkLat = low.lat
+        networkLng = low.lng
+      }
+
+      // #region agent log
+      agentDbg('C', 'admin AttendancePage.jsx:handleUseDeviceLocation', 'admin use current location GPS', {
+        runId: 'post-fix',
+        lat: pinLat,
+        lng: pinLng,
+        highLat: high.lat,
+        highLng: high.lng,
+        highAccuracy: high.accuracy,
+        lowLat: low?.lat,
+        lowLng: low?.lng,
+        networkLat,
+        networkLng,
+        distFromExisting,
+        radius,
+      })
+      // #endregion
+      setOfficeLat(String(Number(pinLat.toFixed(6))))
+      setOfficeLng(String(Number(pinLng.toFixed(6))))
+      await persistOfficeLocation(pinLat, pinLng, officeRadius, { networkLat, networkLng })
+    } catch (err) {
+      if (err?.code === 1) {
+        setOfficeError('Location permission denied. Allow location access for this browser.')
+      } else if (err?.code === 2) {
+        setOfficeError('Location unavailable. Try again near the office.')
+      } else if (err?.code === 3) {
+        setOfficeError('Location request timed out. Try again.')
+      } else {
+        setOfficeError('Unable to get your device location.')
+      }
+    } finally {
+      setLocatingDevice(false)
+    }
   }
 
   const isRowPresent = (row) => Boolean(row?.present)
@@ -263,27 +457,29 @@ export const AttendancePage = () => {
     setSavingEdit(true)
     try {
       const docId = `${selectedDate}_${editingRow.uid}`
+      const clockInTime = canonicalTimeOrDefault(editClockIn)
       const isClockedIn = editClockOut === 'In office' || !editClockOut
+      const clockOutTime = isClockedIn ? null : canonicalTimeOrDefault(editClockOut, '06:00 PM')
       const breakSec = editingRow.accumulatedBreakSeconds || 0
 
       // Always recompute regular hours from the edited start/end times
       const regSec = computeRegularSecondsFromTimes(
-        editClockIn,
-        isClockedIn ? 'In office' : editClockOut,
+        clockInTime,
+        isClockedIn ? 'In office' : clockOutTime,
         selectedDate,
         breakSec
       )
 
-      const clockInTimestamp = timestampFromDateAndTime(selectedDate, editClockIn)
+      const clockInTimestamp = timestampFromDateAndTime(selectedDate, clockInTime)
 
       const updatedData = {
         uid: editingRow.uid,
         displayName: editingRow.displayName,
         departmentName: editingRow.departmentName,
         date: selectedDate,
-        clockInTime: editClockIn || '—',
+        clockInTime,
         clockInTimestamp: clockInTimestamp || null,
-        clockOutTime: isClockedIn ? null : editClockOut,
+        clockOutTime,
         clockedIn: isClockedIn,
         present: true,
         onDuty: false,
@@ -338,7 +534,7 @@ export const AttendancePage = () => {
       }
     })
 
-    return employees.map((emp) => {
+    return employees.filter(isTeamEmployee).map((emp) => {
       const uId = emp.uid || emp.employeeId || emp.id
       const uLogs = mapByUid[uId] || []
       const stats = computeRealAttendanceStats(uLogs)
@@ -351,15 +547,6 @@ export const AttendancePage = () => {
       }
     })
   }, [allLogs, employees])
-
-  // Build a UID → employee info lookup from the admin team store
-  const employeeMap = useMemo(() =>
-    employees.reduce((acc, emp) => {
-      if (emp.uid) acc[emp.uid] = emp
-      return acc
-    }, {}),
-    [employees]
-  )
 
   /**
    * Subscribe to today's attendance logs from Firestore.
@@ -427,7 +614,8 @@ export const AttendancePage = () => {
           log.clockInTime,
           resolvedClockOut || (isCurrentlyClockedIn ? 'In office' : null),
           selectedDate,
-          breakSec
+          breakSec,
+          log.clockInTimestamp
         )
       }
       // Fallback to stored value only if times couldn't produce a duration
@@ -489,33 +677,12 @@ export const AttendancePage = () => {
       shiftLogs: [],
     })
 
-    // Prefer full employee directory so admin can mark anyone Present/Absent
-    if (employees.length > 0) {
-      const seen = new Set()
-      const merged = employees
-        .filter((emp) => emp.uid)
-        .map((emp) => {
-          seen.add(emp.uid)
-          const log = logByUid[emp.uid]
-          return log ? buildRowFromLog(log, emp) : emptyRow(emp)
-        })
-
-      // Include any attendance logs for people not in the current employees list
-      attendanceLogs.forEach((log) => {
-        if (log.uid && !seen.has(log.uid)) {
-          merged.push(buildRowFromLog(log, employeeMap[log.uid] || {}))
-        }
-      })
-
-      return merged
-    }
-
-    if (attendanceLogs.length > 0) {
-      return attendanceLogs.map((log) => buildRowFromLog(log, employeeMap[log.uid] || {}))
-    }
-
-    return []
-  }, [attendanceLogs, employees, employeeMap, selectedDate])
+    // Only team directory employees — skip admin / non-employee attendance logs
+    return employees.filter(isTeamEmployee).map((emp) => {
+      const log = logByUid[emp.uid]
+      return log ? buildRowFromLog(log, emp) : emptyRow(emp)
+    })
+  }, [attendanceLogs, employees, selectedDate])
 
   const presentCount = rows.filter((r) => isRowPresent(r)).length
   const activeNow = rows.filter((r) => r.clockedIn && !r.isOnBreak).length
@@ -626,7 +793,7 @@ export const AttendancePage = () => {
                     : 'Use my device location'}
               </Button>
               <p className="text-[11px] text-slate-400">
-                Stand at the office and tap this to set and save the office pin from your GPS.
+                Stand at the office and tap this to set the GPS pin. On an office computer, tap it again to also save the Wi-Fi location employees use (it will not replace the GPS pin).
               </p>
             </div>
 
@@ -664,9 +831,9 @@ export const AttendancePage = () => {
                 label="Radius (meters)"
                 type="number"
                 min={50}
-                max={5000}
+                max={50000}
                 value={officeRadius}
-                onChange={(e) => setOfficeRadius(Math.max(50, Number(e.target.value) || 200))}
+                onChange={(e) => setOfficeRadius(Math.max(50, Math.min(50000, Number(e.target.value) || 200)))}
                 required
               />
             </div>
@@ -899,8 +1066,12 @@ export const AttendancePage = () => {
                       <button
                         onClick={() => {
                           setEditingRow(row)
-                          setEditClockIn(row.clockInTime === '—' ? '09:00 AM' : row.clockInTime)
-                          setEditClockOut(row.clockOutTime || 'In office')
+                          setEditClockIn(canonicalTimeOrDefault(row.clockInTime))
+                          setEditClockOut(
+                            timeStrToMinutes(row.clockOutTime)
+                              ? canonicalTimeOrDefault(row.clockOutTime)
+                              : 'In office'
+                          )
                         }}
                         className="p-1.5 bg-slate-100 hover:bg-slate-200 dark:bg-slate-800 dark:hover:bg-slate-700 text-indigo-600 dark:text-indigo-400 rounded-lg border border-slate-300 dark:border-slate-700 transition-colors inline-flex items-center gap-1 text-[11px] font-medium"
                         title="Edit Employee Time"
@@ -1033,31 +1204,52 @@ export const AttendancePage = () => {
             </div>
 
             <form onSubmit={handleSaveEdit} className="space-y-4">
-              <div className="space-y-1.5 text-left">
+              <div className="space-y-2 text-left">
                 <label className="block text-xs font-medium text-slate-700 dark:text-slate-300">
-                  Clock In Time (e.g. 09:30 AM, 10:00 AM)
+                  Clock In
                 </label>
-                <input
-                  type="text"
-                  value={editClockIn}
-                  onChange={(e) => setEditClockIn(e.target.value)}
-                  placeholder="09:00 AM"
-                  className="w-full bg-slate-100 dark:bg-slate-900 border border-slate-300 dark:border-slate-800 text-slate-900 dark:text-slate-100 text-sm rounded-xl py-2 px-3 focus:outline-none focus:border-indigo-500"
-                  required
-                />
+                <AttendanceTimer value={editClockIn} onChange={setEditClockIn} />
               </div>
 
-              <div className="space-y-1.5 text-left">
+              <div className="space-y-2 text-left">
                 <label className="block text-xs font-medium text-slate-700 dark:text-slate-300">
-                  Clock Out Time (e.g. 06:30 PM, or 'In office')
+                  Clock Out
                 </label>
-                <input
-                  type="text"
-                  value={editClockOut}
-                  onChange={(e) => setEditClockOut(e.target.value)}
-                  placeholder="06:00 PM or In office"
-                  className="w-full bg-slate-100 dark:bg-slate-900 border border-slate-300 dark:border-slate-800 text-slate-900 dark:text-slate-100 text-sm rounded-xl py-2 px-3 focus:outline-none focus:border-indigo-500"
-                />
+                <div className="flex rounded-xl border border-slate-300 dark:border-slate-700 overflow-hidden">
+                  <button
+                    type="button"
+                    onClick={() => setEditClockOut('In office')}
+                    className={`flex-1 py-1.5 text-[11px] font-semibold transition-colors ${
+                      editClockOut === 'In office'
+                        ? 'bg-emerald-500/20 text-emerald-400'
+                        : 'bg-transparent text-slate-400 hover:text-slate-200'
+                    }`}
+                  >
+                    In office
+                  </button>
+                  <button
+                    type="button"
+                    onClick={() => {
+                      if (editClockOut === 'In office') {
+                        setEditClockOut(canonicalTimeOrDefault(null, '06:00 PM'))
+                      }
+                    }}
+                    className={`flex-1 py-1.5 text-[11px] font-semibold transition-colors ${
+                      editClockOut !== 'In office'
+                        ? 'bg-indigo-600 text-white'
+                        : 'bg-transparent text-slate-400 hover:text-slate-200'
+                    }`}
+                  >
+                    Clock out time
+                  </button>
+                </div>
+                {editClockOut === 'In office' ? (
+                  <p className="text-[11px] text-slate-500 dark:text-slate-400 text-center py-3 rounded-xl border border-dashed border-slate-700">
+                    Still in office — hours count up to now
+                  </p>
+                ) : (
+                  <AttendanceTimer value={editClockOut} onChange={setEditClockOut} />
+                )}
               </div>
 
               <div className="rounded-xl border border-indigo-500/20 bg-indigo-500/10 px-3 py-2.5 flex items-center justify-between gap-3">
