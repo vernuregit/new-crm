@@ -7,6 +7,17 @@ import {
 } from './wfhPolicyUtils'
 import { getOfficeLocation } from './teamService'
 
+/** Set true to require office GPS / weekly WFH clock-in choice again. */
+export const LOCATION_GATE_ENABLED = true
+
+// #region agent log
+const agentDbg = (hypothesisId, location, message, data) => {
+  const payload = JSON.stringify({ sessionId: '98b944', runId: 'pre-fix', hypothesisId, location, message, data, timestamp: Date.now() })
+  fetch('http://127.0.0.1:7493/ingest/c3ff692f-1cdd-437c-bb23-67bdbbc19c12', { method: 'POST', headers: { 'Content-Type': 'application/json', 'X-Debug-Session-Id': '98b944' }, body: payload }).catch(() => {})
+  fetch('/__agent_debug_log', { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: payload }).catch(() => {})
+}
+// #endregion
+
 const toDateKey = (date = new Date()) => {
   const y = date.getFullYear()
   const m = String(date.getMonth() + 1).padStart(2, '0')
@@ -174,6 +185,7 @@ export const getCurrentPositionCoords = () =>
           ok: true,
           lat: pos.coords.latitude,
           lng: pos.coords.longitude,
+          accuracy: pos.coords.accuracy,
         })
       },
       (err) => {
@@ -181,6 +193,9 @@ export const getCurrentPositionCoords = () =>
         if (err?.code === 1) message = 'Location permission denied. Allow location access to clock in at the office.'
         if (err?.code === 2) message = 'Location unavailable. Try again near the office.'
         if (err?.code === 3) message = 'Location request timed out. Try again.'
+        // #region agent log
+        agentDbg('C', 'wfhAttendanceUtils.js:getCurrentPositionCoords', 'employee GPS error', { code: err?.code, message })
+        // #endregion
         resolve({ ok: false, error: message })
       },
       { enableHighAccuracy: true, timeout: 15000, maximumAge: 0 }
@@ -191,6 +206,17 @@ export const getCurrentPositionCoords = () =>
  * Full pre-check before clock-in.
  */
 export const prepareClockInGate = async ({ emp, leaveRequests, dateStr, employeeFilter } = {}) => {
+  if (!LOCATION_GATE_ENABLED) {
+    return {
+      ok: true,
+      requireOfficeLocation: false,
+      wfhExempt: false,
+      locationVerified: false,
+      reason: 'Location check temporarily disabled',
+      coords: null,
+    }
+  }
+
   const policy = resolveClockInLocationPolicy({ emp, leaveRequests, dateStr, employeeFilter })
 
   if (!policy.requireOfficeLocation) {
@@ -206,6 +232,9 @@ export const prepareClockInGate = async ({ emp, leaveRequests, dateStr, employee
 
   const office = await getOfficeLocation()
   if (office.lat == null || office.lng == null) {
+    // #region agent log
+    agentDbg('A', 'wfhAttendanceUtils.js:prepareClockInGate', 'office lat/lng missing after fetch', { officeLat: office?.lat, officeLng: office?.lng, radius: office?.radiusMeters, latType: typeof office?.lat, lngType: typeof office?.lng })
+    // #endregion
     return {
       ok: false,
       requireOfficeLocation: true,
@@ -222,12 +251,20 @@ export const prepareClockInGate = async ({ emp, leaveRequests, dateStr, employee
     }
   }
 
+  const dist = distanceMeters(coords.lat, coords.lng, office.lat, office.lng)
+  const distIfSwapped = distanceMeters(coords.lng, coords.lat, office.lat, office.lng)
+  const radius = Math.max(50, Number(office.radiusMeters) || 200)
+  const within = dist <= radius
+  const withinWithAccuracy = dist <= radius + (Number(coords.accuracy) || 0)
+  // #region agent log
+  agentDbg('C', 'wfhAttendanceUtils.js:prepareClockInGate', 'geofence comparison', { officeLat: office.lat, officeLng: office.lng, radius, userLat: coords.lat, userLng: coords.lng, accuracy: coords.accuracy, dist, distIfSwapped, within, withinWithAccuracy, userLatType: typeof coords.lat, officeLatType: typeof office.lat })
+  // #endregion
+
   if (!isWithinOfficeRadius(coords.lat, coords.lng, office)) {
-    const dist = Math.round(distanceMeters(coords.lat, coords.lng, office.lat, office.lng))
     return {
       ok: false,
       requireOfficeLocation: true,
-      error: `You must be at the office to clock in (about ${dist}m away; allowed radius ${office.radiusMeters}m).`,
+      error: `You must be at the office to clock in (about ${Math.round(dist)}m away; allowed radius ${office.radiusMeters}m).`,
       coords,
     }
   }

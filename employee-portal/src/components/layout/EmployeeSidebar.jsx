@@ -35,6 +35,12 @@ export const EmployeeSidebar = () => {
   const { user, userDoc, clearUser } = useUserStore()
 
   const displayName = userDoc?.displayName || user?.displayName || 'Employee Staff'
+  const systemRoles = new Set(['employee', 'admin', 'owner', 'superadmin', 'client'])
+  const rawRole = userDoc?.roleName || userDoc?.designation || userDoc?.jobTitle || userDoc?.role || ''
+  const jobRole = systemRoles.has(String(rawRole).toLowerCase().trim())
+    ? ''
+    : String(rawRole).trim()
+  const roleLabel = jobRole || 'Employee   EMPLOYEE PORTAL'
 
   return (
     <aside
@@ -102,7 +108,7 @@ export const EmployeeSidebar = () => {
                 {displayName}
               </span>
               <span className="text-[10px] font-bold px-1.5 py-0.5 rounded-md border mt-0.5 text-purple-600 dark:text-purple-400 bg-purple-50 dark:bg-purple-500/10 border-purple-200 dark:border-purple-500/20 truncate">
-                Employee   EMPLOYEE PORTAL
+                {roleLabel}
               </span>
             </div>
           )}

@@ -3,6 +3,13 @@ import { db } from '../../../shared/services/firebaseService'
 
 const IS_MOCK = import.meta.env.VITE_FIREBASE_API_KEY === 'mock_api_key_dev'
 
+function localDateKey(d = new Date()) {
+  const year = d.getFullYear()
+  const month = String(d.getMonth() + 1).padStart(2, '0')
+  const day = String(d.getDate()).padStart(2, '0')
+  return `${year}-${month}-${day}`
+}
+
 /**
  * Upserts today's attendance log for the given employee into Firestore.
  *
@@ -16,7 +23,7 @@ export const upsertAttendanceLog = async (uid, payload) => {
   if (IS_MOCK || !uid) return
 
   try {
-    const date = new Date().toISOString().split('T')[0]
+    const date = payload?.date || localDateKey()
     // Flat doc ID: "2026-07-29_abc123uid"
     const docId = `${date}_${uid}`
     const ref = doc(db, 'attendanceLogs', docId)
@@ -47,7 +54,7 @@ export const getTodayAttendanceLog = async (uid) => {
   if (IS_MOCK || !uid) return null
 
   try {
-    const date = new Date().toISOString().split('T')[0]
+    const date = localDateKey()
     const docId = `${date}_${uid}`
     const ref = doc(db, 'attendanceLogs', docId)
     const snap = await getDoc(ref)

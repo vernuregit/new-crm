@@ -76,6 +76,27 @@ export const fetchCustomClaims = async (user, forceRefresh = false) => {
 }
 
 /**
+ * Fetch a user document from Firestore /users/{uid} or /employees/{uid}
+ */
+export const getUserDoc = async (uid) => {
+  try {
+    const userRef = doc(db, 'users', uid)
+    const snap = await getDoc(userRef)
+    if (snap.exists()) {
+      return snap.data()
+    }
+    const empRef = doc(db, 'employees', uid)
+    const empSnap = await getDoc(empRef)
+    if (empSnap.exists()) {
+      return { ...empSnap.data(), role: 'employee' }
+    }
+  } catch (err) {
+    console.warn('Error fetching user document:', err.message)
+  }
+  return null
+}
+
+/**
  * Ensure user document exists in /users/{uid}
  */
 export const ensureUserDocExists = async (user) => {

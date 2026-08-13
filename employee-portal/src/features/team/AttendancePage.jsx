@@ -10,6 +10,7 @@ import { getEmployees, recordAttendanceInDb, createLeaveRequest } from './servic
 import {
   prepareClockInGate,
   getWeeklyClockInPromptState,
+  LOCATION_GATE_ENABLED,
 } from './services/wfhAttendanceUtils'
 import {
   resolveEmployeeWfhPolicy,
@@ -17,6 +18,7 @@ import {
   validateWfhRequest,
 } from './services/wfhPolicyUtils'
 import { AttendanceMetricsBar } from './components/AttendanceMetricsBar'
+import { formatTo12HourTime } from './services/attendanceStatsUtils'
 import { collection, onSnapshot } from 'firebase/firestore'
 import { db } from '../../shared/services/firebaseService'
 import {
@@ -123,7 +125,7 @@ export const AttendancePage = () => {
       uid: activeUid,
       displayName: loggedInName,
       action: 'clock_in',
-      time: new Date().toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' }),
+      time: new Date().toLocaleTimeString('en-US', { hour: '2-digit', minute: '2-digit', hour12: true }),
       date: toDateKey(),
     })
     return true
@@ -158,7 +160,7 @@ export const AttendancePage = () => {
         uid: activeUid,
         displayName: loggedInName,
         action: 'clock_out',
-        time: new Date().toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' }),
+        time: new Date().toLocaleTimeString('en-US', { hour: '2-digit', minute: '2-digit', hour12: true }),
         date: toDateKey(),
       })
       return
@@ -166,16 +168,18 @@ export const AttendancePage = () => {
 
     setClockBusy(true)
     try {
-      const prompt = getWeeklyClockInPromptState({
-        emp: currentEmp,
-        leaveRequests,
-        employeeFilter,
-      })
+      if (LOCATION_GATE_ENABLED) {
+        const prompt = getWeeklyClockInPromptState({
+          emp: currentEmp,
+          leaveRequests,
+          employeeFilter,
+        })
 
-      if (prompt.showPrompt) {
-        setWfhChoiceMeta({ remaining: prompt.remaining, limit: prompt.limit })
-        setWfhChoiceOpen(true)
-        return
+        if (prompt.showPrompt) {
+          setWfhChoiceMeta({ remaining: prompt.remaining, limit: prompt.limit })
+          setWfhChoiceOpen(true)
+          return
+        }
       }
 
       await runOfficeClockIn()
@@ -310,7 +314,7 @@ export const AttendancePage = () => {
             <h3 className="font-bold text-slate-900 dark:text-slate-100 text-sm">
               Your Current Status:{' '}
               <span className={clockedIn ? 'text-emerald-600 dark:text-emerald-400' : 'text-amber-600 dark:text-amber-400'}>
-                {clockedIn ? `Clocked In since ${clockInTime}` : 'Clocked Out'}
+                {clockedIn ? `Clocked In since ${formatTo12HourTime(clockInTime)}` : 'Clocked Out'}
               </span>
             </h3>
             <p className="text-xs text-slate-500 dark:text-slate-400 mt-0.5">
@@ -335,14 +339,14 @@ export const AttendancePage = () => {
               disabled={clockBusy}
               icon={clockBusy ? Loader2 : clockedIn ? LogOut : LogIn}
             >
-              {clockBusy ? 'Checking…' : clockedIn ? 'Clock Out' : 'Check In'}
+              {clockBusy ? (LOCATION_GATE_ENABLED ? 'Checking…' : 'Working…') : clockedIn ? 'Clock Out' : 'Check In'}
             </Button>
           </div>
         </div>
       </Card>
 
-      {/* Weekly WFH vs Office choice */}
-      {wfhChoiceOpen && (
+      {/* Weekly WFH vs Office choice — used when LOCATION_GATE_ENABLED */}
+      {LOCATION_GATE_ENABLED && wfhChoiceOpen && (
         <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-slate-950/50 backdrop-blur-[2px]">
           <Card className="w-full max-w-md p-5 border-slate-200 dark:border-slate-700 shadow-xl space-y-4">
             <div className="flex items-start justify-between gap-3">
@@ -419,7 +423,7 @@ export const AttendancePage = () => {
               <tr className="hover:bg-slate-50 dark:hover:bg-slate-800/30 transition-colors text-slate-700 dark:text-slate-300">
                 <td className="p-4 font-bold text-slate-900 dark:text-slate-200">{myRecord.displayName}</td>
                 <td className="p-4 text-slate-800 dark:text-slate-300">{myRecord.departmentName || '—'}</td>
-                <td className="p-4 text-slate-600 dark:text-slate-400">{clockedIn ? clockInTime : '—'}</td>
+                <td className="p-4 text-slate-600 dark:text-slate-400">{clockedIn ? formatTo12HourTime(clockInTime) : '—'}</td>
                 <td className="p-4 font-semibold text-indigo-600 dark:text-indigo-400">
                   {clockedIn ? '8.0 hrs' : '—'}
                 </td>

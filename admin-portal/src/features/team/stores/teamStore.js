@@ -68,7 +68,7 @@ export const useTeamStore = create(
       toggleClockIn: () =>
         set((state) => ({
           clockedIn: !state.clockedIn,
-          clockInTime: !state.clockedIn ? new Date().toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' }) : null,
+          clockInTime: !state.clockedIn ? new Date().toLocaleTimeString('en-US', { hour: '2-digit', minute: '2-digit', hour12: true }) : null,
         })),
     }),
     {

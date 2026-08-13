@@ -6,6 +6,7 @@
 import {
   computeRealAttendanceStats,
   formatSecondsToHrsMins,
+  formatTo12HourTime,
   getCappedRegularSeconds,
   getLateInfo,
   isAttendancePresent,
@@ -287,8 +288,8 @@ export function buildEmployeeMonthlyReport({
       present,
       late: isLate,
       lateMinutes,
-      clockInTime: clockInTime || null,
-      clockOutTime: clockOutTime || null,
+      clockInTime: clockInTime ? formatTo12HourTime(clockInTime) : null,
+      clockOutTime: clockOutTime ? formatTo12HourTime(clockOutTime) : null,
       regularSeconds,
       extraSeconds,
       leaveType,

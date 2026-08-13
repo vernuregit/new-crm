@@ -60,14 +60,13 @@ export function isAttendancePresent(log) {
 }
 
 /**
- * Cap regular seconds at 8 hours.
+ * Logged-in seconds for a day (no 8h cap).
  * @param {object} log
  * @returns {number}
  */
 export function getCappedRegularSeconds(log) {
   if (!log) return 0
-  let sec = Number(log.regularSeconds) || Number(log.accumulatedWorkSeconds) || 0
-  if (sec > 28800) sec = 28800
+  const sec = Number(log.regularSeconds) || Number(log.accumulatedWorkSeconds) || 0
   return Math.max(0, sec)
 }
 
@@ -81,6 +80,14 @@ export function minutesToTimeStr(totalMinutes) {
   const hrsStr = hrs.toString().padStart(2, '0')
   const minsStr = mins.toString().padStart(2, '0')
   return `${hrsStr}:${minsStr} ${ampm}`
+}
+
+/** Normalize stored clock strings (12h or 24h) to "hh:mm AM/PM". */
+export function formatTo12HourTime(timeStr) {
+  if (!timeStr || timeStr === '—' || timeStr === 'In office') return timeStr
+  const mins = timeStrToMinutes(timeStr)
+  if (mins === null) return timeStr
+  return minutesToTimeStr(mins)
 }
 
 export function formatSecondsToHrsMins(totalSec) {
@@ -146,8 +153,7 @@ export function computeRealAttendanceStats(logs = [], currentLiveState = null) {
   let totalWorkedSeconds = 0
   let workedDaysCount = 0
   records.forEach((r) => {
-    let sec = Number(r.regularSeconds) || Number(r.accumulatedWorkSeconds) || 0
-    if (sec > 28800) sec = 28800 // Cap single-day regular hours at 8 hours (28,800 sec max)
+    const sec = Number(r.regularSeconds) || Number(r.accumulatedWorkSeconds) || 0
     if (sec > 0) {
       totalWorkedSeconds += sec
       workedDaysCount++

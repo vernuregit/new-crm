@@ -230,9 +230,10 @@ export const setEmployeeAttendanceStatus = async (employee, isPresent, dateStr) 
   const departmentName = employee.departmentName || employee.department || 'General'
 
   if (isPresent) {
-    const clockInTime = new Date().toLocaleTimeString([], {
+    const clockInTime = new Date().toLocaleTimeString('en-US', {
       hour: '2-digit',
       minute: '2-digit',
+      hour12: true,
     })
     await setDoc(
       doc(db, 'attendanceLogs', docId),

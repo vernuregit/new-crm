@@ -19,7 +19,7 @@ import {
   currentMonthStr,
   monthlyReportToCsv,
 } from './services/monthlyReportEngine'
-import { formatSecondsToHrsMins } from './services/attendanceStatsUtils'
+import { formatSecondsToHrsMins, formatTo12HourTime } from './services/attendanceStatsUtils'
 import {
   RefreshCw,
   Download,
@@ -461,8 +461,8 @@ export function EmployeeMonthlyReportPage() {
                           <Badge variant="danger">Absent</Badge>
                         )}
                       </td>
-                      <td className="p-3 font-mono">{row.clockInTime || '—'}</td>
-                      <td className="p-3 font-mono">{row.clockOutTime || '—'}</td>
+                      <td className="p-3 font-mono">{formatTo12HourTime(row.clockInTime) || '—'}</td>
+                      <td className="p-3 font-mono">{formatTo12HourTime(row.clockOutTime) || '—'}</td>
                       <td className="p-3 font-mono">{formatSecondsToHrsMins(row.regularSeconds)}</td>
                       <td className="p-3">
                         {row.late ? (

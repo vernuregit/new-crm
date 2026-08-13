@@ -1,15 +1,29 @@
-import React from 'react'
+import React, { useEffect } from 'react'
 import { Navigate, Outlet } from 'react-router-dom'
 import { EmployeeSidebar } from './EmployeeSidebar'
 import { EmployeeTopBar } from './EmployeeTopBar'
 import { useUIStore } from '../../stores/uiStore'
 import { useUserStore } from '../../stores/userStore'
+import { getUserDoc } from '../../shared/services/authService'
 import { useWellnessNotifications } from '../../features/wellness/hooks/useWellnessNotifications'
 import { useAutoClockOutAfterWorkday } from '../../features/team/hooks/useAutoClockOutAfterWorkday'
 
 export const AppShell = () => {
   const { sidebarOpen } = useUIStore()
-  const { user } = useUserStore()
+  const { user, claims, setUser } = useUserStore()
+
+  useEffect(() => {
+    if (!user?.uid) return
+    let cancelled = false
+    getUserDoc(user.uid).then((docData) => {
+      if (!cancelled && docData) setUser(user, docData, claims)
+    })
+    return () => {
+      cancelled = true
+    }
+    // Refresh profile once per signed-in user so the sidebar shows the current job role.
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [user?.uid])
 
   // Mount wellness notification timers app-wide
   useWellnessNotifications()

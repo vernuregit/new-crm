@@ -2,6 +2,9 @@ import { useEffect } from 'react'
 import { useTeamStore, WORKDAY_SECONDS } from '../stores/teamStore'
 import { useUserStore } from '../../../stores/userStore'
 
+/** Set true to auto clock-out after 8 hours of work again. */
+export const AUTO_CLOCK_OUT_ENABLED = false
+
 /**
  * Auto clock-out when accumulated work time (session − breaks + prior work) reaches 8 hours.
  * Mount app-wide so it runs on dashboard, attendance, and other pages.
@@ -20,12 +23,19 @@ export const useAutoClockOutAfterWorkday = () => {
   const accumulatedBreakSeconds = useTeamStore((s) => s.accumulatedBreakSeconds)
   const accumulatedWorkSeconds = useTeamStore((s) => s.accumulatedWorkSeconds)
   const autoClockOutAfterWorkday = useTeamStore((s) => s.autoClockOutAfterWorkday)
+  const rollOverStaleWorkday = useTeamStore((s) => s.rollOverStaleWorkday)
 
   useEffect(() => {
+    rollOverStaleWorkday()
+  }, [rollOverStaleWorkday])
+
+  useEffect(() => {
+    if (!AUTO_CLOCK_OUT_ENABLED) return
     if (!clockedIn || isInExtraTime || !activeUid) return
 
     const check = () => {
       const state = useTeamStore.getState()
+      if (state.rollOverStaleWorkday()) return
       if (!state.clockedIn || state.isInExtraTime) return
 
       const nowMs = Date.now()

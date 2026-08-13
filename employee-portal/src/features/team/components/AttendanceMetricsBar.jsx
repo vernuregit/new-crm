@@ -1,6 +1,7 @@
 import React, { useState, useEffect } from 'react'
 import { Card } from '../../../components/ui/Card'
 import { useTeamStore, OFFICE_START_HOUR, OFFICE_START_MINUTE } from '../stores/teamStore'
+import { formatTo12HourTime } from '../services/attendanceStatsUtils'
 import { UserCheck, LogIn, LogOut, Timer, AlertCircle } from 'lucide-react'
 
 export const AttendanceMetricsBar = () => {
@@ -147,7 +148,7 @@ export const AttendanceMetricsBar = () => {
           <div>
             <span className="text-xs font-semibold text-slate-500 dark:text-slate-400 block">Clock In</span>
             <span className="text-base font-extrabold text-slate-900 dark:text-slate-100 block mt-0.5">
-              {clockInTime || '—'}
+              {formatTo12HourTime(clockInTime) || '—'}
             </span>
           </div>
         </div>
@@ -162,7 +163,7 @@ export const AttendanceMetricsBar = () => {
           <div>
             <span className="text-xs font-semibold text-slate-500 dark:text-slate-400 block">Clock Out</span>
             <span className="text-base font-extrabold text-slate-900 dark:text-slate-100 block mt-0.5">
-              {clockOutTime || '—'}
+              {formatTo12HourTime(clockOutTime) || '—'}
             </span>
           </div>
         </div>

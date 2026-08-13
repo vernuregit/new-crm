@@ -6,7 +6,8 @@ import { Button } from '../../../components/ui/Button'
 import { useTeamStore } from '../../team/stores/teamStore'
 import { useUserStore } from '../../../stores/userStore'
 import { getEmployees } from '../../team/services/teamService'
-import { prepareClockInGate } from '../../team/services/wfhAttendanceUtils'
+import { prepareClockInGate, LOCATION_GATE_ENABLED } from '../../team/services/wfhAttendanceUtils'
+import { formatTo12HourTime } from '../../team/services/attendanceStatsUtils'
 import { AttendanceCalendarWidget } from './AttendanceCalendarWidget'
 import { AttendanceMetricsBar } from '../../team/components/AttendanceMetricsBar'
 import { collection, onSnapshot } from 'firebase/firestore'
@@ -125,7 +126,7 @@ export const ClockInOverviewWidget = () => {
         return
       }
 
-      if (gate.wfhExempt) {
+      if (LOCATION_GATE_ENABLED && gate.wfhExempt) {
         setClockHint(gate.reason || 'WFH — location not required')
       }
 
@@ -176,7 +177,7 @@ export const ClockInOverviewWidget = () => {
     const updateTicker = () => {
       const now = new Date()
       setCurrentTimeStr(
-        now.toLocaleTimeString([], { hour: '2-digit', minute: '2-digit', second: '2-digit' })
+        now.toLocaleTimeString('en-US', { hour: '2-digit', minute: '2-digit', second: '2-digit', hour12: true })
       )
 
       if (clockedIn) {
@@ -197,10 +198,9 @@ export const ClockInOverviewWidget = () => {
         const netSec = Math.max(0, currentSessionSec - activeBreakSec)
         // Prior completed sessions today + current open session
         const calculatedTotal = (accumulatedWorkSeconds || 0) + netSec
-        // Cap regular shift hours at 8 hours max (28,800 seconds)
-        setElapsedSeconds(Math.min(8 * 3600, calculatedTotal))
+        setElapsedSeconds(calculatedTotal)
       } else {
-        setElapsedSeconds(Math.min(8 * 3600, accumulatedWorkSeconds || 0))
+        setElapsedSeconds(accumulatedWorkSeconds || 0)
       }
     }
     updateTicker()
@@ -342,7 +342,7 @@ export const ClockInOverviewWidget = () => {
                     </span>
                   ) : (
                     <span className="text-slate-700 dark:text-slate-300">
-                      Clocked in at <strong className="text-emerald-600 dark:text-emerald-400 font-bold">{clockInTime}</strong>
+                      Clocked in at <strong className="text-emerald-600 dark:text-emerald-400 font-bold">{formatTo12HourTime(clockInTime)}</strong>
                     </span>
                   )}
                 </p>
@@ -376,7 +376,7 @@ export const ClockInOverviewWidget = () => {
             >
               {clockBusy ? (
                 <>
-                  <Loader2 className="w-4 h-4 sm:w-5 sm:h-5 mr-2 animate-spin" /> Checking location…
+                  <Loader2 className="w-4 h-4 sm:w-5 sm:h-5 mr-2 animate-spin" /> {LOCATION_GATE_ENABLED ? 'Checking location…' : 'Working…'}
                 </>
               ) : clockedIn ? (
                 <>
@@ -411,37 +411,39 @@ export const ClockInOverviewWidget = () => {
             </div>
           </div>
 
-          {/* Extra Work Hours / Overtime Section */}
-          <div className="mt-3 pt-3 border-t border-slate-200/80 dark:border-slate-800 flex items-center justify-between gap-2">
-            <div className="flex items-center gap-2">
-              <div className={`p-1.5 rounded-lg ${isInExtraTime ? 'bg-amber-500/20 text-amber-500 animate-pulse' : isWorkDone ? 'bg-indigo-500/10 text-indigo-500' : 'bg-slate-100 dark:bg-slate-800 text-slate-400'}`}>
-                <Zap className="w-4 h-4" />
+          {/* Extra Work Hours / Overtime — kept for later; UI hidden for now */}
+          {false && (
+            <div className="mt-3 pt-3 border-t border-slate-200/80 dark:border-slate-800 flex items-center justify-between gap-2">
+              <div className="flex items-center gap-2">
+                <div className={`p-1.5 rounded-lg ${isInExtraTime ? 'bg-amber-500/20 text-amber-500 animate-pulse' : isWorkDone ? 'bg-indigo-500/10 text-indigo-500' : 'bg-slate-100 dark:bg-slate-800 text-slate-400'}`}>
+                  <Zap className="w-4 h-4" />
+                </div>
+                <div className="flex flex-col">
+                  <span className="text-xs font-bold text-slate-800 dark:text-slate-200">
+                    Extra Work Hours
+                  </span>
+                  <span className="text-[10px] text-slate-500 dark:text-slate-400">
+                    {isInExtraTime
+                      ? `Logging overtime: ${formatWorkdayHours(elapsedExtraSec)}`
+                      : isWorkDone
+                      ? `Unlocked! Shift completed (${formatWorkdayHours(accumulatedExtraSeconds)} logged)`
+                      : ''}
+                  </span>
+                </div>
               </div>
-              <div className="flex flex-col">
-                <span className="text-xs font-bold text-slate-800 dark:text-slate-200">
-                  Extra Work Hours
-                </span>
-                <span className="text-[10px] text-slate-500 dark:text-slate-400">
-                  {isInExtraTime
-                    ? `Logging overtime: ${formatWorkdayHours(elapsedExtraSec)}`
-                    : isWorkDone
-                    ? `Unlocked! Shift completed (${formatWorkdayHours(accumulatedExtraSeconds)} logged)`
-                    : ''}
-                </span>
-              </div>
-            </div>
 
-            <Button
-              size="sm"
-              variant={isInExtraTime ? 'danger' : isWorkDone ? 'primary' : 'secondary'}
-              disabled={!isWorkDone && !isInExtraTime}
-              onClick={() => toggleExtraTime({ uid: activeUid, displayName, departmentName })}
-              title={!isWorkDone ? 'Finish regular workday to unlock extra work hours' : 'Toggle extra work hours logging'}
-              className="text-xs font-bold px-3 py-1.5 rounded-xl shrink-0"
-            >
-              {isInExtraTime ? 'Stop Extra Time' : 'Start Extra Time'}
-            </Button>
-          </div>
+              <Button
+                size="sm"
+                variant={isInExtraTime ? 'danger' : isWorkDone ? 'primary' : 'secondary'}
+                disabled={!isWorkDone && !isInExtraTime}
+                onClick={() => toggleExtraTime({ uid: activeUid, displayName, departmentName })}
+                title={!isWorkDone ? 'Finish regular workday to unlock extra work hours' : 'Toggle extra work hours logging'}
+                className="text-xs font-bold px-3 py-1.5 rounded-xl shrink-0"
+              >
+                {isInExtraTime ? 'Stop Extra Time' : 'Start Extra Time'}
+              </Button>
+            </div>
+          )}
         </Card>
 
         {/* CARD 2: Daily Metrics 2x2 Grid */}
@@ -552,7 +554,7 @@ export const ClockInOverviewWidget = () => {
                     </span>
                   </div>
                   <span className="font-mono text-[11px] text-slate-500 dark:text-slate-400">
-                    {log.time}
+                    {formatTo12HourTime(log.time)}
                   </span>
                 </div>
               ))}

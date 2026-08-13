@@ -28,6 +28,14 @@ export function minutesToTimeStr(totalMinutes) {
   return `${hrsStr}:${minsStr} ${ampm}`
 }
 
+/** Normalize stored clock strings (12h or 24h) to "hh:mm AM/PM". */
+export function formatTo12HourTime(timeStr) {
+  if (!timeStr || timeStr === '—' || timeStr === 'In office') return timeStr
+  const mins = timeStrToMinutes(timeStr)
+  if (mins === null) return timeStr
+  return minutesToTimeStr(mins)
+}
+
 export function formatSecondsToHrsMins(totalSec) {
   if (!totalSec || totalSec <= 0) return '0h 0m'
   const hrs = Math.floor(totalSec / 3600)
@@ -91,8 +99,7 @@ export function computeRealAttendanceStats(logs = [], currentLiveState = null) {
   let totalWorkedSeconds = 0
   let workedDaysCount = 0
   records.forEach((r) => {
-    let sec = Number(r.regularSeconds) || Number(r.accumulatedWorkSeconds) || 0
-    if (sec > 28800) sec = 28800 // Cap single-day regular hours at 8 hours (28,800 sec max)
+    const sec = Number(r.regularSeconds) || Number(r.accumulatedWorkSeconds) || 0
     if (sec > 0) {
       totalWorkedSeconds += sec
       workedDaysCount++

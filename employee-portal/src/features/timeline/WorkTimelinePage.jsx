@@ -30,7 +30,7 @@ function formatHours(hours) {
   const totalMinutes = Math.round(n * 60)
   const h = Math.floor(totalMinutes / 60)
   const m = totalMinutes % 60
-  return `${String(h).padStart(2, '0')}:${String(m).padStart(2, '0')}`
+  return `${String(h).padStart(2, '0')}:${String(m).padStart(2, '0')} hr`
 }
 
 /** Split decimal hours into integer hours + quarter minutes (snap nearest). */

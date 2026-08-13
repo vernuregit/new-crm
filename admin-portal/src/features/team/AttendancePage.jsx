@@ -48,6 +48,14 @@ import {
   Loader2,
 } from 'lucide-react'
 
+// #region agent log
+const agentDbg = (hypothesisId, location, message, data) => {
+  const payload = JSON.stringify({ sessionId: '98b944', runId: 'pre-fix', hypothesisId, location, message, data, timestamp: Date.now() })
+  fetch('http://127.0.0.1:7493/ingest/c3ff692f-1cdd-437c-bb23-67bdbbc19c12', { method: 'POST', headers: { 'Content-Type': 'application/json', 'X-Debug-Session-Id': '98b944' }, body: payload }).catch(() => {})
+  fetch('/__agent_debug_log', { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: payload }).catch(() => {})
+}
+// #endregion
+
 // Today's date in YYYY-MM-DD
 function todayStr() {
   return new Date().toISOString().split('T')[0]
@@ -74,8 +82,9 @@ function secToHrsStr(totalSec) {
 }
 
 /**
- * Regular hours from clock-in → clock-out (capped at 8h).
- * If still "In office", uses now for today / 7:00 PM for past dates.
+ * Logged-in seconds from clock-in → clock-out (uncapped).
+ * If still "In office" on today, uses now. Past days without clock-out return 0
+ * so the caller can fall back to stored seconds.
  */
 function computeRegularSecondsFromTimes(clockInStr, clockOutStr, dateStr, breakSec = 0) {
   const inMins = timeStrToMinutes(clockInStr)
@@ -87,18 +96,17 @@ function computeRegularSecondsFromTimes(clockInStr, clockOutStr, dateStr, breakS
   } else {
     const today = todayStr()
     if (dateStr && dateStr < today) {
-      outMins = 19 * 60 // 7:00 PM auto end for past days
+      return 0
     } else if (!dateStr || dateStr === today) {
       const now = new Date()
       outMins = now.getHours() * 60 + now.getMinutes()
     } else {
-      // Future date with no clock-out yet
       return 0
     }
   }
 
   if (outMins === null || outMins <= inMins) return 0
-  return Math.min(28800, Math.max(0, (outMins - inMins) * 60 - (breakSec || 0)))
+  return Math.max(0, (outMins - inMins) * 60 - (breakSec || 0))
 }
 
 /** Build a Date timestamp for YYYY-MM-DD + time string like "09:30 AM" */
@@ -171,6 +179,9 @@ export const AttendancePage = () => {
     }
     setSavingOffice(true)
     setOfficeError('')
+    // #region agent log
+    agentDbg('B', 'admin AttendancePage.jsx:persistOfficeLocation', 'admin saving office location', { lat, lng, radius, latType: typeof lat, lngType: typeof lng })
+    // #endregion
     await saveOfficeLocation({ lat, lng, radiusMeters: radius, label: 'Office' }, adminName)
     setOfficeLat(String(Number(lat.toFixed(6))))
     setOfficeLng(String(Number(lng.toFixed(6))))
@@ -197,6 +208,9 @@ export const AttendancePage = () => {
       async (pos) => {
         const lat = pos.coords.latitude
         const lng = pos.coords.longitude
+        // #region agent log
+        agentDbg('C', 'admin AttendancePage.jsx:handleUseDeviceLocation', 'admin use current location GPS', { lat, lng, accuracy: pos.coords.accuracy, radius: officeRadius })
+        // #endregion
         setOfficeLat(String(Number(lat.toFixed(6))))
         setOfficeLng(String(Number(lng.toFixed(6))))
         await persistOfficeLocation(lat, lng, officeRadius)
@@ -384,9 +398,7 @@ export const AttendancePage = () => {
   // Merge: show all employees, overlay Firestore attendance data for selected date
   const rows = React.useMemo(() => {
     const today = todayStr()
-    const isPastDate = selectedDate < today
     const isToday = selectedDate === today
-    const currentHour = new Date().getHours()
 
     const logByUid = {}
     attendanceLogs.forEach((log) => {
@@ -400,43 +412,11 @@ export const AttendancePage = () => {
       const breakSec = log.accumulatedBreakSeconds || 0
 
       if (isToday) {
-        // If log was prematurely auto-clocked out at 7:00 PM before 7:00 PM actually arrived today
-        if (isAutoClockOut && currentHour < 19 && log.clockInTime && log.clockInTime !== '—') {
+        // Keep showing live clock-in; do not invent auto clock-out.
+        if (isAutoClockOut && log.clockedIn !== false && log.clockInTime && log.clockInTime !== '—') {
           isAutoClockOut = false
           resolvedClockOut = null
           isCurrentlyClockedIn = true
-        }
-
-        if (isCurrentlyClockedIn && !resolvedClockOut) {
-          // Prefer clock-in time string so admin start-time edits update live hours immediately
-          let liveShiftSec = computeRegularSecondsFromTimes(
-            log.clockInTime,
-            'In office',
-            selectedDate,
-            breakSec
-          )
-
-          // Fallback to timestamp if time string couldn't be parsed
-          if (liveShiftSec <= 0 && log.clockInTimestamp) {
-            liveShiftSec = Math.min(
-              28800,
-              Math.max(0, Math.floor((Date.now() - log.clockInTimestamp) / 1000) - breakSec)
-            )
-          }
-
-          // Auto clock-out ONLY if current time is past 7:00 PM (hour >= 19) or elapsed shift >= 8 hours
-          if ((currentHour >= 19 || liveShiftSec >= 28800) && !resolvedClockOut) {
-            resolvedClockOut = '07:00 PM'
-            isAutoClockOut = true
-            isCurrentlyClockedIn = false
-          }
-        }
-      } else if (isPastDate) {
-        // FOR PAST DATES: If employee didn't clock out, auto clock-out at 07:00 PM
-        if (isCurrentlyClockedIn && !resolvedClockOut) {
-          isCurrentlyClockedIn = false
-          resolvedClockOut = '07:00 PM'
-          isAutoClockOut = true
         }
       }
 
@@ -452,8 +432,8 @@ export const AttendancePage = () => {
       }
       // Fallback to stored value only if times couldn't produce a duration
       if (calculatedRegularSec <= 0) {
-        calculatedRegularSec = Math.min(
-          28800,
+        calculatedRegularSec = Math.max(
+          0,
           Number(log.regularSeconds) || Number(log.accumulatedWorkSeconds) || 0
         )
       }
@@ -543,7 +523,7 @@ export const AttendancePage = () => {
   const extraTimeCount = rows.filter((r) => r.isInExtraTime).length
 
   const getStatusBadge = (row) => {
-    if (row.isInExtraTime) {
+    if (false && row.isInExtraTime) {
       return (
         <Badge variant="brand" className="flex items-center gap-1 animate-pulse">
           <Zap className="w-3 h-3" /> Extra Time
@@ -724,7 +704,7 @@ export const AttendancePage = () => {
 
           {lastRefresh && (
             <span className="text-[11px] text-slate-500">
-              Updated {lastRefresh.toLocaleTimeString([], { hour: '2-digit', minute: '2-digit', second: '2-digit' })}
+              Updated {lastRefresh.toLocaleTimeString('en-US', { hour: '2-digit', minute: '2-digit', second: '2-digit', hour12: true })}
             </span>
           )}
         </div>
@@ -779,6 +759,7 @@ export const AttendancePage = () => {
           </div>
         </Card>
 
+        {false && (
         <Card className="p-4 border-slate-800 bg-slate-900/60 flex items-center gap-3">
           <div className="w-9 h-9 rounded-xl bg-violet-500/10 flex items-center justify-center">
             <Zap className="w-4 h-4 text-violet-400" />
@@ -788,6 +769,7 @@ export const AttendancePage = () => {
             <div className="text-[10px] text-slate-400 uppercase tracking-wider font-semibold">Extra Time</div>
           </div>
         </Card>
+        )}
       </div>
 
       {/* Error banner */}
@@ -819,8 +801,8 @@ export const AttendancePage = () => {
                 <th className="p-4 font-semibold">Department</th>
                 <th className="p-4 font-semibold">Clock In</th>
                 <th className="p-4 font-semibold">Clock Out</th>
-                <th className="p-4 font-semibold">Regular Hours</th>
-                <th className="p-4 font-semibold">Extra / OT Hours</th>
+                <th className="p-4 font-semibold">Hours</th>
+                {false && <th className="p-4 font-semibold">Extra / OT Hours</th>}
                 <th className="p-4 font-semibold">Status</th>
                 <th className="p-4 font-semibold text-right">Actions</th>
               </tr>
@@ -860,7 +842,7 @@ export const AttendancePage = () => {
                       <span className={!row.clockOutTime ? 'text-slate-600 italic' : 'text-slate-200 font-mono'}>
                         {row.clockOutTime || (row.clockedIn ? 'In office' : row.onDuty ? 'On Duty' : '—')}
                       </span>
-                      {row.autoClockOut && (
+                      {false && row.autoClockOut && (
                         <span className="ml-1 px-1.5 py-0.5 bg-amber-500/10 border border-amber-500/20 text-amber-400 text-[10px] rounded-md">
                           Auto
                         </span>
@@ -875,7 +857,7 @@ export const AttendancePage = () => {
                     </span>
                   </td>
 
-                  {/* Extra / OT Hours */}
+                  {false && (
                   <td className="p-4">
                     {row.extraSeconds > 0 ? (
                       <div className="flex items-center gap-1.5">
@@ -886,6 +868,7 @@ export const AttendancePage = () => {
                       <span className="text-slate-600">—</span>
                     )}
                   </td>
+                  )}
 
                   {/* Status */}
                   <td className="p-4">{getStatusBadge(row)}</td>
@@ -974,7 +957,7 @@ export const AttendancePage = () => {
                             />
                             <span className="text-slate-300">{log.label}</span>
                           </div>
-                          <span className="font-mono text-slate-500">{log.time}</span>
+                          <span className="font-mono text-slate-500">{formatTimeStr(log.time)}</span>
                         </div>
                       ))}
                   </div>

@@ -6,7 +6,7 @@ import { Input } from '../../components/ui/Input'
 import { Card } from '../../components/ui/Card'
 import { useUserStore } from '../../stores/userStore'
 import haloLogo from '../../assets/halologo.png'
-import { loginWithEmail, signupWithEmail, fetchCustomClaims } from '../../shared/services/authService'
+import { loginWithEmail, signupWithEmail, fetchCustomClaims, getUserDoc } from '../../shared/services/authService'
 
 export const EmployeeLoginPage = () => {
   const navigate = useNavigate()
@@ -35,9 +35,10 @@ export const EmployeeLoginPage = () => {
     try {
       const firebaseUser = await loginWithEmail(email, password)
       const claims = await fetchCustomClaims(firebaseUser)
+      const userDoc = await getUserDoc(firebaseUser.uid)
       setUser(
         firebaseUser,
-        null,
+        userDoc || null,
         { orgId: 'org_real', role: 'employee', tier: 'company', ...claims }
       )
       navigate('/dashboard')
