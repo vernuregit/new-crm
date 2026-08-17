@@ -1,0 +1,588 @@
+import React, { useState, useEffect, useMemo } from 'react'
+import { PageHeader } from '../../components/layout/PageHeader'
+import { Card } from '../../components/ui/Card'
+import { Button } from '../../components/ui/Button'
+import { Badge } from '../../components/ui/Badge'
+import { useUserStore } from '../../stores/userStore'
+import { TeamSubNav } from './components/TeamSubNav'
+import {
+  subscribeToAllTickets,
+  updateTicketStatus,
+  updateTicketPriority,
+  addTicketResolution,
+  deleteTicket,
+} from './services/helpDeskService'
+import {
+  LifeBuoy,
+  Search,
+  CheckCircle2,
+  Clock,
+  AlertTriangle,
+  Monitor,
+  Users,
+  DollarSign,
+  Building,
+  HelpCircle,
+  X,
+  MessageSquare,
+  Trash2,
+  Filter,
+  User,
+  Check,
+  ChevronDown,
+} from 'lucide-react'
+
+// ─── Config & Helpers ─────────────────────────────────────────────────────────
+
+const CATEGORY_CONFIG = {
+  it: { label: 'IT & Systems', icon: Monitor, color: 'text-indigo-600 dark:text-indigo-400', bg: 'bg-indigo-50 dark:bg-indigo-950/30' },
+  hr: { label: 'Human Resources', icon: Users, color: 'text-purple-600 dark:text-purple-400', bg: 'bg-purple-50 dark:bg-purple-950/30' },
+  finance: { label: 'Finance & Payroll', icon: DollarSign, color: 'text-emerald-600 dark:text-emerald-400', bg: 'bg-emerald-50 dark:bg-emerald-950/30' },
+  facilities: { label: 'Facilities & Office', icon: Building, color: 'text-amber-600 dark:text-amber-400', bg: 'bg-amber-50 dark:bg-amber-950/30' },
+  other: { label: 'General Support', icon: HelpCircle, color: 'text-slate-600 dark:text-slate-400', bg: 'bg-slate-50 dark:bg-slate-900' },
+}
+
+const STATUS_CONFIG = {
+  open: { label: 'Open', color: 'bg-indigo-100 text-indigo-700 dark:bg-indigo-900/30 dark:text-indigo-400 border-indigo-200 dark:border-indigo-800' },
+  in_progress: { label: 'In Progress', color: 'bg-blue-100 text-blue-700 dark:bg-blue-900/30 dark:text-blue-400 border-blue-200 dark:border-blue-800' },
+  resolved: { label: 'Resolved', color: 'bg-emerald-100 text-emerald-700 dark:bg-emerald-900/30 dark:text-emerald-400 border-emerald-200 dark:border-emerald-800' },
+  closed: { label: 'Closed', color: 'bg-slate-100 text-slate-700 dark:bg-slate-800 dark:text-slate-400 border-slate-200 dark:border-slate-700' },
+}
+
+const PRIORITY_CONFIG = {
+  high: { label: 'High', color: 'bg-rose-100 text-rose-700 dark:bg-rose-900/30 dark:text-rose-400 border-rose-200 dark:border-rose-800' },
+  medium: { label: 'Medium', color: 'bg-amber-100 text-amber-700 dark:bg-amber-900/30 dark:text-amber-400 border-amber-200 dark:border-amber-800' },
+  low: { label: 'Low', color: 'bg-slate-100 text-slate-700 dark:bg-slate-800 dark:text-slate-400 border-slate-200 dark:border-slate-700' },
+}
+
+const formatDate = (rawDate) => {
+  if (!rawDate) return 'Just now'
+  if (typeof rawDate?.toDate === 'function') {
+    return rawDate.toDate().toLocaleDateString('en-US', { month: 'short', day: 'numeric', year: 'numeric', hour: '2-digit', minute: '2-digit' })
+  }
+  if (rawDate?.seconds) {
+    return new Date(rawDate.seconds * 1000).toLocaleDateString('en-US', { month: 'short', day: 'numeric', year: 'numeric', hour: '2-digit', minute: '2-digit' })
+  }
+  const d = new Date(rawDate)
+  return isNaN(d.getTime()) ? 'Just now' : d.toLocaleDateString('en-US', { month: 'short', day: 'numeric', year: 'numeric' })
+}
+
+export const HelpDeskManager = () => {
+  const { user } = useUserStore()
+  const adminName = user?.displayName || user?.email || 'Admin'
+
+  const [tickets, setTickets] = useState([])
+  const [loading, setLoading] = useState(true)
+  const [searchQuery, setSearchQuery] = useState('')
+  const [statusFilter, setStatusFilter] = useState('All')
+  const [categoryFilter, setCategoryFilter] = useState('All')
+  const [priorityFilter, setPriorityFilter] = useState('All')
+
+  // Resolve / Reply Modal State
+  const [resolveTicket, setResolveTicket] = useState(null)
+  const [resolutionText, setResolutionText] = useState('')
+  const [submittingResolution, setSubmittingResolution] = useState(false)
+
+  // Delete Confirm State
+  const [deleteTicketItem, setDeleteTicketItem] = useState(null)
+  const [deleting, setDeleting] = useState(false)
+
+  // Real-time subscription to tickets
+  useEffect(() => {
+    const unsub = subscribeToAllTickets((data) => {
+      setTickets(data)
+      setLoading(false)
+    })
+    return () => unsub()
+  }, [])
+
+  // Summary Metrics
+  const stats = useMemo(() => {
+    const total = tickets.length
+    const open = tickets.filter((t) => (t.status || 'open') === 'open').length
+    const inProgress = tickets.filter((t) => t.status === 'in_progress').length
+    const resolved = tickets.filter((t) => t.status === 'resolved' || t.status === 'closed').length
+    const high = tickets.filter((t) => (t.priority || 'medium') === 'high').length
+    return { total, open, inProgress, resolved, high }
+  }, [tickets])
+
+  // Filtered & Searched Tickets
+  const filteredTickets = useMemo(() => {
+    return tickets.filter((ticket) => {
+      const q = searchQuery.toLowerCase().trim()
+      const subject = (ticket.subject || '').toLowerCase()
+      const desc = (ticket.description || '').toLowerCase()
+      const employee = (ticket.employeeName || ticket.employeeEmail || '').toLowerCase()
+
+      const matchesSearch = !q || subject.includes(q) || desc.includes(q) || employee.includes(q)
+
+      let matchesStatus = true
+      if (statusFilter === 'Open') matchesStatus = (ticket.status || 'open') === 'open'
+      else if (statusFilter === 'In Progress') matchesStatus = ticket.status === 'in_progress'
+      else if (statusFilter === 'Resolved') matchesStatus = ticket.status === 'resolved' || ticket.status === 'closed'
+
+      let matchesCategory = true
+      if (categoryFilter !== 'All') {
+        matchesCategory = (ticket.category || 'other').toLowerCase() === categoryFilter.toLowerCase()
+      }
+
+      let matchesPriority = true
+      if (priorityFilter !== 'All') {
+        matchesPriority = (ticket.priority || 'medium').toLowerCase() === priorityFilter.toLowerCase()
+      }
+
+      return matchesSearch && matchesStatus && matchesCategory && matchesPriority
+    })
+  }, [tickets, searchQuery, statusFilter, categoryFilter, priorityFilter])
+
+  // Change Status handler
+  const handleStatusChange = async (ticketId, newStatus) => {
+    try {
+      await updateTicketStatus(ticketId, newStatus)
+    } catch (err) {
+      console.error('Failed to update status:', err)
+    }
+  }
+
+  // Change Priority handler
+  const handlePriorityChange = async (ticketId, newPriority) => {
+    try {
+      await updateTicketPriority(ticketId, newPriority)
+    } catch (err) {
+      console.error('Failed to update priority:', err)
+    }
+  }
+
+  // Open Resolution Dialog
+  const handleOpenResolve = (ticket) => {
+    setResolveTicket(ticket)
+    setResolutionText(ticket.resolutionNote || '')
+  }
+
+  // Save Resolution
+  const handleSaveResolution = async (e) => {
+    e.preventDefault()
+    if (!resolveTicket || !resolutionText.trim()) return
+    setSubmittingResolution(true)
+    try {
+      await addTicketResolution(resolveTicket.id, resolutionText, adminName)
+      setResolveTicket(null)
+      setResolutionText('')
+    } catch (err) {
+      console.error('Failed to save resolution:', err)
+    } finally {
+      setSubmittingResolution(false)
+    }
+  }
+
+  // Delete ticket
+  const handleDeleteConfirm = async () => {
+    if (!deleteTicketItem) return
+    setDeleting(true)
+    try {
+      await deleteTicket(deleteTicketItem.id)
+      setDeleteTicketItem(null)
+    } catch (err) {
+      console.error('Failed to delete ticket:', err)
+    } finally {
+      setDeleting(false)
+    }
+  }
+
+  return (
+    <div className="space-y-6">
+      {/* Header */}
+      <PageHeader
+        title="Help Desk & Support"
+        description="Monitor, manage, and resolve employee support requests, IT tickets, and inquiries in real time."
+      />
+
+      {/* Team SubNav */}
+      <TeamSubNav />
+
+      {/* Stats Cards */}
+      <div className="grid grid-cols-2 sm:grid-cols-4 gap-4">
+        <Card className="p-4 bg-white dark:bg-[#12151E] border-slate-200 dark:border-slate-800/80">
+          <div className="flex items-center justify-between">
+            <div>
+              <p className="text-xs font-medium text-slate-500 dark:text-slate-400">Total Tickets</p>
+              <h3 className="text-2xl font-bold text-slate-900 dark:text-white mt-1">{stats.total}</h3>
+            </div>
+            <div className="w-10 h-10 rounded-xl bg-indigo-50 dark:bg-indigo-500/10 flex items-center justify-center text-indigo-600 dark:text-indigo-400">
+              <LifeBuoy className="w-5 h-5" />
+            </div>
+          </div>
+        </Card>
+
+        <Card className="p-4 bg-white dark:bg-[#12151E] border-slate-200 dark:border-slate-800/80">
+          <div className="flex items-center justify-between">
+            <div>
+              <p className="text-xs font-medium text-slate-500 dark:text-slate-400">Pending / Open</p>
+              <h3 className="text-2xl font-bold text-indigo-600 dark:text-indigo-400 mt-1">{stats.open}</h3>
+            </div>
+            <div className="w-10 h-10 rounded-xl bg-indigo-50 dark:bg-indigo-500/10 flex items-center justify-center text-indigo-600 dark:text-indigo-400">
+              <Clock className="w-5 h-5" />
+            </div>
+          </div>
+        </Card>
+
+        <Card className="p-4 bg-white dark:bg-[#12151E] border-slate-200 dark:border-slate-800/80">
+          <div className="flex items-center justify-between">
+            <div>
+              <p className="text-xs font-medium text-slate-500 dark:text-slate-400">In Progress</p>
+              <h3 className="text-2xl font-bold text-blue-600 dark:text-blue-400 mt-1">{stats.inProgress}</h3>
+            </div>
+            <div className="w-10 h-10 rounded-xl bg-blue-50 dark:bg-blue-500/10 flex items-center justify-center text-blue-600 dark:text-blue-400">
+              <AlertTriangle className="w-5 h-5" />
+            </div>
+          </div>
+        </Card>
+
+        <Card className="p-4 bg-white dark:bg-[#12151E] border-slate-200 dark:border-slate-800/80">
+          <div className="flex items-center justify-between">
+            <div>
+              <p className="text-xs font-medium text-slate-500 dark:text-slate-400">Resolved</p>
+              <h3 className="text-2xl font-bold text-emerald-600 dark:text-emerald-400 mt-1">{stats.resolved}</h3>
+            </div>
+            <div className="w-10 h-10 rounded-xl bg-emerald-50 dark:bg-emerald-500/10 flex items-center justify-center text-emerald-600 dark:text-emerald-400">
+              <CheckCircle2 className="w-5 h-5" />
+            </div>
+          </div>
+        </Card>
+      </div>
+
+      {/* Filter and Search Bar */}
+      <div className="flex flex-col lg:flex-row items-stretch lg:items-center justify-between gap-3 bg-white dark:bg-[#12151E] p-3 rounded-2xl border border-slate-200 dark:border-slate-800/80">
+        {/* Status Tabs */}
+        <div className="flex items-center gap-1.5 overflow-x-auto pb-1 lg:pb-0">
+          {[
+            { key: 'All', label: 'All', count: stats.total },
+            { key: 'Open', label: 'Open', count: stats.open },
+            { key: 'In Progress', label: 'In Progress', count: stats.inProgress },
+            { key: 'Resolved', label: 'Resolved', count: stats.resolved },
+          ].map((tab) => (
+            <button
+              key={tab.key}
+              onClick={() => setStatusFilter(tab.key)}
+              className={`px-3 py-1.5 rounded-xl text-xs font-semibold transition-colors flex items-center gap-1.5 whitespace-nowrap ${
+                statusFilter === tab.key
+                  ? 'bg-indigo-600 text-white shadow-sm'
+                  : 'bg-slate-100 text-slate-600 hover:bg-slate-200 dark:bg-slate-800/60 dark:text-slate-400 dark:hover:bg-slate-800'
+              }`}
+            >
+              {tab.label}
+              <span
+                className={`text-[10px] px-1.5 py-0.2 rounded-full ${
+                  statusFilter === tab.key
+                    ? 'bg-white/20 text-white'
+                    : 'bg-slate-200 text-slate-700 dark:bg-slate-700 dark:text-slate-300'
+                }`}
+              >
+                {tab.count}
+              </span>
+            </button>
+          ))}
+        </div>
+
+        {/* Dropdowns & Search */}
+        <div className="flex flex-wrap items-center gap-2">
+          {/* Category Dropdown */}
+          <select
+            value={categoryFilter}
+            onChange={(e) => setCategoryFilter(e.target.value)}
+            className="px-2.5 py-1.5 text-xs rounded-xl bg-slate-50 dark:bg-slate-900 border border-slate-200 dark:border-slate-800 text-slate-800 dark:text-slate-200 outline-none"
+          >
+            <option value="All">All Categories</option>
+            <option value="it">IT & Systems</option>
+            <option value="hr">HR & People</option>
+            <option value="finance">Finance</option>
+            <option value="facilities">Facilities</option>
+            <option value="other">General</option>
+          </select>
+
+          {/* Priority Dropdown */}
+          <select
+            value={priorityFilter}
+            onChange={(e) => setPriorityFilter(e.target.value)}
+            className="px-2.5 py-1.5 text-xs rounded-xl bg-slate-50 dark:bg-slate-900 border border-slate-200 dark:border-slate-800 text-slate-800 dark:text-slate-200 outline-none"
+          >
+            <option value="All">All Priorities</option>
+            <option value="high">High</option>
+            <option value="medium">Medium</option>
+            <option value="low">Low</option>
+          </select>
+
+          {/* Search Box */}
+          <div className="relative flex-1 sm:w-56">
+            <Search className="w-4 h-4 absolute left-3 top-1/2 -translate-y-1/2 text-slate-400" />
+            <input
+              type="text"
+              value={searchQuery}
+              onChange={(e) => setSearchQuery(e.target.value)}
+              placeholder="Search tickets or employees..."
+              className="w-full pl-9 pr-8 py-1.5 text-xs rounded-xl bg-slate-50 dark:bg-slate-900 border border-slate-200 dark:border-slate-800 text-slate-900 dark:text-white placeholder-slate-400 focus:outline-none focus:ring-2 focus:ring-indigo-500/20 focus:border-indigo-500"
+            />
+            {searchQuery && (
+              <button
+                onClick={() => setSearchQuery('')}
+                className="absolute right-2.5 top-1/2 -translate-y-1/2 text-slate-400 hover:text-slate-600 dark:hover:text-slate-200"
+              >
+                <X className="w-3.5 h-3.5" />
+              </button>
+            )}
+          </div>
+        </div>
+      </div>
+
+      {/* Main Ticket List */}
+      {loading ? (
+        <div className="space-y-3">
+          {[1, 2, 3].map((i) => (
+            <Card key={i} className="p-5 bg-white dark:bg-[#12151E] border-slate-200 dark:border-slate-800 animate-pulse">
+              <div className="h-5 bg-slate-200 dark:bg-slate-800 rounded w-1/4 mb-3" />
+              <div className="h-4 bg-slate-200 dark:bg-slate-800 rounded w-3/4 mb-2" />
+              <div className="h-4 bg-slate-200 dark:bg-slate-800 rounded w-1/2" />
+            </Card>
+          ))}
+        </div>
+      ) : filteredTickets.length === 0 ? (
+        <Card className="p-12 text-center bg-white dark:bg-[#12151E] border-slate-200 dark:border-slate-800">
+          <div className="w-16 h-16 rounded-2xl bg-indigo-50 dark:bg-indigo-500/10 flex items-center justify-center text-indigo-600 dark:text-indigo-400 mx-auto mb-4">
+            <LifeBuoy className="w-8 h-8 opacity-60" />
+          </div>
+          <h3 className="text-base font-bold text-slate-900 dark:text-white">
+            {searchQuery || statusFilter !== 'All' ? 'No matching tickets found' : 'No support tickets submitted yet'}
+          </h3>
+          <p className="text-xs text-slate-500 dark:text-slate-400 max-w-md mx-auto mt-1.5">
+            {searchQuery || statusFilter !== 'All'
+              ? 'Try adjusting your filters or search keywords.'
+              : 'Support requests created by employees in their portal will appear here automatically.'}
+          </p>
+        </Card>
+      ) : (
+        <div className="space-y-3">
+          {filteredTickets.map((ticket) => {
+            const catKey = (ticket.category || 'other').toLowerCase()
+            const catConfig = CATEGORY_CONFIG[catKey] || CATEGORY_CONFIG.other
+            const CatIcon = catConfig.icon
+
+            const currentStatus = (ticket.status || 'open').toLowerCase()
+            const statusConfig = STATUS_CONFIG[currentStatus] || STATUS_CONFIG.open
+
+            const currentPriority = (ticket.priority || 'medium').toLowerCase()
+            const priorityConfig = PRIORITY_CONFIG[currentPriority] || PRIORITY_CONFIG.medium
+
+            const employeeName = ticket.employeeName || ticket.employeeEmail || 'Employee'
+
+            return (
+              <Card
+                key={ticket.id}
+                className="p-5 bg-white dark:bg-[#12151E] border-slate-200 dark:border-slate-800/80 hover:shadow-md transition-all duration-200"
+              >
+                <div className="flex flex-col sm:flex-row items-start justify-between gap-4">
+                  {/* Left Content */}
+                  <div className="flex items-start gap-3.5 flex-1 min-w-0">
+                    <div className={`w-10 h-10 rounded-xl ${catConfig.bg} ${catConfig.color} flex items-center justify-center flex-shrink-0 mt-0.5`}>
+                      <CatIcon className="w-5 h-5" />
+                    </div>
+
+                    <div className="flex-1 min-w-0 space-y-1.5">
+                      <div className="flex flex-wrap items-center gap-2">
+                        <span className="text-xs font-semibold text-slate-500 dark:text-slate-400">
+                          {catConfig.label}
+                        </span>
+                        <span className="text-slate-300 dark:text-slate-700">•</span>
+                        <Badge className={`text-[10px] font-bold px-2 py-0.2 border ${priorityConfig.color}`}>
+                          {priorityConfig.label.toUpperCase()} PRIORITY
+                        </Badge>
+                        <span className="text-slate-300 dark:text-slate-700">•</span>
+                        <span className="text-xs text-slate-400 dark:text-slate-500 flex items-center gap-1">
+                          <Clock className="w-3 h-3" />
+                          {formatDate(ticket.createdAt)}
+                        </span>
+                      </div>
+
+                      <h3 className="text-base font-bold text-slate-900 dark:text-white">
+                        {ticket.subject}
+                      </h3>
+
+                      <p className="text-xs text-slate-600 dark:text-slate-300 whitespace-pre-wrap leading-relaxed">
+                        {ticket.description}
+                      </p>
+
+                      {/* Employee Info Badge */}
+                      <div className="pt-2 flex flex-wrap items-center gap-2 text-xs text-slate-500 dark:text-slate-400">
+                        <span className="flex items-center gap-1.5 font-medium bg-slate-100 dark:bg-slate-800/60 px-2.5 py-1 rounded-lg">
+                          <User className="w-3.5 h-3.5 text-indigo-500" />
+                          <span className="font-semibold text-slate-700 dark:text-slate-300">{employeeName}</span>
+                          {ticket.employeeEmail && <span className="text-[11px] text-slate-400">({ticket.employeeEmail})</span>}
+                        </span>
+
+                        {ticket.resolvedBy && (
+                          <span className="flex items-center gap-1 text-emerald-600 dark:text-emerald-400 font-medium bg-emerald-50 dark:bg-emerald-950/30 px-2.5 py-1 rounded-lg">
+                            <CheckCircle2 className="w-3.5 h-3.5" />
+                            Resolved by {ticket.resolvedBy}
+                          </span>
+                        )}
+                      </div>
+
+                      {/* Admin Resolution Note if present */}
+                      {ticket.resolutionNote && (
+                        <div className="mt-2.5 p-3 rounded-xl bg-emerald-50/60 dark:bg-emerald-950/20 border border-emerald-200 dark:border-emerald-900/40 text-xs">
+                          <p className="font-semibold text-emerald-800 dark:text-emerald-300 mb-0.5 flex items-center gap-1">
+                            <Check className="w-3.5 h-3.5" /> Admin Note / Solution:
+                          </p>
+                          <p className="text-emerald-700 dark:text-emerald-400 whitespace-pre-wrap">{ticket.resolutionNote}</p>
+                        </div>
+                      )}
+                    </div>
+                  </div>
+
+                  {/* Right Actions & Status Controls */}
+                  <div className="flex flex-row sm:flex-col items-end justify-between sm:justify-start gap-2.5 shrink-0 w-full sm:w-auto pt-2 sm:pt-0 border-t sm:border-t-0 border-slate-100 dark:border-slate-800">
+                    {/* Status Dropdown */}
+                    <div className="flex items-center gap-1.5">
+                      <span className="text-[11px] font-medium text-slate-400 hidden sm:inline">Status:</span>
+                      <select
+                        value={currentStatus}
+                        onChange={(e) => handleStatusChange(ticket.id, e.target.value)}
+                        className={`text-xs font-bold px-2.5 py-1.5 rounded-xl border outline-none cursor-pointer ${statusConfig.color}`}
+                      >
+                        <option value="open">Open</option>
+                        <option value="in_progress">In Progress</option>
+                        <option value="resolved">Resolved</option>
+                        <option value="closed">Closed</option>
+                      </select>
+                    </div>
+
+                    {/* Action buttons */}
+                    <div className="flex items-center gap-1.5">
+                      <button
+                        onClick={() => handleOpenResolve(ticket)}
+                        className="text-xs font-semibold px-2.5 py-1.5 rounded-xl bg-indigo-50 hover:bg-indigo-100 dark:bg-indigo-950/30 dark:hover:bg-indigo-900/40 text-indigo-600 dark:text-indigo-400 transition-colors flex items-center gap-1"
+                        title="Add response or resolution note"
+                      >
+                        <MessageSquare className="w-3.5 h-3.5" />
+                        {ticket.resolutionNote ? 'Edit Note' : 'Resolve / Note'}
+                      </button>
+
+                      <button
+                        onClick={() => setDeleteTicketItem(ticket)}
+                        className="p-1.5 text-slate-400 hover:text-rose-600 hover:bg-rose-50 dark:hover:bg-rose-950/30 rounded-lg transition-colors"
+                        title="Delete ticket"
+                      >
+                        <Trash2 className="w-4 h-4" />
+                      </button>
+                    </div>
+                  </div>
+                </div>
+              </Card>
+            )
+          })}
+        </div>
+      )}
+
+      {/* ─── Resolution / Response Modal ────────────────────────────────────── */}
+      {resolveTicket && (
+        <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-slate-900/60 backdrop-blur-sm animate-fade-in">
+          <div className="bg-white dark:bg-[#12151E] rounded-2xl shadow-2xl border border-slate-200 dark:border-slate-800 w-full max-w-lg overflow-hidden">
+            <div className="flex items-center justify-between p-5 border-b border-slate-100 dark:border-slate-800">
+              <div className="flex items-center gap-2.5">
+                <div className="w-9 h-9 rounded-xl bg-emerald-50 dark:bg-emerald-500/10 flex items-center justify-center text-emerald-600 dark:text-emerald-400">
+                  <CheckCircle2 className="w-5 h-5" />
+                </div>
+                <div>
+                  <h3 className="text-base font-bold text-slate-900 dark:text-white">Resolve & Respond to Ticket</h3>
+                  <p className="text-xs text-slate-500 dark:text-slate-400">Ticket: {resolveTicket.subject}</p>
+                </div>
+              </div>
+              <button
+                onClick={() => setResolveTicket(null)}
+                className="p-1.5 text-slate-400 hover:text-slate-600 dark:hover:text-slate-200 rounded-lg"
+              >
+                <X className="w-5 h-5" />
+              </button>
+            </div>
+
+            <form onSubmit={handleSaveResolution} className="p-5 space-y-4">
+              <div className="p-3 bg-slate-50 dark:bg-slate-900 rounded-xl border border-slate-200 dark:border-slate-800 text-xs space-y-1">
+                <p className="text-slate-500 dark:text-slate-400">Employee Issue:</p>
+                <p className="text-slate-800 dark:text-slate-200 font-medium">{resolveTicket.description}</p>
+              </div>
+
+              <div>
+                <label className="block text-xs font-semibold text-slate-700 dark:text-slate-300 mb-1.5">
+                  Resolution Note / Admin Response <span className="text-rose-500">*</span>
+                </label>
+                <textarea
+                  required
+                  rows={4}
+                  placeholder="Explain how the issue was fixed, steps taken, or reply to the employee..."
+                  value={resolutionText}
+                  onChange={(e) => setResolutionText(e.target.value)}
+                  className="w-full px-3.5 py-2.5 text-sm rounded-xl bg-slate-50 dark:bg-slate-900 border border-slate-200 dark:border-slate-800 text-slate-900 dark:text-white placeholder-slate-400 focus:outline-none focus:ring-2 focus:ring-emerald-500/20 focus:border-emerald-500 resize-none leading-relaxed"
+                />
+              </div>
+
+              <div className="flex items-center justify-end gap-2.5 pt-2 border-t border-slate-100 dark:border-slate-800">
+                <Button
+                  type="button"
+                  variant="outline"
+                  onClick={() => setResolveTicket(null)}
+                  disabled={submittingResolution}
+                  className="text-xs px-4 py-2"
+                >
+                  Cancel
+                </Button>
+                <Button
+                  type="submit"
+                  disabled={submittingResolution}
+                  className="bg-emerald-600 hover:bg-emerald-700 text-white text-xs px-5 py-2 flex items-center gap-1.5"
+                >
+                  {submittingResolution ? 'Saving...' : 'Mark as Resolved & Save'}
+                </Button>
+              </div>
+            </form>
+          </div>
+        </div>
+      )}
+
+      {/* ─── Delete Confirmation Modal ──────────────────────────────────────── */}
+      {deleteTicketItem && (
+        <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-slate-900/60 backdrop-blur-sm animate-fade-in">
+          <div className="bg-white dark:bg-[#12151E] rounded-2xl shadow-2xl border border-slate-200 dark:border-slate-800 w-full max-w-md p-5 space-y-4">
+            <div className="w-12 h-12 rounded-2xl bg-rose-50 dark:bg-rose-500/10 flex items-center justify-center text-rose-600 dark:text-rose-400 mx-auto">
+              <Trash2 className="w-6 h-6" />
+            </div>
+
+            <div className="text-center space-y-1.5">
+              <h3 className="text-base font-bold text-slate-900 dark:text-white">Delete Support Ticket?</h3>
+              <p className="text-xs text-slate-500 dark:text-slate-400">
+                Are you sure you want to delete <span className="font-semibold text-slate-700 dark:text-slate-300">"{deleteTicketItem.subject}"</span>?
+              </p>
+            </div>
+
+            <div className="flex items-center justify-center gap-2.5 pt-2">
+              <Button
+                variant="outline"
+                onClick={() => setDeleteTicketItem(null)}
+                disabled={deleting}
+                className="text-xs px-4 py-2"
+              >
+                Cancel
+              </Button>
+              <Button
+                onClick={handleDeleteConfirm}
+                disabled={deleting}
+                className="bg-rose-600 hover:bg-rose-700 text-white text-xs px-4 py-2 flex items-center gap-1.5"
+              >
+                {deleting ? 'Deleting...' : 'Yes, Delete'}
+              </Button>
+            </div>
+          </div>
+        </div>
+      )}
+    </div>
+  )
+}
+export default HelpDeskManager

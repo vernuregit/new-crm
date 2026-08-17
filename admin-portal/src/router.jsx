@@ -14,9 +14,13 @@ import { InvoiceList } from './features/finance/InvoiceList'
 import { ExpenseList } from './features/finance/ExpenseList'
 import { RecurringBilling } from './features/finance/RecurringBilling'
 import { EmployeeList } from './features/team/EmployeeList'
+import { AnnouncementManager } from './features/team/AnnouncementManager'
+import { HelpDeskManager } from './features/team/HelpDeskManager'
 import { AttendancePage } from './features/team/AttendancePage'
 import { LeaveManagement } from './features/team/LeaveManagement'
 import { HolidayManager } from './features/team/HolidayManager'
+import { PayslipManager } from './features/team/PayslipManager'
+import { EmployeeDocumentManager } from './features/team/EmployeeDocumentManager'
 import { WfhPolicyPage } from './features/team/WfhPolicyPage'
 import { EmployeeTimelinePage } from './features/team/EmployeeTimelinePage'
 import { EmployeeMonthlyReportPage } from './features/team/EmployeeMonthlyReportPage'
@@ -75,9 +79,13 @@ export const router = createBrowserRouter([
         children: [
           { index: true, element: <Navigate to="/team/employees" replace /> },
           { path: 'employees', element: <EmployeeList /> },
+          { path: 'announcements', element: <AnnouncementManager /> },
+          { path: 'helpdesk', element: <HelpDeskManager /> },
           { path: 'attendance', element: <AttendancePage /> },
           { path: 'leave', element: <LeaveManagement /> },
           { path: 'holidays', element: <HolidayManager /> },
+          { path: 'payslips', element: <PayslipManager /> },
+          { path: 'documents', element: <EmployeeDocumentManager /> },
           { path: 'wfh-policy', element: <WfhPolicyPage /> },
           { path: 'timeline', element: <EmployeeTimelinePage /> },
           { path: 'reports', element: <EmployeeMonthlyReportPage /> },
@@ -107,6 +115,10 @@ export const router = createBrowserRouter([
 
       // Knowledge Base
       { path: 'knowledge/*', element: <KnowledgeBase /> },
+
+      // Help Desk & Announcements Top-Level Aliases
+      { path: 'announcements', element: <Navigate to="/team/announcements" replace /> },
+      { path: 'helpdesk', element: <Navigate to="/team/helpdesk" replace /> },
 
       // Settings
       { path: 'settings', element: <Navigate to="/settings/org" replace /> },

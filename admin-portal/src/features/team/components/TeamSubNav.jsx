@@ -8,6 +8,9 @@ import {
   PartyPopper,
   Home,
   FileText,
+  FolderOpen,
+  Megaphone,
+  LifeBuoy,
 } from 'lucide-react'
 
 const linkClass = ({ isActive }) =>
@@ -35,6 +38,12 @@ export function TeamSubNav({ className = '' }) {
       <NavLink to="/team/employees" className={linkClass}>
         <Users className="w-3.5 h-3.5" /> Employee Directory
       </NavLink>
+      <NavLink to="/team/announcements" className={linkClass}>
+        <Megaphone className="w-3.5 h-3.5" /> Announcements
+      </NavLink>
+      <NavLink to="/team/helpdesk" className={linkClass}>
+        <LifeBuoy className="w-3.5 h-3.5" /> Help Desk
+      </NavLink>
       <NavLink to="/team/attendance" className={linkClass}>
         <CheckCircle2 className="w-3.5 h-3.5" /> Attendance Tracker
       </NavLink>
@@ -43,6 +52,12 @@ export function TeamSubNav({ className = '' }) {
       </NavLink>
       <NavLink to="/team/holidays" className={linkClass}>
         <PartyPopper className="w-3.5 h-3.5" /> Public Holidays
+      </NavLink>
+      <NavLink to="/team/payslips" className={linkClass}>
+        <FileText className="w-3.5 h-3.5" /> Payslips
+      </NavLink>
+      <NavLink to="/team/documents" className={linkClass}>
+        <FolderOpen className="w-3.5 h-3.5" /> Documents
       </NavLink>
       <NavLink to="/team/wfh-policy" className={wfhClass}>
         <Home className="w-3.5 h-3.5" /> WFH Policy

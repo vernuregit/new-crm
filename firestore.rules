@@ -2,32 +2,31 @@ rules_version = '2';
 service cloud.firestore {
   match /databases/{database}/documents {
 
-    // Helper functions for security and role checks
+    // Helper functions
     function isAuthenticated() {
       return request.auth != null;
     }
 
-    function isOrgMember(orgId) {
+    function isOwner(uid) {
+      return isAuthenticated() && request.auth.uid == uid;
+    }
+
+    function isAdmin() {
       return isAuthenticated() && (
-        request.auth.token.orgId == orgId ||
+        request.auth.token.role == 'admin' ||
+        request.auth.token.role == 'owner' ||
+        request.auth.token.role == 'superadmin' ||
         request.auth.token.tier == 'superadmin' ||
         request.auth.token.tier == 'company'
       );
     }
 
-    function isClient(clientId) {
-      return isAuthenticated() && (
-        request.auth.token.tier == 'client' &&
-        request.auth.token.clientId == clientId
-      );
-    }
-
-    // Default document security: Require authentication
+    // Default: require authentication
     match /{document=**} {
       allow read, write: if isAuthenticated();
     }
 
-    // Client-specific deliverables and invoices
+    // ─── Client-specific deliverables and invoices ───────────────────
     match /deliverables/{deliverableId} {
       allow read: if isAuthenticated();
       allow write: if isAuthenticated() && request.auth.token.tier != 'client';
@@ -37,18 +36,68 @@ service cloud.firestore {
       allow read: if isAuthenticated();
       allow write: if isAuthenticated() && request.auth.token.tier != 'client';
     }
-    // Attendance logs: flat collection attendanceLogs/{date}_{uid}
-    // All authenticated users can read; employees write their own records
+
+    // ─── Attendance & Timeline ────────────────────────────────────────
     match /attendanceLogs/{logId} {
       allow read: if isAuthenticated();
       allow write: if isAuthenticated();
     }
 
-    // Work timeline: free-text + hours diary entries
     match /workTimelineEntries/{entryId} {
       allow read: if isAuthenticated();
       allow write: if isAuthenticated();
     }
+
+    // ─── Announcements (read: all employees; write: admins only) ─────
+    match /announcements/{announcementId} {
+      allow read: if isAuthenticated();
+      allow write: if isAdmin();
+    }
+
+    // ─── Company Calendar (read: all employees; write: admins only) ──
+    match /companyCalendar/{eventId} {
+      allow read: if isAuthenticated();
+      allow write: if isAdmin();
+    }
+
+    // ─── Company Holidays (admin-marked; read: all employees) ────────
+    match /companyHolidays/{holidayId} {
+      allow read: if isAuthenticated();
+      allow write: if isAdmin();
+    }
+
+
+    // ─── Employee Documents (private to each employee) ───────────────
+    // Employees upload/read their own; admins can read all
+    match /documents/{uid}/files/{docId} {
+      allow read: if isOwner(uid) || isAdmin();
+      allow write: if isOwner(uid);
+      allow delete: if isOwner(uid) || isAdmin();
+    }
+
+    // ─── Payslips (admin writes; employee reads own only) ────────────
+    match /payslips/{uid}/records/{payslipId} {
+      allow read: if isOwner(uid);
+      allow write: if isAdmin();
+    }
+
+    // ─── Goals (private to each employee) ────────────────────────────
+    match /goals/{uid}/items/{goalId} {
+      allow read, write: if isOwner(uid);
+    }
+
+    // ─── Help Desk Tickets (employee owns; admin reads all) ──────────
+    match /helpDeskTickets/{ticketId} {
+      allow create: if isAuthenticated();
+      allow read: if isAuthenticated() &&
+        (request.auth.uid == resource.data.createdBy || isAdmin());
+      allow update, delete: if isAuthenticated() &&
+        (request.auth.uid == resource.data.createdBy || isAdmin());
+    }
+
+    // ─── Notifications (private to each user) ────────────────────────
+    match /notifications/{uid}/items/{notifId} {
+      allow read, write: if isOwner(uid) || isAdmin();
+    }
   }
 }
-

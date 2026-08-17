@@ -1,15 +1,48 @@
-import React from 'react'
-import { Link } from 'react-router-dom'
+import React, { useEffect, useRef } from 'react'
+import { Link, useNavigate } from 'react-router-dom'
 import { Bell, UserCheck, User, Search, Sun, Moon } from 'lucide-react'
 import haloLogo from '../../assets/halologo.png'
 import { useUserStore } from '../../stores/userStore'
 import { useUIStore } from '../../stores/uiStore'
+import { useNotificationStore } from '../../features/notifications/stores/notificationStore'
+import { NotificationCenter } from '../../features/notifications/NotificationCenter'
 
 export const EmployeeTopBar = () => {
   const { user, userDoc } = useUserStore()
   const { theme, toggleTheme } = useUIStore()
+  const { notifications, isOpen, toggleOpen, setIsOpen, fetchNotifications } = useNotificationStore()
+  const panelRef = useRef(null)
+  const bellRef = useRef(null)
+  const navigate = useNavigate()
 
   const displayName = userDoc?.displayName || user?.displayName || 'Employee Staff'
+  const unreadCount = notifications.filter((n) => !n.isRead).length
+
+  // Subscribe to Firestore notifications on mount
+  useEffect(() => {
+    const uid = user?.uid
+    if (!uid) return
+    const unsubscribe = fetchNotifications(uid)
+    return () => {
+      if (typeof unsubscribe === 'function') unsubscribe()
+    }
+  }, [user?.uid, fetchNotifications])
+
+  // Close dropdown on outside click
+  useEffect(() => {
+    const handleClickOutside = (e) => {
+      if (
+        panelRef.current &&
+        !panelRef.current.contains(e.target) &&
+        bellRef.current &&
+        !bellRef.current.contains(e.target)
+      ) {
+        setIsOpen(false)
+      }
+    }
+    if (isOpen) document.addEventListener('mousedown', handleClickOutside)
+    return () => document.removeEventListener('mousedown', handleClickOutside)
+  }, [isOpen, setIsOpen])
 
   return (
     <header className="h-16 bg-white/90 dark:bg-[#12151E]/90 backdrop-blur-md border-b border-slate-200 dark:border-purple-900/40 px-6 flex items-center justify-between sticky top-0 z-30 transition-colors">
@@ -48,9 +81,28 @@ export const EmployeeTopBar = () => {
         </button>
 
         {/* Notification Bell */}
-        <button className="relative w-9 h-9 rounded-xl bg-slate-100 dark:bg-purple-900/20 hover:bg-slate-200 dark:hover:bg-purple-900/40 text-slate-600 dark:text-purple-400 flex items-center justify-center transition-colors border border-slate-200 dark:border-purple-900/40 cursor-pointer">
-          <Bell className="w-4 h-4" />
-        </button>
+        <div className="relative">
+          <button
+            ref={bellRef}
+            onClick={toggleOpen}
+            className="relative w-9 h-9 rounded-xl bg-slate-100 dark:bg-purple-900/20 hover:bg-slate-200 dark:hover:bg-purple-900/40 text-slate-600 dark:text-purple-400 flex items-center justify-center transition-colors border border-slate-200 dark:border-purple-900/40 cursor-pointer"
+            title="Notifications"
+          >
+            <Bell className="w-4 h-4" />
+            {unreadCount > 0 && (
+              <span className="absolute -top-1 -right-1 w-4 h-4 rounded-full bg-rose-500 text-white text-[9px] font-bold flex items-center justify-center border-2 border-white dark:border-[#12151E] leading-none">
+                {unreadCount > 9 ? '9+' : unreadCount}
+              </span>
+            )}
+          </button>
+
+          {/* Notification dropdown panel */}
+          {isOpen && (
+            <div ref={panelRef} className="absolute right-0 top-12 z-50 w-80 sm:w-96 shadow-2xl">
+              <NotificationCenter />
+            </div>
+          )}
+        </div>
 
         {/* User Profile */}
         <Link

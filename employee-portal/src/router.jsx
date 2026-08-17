@@ -11,6 +11,14 @@ import { LeaveManagement } from './features/team/LeaveManagement'
 import { EmployeeProfile } from './features/profile/EmployeeProfile'
 import { WellnessSettings } from './features/wellness/WellnessSettings'
 import { WorkTimelinePage } from './features/timeline/WorkTimelinePage'
+// New feature pages
+import { NotificationsPage } from './features/notifications/NotificationsPage'
+import { AnnouncementsPage } from './features/announcements/AnnouncementsPage'
+import { CompanyCalendarPage } from './features/calendar/CompanyCalendarPage'
+import { DocumentsPage } from './features/documents/DocumentsPage'
+import { PayslipsPage } from './features/payslips/PayslipsPage'
+import { GoalsPage } from './features/goals/GoalsPage'
+import { HelpDeskPage } from './features/helpdesk/HelpDeskPage'
 
 export const router = createBrowserRouter([
   {
@@ -47,6 +55,15 @@ export const router = createBrowserRouter([
 
       // Profile
       { path: 'profile', element: <EmployeeProfile /> },
+
+      // ── NEW FEATURES ──────────────────────────────────────────────
+      { path: 'notifications', element: <NotificationsPage /> },
+      { path: 'announcements', element: <AnnouncementsPage /> },
+      { path: 'calendar', element: <CompanyCalendarPage /> },
+      { path: 'documents', element: <DocumentsPage /> },
+      { path: 'payslips', element: <PayslipsPage /> },
+      { path: 'goals', element: <GoalsPage /> },
+      { path: 'helpdesk', element: <HelpDeskPage /> },
     ],
   },
   { path: '*', element: <Navigate to="/dashboard" replace /> },

@@ -1,25 +1,29 @@
 rules_version = '2';
 service firebase.storage {
   match /b/{bucket}/o {
-    match /orgs/{orgId}/{allPaths=**} {
-      // Auth required for all org storage
-      allow read: if request.auth != null
-                 && (request.auth.token.orgId == orgId
-                     || request.auth.token.tier == "superadmin");
 
-      // Write requires org membership
-      allow write: if request.auth != null
-                  && request.auth.token.orgId == orgId
-                  && request.auth.token.tier == "company"
-                  && request.resource.size < 100 * 1024 * 1024; // 100MB max
+    // Helper functions
+    function isAuthenticated() {
+      return request.auth != null;
+    }
 
-      // Client storage — read only
-      match /clients/{clientId}/{allPaths=**} {
-        allow read: if request.auth != null
-                   && request.auth.token.tier == "client"
-                   && request.auth.token.clientId == clientId;
-        allow write: if false; // Clients cannot write to storage directly
-      }
+    function isOwner(uid) {
+      return isAuthenticated() && request.auth.uid == uid;
+    }
+
+    // ─── Employee Documents ───────────────────────────────────────────
+    match /employees/{uid}/documents/{allPaths=**} {
+      allow read, write, delete: if isAuthenticated();
+    }
+
+    // ─── Payslips ─────────────────────────────────────────────────────
+    match /payslips/{allPaths=**} {
+      allow read, write, delete: if isAuthenticated();
+    }
+
+    // ─── Org / General Files ──────────────────────────────────────────
+    match /{allPaths=**} {
+      allow read, write: if isAuthenticated();
     }
   }
 }

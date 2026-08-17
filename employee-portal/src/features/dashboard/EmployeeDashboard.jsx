@@ -19,19 +19,31 @@ import {
   Plus,
   Sun,
   Moon,
-  Sparkles,
   CalendarDays,
+  Megaphone,
+  Target,
+  Receipt,
+  FileText,
+  LifeBuoy,
+  Bell,
+  Umbrella,
+  ChevronRight,
+  MapPin,
 } from 'lucide-react'
 import { NavLink } from 'react-router-dom'
 import { isTaskVisibleToUser, isUserOnProject } from '../projects/services/projectService'
+import { db } from '../../shared/services/firebaseService'
+import { collection, query, where, getDocs, orderBy, limit } from 'firebase/firestore'
 
 const quickLinks = [
   { name: 'Projects', path: '/projects/list', icon: FolderKanban, color: 'indigo', desc: 'Overview of active projects & completion status' },
-  { name: 'Sprint Task Board', path: '/tasks', icon: Briefcase, color: 'indigo', desc: 'View and manage sprint task assignments' },
+  { name: 'Sprint Tasks', path: '/tasks', icon: Briefcase, color: 'indigo', desc: 'View and manage sprint task assignments' },
   { name: 'Work Timeline', path: '/timeline', icon: CalendarDays, color: 'blue', desc: 'Daily Mon–Sat log of what you worked on' },
   { name: 'Team Directory', path: '/directory', icon: Users, color: 'purple', desc: 'Browse team directory and skills' },
   { name: 'Attendance', path: '/attendance', icon: Calendar, color: 'emerald', desc: 'Clock in/out and view presence status' },
   { name: 'Leave & PTO', path: '/team/leave', icon: Calendar, color: 'emerald', desc: 'Request annual/sick leave & check PTO balance' },
+  { name: 'My Goals', path: '/goals', icon: Target, color: 'purple', desc: 'Track your personal and professional goals' },
+  { name: 'Help Desk', path: '/helpdesk', icon: LifeBuoy, color: 'blue', desc: 'Submit and track support tickets' },
 ]
 
 const colorMap = {
@@ -41,8 +53,17 @@ const colorMap = {
   emerald: 'bg-emerald-500/10 text-emerald-400 border-emerald-500/20',
 }
 
+const QUICK_ACTIONS = [
+  { label: 'Submit Leave', path: '/team/leave', icon: Umbrella, color: 'text-blue-500', bg: 'bg-blue-50 dark:bg-blue-500/10' },
+  { label: 'View Payslip', path: '/payslips', icon: Receipt, color: 'text-emerald-500', bg: 'bg-emerald-50 dark:bg-emerald-500/10' },
+  { label: 'My Documents', path: '/documents', icon: FileText, color: 'text-purple-500', bg: 'bg-purple-50 dark:bg-purple-500/10' },
+  { label: 'New Ticket', path: '/helpdesk', icon: LifeBuoy, color: 'text-amber-500', bg: 'bg-amber-50 dark:bg-amber-500/10' },
+  { label: 'Notifications', path: '/notifications', icon: Bell, color: 'text-indigo-500', bg: 'bg-indigo-50 dark:bg-indigo-500/10' },
+  { label: 'Announcements', path: '/announcements', icon: Megaphone, color: 'text-rose-500', bg: 'bg-rose-50 dark:bg-rose-500/10' },
+]
+
 export const EmployeeDashboard = () => {
-  const { user, userDoc, claims, setUser } = useUserStore()
+  const { user, userDoc, claims } = useUserStore()
   const { tasks, projects, updateTaskStatus, addTask, fetchProjectsAndTasks } = useProjectStore()
 
   const currentUserId = userDoc?.uid || user?.uid
@@ -57,7 +78,12 @@ export const EmployeeDashboard = () => {
   const [showAddFocus, setShowAddFocus] = useState(false)
   const [currentHour, setCurrentHour] = useState(() => new Date().getHours())
 
-  // Custom Proverb / Daily Quote state (read-only on dashboard, editable in Profile)
+  // Dashboard data state
+  const [announcements, setAnnouncements] = useState([])
+  const [upcomingEvents, setUpcomingEvents] = useState([])
+  const [leaveBalance, setLeaveBalance] = useState({ annual: 12, used: 0 })
+  const [loadingWidgets, setLoadingWidgets] = useState(true)
+
   const [userQuote, setUserQuote] = useState(() => {
     return userDoc?.quote || userDoc?.proverb || (currentUserId ? localStorage.getItem(`crm_quote_${currentUserId}`) : '') || ''
   })
@@ -82,17 +108,71 @@ export const EmployeeDashboard = () => {
     return () => clearInterval(timer)
   }, [])
 
-  // Time-based condition: 10 AM to 5 PM (10:00 - 16:59) is bright sun; after 5 PM (17:00+) & early morning is moon
+  // Fetch dashboard widget data
+  useEffect(() => {
+    if (!currentUserId) return
+    let cancelled = false
+
+    const fetchWidgetData = async () => {
+      try {
+        // Fetch latest 3 announcements
+        try {
+          const annRef = collection(db, 'announcements')
+          const annQ = query(annRef, orderBy('createdAt', 'desc'), limit(3))
+          const annSnap = await getDocs(annQ)
+          if (!cancelled) {
+            setAnnouncements(annSnap.docs.map((d) => ({ id: d.id, ...d.data() })))
+          }
+        } catch {
+          // Collection may not exist yet; silently skip
+        }
+
+        // Fetch upcoming calendar events (next 5)
+        try {
+          const today = new Date().toISOString().split('T')[0]
+          const calRef = collection(db, 'companyCalendar')
+          const calQ = query(calRef, where('date', '>=', today), orderBy('date', 'asc'), limit(5))
+          const calSnap = await getDocs(calQ)
+          if (!cancelled) {
+            setUpcomingEvents(calSnap.docs.map((d) => ({ id: d.id, ...d.data() })))
+          }
+        } catch {
+          // Collection may not exist yet; silently skip
+        }
+
+        // Fetch leave balance (approved leave requests this year)
+        try {
+          const yearStart = new Date(new Date().getFullYear(), 0, 1).toISOString().split('T')[0]
+          const leaveRef = collection(db, 'leaveRequests')
+          const leaveQ = query(
+            leaveRef,
+            where('employeeId', '==', currentUserId),
+            where('status', '==', 'approved'),
+            where('startDate', '>=', yearStart)
+          )
+          const leaveSnap = await getDocs(leaveQ)
+          const usedDays = leaveSnap.docs.reduce((sum, d) => sum + (Number(d.data().daysCount) || 1), 0)
+          if (!cancelled) {
+            setLeaveBalance({ annual: 24, used: usedDays })
+          }
+        } catch {
+          // Collection may not exist yet; silently skip
+        }
+      } finally {
+        if (!cancelled) setLoadingWidgets(false)
+      }
+    }
+
+    fetchWidgetData()
+    return () => { cancelled = true }
+  }, [currentUserId])
+
   const isBrightSun = currentHour >= 10 && currentHour < 17
 
-  // Filter tasks visible to current user (creator, assignee, or project member)
   const visibleTasks = tasks.filter((t) => isTaskVisibleToUser(t, user, userDoc, claims, projects))
-
-  // Filter tasks assigned to logged-in user or open team tasks
   const userTasks = visibleTasks.filter((t) => !t.assigneeName || t.assigneeName === displayName)
   const displayTasks = userTasks.length > 0 ? userTasks : visibleTasks
 
-  // Computed Production Metrics
   const assignedTaskCount = displayTasks.length
   const totalHoursLogged = displayTasks.reduce((sum, t) => sum + (Number(t.loggedHours) || 0), 0)
   const activeProjectCount = projects.filter((p) => {
@@ -101,6 +181,8 @@ export const EmployeeDashboard = () => {
     const isLegacy = !p.createdBy && (!p.members || p.members.length === 0)
     return isLegacy || isUserOnProject(p, user, userDoc)
   }).length
+
+  const leaveRemaining = Math.max(0, leaveBalance.annual - leaveBalance.used)
 
   const today = new Date().toLocaleDateString('en-US', {
     weekday: 'long',
@@ -117,10 +199,8 @@ export const EmployeeDashboard = () => {
   const handleAddQuickFocus = (e) => {
     e.preventDefault()
     if (!newFocusTitle.trim()) return
-
     const defaultProj = projects[0]?.projectId || 'proj_201'
     const defaultProjName = projects[0]?.name || 'SaaS Platform Redesign'
-
     addTask({
       title: newFocusTitle,
       description: 'Quick task created from today focus list',
@@ -136,13 +216,26 @@ export const EmployeeDashboard = () => {
       createdByRole: userRole || 'employee',
       isEmployeeCreated: true,
     })
-
     setNewFocusTitle('')
     setShowAddFocus(false)
   }
 
+  const eventTypeColors = {
+    holiday: 'text-red-500 bg-red-50 dark:bg-red-500/10',
+    meeting: 'text-indigo-500 bg-indigo-50 dark:bg-indigo-500/10',
+    sprint: 'text-purple-500 bg-purple-50 dark:bg-purple-500/10',
+    anniversary: 'text-amber-500 bg-amber-50 dark:bg-amber-500/10',
+    leave: 'text-emerald-500 bg-emerald-50 dark:bg-emerald-500/10',
+  }
+
+  const priorityColors = {
+    urgent: 'bg-red-50 dark:bg-red-500/10 border-red-200 dark:border-red-500/30',
+    info: 'bg-blue-50 dark:bg-blue-500/10 border-blue-200 dark:border-blue-500/30',
+    event: 'bg-emerald-50 dark:bg-emerald-500/10 border-emerald-200 dark:border-emerald-500/30',
+  }
+
   return (
-    <div className="space-y-8">
+    <div className="space-y-6">
       {/* Welcome Header */}
       <div className="relative overflow-hidden rounded-2xl bg-gradient-to-r from-indigo-50 via-purple-50 to-blue-50 dark:from-indigo-600/20 dark:via-purple-600/10 dark:to-blue-600/20 border border-indigo-200 dark:border-indigo-500/20 p-6 sm:p-8">
         <div className="absolute top-0 right-0 w-72 h-72 bg-indigo-500/10 dark:bg-indigo-600/10 blur-3xl rounded-full pointer-events-none" />
@@ -159,7 +252,6 @@ export const EmployeeDashboard = () => {
             </div>
           </div>
 
-          {/* Middle: Display Custom Proverb / Daily Quote / Motto if set (Clean text only) */}
           {userQuote ? (
             <div className="flex-1 max-w-xl mx-0 sm:mx-4 my-2 lg:my-0">
               <p className="text-xs sm:text-sm italic font-medium text-slate-700 dark:text-slate-300 truncate">
@@ -168,7 +260,6 @@ export const EmployeeDashboard = () => {
             </div>
           ) : null}
 
-          {/* Big Sun / Moon Icon on the right side */}
           <div className="flex items-center justify-center shrink-0">
             {isBrightSun ? (
               <div
@@ -195,12 +286,13 @@ export const EmployeeDashboard = () => {
       {/* Wellness Hub Widget */}
       <WellnessWidget />
 
-      {/* Stats Strip */}
-      <div className="grid grid-cols-1 sm:grid-cols-3 gap-4">
+      {/* Stats Strip — 4 KPIs */}
+      <div className="grid grid-cols-2 lg:grid-cols-4 gap-4">
         {[
           { label: 'Tasks Assigned', value: `${assignedTaskCount}`, icon: CheckCircle2, color: 'text-indigo-600 dark:text-indigo-400', bg: 'bg-indigo-50 dark:bg-indigo-500/10' },
           { label: 'Hours Logged This Week', value: `${totalHoursLogged}h`, icon: Clock, color: 'text-blue-600 dark:text-blue-400', bg: 'bg-blue-50 dark:bg-blue-500/10' },
           { label: 'Active Projects', value: `${activeProjectCount}`, icon: TrendingUp, color: 'text-emerald-600 dark:text-emerald-400', bg: 'bg-emerald-50 dark:bg-emerald-500/10' },
+          { label: 'Leave Balance', value: `${leaveRemaining} days`, icon: Umbrella, color: 'text-purple-600 dark:text-purple-400', bg: 'bg-purple-50 dark:bg-purple-500/10' },
         ].map((stat) => {
           const Icon = stat.icon
           return (
@@ -215,6 +307,129 @@ export const EmployeeDashboard = () => {
             </Card>
           )
         })}
+      </div>
+
+      {/* Quick Actions */}
+      <Card className="p-5 border-slate-200 dark:border-slate-800/80">
+        <h2 className="text-sm font-semibold text-slate-700 dark:text-slate-300 uppercase tracking-wider mb-4 flex items-center gap-2">
+          <Star className="w-4 h-4 text-amber-500" /> Quick Actions
+        </h2>
+        <div className="grid grid-cols-3 sm:grid-cols-6 gap-3">
+          {QUICK_ACTIONS.map((action) => {
+            const Icon = action.icon
+            return (
+              <NavLink
+                key={action.path}
+                to={action.path}
+                className={`flex flex-col items-center gap-2 p-3 rounded-xl ${action.bg} border border-slate-200 dark:border-slate-700/50 hover:scale-105 transition-transform cursor-pointer group`}
+              >
+                <div className={`w-8 h-8 rounded-lg flex items-center justify-center ${action.color}`}>
+                  <Icon className="w-4 h-4" />
+                </div>
+                <span className="text-[10px] font-semibold text-slate-600 dark:text-slate-400 text-center leading-tight">{action.label}</span>
+              </NavLink>
+            )
+          })}
+        </div>
+      </Card>
+
+      {/* Middle Row: Announcements + Upcoming Events */}
+      <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
+        {/* Latest Announcements Widget */}
+        <Card className="p-5 border-slate-200 dark:border-slate-800/80 space-y-3">
+          <div className="flex items-center justify-between">
+            <div className="flex items-center gap-2">
+              <Megaphone className="w-4 h-4 text-rose-500 dark:text-rose-400" />
+              <h2 className="text-sm font-semibold text-slate-900 dark:text-slate-200">Latest Announcements</h2>
+            </div>
+            <NavLink
+              to="/announcements"
+              className="text-xs text-purple-600 dark:text-purple-400 hover:underline font-medium flex items-center gap-1"
+            >
+              View all <ChevronRight className="w-3 h-3" />
+            </NavLink>
+          </div>
+          {loadingWidgets ? (
+            <div className="space-y-2">
+              {[1, 2].map((i) => (
+                <div key={i} className="h-14 bg-slate-100 dark:bg-slate-800/50 rounded-xl animate-pulse" />
+              ))}
+            </div>
+          ) : announcements.length === 0 ? (
+            <div className="py-6 text-center text-xs text-slate-400 dark:text-slate-500">
+              <Megaphone className="w-6 h-6 mx-auto mb-2 opacity-30" />
+              No announcements yet.
+            </div>
+          ) : (
+            <div className="space-y-2">
+              {announcements.map((ann) => (
+                <div
+                  key={ann.id}
+                  className={`p-3 rounded-xl border ${priorityColors[ann.priority] || priorityColors['info']}`}
+                >
+                  <div className="flex items-start justify-between gap-2">
+                    <span className="text-xs font-semibold text-slate-800 dark:text-slate-200 flex-1">{ann.title}</span>
+                    <Badge variant={ann.priority === 'urgent' ? 'danger' : ann.priority === 'event' ? 'success' : 'neutral'}>
+                      {ann.priority || 'info'}
+                    </Badge>
+                  </div>
+                  {ann.body && (
+                    <p className="text-[11px] text-slate-500 dark:text-slate-400 mt-1 line-clamp-2">{ann.body}</p>
+                  )}
+                  <span className="text-[10px] text-slate-400 dark:text-slate-500 mt-1 block">{ann.author}</span>
+                </div>
+              ))}
+            </div>
+          )}
+        </Card>
+
+        {/* Upcoming Events Widget */}
+        <Card className="p-5 border-slate-200 dark:border-slate-800/80 space-y-3">
+          <div className="flex items-center justify-between">
+            <div className="flex items-center gap-2">
+              <MapPin className="w-4 h-4 text-indigo-500 dark:text-indigo-400" />
+              <h2 className="text-sm font-semibold text-slate-900 dark:text-slate-200">Upcoming Events & Holidays</h2>
+            </div>
+            <NavLink
+              to="/calendar"
+              className="text-xs text-purple-600 dark:text-purple-400 hover:underline font-medium flex items-center gap-1"
+            >
+              Calendar <ChevronRight className="w-3 h-3" />
+            </NavLink>
+          </div>
+          {loadingWidgets ? (
+            <div className="space-y-2">
+              {[1, 2, 3].map((i) => (
+                <div key={i} className="h-10 bg-slate-100 dark:bg-slate-800/50 rounded-xl animate-pulse" />
+              ))}
+            </div>
+          ) : upcomingEvents.length === 0 ? (
+            <div className="py-6 text-center text-xs text-slate-400 dark:text-slate-500">
+              <Calendar className="w-6 h-6 mx-auto mb-2 opacity-30" />
+              No upcoming events.
+            </div>
+          ) : (
+            <div className="space-y-2">
+              {upcomingEvents.map((evt) => {
+                const colorClass = eventTypeColors[evt.type] || eventTypeColors['meeting']
+                return (
+                  <div key={evt.id} className="flex items-center gap-3 p-2.5 rounded-xl bg-slate-50 dark:bg-slate-800/40 border border-slate-200 dark:border-slate-700/50">
+                    <div className={`w-8 h-8 rounded-lg flex items-center justify-center shrink-0 ${colorClass}`}>
+                      <Calendar className="w-4 h-4" />
+                    </div>
+                    <div className="flex-1 min-w-0">
+                      <span className="text-xs font-semibold text-slate-800 dark:text-slate-200 block truncate">{evt.title}</span>
+                      <span className="text-[10px] text-slate-500 dark:text-slate-400">
+                        {new Date(evt.date).toLocaleDateString('en-US', { month: 'short', day: 'numeric', year: 'numeric' })}
+                      </span>
+                    </div>
+                    <Badge variant="neutral" className="shrink-0 capitalize">{evt.type}</Badge>
+                  </div>
+                )
+              })}
+            </div>
+          )}
+        </Card>
       </div>
 
       {/* Today's Focus */}
@@ -283,15 +498,21 @@ export const EmployeeDashboard = () => {
               </div>
             )
           })}
+          {displayTasks.length === 0 && (
+            <div className="col-span-2 py-8 text-center text-xs text-slate-400 dark:text-slate-500">
+              <CheckCircle2 className="w-8 h-8 mx-auto mb-2 opacity-30" />
+              No tasks assigned yet.
+            </div>
+          )}
         </div>
       </Card>
 
-      {/* Quick Access Grid */}
+      {/* Quick Workspaces Grid */}
       <div>
         <h2 className="text-sm font-semibold text-slate-700 dark:text-slate-300 uppercase tracking-wider mb-4 flex items-center gap-2">
           <Star className="w-4 h-4 text-indigo-600 dark:text-indigo-400" /> Quick Workspaces
         </h2>
-        <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4">
+        <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4">
           {quickLinks.map((link) => {
             const Icon = link.icon
             const colors = colorMap[link.color]
@@ -317,4 +538,3 @@ export const EmployeeDashboard = () => {
     </div>
   )
 }
-

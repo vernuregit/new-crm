@@ -1,53 +1,75 @@
 import { create } from 'zustand'
+import { collection, query, orderBy, onSnapshot, doc, updateDoc, writeBatch, getDocs } from 'firebase/firestore'
+import { db } from '../../../shared/services/firebaseService'
 
-const DEMO_NOTIFICATIONS = [
-  {
-    notificationId: 'notif_1',
-    title: 'Payment Received',
-    message: 'Invoice INV-2024-001 ($11,000) was paid by Acme Corp.',
-    type: 'finance',
-    isRead: false,
-    createdAt: new Date(Date.now() - 3600000 * 2).toISOString(),
-    link: '/finance/invoices',
-  },
-  {
-    notificationId: 'notif_2',
-    title: 'New Lead Qualified',
-    message: 'Nexus Systems Tech was moved to Qualified stage ($120,000).',
-    type: 'crm',
-    isRead: false,
-    createdAt: new Date(Date.now() - 3600000 * 5).toISOString(),
-    link: '/crm/pipeline',
-  },
-  {
-    notificationId: 'notif_3',
-    title: 'Milestone Completed',
-    message: 'Phase 1 UI Design Tokens completed for SaaS Platform Redesign.',
-    type: 'project',
-    isRead: true,
-    createdAt: new Date(Date.now() - 86400000).toISOString(),
-    link: '/projects/list',
-  },
-]
-
-export const useNotificationStore = create((set) => ({
+export const useNotificationStore = create((set, get) => ({
   notifications: [],
   isOpen: false,
+  unsubscribe: null,
 
   setIsOpen: (isOpen) => set({ isOpen }),
   toggleOpen: () => set((state) => ({ isOpen: !state.isOpen })),
 
-  markAsRead: (notificationId) =>
+  fetchNotifications: (uid) => {
+    if (!uid) return
+
+    const { unsubscribe: currentUnsubscribe } = get()
+    if (currentUnsubscribe) {
+      currentUnsubscribe()
+    }
+
+    const notificationsRef = collection(db, 'notifications', uid, 'items')
+    const q = query(notificationsRef, orderBy('createdAt', 'desc'))
+
+    const unsubscribe = onSnapshot(q, (snapshot) => {
+      const fetchedNotifications = snapshot.docs.map((doc) => ({
+        notificationId: doc.id,
+        ...doc.data(),
+      }))
+      set({ notifications: fetchedNotifications })
+    })
+
+    set({ unsubscribe })
+  },
+
+  markAsRead: async (uid, notificationId) => {
+    // Optimistic update
     set((state) => ({
       notifications: state.notifications.map((n) =>
         n.notificationId === notificationId ? { ...n, isRead: true } : n
       ),
-    })),
+    }))
 
-  markAllAsRead: () =>
+    if (!uid) return
+    try {
+      const notifRef = doc(db, 'notifications', uid, 'items', notificationId)
+      await updateDoc(notifRef, { isRead: true })
+    } catch (error) {
+      console.error("Error marking notification as read:", error)
+    }
+  },
+
+  markAllAsRead: async (uid) => {
+    // Optimistic update
     set((state) => ({
       notifications: state.notifications.map((n) => ({ ...n, isRead: true })),
-    })),
+    }))
+
+    if (!uid) return
+    try {
+      const unreadNotifications = get().notifications.filter(n => !n.isRead)
+      if (unreadNotifications.length === 0) return
+
+      const batch = writeBatch(db)
+      unreadNotifications.forEach((n) => {
+        const notifRef = doc(db, 'notifications', uid, 'items', n.notificationId)
+        batch.update(notifRef, { isRead: true })
+      })
+      await batch.commit()
+    } catch (error) {
+      console.error("Error marking all notifications as read:", error)
+    }
+  },
 
   addNotification: (newNotif) =>
     set((state) => ({

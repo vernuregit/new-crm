@@ -1,5 +1,5 @@
-import React from 'react'
-import { NavLink } from 'react-router-dom'
+import React, { useState } from 'react'
+import { NavLink, useLocation } from 'react-router-dom'
 import {
   LayoutDashboard,
   FolderKanban,
@@ -10,29 +10,114 @@ import {
   CalendarDays,
   ChevronLeft,
   ChevronRight,
+  ChevronDown,
   LogOut,
   User,
-  Heart
+  Heart,
+  Bell,
+  Megaphone,
+  FileText,
+  Receipt,
+  Target,
+  LifeBuoy,
+  Building2,
 } from 'lucide-react'
 import haloLogo from '../../assets/halologo.png'
 import { useUIStore } from '../../stores/uiStore'
 import { useUserStore } from '../../stores/userStore'
 
-const NAV_ITEMS = [
-  { name: 'Dashboard', path: '/dashboard', icon: LayoutDashboard },
-  { name: 'Projects', path: '/projects/list', icon: FolderKanban },
-  { name: 'Sprint Tasks', path: '/tasks', icon: Briefcase },
-  { name: 'Work Timeline', path: '/timeline', icon: CalendarDays },
-  { name: 'Team Directory', path: '/directory', icon: Users },
-  { name: 'Attendance', path: '/attendance', icon: CheckCircle2 },
-  { name: 'Leave & PTO', path: '/team/leave', icon: Calendar },
-  { name: 'Wellness', path: '/wellness', icon: Heart },
-  { name: 'My Profile', path: '/profile', icon: User },
+const NAV_GROUPS = [
+  {
+    key: 'workspace',
+    label: 'Workspace',
+    icon: LayoutDashboard,
+    items: [
+      { name: 'Dashboard', path: '/dashboard', icon: LayoutDashboard },
+    ],
+  },
+  {
+    key: 'projects',
+    label: 'Projects',
+    icon: FolderKanban,
+    items: [
+      { name: 'Projects', path: '/projects/list', icon: FolderKanban },
+      { name: 'Sprint Tasks', path: '/tasks', icon: Briefcase },
+      { name: 'Work Timeline', path: '/timeline', icon: CalendarDays },
+    ],
+  },
+  {
+    key: 'team',
+    label: 'Team',
+    icon: Users,
+    items: [
+      { name: 'Team Directory', path: '/directory', icon: Users },
+      { name: 'Attendance', path: '/attendance', icon: CheckCircle2 },
+      { name: 'Leave & PTO', path: '/team/leave', icon: Calendar },
+    ],
+  },
+  {
+    key: 'hr',
+    label: 'HR & Finance',
+    icon: Receipt,
+    items: [
+      { name: 'My Payslips', path: '/payslips', icon: Receipt },
+      { name: 'Documents', path: '/documents', icon: FileText },
+    ],
+  },
+  {
+    key: 'personal',
+    label: 'Personal',
+    icon: Target,
+    items: [
+      { name: 'My Goals', path: '/goals', icon: Target },
+      { name: 'Wellness', path: '/wellness', icon: Heart },
+      { name: 'My Profile', path: '/profile', icon: User },
+    ],
+  },
+  {
+    key: 'company',
+    label: 'Company',
+    icon: Building2,
+    items: [
+      { name: 'Announcements', path: '/announcements', icon: Megaphone },
+      { name: 'Company Calendar', path: '/calendar', icon: Calendar },
+    ],
+  },
+  {
+    key: 'support',
+    label: 'Support',
+    icon: LifeBuoy,
+    items: [
+      { name: 'Notifications', path: '/notifications', icon: Bell },
+      { name: 'Help Desk', path: '/helpdesk', icon: LifeBuoy },
+    ],
+  },
 ]
 
 export const EmployeeSidebar = () => {
   const { sidebarOpen, toggleSidebar } = useUIStore()
   const { user, userDoc, clearUser } = useUserStore()
+  const location = useLocation()
+
+  // Determine which group contains the active route (auto-expand it)
+  const getInitialExpanded = () => {
+    const expanded = {}
+    NAV_GROUPS.forEach((g) => {
+      if (g.items.some((item) => location.pathname.startsWith(item.path))) {
+        expanded[g.key] = true
+      }
+    })
+    // Default expand workspace
+    expanded['workspace'] = true
+    return expanded
+  }
+
+  const [expandedGroups, setExpandedGroups] = useState(getInitialExpanded)
+
+  const toggleGroup = (key) => {
+    if (!sidebarOpen) return // In collapsed mode, don't toggle (all hidden)
+    setExpandedGroups((prev) => ({ ...prev, [key]: !prev[key] }))
+  }
 
   const displayName = userDoc?.displayName || user?.displayName || 'Employee Staff'
   const systemRoles = new Set(['employee', 'admin', 'owner', 'superadmin', 'client'])
@@ -40,12 +125,16 @@ export const EmployeeSidebar = () => {
   const jobRole = systemRoles.has(String(rawRole).toLowerCase().trim())
     ? ''
     : String(rawRole).trim()
-  const roleLabel = jobRole || 'Employee   EMPLOYEE PORTAL'
+  const roleLabel = jobRole || 'Employee Portal'
+
+  const isGroupActive = (group) =>
+    group.items.some((item) => location.pathname.startsWith(item.path))
 
   return (
     <aside
-      className={`fixed top-0 left-0 bottom-0 z-40 bg-white dark:bg-[#12151E] border-r border-slate-200 dark:border-purple-900/40 transition-all duration-300 flex flex-col ${sidebarOpen ? 'w-64' : 'w-20'
-        }`}
+      className={`fixed top-0 left-0 bottom-0 z-40 bg-white dark:bg-[#12151E] border-r border-slate-200 dark:border-purple-900/40 transition-all duration-300 flex flex-col ${
+        sidebarOpen ? 'w-64' : 'w-20'
+      }`}
     >
       {/* Brand Header */}
       <div className="h-16 flex items-center justify-between px-3 border-b border-slate-200 dark:border-purple-900/40">
@@ -73,24 +162,89 @@ export const EmployeeSidebar = () => {
         </button>
       </div>
 
-      {/* Nav Links */}
-      <nav className="flex-1 px-3 py-4 space-y-1.5 overflow-y-auto">
-        {NAV_ITEMS.map((item) => {
-          const Icon = item.icon
+      {/* Nav Groups */}
+      <nav className="flex-1 px-2 py-3 space-y-0.5 overflow-y-auto">
+        {NAV_GROUPS.map((group) => {
+          const GroupIcon = group.icon
+          const isExpanded = expandedGroups[group.key]
+          const groupActive = isGroupActive(group)
+          const isSingleItem = group.items.length === 1
+
+          // Single-item groups (Dashboard): render as direct NavLink
+          if (isSingleItem) {
+            const item = group.items[0]
+            const Icon = item.icon
+            return (
+              <NavLink
+                key={item.path}
+                to={item.path}
+                className={({ isActive }) =>
+                  `flex items-center gap-3 px-3 py-2.5 rounded-xl text-sm font-medium transition-all mx-1 ${
+                    isActive
+                      ? 'bg-purple-50 dark:bg-purple-600/15 text-purple-600 dark:text-purple-400 border border-purple-200 dark:border-purple-500/30 shadow-sm'
+                      : 'text-slate-600 dark:text-slate-400 hover:text-slate-900 dark:hover:text-slate-200 hover:bg-slate-100 dark:hover:bg-slate-800/50'
+                  }`
+                }
+                title={!sidebarOpen ? item.name : undefined}
+              >
+                <Icon className="w-5 h-5 shrink-0" />
+                {sidebarOpen && <span className="truncate">{item.name}</span>}
+              </NavLink>
+            )
+          }
+
           return (
-            <NavLink
-              key={item.path}
-              to={item.path}
-              className={({ isActive }) =>
-                `flex items-center gap-3 px-3 py-2.5 rounded-xl text-sm font-medium transition-all ${isActive
-                  ? 'bg-purple-50 dark:bg-purple-600/15 text-purple-600 dark:text-purple-400 border border-purple-200 dark:border-purple-500/30 shadow-sm'
-                  : 'text-slate-600 dark:text-slate-400 hover:text-slate-900 dark:hover:text-slate-200 hover:bg-slate-100 dark:hover:bg-slate-800/50'
-                }`
-              }
-            >
-              <Icon className="w-5 h-5 shrink-0" />
-              {sidebarOpen && <span className="truncate">{item.name}</span>}
-            </NavLink>
+            <div key={group.key} className="mx-1">
+              {/* Group Header Button */}
+              <button
+                onClick={() => toggleGroup(group.key)}
+                title={!sidebarOpen ? group.label : undefined}
+                className={`w-full flex items-center gap-3 px-3 py-2.5 rounded-xl text-sm font-medium transition-all cursor-pointer ${
+                  groupActive && !isExpanded
+                    ? 'bg-purple-50 dark:bg-purple-600/15 text-purple-600 dark:text-purple-400 border border-purple-200 dark:border-purple-500/30 shadow-sm'
+                    : groupActive && isExpanded
+                    ? 'text-purple-600 dark:text-purple-400'
+                    : 'text-slate-600 dark:text-slate-400 hover:text-slate-900 dark:hover:text-slate-200 hover:bg-slate-100 dark:hover:bg-slate-800/50'
+                }`}
+              >
+                <GroupIcon className="w-5 h-5 shrink-0" />
+                {sidebarOpen && (
+                  <>
+                    <span className="flex-1 truncate text-left">{group.label}</span>
+                    <ChevronDown
+                      className={`w-3.5 h-3.5 shrink-0 transition-transform duration-200 ${
+                        isExpanded ? 'rotate-180' : ''
+                      }`}
+                    />
+                  </>
+                )}
+              </button>
+
+              {/* Group Children */}
+              {sidebarOpen && isExpanded && (
+                <div className="ml-3 mt-0.5 pl-3 border-l border-slate-200 dark:border-purple-900/30 space-y-0.5 pb-1">
+                  {group.items.map((item) => {
+                    const Icon = item.icon
+                    return (
+                      <NavLink
+                        key={item.path}
+                        to={item.path}
+                        className={({ isActive }) =>
+                          `flex items-center gap-2.5 px-2.5 py-2 rounded-lg text-xs font-medium transition-all ${
+                            isActive
+                              ? 'bg-purple-50 dark:bg-purple-600/15 text-purple-600 dark:text-purple-400 border border-purple-200 dark:border-purple-500/30 shadow-sm'
+                              : 'text-slate-500 dark:text-slate-400 hover:text-slate-900 dark:hover:text-slate-200 hover:bg-slate-100 dark:hover:bg-slate-800/50'
+                          }`
+                        }
+                      >
+                        <Icon className="w-4 h-4 shrink-0" />
+                        <span className="truncate">{item.name}</span>
+                      </NavLink>
+                    )
+                  })}
+                </div>
+              )}
+            </div>
           )
         })}
       </nav>
@@ -126,4 +280,3 @@ export const EmployeeSidebar = () => {
     </aside>
   )
 }
-

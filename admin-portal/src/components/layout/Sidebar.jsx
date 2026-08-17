@@ -1,5 +1,5 @@
-import React from 'react'
-import { NavLink } from 'react-router-dom'
+import React, { useState } from 'react'
+import { NavLink, useLocation } from 'react-router-dom'
 import {
   LayoutDashboard,
   Users,
@@ -13,87 +13,261 @@ import {
   Settings,
   ChevronLeft,
   ChevronRight,
-  Shield,
+  ChevronDown,
   Layers,
   Clock,
   FileText,
   Download,
   FolderKanban,
   CheckCircle2,
-  Crown,
-  User
+  User,
+  Building,
+  BarChart2,
+  Calendar,
+  LifeBuoy,
 } from 'lucide-react'
 import haloLogo from '../../assets/halologo.png'
 import { useUIStore } from '../../stores/uiStore'
 import { useUserStore } from '../../stores/userStore'
 
+// ─── Role-based Nav Group Definitions ────────────────────────────────────────
+
+const CLIENT_GROUPS = [
+  {
+    key: 'portal',
+    label: 'Client Portal',
+    icon: Layers,
+    items: [
+      { name: 'Portal Overview', path: '/portal', icon: Layers },
+      { name: 'My Projects', path: '/portal/projects', icon: Briefcase },
+      { name: 'Invoices & Receipts', path: '/portal/invoices', icon: FileText },
+      { name: 'Deliverables & Files', path: '/portal/files', icon: Download },
+    ],
+  },
+]
+
+const EMPLOYEE_GROUPS = [
+  {
+    key: 'workspace',
+    label: 'Workspace',
+    icon: LayoutDashboard,
+    items: [
+      { name: 'Dashboard', path: '/dashboard', icon: LayoutDashboard },
+    ],
+  },
+  {
+    key: 'projects',
+    label: 'Projects',
+    icon: Briefcase,
+    items: [
+      { name: 'Sprint Task Board', path: '/projects/tasks', icon: Briefcase },
+      { name: 'Time Tracking', path: '/projects/time', icon: Clock },
+    ],
+  },
+  {
+    key: 'team',
+    label: 'Team',
+    icon: Users,
+    items: [
+      { name: 'Team Directory', path: '/team/employees', icon: Users },
+      { name: 'Attendance', path: '/team/attendance', icon: CheckCircle2 },
+    ],
+  },
+  {
+    key: 'knowledge',
+    label: 'Knowledge',
+    icon: BookOpen,
+    items: [
+      { name: 'Knowledge Base', path: '/knowledge', icon: BookOpen },
+    ],
+  },
+]
+
+const ADMIN_GROUPS = [
+  {
+    key: 'overview',
+    label: 'Overview',
+    icon: LayoutDashboard,
+    items: [
+      { name: 'Dashboard', path: '/dashboard', icon: LayoutDashboard },
+    ],
+  },
+  {
+    key: 'crm',
+    label: 'CRM & Pipeline',
+    icon: Users,
+    items: [
+      { name: 'CRM Pipeline', path: '/crm/pipeline', icon: Users },
+      { name: 'Leads', path: '/crm/leads', icon: UserCheck },
+      { name: 'Contacts', path: '/crm/contacts', icon: User },
+    ],
+  },
+  {
+    key: 'projects',
+    label: 'Projects',
+    icon: Briefcase,
+    items: [
+      { name: 'Project List', path: '/projects/list', icon: FolderKanban },
+      { name: 'Task Board', path: '/projects/tasks', icon: Briefcase },
+      { name: 'Time Tracker', path: '/projects/time', icon: Clock },
+    ],
+  },
+  {
+    key: 'finance',
+    label: 'Finance',
+    icon: DollarSign,
+    items: [
+      { name: 'Invoices', path: '/finance/invoices', icon: FileText },
+      { name: 'Expenses', path: '/finance/expenses', icon: DollarSign },
+      { name: 'Recurring Billing', path: '/finance/recurring', icon: Calendar },
+    ],
+  },
+  {
+    key: 'team',
+    label: 'Team Management',
+    icon: UserCheck,
+    items: [
+      { name: 'Employees', path: '/team/employees', icon: Users },
+      { name: 'Announcements', path: '/team/announcements', icon: Megaphone },
+      { name: 'Help Desk', path: '/team/helpdesk', icon: LifeBuoy },
+      { name: 'Attendance', path: '/team/attendance', icon: CheckCircle2 },
+      { name: 'Leave Management', path: '/team/leave', icon: Calendar },
+      { name: 'Holidays', path: '/team/holidays', icon: Calendar },
+      { name: 'Payslips', path: '/team/payslips', icon: FileText },
+      { name: 'Employee Documents', path: '/team/documents', icon: FileText },
+      { name: 'WFH Policy', path: '/team/wfh-policy', icon: Building },
+      { name: 'Timelines', path: '/team/timeline', icon: Clock },
+      { name: 'Monthly Reports', path: '/team/reports', icon: BarChart2 },
+    ],
+  },
+  {
+    key: 'marketing',
+    label: 'Marketing',
+    icon: Megaphone,
+    items: [
+      { name: 'Campaigns', path: '/marketing/campaigns', icon: Megaphone },
+      { name: 'Content Calendar', path: '/marketing/content', icon: Calendar },
+      { name: 'UTM Builder', path: '/marketing/utm-builder', icon: GitBranch },
+    ],
+  },
+  {
+    key: 'kpi',
+    label: 'Business Health',
+    icon: Activity,
+    items: [
+      { name: 'KPI Dashboard', path: '/kpi', icon: Activity },
+      { name: 'KPI Builder', path: '/kpi/builder', icon: GitBranch },
+    ],
+  },
+  {
+    key: 'reports',
+    label: 'Reports',
+    icon: BarChart2,
+    items: [
+      { name: 'Sales Report', path: '/reports/sales', icon: BarChart2 },
+      { name: 'Finance Report', path: '/reports/finance', icon: DollarSign },
+      { name: 'Project Report', path: '/reports/projects', icon: Briefcase },
+    ],
+  },
+  {
+    key: 'workflows',
+    label: 'Workflows',
+    icon: GitBranch,
+    items: [
+      { name: 'Workflow List', path: '/workflows', icon: GitBranch },
+      { name: 'Builder', path: '/workflows/builder', icon: Settings },
+      { name: 'History', path: '/workflows/history', icon: Clock },
+    ],
+  },
+  {
+    key: 'knowledge',
+    label: 'Knowledge Base',
+    icon: BookOpen,
+    items: [
+      { name: 'Knowledge Base', path: '/knowledge', icon: BookOpen },
+    ],
+  },
+  {
+    key: 'settings',
+    label: 'Settings',
+    icon: Settings,
+    items: [
+      { name: 'My Profile', path: '/settings/profile', icon: User },
+      { name: 'Org Settings', path: '/settings/org', icon: Building },
+      { name: 'Roles', path: '/settings/roles', icon: UserCheck },
+      { name: 'Integrations', path: '/settings/integrations', icon: GitBranch },
+    ],
+  },
+]
+
 export const Sidebar = () => {
   const { sidebarOpen, toggleSidebar } = useUIStore()
   const { claims, user, userDoc } = useUserStore()
+  const location = useLocation()
 
   const userRole = claims?.role || 'admin'
   const userTier = claims?.tier || 'company'
-  const displayRole = (userRole === 'owner' || userRole === 'admin') ? 'ADMIN' : userRole.toUpperCase()
+  const displayRole =
+    userRole === 'owner' || userRole === 'admin' ? 'ADMIN' : userRole.toUpperCase()
 
-  // Dynamic Navigation Items Filtered by Role
-  const getNavItemsForRole = () => {
-    // 1. Client Role Menu
-    if (userTier === 'client' || userRole === 'client') {
-      return [
-        { name: 'Portal Overview', path: '/portal', icon: Layers },
-        { name: 'My Projects', path: '/portal/projects', icon: Briefcase },
-        { name: 'Invoices & Receipts', path: '/portal/invoices', icon: FileText },
-        { name: 'Deliverables & Files', path: '/portal/files', icon: Download },
-      ]
-    }
-
-    // 2. Employee / EMPLOYEERole Menu
-    if (userRole === 'employee') {
-      return [
-        { name: 'Dashboard', path: '/dashboard', icon: LayoutDashboard },
-        { name: 'Sprint Task Board', path: '/projects/tasks', icon: Briefcase },
-        { name: 'Time Tracking', path: '/projects/time', icon: Clock },
-        { name: 'Team Directory', path: '/team/employees', icon: Users },
-        { name: 'Attendance', path: '/team/attendance', icon: CheckCircle2 },
-        { name: 'Knowledge Base', path: '/knowledge', icon: BookOpen },
-      ]
-    }
-
-    // 3. Admin / Founder Role Menu (Full Executive Suite)
-    return [
-      { name: 'Dashboard', path: '/dashboard', icon: LayoutDashboard },
-      { name: 'CRM & Pipeline', path: '/crm', icon: Users },
-      { name: 'Projects Management', path: '/projects', icon: Briefcase },
-      { name: 'Finance & Invoicing', path: '/finance', icon: DollarSign },
-      { name: 'Team Management', path: '/team', icon: UserCheck },
-      { name: 'Marketing Hub', path: '/marketing', icon: Megaphone },
-      { name: 'Business Health', path: '/kpi', icon: Activity },
-      { name: 'Workflows', path: '/workflows', icon: GitBranch },
-      { name: 'Knowledge Base', path: '/knowledge', icon: BookOpen },
-      { name: 'My Profile', path: '/settings/profile', icon: User },
-    ]
+  const getNavGroups = () => {
+    if (userTier === 'client' || userRole === 'client') return CLIENT_GROUPS
+    if (userRole === 'employee') return EMPLOYEE_GROUPS
+    return ADMIN_GROUPS
   }
 
-  const navItems = getNavItemsForRole()
+  const navGroups = getNavGroups()
+
+  const getInitialExpanded = () => {
+    const expanded = {}
+    navGroups.forEach((g) => {
+      if (g.items.some((item) => location.pathname.startsWith(item.path))) {
+        expanded[g.key] = true
+      }
+    })
+    // Always expand the first group
+    if (navGroups.length > 0) expanded[navGroups[0].key] = true
+    return expanded
+  }
+
+  const [expandedGroups, setExpandedGroups] = useState(getInitialExpanded)
+
+  const toggleGroup = (key) => {
+    if (!sidebarOpen) return
+    setExpandedGroups((prev) => ({ ...prev, [key]: !prev[key] }))
+  }
 
   const getRoleLabel = () => {
-    if (userTier === 'client' || userRole === 'client') return { label: 'Client Workspace', color: 'text-emerald-400 bg-emerald-500/10 border-emerald-500/20' }
-    if (userRole === 'employee') return { label: 'Employee Portal', color: 'text-purple-400 bg-purple-500/10 border-purple-500/20' }
-    return { label: 'Admin Executive Suite', color: 'text-indigo-600 dark:text-indigo-400 bg-indigo-50 dark:bg-indigo-500/10 border-indigo-200 dark:border-indigo-500/20' }
+    if (userTier === 'client' || userRole === 'client')
+      return { label: 'Client Workspace', color: 'text-emerald-400 bg-emerald-500/10 border-emerald-500/20' }
+    if (userRole === 'employee')
+      return { label: 'Employee Portal', color: 'text-purple-400 bg-purple-500/10 border-purple-500/20' }
+    return {
+      label: 'Admin Executive Suite',
+      color: 'text-indigo-600 dark:text-indigo-400 bg-indigo-50 dark:bg-indigo-500/10 border-indigo-200 dark:border-indigo-500/20',
+    }
   }
 
   const roleMeta = getRoleLabel()
 
+  const isGroupActive = (group) =>
+    group.items.some((item) => location.pathname.startsWith(item.path))
+
   return (
     <aside
-      className={`fixed top-0 left-0 bottom-0 z-40 bg-white dark:bg-[#12151E] border-r border-slate-200 dark:border-slate-800/80 transition-all duration-300 flex flex-col ${sidebarOpen ? 'w-64' : 'w-20'
-        }`}
+      className={`fixed top-0 left-0 bottom-0 z-40 bg-white dark:bg-[#12151E] border-r border-slate-200 dark:border-slate-800/80 transition-all duration-300 flex flex-col ${
+        sidebarOpen ? 'w-64' : 'w-20'
+      }`}
     >
       {/* Brand Header */}
       <div className="h-16 flex items-center justify-between px-3 border-b border-slate-200 dark:border-slate-800/80">
         <div className="flex items-center gap-2 overflow-hidden">
           <div className="w-11 h-11 bg-white p-1 rounded-full border border-slate-200 dark:border-slate-700/60 shadow-sm flex items-center justify-center shrink-0">
-            <img src={haloLogo} alt="The Halo Effect Consulting" className="w-full h-full object-contain rounded-full" />
+            <img
+              src={haloLogo}
+              alt="The Halo Effect Consulting"
+              className="w-full h-full object-contain rounded-full"
+            />
           </div>
           {sidebarOpen && (
             <div className="flex flex-col leading-tight overflow-hidden">
@@ -115,37 +289,105 @@ export const Sidebar = () => {
         </button>
       </div>
 
-      {/* Nav Links Filtered by Role */}
-      <nav className="flex-1 px-3 py-4 space-y-1.5 overflow-y-auto">
-        {navItems.map((item) => {
-          const Icon = item.icon
+      {/* Nav Groups */}
+      <nav className="flex-1 px-2 py-3 space-y-0.5 overflow-y-auto">
+        {navGroups.map((group) => {
+          const GroupIcon = group.icon
+          const isExpanded = expandedGroups[group.key]
+          const groupActive = isGroupActive(group)
+          const isSingleItem = group.items.length === 1
+
+          if (isSingleItem) {
+            const item = group.items[0]
+            const Icon = item.icon
+            return (
+              <NavLink
+                key={item.path}
+                to={item.path}
+                title={!sidebarOpen ? item.name : undefined}
+                className={({ isActive }) =>
+                  `flex items-center gap-3 px-3 py-2.5 rounded-xl text-sm font-medium transition-all mx-1 ${
+                    isActive
+                      ? 'bg-indigo-50 dark:bg-indigo-600/15 text-indigo-600 dark:text-indigo-400 border border-indigo-200 dark:border-indigo-500/30 shadow-sm'
+                      : 'text-slate-600 dark:text-slate-400 hover:text-slate-900 dark:hover:text-slate-200 hover:bg-slate-100 dark:hover:bg-slate-800/50'
+                  }`
+                }
+              >
+                <Icon className="w-5 h-5 shrink-0" />
+                {sidebarOpen && <span className="truncate">{item.name}</span>}
+              </NavLink>
+            )
+          }
+
           return (
-            <NavLink
-              key={item.path}
-              to={item.path}
-              className={({ isActive }) =>
-                `flex items-center gap-3 px-3 py-2.5 rounded-xl text-sm font-medium transition-all ${isActive
-                  ? 'bg-indigo-50 dark:bg-indigo-600/15 text-indigo-600 dark:text-indigo-400 border border-indigo-200 dark:border-indigo-500/30 shadow-sm'
-                  : 'text-slate-600 dark:text-slate-400 hover:text-slate-900 dark:hover:text-slate-200 hover:bg-slate-100 dark:hover:bg-slate-800/50'
-                }`
-              }
-            >
-              <Icon className="w-5 h-5 shrink-0" />
-              {sidebarOpen && <span className="truncate">{item.name}</span>}
-            </NavLink>
+            <div key={group.key} className="mx-1">
+              <button
+                onClick={() => toggleGroup(group.key)}
+                title={!sidebarOpen ? group.label : undefined}
+                className={`w-full flex items-center gap-3 px-3 py-2.5 rounded-xl text-sm font-medium transition-all cursor-pointer ${
+                  groupActive && !isExpanded
+                    ? 'bg-indigo-50 dark:bg-indigo-600/15 text-indigo-600 dark:text-indigo-400 border border-indigo-200 dark:border-indigo-500/30 shadow-sm'
+                    : groupActive && isExpanded
+                    ? 'text-indigo-600 dark:text-indigo-400'
+                    : 'text-slate-600 dark:text-slate-400 hover:text-slate-900 dark:hover:text-slate-200 hover:bg-slate-100 dark:hover:bg-slate-800/50'
+                }`}
+              >
+                <GroupIcon className="w-5 h-5 shrink-0" />
+                {sidebarOpen && (
+                  <>
+                    <span className="flex-1 truncate text-left">{group.label}</span>
+                    <ChevronDown
+                      className={`w-3.5 h-3.5 shrink-0 transition-transform duration-200 ${
+                        isExpanded ? 'rotate-180' : ''
+                      }`}
+                    />
+                  </>
+                )}
+              </button>
+
+              {sidebarOpen && isExpanded && (
+                <div className="ml-3 mt-0.5 pl-3 border-l border-slate-200 dark:border-slate-700/60 space-y-0.5 pb-1">
+                  {group.items.map((item) => {
+                    const Icon = item.icon
+                    return (
+                      <NavLink
+                        key={item.path}
+                        to={item.path}
+                        className={({ isActive }) =>
+                          `flex items-center gap-2.5 px-2.5 py-2 rounded-lg text-xs font-medium transition-all ${
+                            isActive
+                              ? 'bg-indigo-50 dark:bg-indigo-600/15 text-indigo-600 dark:text-indigo-400 border border-indigo-200 dark:border-indigo-500/30 shadow-sm'
+                              : 'text-slate-500 dark:text-slate-400 hover:text-slate-900 dark:hover:text-slate-200 hover:bg-slate-100 dark:hover:bg-slate-800/50'
+                          }`
+                        }
+                      >
+                        <Icon className="w-4 h-4 shrink-0" />
+                        <span className="truncate">{item.name}</span>
+                      </NavLink>
+                    )
+                  })}
+                </div>
+              )}
+            </div>
           )
         })}
       </nav>
 
-      {/* Footer / Active Role Indicator Badge */}
+      {/* Footer / Role Indicator */}
       <div className="p-3 border-t border-slate-200 dark:border-slate-800/80">
-        <div className={`flex items-center gap-3 p-2 rounded-xl bg-slate-50 dark:bg-slate-800/40 border border-slate-200 dark:border-slate-800 ${!sidebarOpen && 'justify-center'}`}>
+        <div
+          className={`flex items-center gap-3 p-2 rounded-xl bg-slate-50 dark:bg-slate-800/40 border border-slate-200 dark:border-slate-800 ${
+            !sidebarOpen && 'justify-center'
+          }`}
+        >
           <div className="w-8 h-8 rounded-lg bg-indigo-100 dark:bg-indigo-500/20 text-indigo-600 dark:text-indigo-400 flex items-center justify-center font-bold text-xs shrink-0">
             {(userDoc?.displayName || user?.displayName || userRole).charAt(0).toUpperCase()}
           </div>
           {sidebarOpen && (
             <div className="flex flex-col min-w-0">
-              <span className="text-xs font-semibold text-slate-800 dark:text-slate-200 truncate">{userDoc?.displayName || user?.displayName || 'Acme Executive'}</span>
+              <span className="text-xs font-semibold text-slate-800 dark:text-slate-200 truncate">
+                {userDoc?.displayName || user?.displayName || 'Acme Executive'}
+              </span>
               <span className={`text-[10px] font-bold px-1.5 py-0.5 rounded-md border mt-0.5 ${roleMeta.color} truncate`}>
                 {roleMeta.label}
               </span>
@@ -156,4 +398,3 @@ export const Sidebar = () => {
     </aside>
   )
 }
-
