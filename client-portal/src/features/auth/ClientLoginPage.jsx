@@ -7,6 +7,7 @@ import { Card } from '../../components/ui/Card'
 import { useUserStore } from '../../stores/userStore'
 import haloLogo from '../../assets/halologo.png'
 import { loginWithEmail, signupWithEmail, fetchCustomClaims } from '../../shared/services/authService'
+import { getClientOnboardingDoc } from '../../shared/services/onboardingService'
 
 export const ClientLoginPage = () => {
   const navigate = useNavigate()
@@ -35,12 +36,27 @@ export const ClientLoginPage = () => {
     try {
       const firebaseUser = await loginWithEmail(email, password)
       const claims = await fetchCustomClaims(firebaseUser)
+      const onboardingDoc = await getClientOnboardingDoc(firebaseUser.uid)
+
+      const userDocData = {
+        uid: firebaseUser.uid,
+        email: firebaseUser.email,
+        onboardingStatus: onboardingDoc?.onboardingStatus || 'pending_documents',
+        companyName: onboardingDoc?.companyName || '',
+        ...onboardingDoc,
+      }
+
       setUser(
         firebaseUser,
-        null,
+        userDocData,
         { orgId: 'org_real', role: 'client', tier: 'client', ...claims }
       )
-      navigate('/portal')
+
+      if (onboardingDoc?.onboardingStatus === 'approved') {
+        navigate('/portal')
+      } else {
+        navigate('/onboarding')
+      }
     } catch (err) {
       console.error('Client Auth error:', err)
       if (err.code === 'auth/wrong-password' || err.code === 'auth/invalid-credential') {

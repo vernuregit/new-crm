@@ -2,6 +2,7 @@ import React from 'react'
 import { createBrowserRouter, Navigate } from 'react-router-dom'
 import { AppShell } from './components/layout/AppShell'
 import { ClientLoginPage } from './features/auth/ClientLoginPage'
+import { ClientOnboardingGate } from './features/auth/ClientOnboardingGate'
 import { ClientPortal } from './features/portal/ClientPortal'
 import { ClientProjects } from './features/portal/ClientProjects'
 import { ClientInvoices } from './features/portal/ClientInvoices'
@@ -12,6 +13,10 @@ export const router = createBrowserRouter([
   {
     path: '/login',
     element: <ClientLoginPage />,
+  },
+  {
+    path: '/onboarding',
+    element: <ClientOnboardingGate />,
   },
   {
     path: '/',

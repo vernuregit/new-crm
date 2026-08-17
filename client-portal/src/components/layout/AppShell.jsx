@@ -7,11 +7,21 @@ import { useUserStore } from '../../stores/userStore'
 
 export const AppShell = () => {
   const { sidebarOpen } = useUIStore()
-  const { user } = useUserStore()
+  const { user, userDoc } = useUserStore()
 
   // Redirect to login if not authenticated
   if (!user) {
     return <Navigate to="/login" replace />
+  }
+
+  // Check Onboarding & Admin Approval Gate
+  const isApproved =
+    userDoc?.onboardingStatus === 'approved' ||
+    localStorage.getItem(`onboarding_status_${user.uid}`) === 'approved'
+
+  // If user has not been approved by admin, strictly redirect to /onboarding
+  if (!isApproved) {
+    return <Navigate to="/onboarding" replace />
   }
 
   return (

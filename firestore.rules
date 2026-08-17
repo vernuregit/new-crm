@@ -37,6 +37,12 @@ service cloud.firestore {
       allow write: if isAuthenticated() && request.auth.token.tier != 'client';
     }
 
+    // ─── Client Onboarding & Compliance Documents ────────────────────
+    match /clientOnboarding/{uid} {
+      allow read: if isOwner(uid) || isAdmin();
+      allow write: if isOwner(uid) || isAdmin();
+    }
+
     // ─── Attendance & Timeline ────────────────────────────────────────
     match /attendanceLogs/{logId} {
       allow read: if isAuthenticated();

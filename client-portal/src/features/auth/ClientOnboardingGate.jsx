@@ -1,0 +1,711 @@
+import React, { useState, useEffect } from 'react'
+import { useNavigate } from 'react-router-dom'
+import {
+  Shield,
+  FileCheck2,
+  UploadCloud,
+  CreditCard,
+  CheckCircle2,
+  Clock,
+  AlertTriangle,
+  ArrowRight,
+  ArrowLeft,
+  RefreshCw,
+  LogOut,
+  Building,
+  Check,
+  FileText,
+  Lock,
+} from 'lucide-react'
+import { Card } from '../../components/ui/Card'
+import { Button } from '../../components/ui/Button'
+import { Input } from '../../components/ui/Input'
+import { Badge } from '../../components/ui/Badge'
+import { Spinner } from '../../components/ui/Spinner'
+import { SignaturePad } from '../../components/ui/SignaturePad'
+import { DocumentUploadDropzone } from '../../components/ui/DocumentUploadDropzone'
+import { useUserStore } from '../../stores/userStore'
+import haloLogo from '../../assets/halologo.png'
+import {
+  DEFAULT_AGREEMENTS,
+  REQUIRED_DOCUMENT_TYPES,
+  getClientOnboardingDoc,
+  submitClientOnboarding,
+} from '../../shared/services/onboardingService'
+import { logoutUser } from '../../shared/services/authService'
+
+export const ClientOnboardingGate = () => {
+  const navigate = useNavigate()
+  const { user, userDoc, setUser, clearUser } = useUserStore()
+
+  const [loading, setLoading] = useState(false)
+  const [submitting, setSubmitting] = useState(false)
+  const [step, setStep] = useState(1) // 1: Signatures, 2: Documents, 3: Billing, 4: Review
+
+  // Onboarding Status State
+  const [onboardingData, setOnboardingData] = useState(null)
+  const [onboardingStatus, setOnboardingStatus] = useState('pending_documents')
+  const [rejectionReason, setRejectionReason] = useState('')
+
+  // Form Data
+  const [companyName, setCompanyName] = useState('')
+  const [billingEmail, setBillingEmail] = useState('')
+  const [billingAddress, setBillingAddress] = useState('')
+  const [taxId, setTaxId] = useState('')
+  const [paymentMethod, setPaymentMethod] = useState('ach')
+  const [signerPhone, setSignerPhone] = useState('')
+
+  // Agreements State: { msa: { signed: true, ... }, nda: ... }
+  const [agreements, setAgreements] = useState({})
+
+  // Documents State: { incorporationCertificate: { fileName: ... }, taxDocument: ... }
+  const [documents, setDocuments] = useState({})
+
+  const [errorMsg, setErrorMsg] = useState('')
+
+  // Load existing onboarding status
+  const loadStatus = async () => {
+    if (!user?.uid) {
+      navigate('/login')
+      return
+    }
+
+    try {
+      const data = await getClientOnboardingDoc(user.uid)
+      if (data) {
+        setOnboardingData(data)
+        const status = data.onboardingStatus || 'pending_documents'
+        setOnboardingStatus(status)
+        setRejectionReason(data.rejectionReason || '')
+        setCompanyName(data.companyName || userDoc?.companyName || '')
+        setAgreements(data.agreements || {})
+        setDocuments(data.documents || {})
+
+        if (data.billingInfo) {
+          setBillingEmail(data.billingInfo.billingEmail || user.email || '')
+          setBillingAddress(data.billingInfo.billingAddress || '')
+          setTaxId(data.billingInfo.taxId || '')
+          setPaymentMethod(data.billingInfo.paymentMethod || 'ach')
+          setSignerPhone(data.billingInfo.signerPhone || '')
+        } else {
+          setBillingEmail(user.email || '')
+        }
+
+        // If approved, update store and localStorage before navigating to prevent AppShell bounce
+        if (status === 'approved') {
+          try {
+            localStorage.setItem(`onboarding_status_${user.uid}`, 'approved')
+          } catch {
+            // ignore
+          }
+          setUser(user, { ...userDoc, onboardingStatus: 'approved', ...data })
+          navigate('/portal', { replace: true })
+        }
+      }
+    } catch (err) {
+      console.error('Error loading onboarding status:', err)
+    }
+  }
+
+  useEffect(() => {
+    if (user?.uid) {
+      loadStatus()
+    }
+  }, [user?.uid])
+
+  const handleAgreementSave = (agreementId, sigRecord) => {
+    setAgreements((prev) => {
+      if (!sigRecord) {
+        const copy = { ...prev }
+        delete copy[agreementId]
+        return copy
+      }
+      return { ...prev, [agreementId]: sigRecord }
+    })
+  }
+
+  const handleDocumentSelect = (docId, fileRecord) => {
+    setDocuments((prev) => ({ ...prev, [docId]: fileRecord }))
+  }
+
+  const handleDocumentRemove = (docId) => {
+    setDocuments((prev) => {
+      const copy = { ...prev }
+      delete copy[docId]
+      return copy
+    })
+  }
+
+  // Validate step completion
+  const areSignaturesComplete = () => {
+    return DEFAULT_AGREEMENTS.every((ag) => agreements[ag.id]?.signed)
+  }
+
+  const areDocumentsComplete = () => {
+    return REQUIRED_DOCUMENT_TYPES.every((doc) => !!documents[doc.id])
+  }
+
+  const isBillingComplete = () => {
+    return companyName.trim() && billingEmail.trim() && billingAddress.trim()
+  }
+
+  const handleSubmitOnboarding = async (e) => {
+    e.preventDefault()
+    setErrorMsg('')
+
+    if (!areSignaturesComplete()) {
+      setErrorMsg('All legal agreements must be electronically signed.')
+      setStep(1)
+      return
+    }
+
+    if (!areDocumentsComplete()) {
+      setErrorMsg('All required compliance documents must be uploaded.')
+      setStep(2)
+      return
+    }
+
+    if (!isBillingComplete()) {
+      setErrorMsg('Please fill in all mandatory company and billing fields.')
+      setStep(3)
+      return
+    }
+
+    try {
+      setSubmitting(true)
+      const payload = {
+        companyName: companyName.trim(),
+        agreements,
+        documents,
+        billingInfo: {
+          billingEmail: billingEmail.trim(),
+          billingAddress: billingAddress.trim(),
+          taxId: taxId.trim(),
+          paymentMethod,
+          signerPhone: signerPhone.trim(),
+        },
+      }
+
+      const result = await submitClientOnboarding(user.uid, payload)
+      setOnboardingData(result)
+      setOnboardingStatus('pending_approval')
+      setUser(user, { ...userDoc, onboardingStatus: 'pending_approval', companyName })
+    } catch (err) {
+      console.error('Submission failed:', err)
+      setErrorMsg(err.message || 'Failed to submit onboarding package. Please try again.')
+    } finally {
+      setSubmitting(false)
+    }
+  }
+
+  const handleLogout = async () => {
+    await logoutUser()
+    clearUser()
+    navigate('/login')
+  }
+
+  if (loading) {
+    return (
+      <div className="min-h-screen bg-slate-950 flex flex-col items-center justify-center p-4">
+        <Spinner size="lg" />
+        <p className="text-xs text-slate-400 mt-4">Verifying client workspace authorization...</p>
+      </div>
+    )
+  }
+
+  // ─── RENDER: PENDING APPROVAL SCREEN (UNDER ADMIN REVIEW) ───────────────────────
+  if (onboardingStatus === 'pending_approval') {
+    return (
+      <div className="min-h-screen bg-slate-950 text-slate-100 flex items-center justify-center p-4 relative overflow-hidden">
+        <div className="absolute top-1/4 left-1/2 -translate-x-1/2 w-[500px] h-[500px] bg-amber-500/10 blur-[140px] rounded-full pointer-events-none" />
+
+        <Card className="w-full max-w-2xl p-8 relative z-10 border-slate-800 bg-slate-900/90 shadow-2xl space-y-6">
+          <div className="flex items-center justify-between border-b border-slate-800 pb-5">
+            <div className="flex items-center gap-3">
+              <img src={haloLogo} alt="Logo" className="w-10 h-10 object-contain rounded-full bg-white p-1" />
+              <div>
+                <h2 className="text-lg font-bold text-slate-100">Client Compliance Verification</h2>
+                <p className="text-xs text-slate-400">Account: {user?.email}</p>
+              </div>
+            </div>
+            <Badge variant="warning" className="flex items-center gap-1.5 px-3 py-1 text-xs">
+              <Clock className="w-3.5 h-3.5 animate-spin" /> Under Admin Review
+            </Badge>
+          </div>
+
+          <div className="text-center py-4 space-y-3">
+            <div className="w-16 h-16 rounded-2xl bg-amber-500/10 border border-amber-500/30 text-amber-400 flex items-center justify-center mx-auto shadow-inner">
+              <Shield className="w-8 h-8" />
+            </div>
+            <h3 className="text-xl font-bold text-slate-100">Documents & Signatures Under Review</h3>
+            <p className="text-xs text-slate-300 max-w-lg mx-auto leading-relaxed">
+              Thank you for submitting your legal agreements and verification documents. Our operations and compliance team has been notified and is currently verifying your submission.
+            </p>
+          </div>
+
+          {/* Audit Verification Checklist */}
+          <div className="bg-slate-950/70 border border-slate-800 rounded-xl p-5 space-y-3">
+            <h4 className="text-xs font-bold uppercase tracking-wider text-slate-400">Submission Package Details</h4>
+            
+            <div className="grid grid-cols-1 sm:grid-cols-2 gap-3 text-xs">
+              <div className="p-3 rounded-lg bg-slate-900 border border-slate-800 flex items-center gap-2.5">
+                <CheckCircle2 className="w-4 h-4 text-emerald-400 shrink-0" />
+                <div>
+                  <p className="font-semibold text-slate-200">Legal Agreements (3/3)</p>
+                  <p className="text-[11px] text-slate-400">MSA, NDA & SOW Digitally Signed</p>
+                </div>
+              </div>
+
+              <div className="p-3 rounded-lg bg-slate-900 border border-slate-800 flex items-center gap-2.5">
+                <CheckCircle2 className="w-4 h-4 text-emerald-400 shrink-0" />
+                <div>
+                  <p className="font-semibold text-slate-200">KYC Documents (3/3)</p>
+                  <p className="text-[11px] text-slate-400">Certificate, Tax ID & Signatory ID</p>
+                </div>
+              </div>
+
+              <div className="p-3 rounded-lg bg-slate-900 border border-slate-800 flex items-center gap-2.5">
+                <CheckCircle2 className="w-4 h-4 text-emerald-400 shrink-0" />
+                <div>
+                  <p className="font-semibold text-slate-200">Billing Setup</p>
+                  <p className="text-[11px] text-slate-400">Authorized for {companyName || 'Entity'}</p>
+                </div>
+              </div>
+
+              <div className="p-3 rounded-lg bg-slate-900 border border-slate-800 flex items-center gap-2.5">
+                <Clock className="w-4 h-4 text-amber-400 shrink-0" />
+                <div>
+                  <p className="font-semibold text-slate-200">Admin Approval</p>
+                  <p className="text-[11px] text-amber-400">Pending Executive Sign-off</p>
+                </div>
+              </div>
+            </div>
+          </div>
+
+          <div className="p-4 rounded-xl bg-indigo-950/20 border border-indigo-500/20 text-xs text-indigo-300 flex items-start gap-2.5">
+            <Lock className="w-4 h-4 shrink-0 mt-0.5" />
+            <span>
+              Deliverables, invoices, code repositories, and project timelines will automatically unlock on this portal as soon as an administrator grants approval.
+            </span>
+          </div>
+
+          <div className="flex items-center justify-between pt-2 border-t border-slate-800">
+            <Button variant="secondary" size="sm" onClick={handleLogout} icon={LogOut}>
+              Sign Out
+            </Button>
+
+            <Button
+              variant="primary"
+              size="sm"
+              onClick={loadStatus}
+              className="bg-indigo-600 hover:bg-indigo-500"
+              icon={RefreshCw}
+            >
+              Check Approval Status
+            </Button>
+          </div>
+        </Card>
+      </div>
+    )
+  }
+
+  // ─── RENDER: MULTI-STEP ONBOARDING WIZARD ──────────────────────────────────────
+  return (
+    <div className="min-h-screen bg-[#0A0D14] text-slate-100 flex flex-col p-4 sm:p-8 relative overflow-hidden">
+      <div className="absolute top-10 left-1/2 -translate-x-1/2 w-[700px] h-[350px] bg-indigo-600/10 blur-[150px] rounded-full pointer-events-none" />
+
+      {/* Top Header */}
+      <div className="max-w-4xl w-full mx-auto flex items-center justify-between mb-8 pb-4 border-b border-slate-800">
+        <div className="flex items-center gap-3">
+          <img src={haloLogo} alt="Logo" className="w-10 h-10 object-contain rounded-full bg-white p-1" />
+          <div>
+            <h1 className="text-base sm:text-lg font-bold text-slate-100">Client Onboarding & Compliance Gate</h1>
+            <p className="text-xs text-slate-400">Complete required documents and signatures to activate your portal</p>
+          </div>
+        </div>
+
+        <button
+          onClick={handleLogout}
+          className="flex items-center gap-1.5 text-xs text-slate-400 hover:text-slate-200 transition-colors"
+        >
+          <LogOut className="w-4 h-4" /> Sign Out
+        </button>
+      </div>
+
+      {/* Step Indicators */}
+      <div className="max-w-4xl w-full mx-auto mb-8">
+        <div className="grid grid-cols-4 gap-2 sm:gap-4">
+          {[
+            { num: 1, title: 'Legal Signatures', icon: FileCheck2 },
+            { num: 2, title: 'KYC Documents', icon: UploadCloud },
+            { num: 3, title: 'Billing Setup', icon: CreditCard },
+            { num: 4, title: 'Review & Submit', icon: CheckCircle2 },
+          ].map((s) => {
+            const Icon = s.icon
+            const isDone =
+              (s.num === 1 && areSignaturesComplete()) ||
+              (s.num === 2 && areDocumentsComplete()) ||
+              (s.num === 3 && isBillingComplete())
+            const isCurrent = step === s.num
+
+            return (
+              <button
+                key={s.num}
+                type="button"
+                onClick={() => setStep(s.num)}
+                className={`p-3 rounded-xl border text-left transition-all ${
+                  isCurrent
+                    ? 'bg-indigo-600/15 border-indigo-500/60 shadow-lg shadow-indigo-500/5'
+                    : isDone
+                    ? 'bg-emerald-950/20 border-emerald-500/30 text-slate-300'
+                    : 'bg-slate-900/40 border-slate-800/80 text-slate-400 hover:border-slate-700'
+                }`}
+              >
+                <div className="flex items-center justify-between mb-1.5">
+                  <div
+                    className={`w-6 h-6 rounded-lg flex items-center justify-center text-xs font-bold ${
+                      isDone
+                        ? 'bg-emerald-500 text-slate-950'
+                        : isCurrent
+                        ? 'bg-indigo-600 text-white'
+                        : 'bg-slate-800 text-slate-400'
+                    }`}
+                  >
+                    {isDone ? <Check className="w-3.5 h-3.5 stroke-[3]" /> : s.num}
+                  </div>
+                  <Icon
+                    className={`w-4 h-4 ${
+                      isDone ? 'text-emerald-400' : isCurrent ? 'text-indigo-400' : 'text-slate-600'
+                    }`}
+                  />
+                </div>
+                <p className="text-xs font-semibold truncate text-slate-200">{s.title}</p>
+              </button>
+            )
+          })}
+        </div>
+      </div>
+
+      {/* Main Form Container */}
+      <div className="max-w-4xl w-full mx-auto pb-16">
+        {/* Rejection / Resubmission Banner if applicable */}
+        {onboardingStatus === 'rejected' && (
+          <div className="mb-6 p-4 rounded-2xl bg-rose-950/30 border border-rose-500/30 text-rose-300 text-xs flex items-start gap-3">
+            <AlertTriangle className="w-5 h-5 text-rose-400 shrink-0 mt-0.5" />
+            <div>
+              <p className="font-bold text-rose-200">Re-submission Requested by Compliance Admin</p>
+              <p className="mt-1 text-slate-300">
+                {rejectionReason || 'Please review your uploaded documents or signatures and re-submit for approval.'}
+              </p>
+            </div>
+          </div>
+        )}
+
+        {errorMsg && (
+          <div className="mb-6 p-3 rounded-xl bg-rose-500/10 border border-rose-500/20 text-rose-400 text-xs flex items-center gap-2">
+            <AlertTriangle className="w-4 h-4 shrink-0" />
+            <span>{errorMsg}</span>
+          </div>
+        )}
+
+        {/* STEP 1: LEGAL AGREEMENTS & E-SIGNATURES */}
+        {step === 1 && (
+          <div className="space-y-6">
+            <div className="bg-slate-900/40 p-4 rounded-xl border border-slate-800">
+              <h2 className="text-base font-bold text-slate-100">Step 1: Execute Legal & Services Agreements</h2>
+              <p className="text-xs text-slate-400 mt-1">
+                Please review and electronically execute each agreement below. Digital signatures are recorded with an immutable audit trail.
+              </p>
+            </div>
+
+            <div className="space-y-5">
+              {DEFAULT_AGREEMENTS.map((ag) => (
+                <SignaturePad
+                  key={ag.id}
+                  agreementTitle={ag.title}
+                  agreementSummary={ag.summary}
+                  agreementContent={ag.content}
+                  initialData={agreements[ag.id]}
+                  onSave={(record) => handleAgreementSave(ag.id, record)}
+                />
+              ))}
+            </div>
+
+            <div className="flex justify-end pt-4">
+              <Button
+                variant="primary"
+                onClick={() => {
+                  if (!areSignaturesComplete()) {
+                    setErrorMsg('Please sign all 3 mandatory agreements before continuing.')
+                    return
+                  }
+                  setErrorMsg('')
+                  setStep(2)
+                }}
+                disabled={!areSignaturesComplete()}
+                className="bg-indigo-600 hover:bg-indigo-500"
+                icon={ArrowRight}
+              >
+                Proceed to KYC Document Uploads
+              </Button>
+            </div>
+          </div>
+        )}
+
+        {/* STEP 2: KYC & COMPLIANCE DOCUMENTS */}
+        {step === 2 && (
+          <div className="space-y-6">
+            <div className="bg-slate-900/40 p-4 rounded-xl border border-slate-800">
+              <h2 className="text-base font-bold text-slate-100">Step 2: Upload Compliance & Identity Verification Documents</h2>
+              <p className="text-xs text-slate-400 mt-1">
+                Upload clear scanned PDF copies or high-resolution images of your company entity records and signatory identification.
+              </p>
+            </div>
+
+            <div className="space-y-4">
+              {REQUIRED_DOCUMENT_TYPES.map((doc) => (
+                <DocumentUploadDropzone
+                  key={doc.id}
+                  docId={doc.id}
+                  title={doc.name}
+                  description={doc.description}
+                  acceptedFormats={doc.acceptedFormats}
+                  initialDoc={documents[doc.id]}
+                  onFileSelect={handleDocumentSelect}
+                  onFileRemove={handleDocumentRemove}
+                />
+              ))}
+            </div>
+
+            <div className="flex justify-between pt-4">
+              <Button variant="secondary" onClick={() => setStep(1)} icon={ArrowLeft}>
+                Back to Signatures
+              </Button>
+              <Button
+                variant="primary"
+                onClick={() => {
+                  if (!areDocumentsComplete()) {
+                    setErrorMsg('Please upload all 3 required compliance documents before continuing.')
+                    return
+                  }
+                  setErrorMsg('')
+                  setStep(3)
+                }}
+                disabled={!areDocumentsComplete()}
+                className="bg-indigo-600 hover:bg-indigo-500"
+                icon={ArrowRight}
+              >
+                Proceed to Billing Setup
+              </Button>
+            </div>
+          </div>
+        )}
+
+        {/* STEP 3: BILLING & ENTITY PROFILE */}
+        {step === 3 && (
+          <div className="space-y-6">
+            <div className="bg-slate-900/40 p-4 rounded-xl border border-slate-800">
+              <h2 className="text-base font-bold text-slate-100">Step 3: Company Profile & Billing Authorization</h2>
+              <p className="text-xs text-slate-400 mt-1">
+                Provide the registered legal entity details and accounts payable contact for official invoicing.
+              </p>
+            </div>
+
+            <Card className="p-6 border-slate-800 space-y-4 bg-slate-900/60">
+              <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+                <Input
+                  label="Registered Company / Entity Name"
+                  placeholder="e.g. Acme Innovations Inc."
+                  value={companyName}
+                  onChange={(e) => setCompanyName(e.target.value)}
+                  icon={Building}
+                  required
+                />
+                <Input
+                  label="Accounts Payable / Billing Email"
+                  type="email"
+                  placeholder="billing@company.com"
+                  value={billingEmail}
+                  onChange={(e) => setBillingEmail(e.target.value)}
+                  required
+                />
+              </div>
+
+              <div className="space-y-1.5 text-left">
+                <label className="block text-xs font-medium text-slate-300">Registered Business Physical Address</label>
+                <textarea
+                  rows={3}
+                  placeholder="Suite 400, 100 Innovation Way, San Francisco, CA 94107"
+                  value={billingAddress}
+                  onChange={(e) => setBillingAddress(e.target.value)}
+                  className="w-full bg-[#11141E] border border-slate-800 text-slate-100 text-sm rounded-xl p-3 focus:outline-none focus:border-indigo-500 resize-none"
+                  required
+                />
+              </div>
+
+              <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+                <Input
+                  label="Tax ID / EIN / VAT / GST Registration Number"
+                  placeholder="e.g. XX-XXXXXXX"
+                  value={taxId}
+                  onChange={(e) => setTaxId(e.target.value)}
+                />
+                <Input
+                  label="Authorized Contact Phone"
+                  placeholder="+1 (555) 019-2834"
+                  value={signerPhone}
+                  onChange={(e) => setSignerPhone(e.target.value)}
+                />
+              </div>
+
+              <div className="space-y-1.5 text-left pt-2">
+                <label className="block text-xs font-medium text-slate-300">Preferred Payment Settlement Method</label>
+                <select
+                  value={paymentMethod}
+                  onChange={(e) => setPaymentMethod(e.target.value)}
+                  className="w-full bg-[#11141E] border border-slate-800 text-slate-100 text-sm rounded-xl py-2.5 px-3.5 focus:outline-none focus:border-indigo-500"
+                >
+                  <option value="ach">ACH Electronic Direct Bank Transfer (US & Global)</option>
+                  <option value="card">Corporate Credit / Debit Card (Stripe Portal)</option>
+                  <option value="wire">International Wire Transfer (SWIFT / IBAN)</option>
+                </select>
+              </div>
+            </Card>
+
+            <div className="flex justify-between pt-4">
+              <Button variant="secondary" onClick={() => setStep(2)} icon={ArrowLeft}>
+                Back to Documents
+              </Button>
+              <Button
+                variant="primary"
+                onClick={() => {
+                  if (!isBillingComplete()) {
+                    setErrorMsg('Please complete company name, billing email, and address.')
+                    return
+                  }
+                  setErrorMsg('')
+                  setStep(4)
+                }}
+                disabled={!isBillingComplete()}
+                className="bg-indigo-600 hover:bg-indigo-500"
+                icon={ArrowRight}
+              >
+                Proceed to Review & Submit
+              </Button>
+            </div>
+          </div>
+        )}
+
+        {/* STEP 4: REVIEW & SUBMIT */}
+        {step === 4 && (
+          <div className="space-y-6">
+            <div className="bg-slate-900/40 p-4 rounded-xl border border-slate-800">
+              <h2 className="text-base font-bold text-slate-100">Step 4: Final Compliance Review & Package Submission</h2>
+              <p className="text-xs text-slate-400 mt-1">
+                Please verify the summary below. Upon submission, our operations and admin team will review and approve your workspace access.
+              </p>
+            </div>
+
+            <div className="grid grid-cols-1 md:grid-cols-2 gap-5">
+              {/* Signed Contracts Summary */}
+              <Card className="p-5 border-slate-800 bg-slate-900/60 space-y-3">
+                <div className="flex items-center gap-2 pb-2 border-b border-slate-800">
+                  <FileText className="w-4 h-4 text-indigo-400" />
+                  <h3 className="font-bold text-xs uppercase tracking-wider text-slate-200">Executed Contracts</h3>
+                </div>
+
+                <div className="space-y-2">
+                  {DEFAULT_AGREEMENTS.map((ag) => {
+                    const sig = agreements[ag.id]
+                    return (
+                      <div key={ag.id} className="p-2.5 rounded-lg bg-slate-950 border border-slate-800/80 flex items-center justify-between text-xs">
+                        <div>
+                          <p className="font-semibold text-slate-200">{ag.title}</p>
+                          <p className="text-[11px] text-slate-400">Signatory: {sig?.signatoryName || 'Pending'}</p>
+                        </div>
+                        {sig?.signed ? (
+                          <Badge variant="success" className="text-[10px]">Signed</Badge>
+                        ) : (
+                          <Badge variant="danger" className="text-[10px]">Missing</Badge>
+                        )}
+                      </div>
+                    )
+                  })}
+                </div>
+              </Card>
+
+              {/* Uploaded Documents Summary */}
+              <Card className="p-5 border-slate-800 bg-slate-900/60 space-y-3">
+                <div className="flex items-center gap-2 pb-2 border-b border-slate-800">
+                  <UploadCloud className="w-4 h-4 text-emerald-400" />
+                  <h3 className="font-bold text-xs uppercase tracking-wider text-slate-200">Uploaded Verification Files</h3>
+                </div>
+
+                <div className="space-y-2">
+                  {REQUIRED_DOCUMENT_TYPES.map((doc) => {
+                    const file = documents[doc.id]
+                    return (
+                      <div key={doc.id} className="p-2.5 rounded-lg bg-slate-950 border border-slate-800/80 flex items-center justify-between text-xs">
+                        <div className="truncate max-w-[200px]">
+                          <p className="font-semibold text-slate-200 truncate">{doc.name}</p>
+                          <p className="text-[11px] text-slate-400 truncate">{file?.fileName || 'Pending Upload'}</p>
+                        </div>
+                        {file ? (
+                          <Badge variant="success" className="text-[10px]">Uploaded</Badge>
+                        ) : (
+                          <Badge variant="danger" className="text-[10px]">Missing</Badge>
+                        )}
+                      </div>
+                    )
+                  })}
+                </div>
+              </Card>
+            </div>
+
+            {/* Entity Summary */}
+            <Card className="p-5 border-slate-800 bg-slate-900/60 space-y-3">
+              <h3 className="font-bold text-xs uppercase tracking-wider text-slate-200">Entity & Invoicing Summary</h3>
+              <div className="grid grid-cols-1 sm:grid-cols-3 gap-4 text-xs">
+                <div>
+                  <span className="text-slate-500">Company Entity:</span>
+                  <p className="font-semibold text-slate-200">{companyName}</p>
+                </div>
+                <div>
+                  <span className="text-slate-500">Billing Email:</span>
+                  <p className="font-semibold text-slate-200">{billingEmail}</p>
+                </div>
+                <div>
+                  <span className="text-slate-500">Payment Channel:</span>
+                  <p className="font-semibold text-slate-200 uppercase">{paymentMethod}</p>
+                </div>
+              </div>
+            </Card>
+
+            <div className="p-4 rounded-xl bg-amber-950/20 border border-amber-500/20 text-xs text-amber-300 flex items-start gap-2.5">
+              <Clock className="w-4 h-4 shrink-0 mt-0.5" />
+              <span>
+                By submitting this package, you confirm that all provided legal agreements and company identification files are accurate and authentic. Your workspace access will be activated upon compliance review by the administrator.
+              </span>
+            </div>
+
+            <div className="flex justify-between pt-4">
+              <Button variant="secondary" onClick={() => setStep(3)} icon={ArrowLeft}>
+                Back to Billing
+              </Button>
+
+              <Button
+                variant="primary"
+                onClick={handleSubmitOnboarding}
+                disabled={submitting}
+                className="bg-emerald-600 hover:bg-emerald-500 shadow-lg shadow-emerald-600/20"
+                icon={Shield}
+              >
+                {submitting ? 'Submitting Package...' : 'Submit Package for Admin Approval'}
+              </Button>
+            </div>
+          </div>
+        )}
+      </div>
+    </div>
+  )
+}

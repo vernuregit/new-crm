@@ -273,12 +273,22 @@ export const ContactList = () => {
                 </div>
 
                 <div className="pt-3 border-t border-slate-100 dark:border-slate-800/60 flex items-center justify-between gap-2 mt-2">
-                  <Badge variant="success">Active Account</Badge>
+                  {c.onboardingStatus === 'pending_approval' ? (
+                    <Badge variant="warning" className="text-[10px] bg-amber-500/10 text-amber-500 border-amber-500/30">
+                      Pending Review
+                    </Badge>
+                  ) : c.onboardingStatus === 'approved' || c.status === 'active' ? (
+                    <Badge variant="success" className="text-[10px]">Active</Badge>
+                  ) : c.onboardingStatus === 'rejected' ? (
+                    <Badge variant="danger" className="text-[10px]">Needs Re-upload</Badge>
+                  ) : (
+                    <Badge variant="neutral" className="text-[10px]">Awaiting Docs</Badge>
+                  )}
                   <Link
                     to={`/crm/client/${c.uid}`}
                     className="inline-flex items-center gap-1 text-[11px] font-bold text-indigo-600 hover:text-indigo-500 dark:text-indigo-400 dark:hover:text-indigo-300 transition-colors"
                   >
-                    Manage Profile <ExternalLink className="w-3 h-3" />
+                    Review & Manage <ExternalLink className="w-3 h-3" />
                   </Link>
                 </div>
               </Card>
