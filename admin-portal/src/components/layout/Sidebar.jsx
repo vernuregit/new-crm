@@ -1,4 +1,4 @@
-import React, { useState } from 'react'
+import React, { useState, useEffect } from 'react'
 import { NavLink, useLocation } from 'react-router-dom'
 import {
   LayoutDashboard,
@@ -217,22 +217,26 @@ export const Sidebar = () => {
   const navGroups = getNavGroups()
 
   const getInitialExpanded = () => {
-    const expanded = {}
-    navGroups.forEach((g) => {
-      if (g.items.some((item) => location.pathname.startsWith(item.path))) {
-        expanded[g.key] = true
-      }
-    })
-    // Always expand the first group
-    if (navGroups.length > 0) expanded[navGroups[0].key] = true
-    return expanded
+    const activeGroup = navGroups.find((g) =>
+      g.items.length > 1 && g.items.some((item) => location.pathname.startsWith(item.path))
+    )
+    return activeGroup ? { [activeGroup.key]: true } : {}
   }
 
   const [expandedGroups, setExpandedGroups] = useState(getInitialExpanded)
 
+  useEffect(() => {
+    const activeGroup = navGroups.find((g) =>
+      g.items.length > 1 && g.items.some((item) => location.pathname.startsWith(item.path))
+    )
+    if (activeGroup) {
+      setExpandedGroups({ [activeGroup.key]: true })
+    }
+  }, [location.pathname, userRole, userTier])
+
   const toggleGroup = (key) => {
     if (!sidebarOpen) return
-    setExpandedGroups((prev) => ({ ...prev, [key]: !prev[key] }))
+    setExpandedGroups((prev) => (prev[key] ? {} : { [key]: true }))
   }
 
   const getRoleLabel = () => {
@@ -335,7 +339,7 @@ export const Sidebar = () => {
                   <>
                     <span className="flex-1 truncate text-left">{group.label}</span>
                     <ChevronDown
-                      className={`w-3.5 h-3.5 shrink-0 transition-transform duration-200 ${
+                      className={`w-3.5 h-3.5 shrink-0 transition-transform duration-300 ease-in-out ${
                         isExpanded ? 'rotate-180' : ''
                       }`}
                     />
@@ -343,27 +347,36 @@ export const Sidebar = () => {
                 )}
               </button>
 
-              {sidebarOpen && isExpanded && (
-                <div className="ml-3 mt-0.5 pl-3 border-l border-slate-200 dark:border-slate-700/60 space-y-0.5 pb-1">
-                  {group.items.map((item) => {
-                    const Icon = item.icon
-                    return (
-                      <NavLink
-                        key={item.path}
-                        to={item.path}
-                        className={({ isActive }) =>
-                          `flex items-center gap-2.5 px-2.5 py-2 rounded-lg text-xs font-medium transition-all ${
-                            isActive
-                              ? 'bg-indigo-50 dark:bg-indigo-600/15 text-indigo-600 dark:text-indigo-400 border border-indigo-200 dark:border-indigo-500/30 shadow-sm'
-                              : 'text-slate-500 dark:text-slate-400 hover:text-slate-900 dark:hover:text-slate-200 hover:bg-slate-100 dark:hover:bg-slate-800/50'
-                          }`
-                        }
-                      >
-                        <Icon className="w-4 h-4 shrink-0" />
-                        <span className="truncate">{item.name}</span>
-                      </NavLink>
-                    )
-                  })}
+              {sidebarOpen && (
+                <div
+                  className={`grid transition-all duration-300 ease-in-out ${
+                    isExpanded ? 'grid-rows-[1fr] opacity-100' : 'grid-rows-[0fr] opacity-0 pointer-events-none'
+                  }`}
+                >
+                  <div className="overflow-hidden">
+                    <div className="ml-3 mt-0.5 pl-3 border-l border-slate-200 dark:border-slate-700/60 space-y-0.5 pb-1">
+                      {group.items.map((item) => {
+                        const Icon = item.icon
+                        return (
+                          <NavLink
+                            key={item.path}
+                            to={item.path}
+                            tabIndex={isExpanded ? 0 : -1}
+                            className={({ isActive }) =>
+                              `flex items-center gap-2.5 px-2.5 py-2 rounded-lg text-xs font-medium transition-all ${
+                                isActive
+                                  ? 'bg-indigo-50 dark:bg-indigo-600/15 text-indigo-600 dark:text-indigo-400 border border-indigo-200 dark:border-indigo-500/30 shadow-sm'
+                                  : 'text-slate-500 dark:text-slate-400 hover:text-slate-900 dark:hover:text-slate-200 hover:bg-slate-100 dark:hover:bg-slate-800/50'
+                              }`
+                            }
+                          >
+                            <Icon className="w-4 h-4 shrink-0" />
+                            <span className="truncate">{item.name}</span>
+                          </NavLink>
+                        )
+                      })}
+                    </div>
+                  </div>
                 </div>
               )}
             </div>

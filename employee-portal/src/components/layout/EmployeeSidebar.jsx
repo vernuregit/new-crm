@@ -1,4 +1,4 @@
-import React, { useState } from 'react'
+import React, { useState, useEffect } from 'react'
 import { NavLink, useLocation } from 'react-router-dom'
 import {
   LayoutDashboard,
@@ -106,22 +106,26 @@ export const EmployeeSidebar = () => {
 
   // Determine which group contains the active route (auto-expand it)
   const getInitialExpanded = () => {
-    const expanded = {}
-    NAV_GROUPS.forEach((g) => {
-      if (g.items.some((item) => location.pathname.startsWith(item.path))) {
-        expanded[g.key] = true
-      }
-    })
-    // Default expand workspace
-    expanded['workspace'] = true
-    return expanded
+    const activeGroup = NAV_GROUPS.find((g) =>
+      g.items.length > 1 && g.items.some((item) => location.pathname.startsWith(item.path))
+    )
+    return activeGroup ? { [activeGroup.key]: true } : {}
   }
 
   const [expandedGroups, setExpandedGroups] = useState(getInitialExpanded)
 
+  useEffect(() => {
+    const activeGroup = NAV_GROUPS.find((g) =>
+      g.items.length > 1 && g.items.some((item) => location.pathname.startsWith(item.path))
+    )
+    if (activeGroup) {
+      setExpandedGroups({ [activeGroup.key]: true })
+    }
+  }, [location.pathname])
+
   const toggleGroup = (key) => {
     if (!sidebarOpen) return // In collapsed mode, don't toggle (all hidden)
-    setExpandedGroups((prev) => ({ ...prev, [key]: !prev[key] }))
+    setExpandedGroups((prev) => (prev[key] ? {} : { [key]: true }))
   }
 
   const displayName = userDoc?.displayName || user?.displayName || 'Employee Staff'
@@ -217,7 +221,7 @@ export const EmployeeSidebar = () => {
                   <>
                     <span className="flex-1 truncate text-left">{group.label}</span>
                     <ChevronDown
-                      className={`w-3.5 h-3.5 shrink-0 transition-transform duration-200 ${
+                      className={`w-3.5 h-3.5 shrink-0 transition-transform duration-300 ease-in-out ${
                         isExpanded ? 'rotate-180' : ''
                       }`}
                     />
@@ -226,27 +230,36 @@ export const EmployeeSidebar = () => {
               </button>
 
               {/* Group Children */}
-              {sidebarOpen && isExpanded && (
-                <div className="ml-3 mt-0.5 pl-3 border-l border-slate-200 dark:border-purple-900/30 space-y-0.5 pb-1">
-                  {group.items.map((item) => {
-                    const Icon = item.icon
-                    return (
-                      <NavLink
-                        key={item.path}
-                        to={item.path}
-                        className={({ isActive }) =>
-                          `flex items-center gap-2.5 px-2.5 py-2 rounded-lg text-xs font-medium transition-all ${
-                            isActive
-                              ? 'bg-purple-50 dark:bg-purple-600/15 text-purple-600 dark:text-purple-400 border border-purple-200 dark:border-purple-500/30 shadow-sm'
-                              : 'text-slate-500 dark:text-slate-400 hover:text-slate-900 dark:hover:text-slate-200 hover:bg-slate-100 dark:hover:bg-slate-800/50'
-                          }`
-                        }
-                      >
-                        <Icon className="w-4 h-4 shrink-0" />
-                        <span className="truncate">{item.name}</span>
-                      </NavLink>
-                    )
-                  })}
+              {sidebarOpen && (
+                <div
+                  className={`grid transition-all duration-300 ease-in-out ${
+                    isExpanded ? 'grid-rows-[1fr] opacity-100' : 'grid-rows-[0fr] opacity-0 pointer-events-none'
+                  }`}
+                >
+                  <div className="overflow-hidden">
+                    <div className="ml-3 mt-0.5 pl-3 border-l border-slate-200 dark:border-purple-900/30 space-y-0.5 pb-1">
+                      {group.items.map((item) => {
+                        const Icon = item.icon
+                        return (
+                          <NavLink
+                            key={item.path}
+                            to={item.path}
+                            tabIndex={isExpanded ? 0 : -1}
+                            className={({ isActive }) =>
+                              `flex items-center gap-2.5 px-2.5 py-2 rounded-lg text-xs font-medium transition-all ${
+                                isActive
+                                  ? 'bg-purple-50 dark:bg-purple-600/15 text-purple-600 dark:text-purple-400 border border-purple-200 dark:border-purple-500/30 shadow-sm'
+                                  : 'text-slate-500 dark:text-slate-400 hover:text-slate-900 dark:hover:text-slate-200 hover:bg-slate-100 dark:hover:bg-slate-800/50'
+                              }`
+                            }
+                          >
+                            <Icon className="w-4 h-4 shrink-0" />
+                            <span className="truncate">{item.name}</span>
+                          </NavLink>
+                        )
+                      })}
+                    </div>
+                  </div>
                 </div>
               )}
             </div>

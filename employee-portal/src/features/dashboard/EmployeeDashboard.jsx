@@ -282,9 +282,6 @@ export const EmployeeDashboard = () => {
       {/* Clock-In & Attendance Command Widget */}
       <ClockInOverviewWidget />
 
-      {/* Wellness Hub Widget */}
-      <WellnessWidget />
-
       {/* Middle Row: Announcements + Upcoming Events */}
       <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
         {/* Latest Announcements Widget */}
@@ -487,6 +484,9 @@ export const EmployeeDashboard = () => {
           })}
         </div>
       </div>
+
+      {/* Wellness Hub Widget */}
+      <WellnessWidget />
     </div>
   )
 }
