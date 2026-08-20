@@ -12,9 +12,10 @@ import {
   approveClientOnboarding,
   rejectClientOnboarding,
 } from './services/clientOnboardingService'
-import { db, auth } from '../../shared/services/firebaseService'
+import { db, auth, storage } from '../../shared/services/firebaseService'
 import { sendPasswordResetEmail } from 'firebase/auth'
 import { collection, query, where, getDocs } from 'firebase/firestore'
+import { ref, updateMetadata, getDownloadURL } from 'firebase/storage'
 import {
   ArrowLeft,
   Mail,
@@ -41,6 +42,7 @@ import {
   Printer,
   FileCode,
   Shield,
+  Loader2,
 } from 'lucide-react'
 
 const LocalSpinner = () => (
@@ -124,10 +126,101 @@ export const ClientProfileView = () => {
   const [rejectReason, setRejectReason] = useState('')
   const [previewDoc, setPreviewDoc] = useState(null) // { title, fileName, fileUrl, fileSize }
   const [previewAgreement, setPreviewAgreement] = useState(null) // { id, title, sigRecord }
+  const [downloadingDocId, setDownloadingDocId] = useState(null)
 
   const [saving, setSaving] = useState(false)
   const [error, setError] = useState('')
   const [success, setSuccess] = useState('')
+
+  const triggerBlobDownload = (blob, fileName) => {
+    const blobUrl = window.URL.createObjectURL(blob)
+    const link = document.createElement('a')
+    link.href = blobUrl
+    link.download = fileName || 'document'
+    document.body.appendChild(link)
+    link.click()
+    document.body.removeChild(link)
+    setTimeout(() => window.URL.revokeObjectURL(blobUrl), 2000)
+  }
+
+  const handleDownloadFile = async (docId, fileUrl, fileName = 'document') => {
+    if (!fileUrl) return
+    try {
+      setDownloadingDocId(docId)
+
+      // 1. Direct download for base64 data URLs
+      if (fileUrl.startsWith('data:')) {
+        const parts = fileUrl.split(',')
+        const mimeMatch = parts[0].match(/:(.*?);/)
+        const mime = mimeMatch ? mimeMatch[1] : 'application/octet-stream'
+        const byteString = atob(parts[1])
+        const ab = new ArrayBuffer(byteString.length)
+        const ia = new Uint8Array(ab)
+        for (let i = 0; i < byteString.length; i++) {
+          ia[i] = byteString.charCodeAt(i)
+        }
+        const blob = new Blob([ab], { type: mime })
+        triggerBlobDownload(blob, fileName)
+        return
+      }
+
+      // 2. If it's a Firebase Storage URL, ensure attachment header is set on metadata
+      if (fileUrl.includes('firebasestorage.googleapis.com') || fileUrl.startsWith('gs://')) {
+        try {
+          const cleanName = (fileName || 'compliance_document').replace(/[^a-zA-Z0-9._-]/g, '_')
+          const storageRef = ref(storage, fileUrl)
+          
+          // Update the object's metadata in Firebase Storage so the server sends 'Content-Disposition: attachment'
+          await updateMetadata(storageRef, {
+            contentDisposition: `attachment; filename="${cleanName}"`,
+          })
+          
+          const freshUrl = await getDownloadURL(storageRef)
+          
+          // Trigger download using an invisible iframe (completely bypasses CORS and browser tab navigation)
+          const iframe = document.createElement('iframe')
+          iframe.style.position = 'fixed'
+          iframe.style.top = '-9999px'
+          iframe.style.left = '-9999px'
+          iframe.style.width = '1px'
+          iframe.style.height = '1px'
+          iframe.style.opacity = '0'
+          iframe.src = freshUrl
+          document.body.appendChild(iframe)
+          
+          setTimeout(() => {
+            if (document.body.contains(iframe)) {
+              document.body.removeChild(iframe)
+            }
+          }, 6000)
+          return
+        } catch (metaErr) {
+          console.warn('Firebase Storage metadata update failed, trying direct iframe download:', metaErr)
+        }
+      }
+
+      // 3. Fallback: invisible iframe download
+      const iframe = document.createElement('iframe')
+      iframe.style.position = 'fixed'
+      iframe.style.top = '-9999px'
+      iframe.style.left = '-9999px'
+      iframe.style.width = '1px'
+      iframe.style.height = '1px'
+      iframe.style.opacity = '0'
+      iframe.src = fileUrl
+      document.body.appendChild(iframe)
+      setTimeout(() => {
+        if (document.body.contains(iframe)) {
+          document.body.removeChild(iframe)
+        }
+      }, 6000)
+    } catch (err) {
+      console.warn('Download handler error:', err)
+      window.open(fileUrl, '_blank')
+    } finally {
+      setTimeout(() => setDownloadingDocId(null), 1000)
+    }
+  }
 
   const loadClientData = async () => {
     try {
@@ -503,16 +596,20 @@ export const ClientProfileView = () => {
                             </button>
 
                             {file.fileUrl && (
-                              <a
-                                href={file.fileUrl}
-                                download={file.fileName}
-                                target="_blank"
-                                rel="noreferrer"
-                                className="px-2.5 py-1.5 rounded-lg bg-slate-800 hover:bg-slate-700 text-slate-200 text-xs font-semibold flex items-center gap-1 transition-colors border border-slate-700"
+                              <button
+                                type="button"
+                                onClick={() => handleDownloadFile(docItem.id, file.fileUrl, file.fileName)}
+                                disabled={downloadingDocId === docItem.id}
+                                className="px-2.5 py-1.5 rounded-lg bg-slate-800 hover:bg-slate-700 text-slate-200 text-xs font-semibold flex items-center gap-1.5 transition-colors border border-slate-700 cursor-pointer disabled:opacity-50"
                                 title="Download Original File"
                               >
-                                <Download className="w-3.5 h-3.5" /> Download
-                              </a>
+                                {downloadingDocId === docItem.id ? (
+                                  <Loader2 className="w-3.5 h-3.5 animate-spin text-indigo-400" />
+                                ) : (
+                                  <Download className="w-3.5 h-3.5" />
+                                )}
+                                <span>{downloadingDocId === docItem.id ? 'Downloading...' : 'Download'}</span>
+                              </button>
                             )}
                           </>
                         ) : (
@@ -791,15 +888,19 @@ export const ClientProfileView = () => {
                 Close
               </Button>
               {previewDoc.fileUrl && (
-                <a
-                  href={previewDoc.fileUrl}
-                  download={previewDoc.fileName}
-                  target="_blank"
-                  rel="noreferrer"
-                  className="inline-flex items-center gap-1.5 px-4 py-2 rounded-xl bg-emerald-600 hover:bg-emerald-500 text-white text-xs font-semibold shadow-lg shadow-emerald-600/20 transition-all"
+                <button
+                  type="button"
+                  onClick={() => handleDownloadFile('modal_preview', previewDoc.fileUrl, previewDoc.fileName)}
+                  disabled={downloadingDocId === 'modal_preview'}
+                  className="inline-flex items-center gap-1.5 px-4 py-2 rounded-xl bg-emerald-600 hover:bg-emerald-500 text-white text-xs font-semibold shadow-lg shadow-emerald-600/20 transition-all cursor-pointer disabled:opacity-50"
                 >
-                  <Download className="w-4 h-4" /> Download Document
-                </a>
+                  {downloadingDocId === 'modal_preview' ? (
+                    <Loader2 className="w-4 h-4 animate-spin" />
+                  ) : (
+                    <Download className="w-4 h-4" />
+                  )}
+                  <span>{downloadingDocId === 'modal_preview' ? 'Downloading...' : 'Download Document'}</span>
+                </button>
               )}
             </div>
           </div>

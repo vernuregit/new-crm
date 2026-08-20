@@ -43,7 +43,6 @@ const quickLinks = [
   { name: 'Attendance', path: '/attendance', icon: Calendar, color: 'emerald', desc: 'Clock in/out and view presence status' },
   { name: 'Leave & PTO', path: '/team/leave', icon: Calendar, color: 'emerald', desc: 'Request annual/sick leave & check PTO balance' },
   { name: 'My Goals', path: '/goals', icon: Target, color: 'purple', desc: 'Track your personal and professional goals' },
-  { name: 'Help Desk', path: '/helpdesk', icon: LifeBuoy, color: 'blue', desc: 'Submit and track support tickets' },
 ]
 
 const colorMap = {
@@ -169,17 +168,15 @@ export const EmployeeDashboard = () => {
 
   const isBrightSun = currentHour >= 10 && currentHour < 17
 
-  const visibleTasks = tasks.filter((t) => isTaskVisibleToUser(t, user, userDoc, claims, projects))
-  const userTasks = visibleTasks.filter((t) => !t.assigneeName || t.assigneeName === displayName)
-  const displayTasks = userTasks.length > 0 ? userTasks : visibleTasks
+  const visibleTasks = tasks.filter((t) => isTaskVisibleToUser(t, user, userDoc, claims, projects, tasks))
+  const displayTasks = visibleTasks
 
   const assignedTaskCount = displayTasks.length
   const totalHoursLogged = displayTasks.reduce((sum, t) => sum + (Number(t.loggedHours) || 0), 0)
   const activeProjectCount = projects.filter((p) => {
     if (p.status !== 'active') return false
     if (isAdmin) return true
-    const isLegacy = !p.createdBy && (!p.members || p.members.length === 0)
-    return isLegacy || isUserOnProject(p, user, userDoc)
+    return isUserOnProject(p, user, userDoc, tasks)
   }).length
 
   const leaveRemaining = Math.max(0, leaveBalance.annual - leaveBalance.used)
@@ -207,6 +204,8 @@ export const EmployeeDashboard = () => {
       projectId: defaultProj,
       projectName: defaultProjName,
       priority: 'high',
+      assigneeId: currentUserId || null,
+      assigneeEmail: currentUserEmail || null,
       assigneeName: displayName,
       estimatedHours: 4,
       dueDate: new Date().toISOString().split('T')[0],
@@ -285,53 +284,6 @@ export const EmployeeDashboard = () => {
 
       {/* Wellness Hub Widget */}
       <WellnessWidget />
-
-      {/* Stats Strip — 4 KPIs */}
-      <div className="grid grid-cols-2 lg:grid-cols-4 gap-4">
-        {[
-          { label: 'Tasks Assigned', value: `${assignedTaskCount}`, icon: CheckCircle2, color: 'text-indigo-600 dark:text-indigo-400', bg: 'bg-indigo-50 dark:bg-indigo-500/10' },
-          { label: 'Hours Logged This Week', value: `${totalHoursLogged}h`, icon: Clock, color: 'text-blue-600 dark:text-blue-400', bg: 'bg-blue-50 dark:bg-blue-500/10' },
-          { label: 'Active Projects', value: `${activeProjectCount}`, icon: TrendingUp, color: 'text-emerald-600 dark:text-emerald-400', bg: 'bg-emerald-50 dark:bg-emerald-500/10' },
-          { label: 'Leave Balance', value: `${leaveRemaining} days`, icon: Umbrella, color: 'text-purple-600 dark:text-purple-400', bg: 'bg-purple-50 dark:bg-purple-500/10' },
-        ].map((stat) => {
-          const Icon = stat.icon
-          return (
-            <Card key={stat.label} className="p-4 flex items-center justify-between border-slate-200 dark:border-slate-800/80">
-              <div>
-                <span className="text-[11px] font-medium text-slate-500 dark:text-slate-400 uppercase tracking-wider">{stat.label}</span>
-                <p className={`text-2xl font-bold mt-1 ${stat.color}`}>{stat.value}</p>
-              </div>
-              <div className={`w-10 h-10 rounded-xl ${stat.bg} flex items-center justify-center ${stat.color}`}>
-                <Icon className="w-5 h-5" />
-              </div>
-            </Card>
-          )
-        })}
-      </div>
-
-      {/* Quick Actions */}
-      <Card className="p-5 border-slate-200 dark:border-slate-800/80">
-        <h2 className="text-sm font-semibold text-slate-700 dark:text-slate-300 uppercase tracking-wider mb-4 flex items-center gap-2">
-          <Star className="w-4 h-4 text-amber-500" /> Quick Actions
-        </h2>
-        <div className="grid grid-cols-3 sm:grid-cols-6 gap-3">
-          {QUICK_ACTIONS.map((action) => {
-            const Icon = action.icon
-            return (
-              <NavLink
-                key={action.path}
-                to={action.path}
-                className={`flex flex-col items-center gap-2 p-3 rounded-xl ${action.bg} border border-slate-200 dark:border-slate-700/50 hover:scale-105 transition-transform cursor-pointer group`}
-              >
-                <div className={`w-8 h-8 rounded-lg flex items-center justify-center ${action.color}`}>
-                  <Icon className="w-4 h-4" />
-                </div>
-                <span className="text-[10px] font-semibold text-slate-600 dark:text-slate-400 text-center leading-tight">{action.label}</span>
-              </NavLink>
-            )
-          })}
-        </div>
-      </Card>
 
       {/* Middle Row: Announcements + Upcoming Events */}
       <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">

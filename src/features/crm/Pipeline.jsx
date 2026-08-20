@@ -49,7 +49,6 @@ export const Pipeline = () => {
   const [newEmail, setNewEmail] = useState('')
   const [newValue, setNewValue] = useState('')
   const [newStageId, setNewStageId] = useState('stage_new')
-  const [newOwner, setNewOwner] = useState('Sarah Jenkins')
 
   // Filter leads by search query
   const filteredLeads = leads.filter((l) => {
@@ -91,7 +90,7 @@ export const Pipeline = () => {
       estimatedValue: Number(newValue) || 0,
       pipelineStageId: stageObj.id,
       pipelineStage: stageObj.name,
-      ownerName: newOwner,
+      ownerName: 'Unassigned',
     })
 
     // Reset Form
@@ -386,34 +385,19 @@ export const Pipeline = () => {
                 />
               </div>
 
-              <div className="grid grid-cols-2 gap-3">
-                <div className="space-y-1.5 text-left">
-                  <label className="block text-xs font-medium text-slate-300">Initial Pipeline Stage</label>
-                  <select
-                    value={newStageId}
-                    onChange={(e) => setNewStageId(e.target.value)}
-                    className="w-full bg-[#11141E] border border-slate-800 text-slate-100 text-sm rounded-xl py-2.5 px-3.5 focus:outline-none focus:border-indigo-500"
-                  >
-                    {stages.map((s) => (
-                      <option key={s.id} value={s.id}>
-                        {s.name}
-                      </option>
-                    ))}
-                  </select>
-                </div>
-
-                <div className="space-y-1.5 text-left">
-                  <label className="block text-xs font-medium text-slate-300">Deal Owner</label>
-                  <select
-                    value={newOwner}
-                    onChange={(e) => setNewOwner(e.target.value)}
-                    className="w-full bg-[#11141E] border border-slate-800 text-slate-100 text-sm rounded-xl py-2.5 px-3.5 focus:outline-none focus:border-indigo-500"
-                  >
-                    <option value="Sarah Jenkins">Sarah Jenkins</option>
-                    <option value="Alex Rivera">Alex Rivera</option>
-                    <option value="David Chen">David Chen</option>
-                  </select>
-                </div>
+              <div className="space-y-1.5 text-left">
+                <label className="block text-xs font-medium text-slate-300">Initial Pipeline Stage</label>
+                <select
+                  value={newStageId}
+                  onChange={(e) => setNewStageId(e.target.value)}
+                  className="w-full bg-[#11141E] border border-slate-800 text-slate-100 text-sm rounded-xl py-2.5 px-3.5 focus:outline-none focus:border-indigo-500"
+                >
+                  {stages.map((s) => (
+                    <option key={s.id} value={s.id}>
+                      {s.name}
+                    </option>
+                  ))}
+                </select>
               </div>
 
               <div className="flex gap-3 pt-2">

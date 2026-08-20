@@ -7,7 +7,9 @@ import {
   deleteDoc,
   setDoc,
   query,
+  where,
   orderBy,
+  serverTimestamp,
 } from 'firebase/firestore'
 import { db } from '../../../shared/services/firebaseService'
 
@@ -78,6 +80,36 @@ export const deleteProjectFromDb = async (projectId) => {
     await deleteDoc(doc(db, 'projects', projectId))
   } catch (err) {
     console.error('Error deleting project from Firestore:', err)
+  }
+}
+
+/**
+ * Update project details and sync project name to tasks in Firestore
+ */
+export const updateProjectInDb = async (projectId, updates) => {
+  try {
+    if (!projectId || !updates) return
+    const payload = {
+      ...updates,
+      updatedAt: serverTimestamp ? serverTimestamp() : new Date().toISOString(),
+    }
+    Object.keys(payload).forEach((k) => payload[k] === undefined && delete payload[k])
+    await updateDoc(doc(db, 'projects', projectId), payload)
+
+    // Sync updated project name to associated tasks in Firestore
+    if (updates.name && typeof updates.name === 'string' && updates.name.trim()) {
+      const q = query(collection(db, 'tasks'), where('projectId', '==', projectId))
+      const snap = await getDocs(q)
+      const promises = snap.docs.map((d) =>
+        updateDoc(doc(db, 'tasks', d.id), {
+          projectName: updates.name.trim(),
+          updatedAt: serverTimestamp ? serverTimestamp() : new Date().toISOString(),
+        })
+      )
+      await Promise.all(promises)
+    }
+  } catch (err) {
+    console.error('Error updating project in Firestore:', err)
   }
 }
 

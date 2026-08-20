@@ -7,7 +7,9 @@ import {
   query,
   orderBy,
   serverTimestamp,
+  arrayUnion,
 } from 'firebase/firestore'
+
 import { db } from '../../../shared/services/firebaseService'
 
 const COLLECTION_NAME = 'helpDeskTickets'
@@ -90,10 +92,30 @@ export const addTicketResolution = async (ticketId, resolutionNote, adminName) =
 }
 
 /**
+ * Add an admin reply to a ticket thread
+ */
+export const addTicketReply = async (ticketId, reply) => {
+  const docRef = doc(db, COLLECTION_NAME, ticketId)
+  const replyItem = {
+    id: `rep_${Date.now()}`,
+    senderId: reply.senderId || 'admin',
+    senderName: reply.senderName || 'Admin Support',
+    senderRole: reply.senderRole || 'admin',
+    message: reply.message,
+    createdAt: new Date().toISOString(),
+  }
+  await updateDoc(docRef, {
+    replies: arrayUnion(replyItem),
+    updatedAt: serverTimestamp(),
+  })
+  return replyItem
+}
+
+/**
  * Delete a ticket from Firestore
- * @param {string} ticketId
  */
 export const deleteTicket = async (ticketId) => {
   const docRef = doc(db, COLLECTION_NAME, ticketId)
   await deleteDoc(docRef)
 }
+

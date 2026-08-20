@@ -1,4 +1,4 @@
-import React, { useState } from 'react'
+import React, { useState, useEffect } from 'react'
 import { NavLink } from 'react-router-dom'
 import { PageHeader } from '../../shared/components/layout/PageHeader'
 import { Card } from '../../shared/components/ui/Card'
@@ -9,21 +9,35 @@ import { useFinanceStore } from './stores/financeStore'
 import { FileText, CreditCard, Clock, Plus, Trash2, X } from 'lucide-react'
 
 export const ExpenseList = () => {
-  const { expenses, addExpense, deleteExpense } = useFinanceStore()
+  const { expenses, categories, addExpense, deleteExpense, addCategory, fetchFinanceData } = useFinanceStore()
+
+  useEffect(() => {
+    fetchFinanceData()
+  }, [fetchFinanceData])
 
   const [showAddModal, setShowAddModal] = useState(false)
+  const [deleteConfirmExpense, setDeleteConfirmExpense] = useState(null)
   const [vendor, setVendor] = useState('')
   const [category, setCategory] = useState('Software & Infrastructure')
+  const [customCategory, setCustomCategory] = useState('')
+  const [isCustomCategory, setIsCustomCategory] = useState(false)
   const [amount, setAmount] = useState('')
   const [notes, setNotes] = useState('')
 
-  const handleCreateExpense = (e) => {
+  const handleCreateExpense = async (e) => {
     e.preventDefault()
     if (!vendor.trim()) return
 
-    addExpense({
-      vendor,
-      category,
+    const finalCategory = isCustomCategory ? customCategory.trim() : category
+    if (!finalCategory) return
+
+    if (isCustomCategory && customCategory.trim()) {
+      await addCategory(customCategory.trim())
+    }
+
+    await addExpense({
+      vendor: vendor.trim(),
+      category: finalCategory,
       amount: Number(amount) || 0,
       notes,
     })
@@ -31,6 +45,9 @@ export const ExpenseList = () => {
     setVendor('')
     setAmount('')
     setNotes('')
+    setCustomCategory('')
+    setIsCustomCategory(false)
+    setCategory(finalCategory)
     setShowAddModal(false)
   }
 
@@ -48,7 +65,7 @@ export const ExpenseList = () => {
           }
         />
 
-        <div className="flex items-center gap-2 border-b border-slate-800 pb-3">
+        <div className="flex items-center gap-2 border-b border-slate-200 dark:border-slate-800 pb-3">
           <NavLink
             to="/finance/invoices"
             className={({ isActive }) =>
@@ -89,10 +106,10 @@ export const ExpenseList = () => {
       </div>
 
       {/* Expenses Table */}
-      <Card className="overflow-x-auto p-0 border-slate-800">
+      <Card className="overflow-x-auto p-0 border-slate-200 dark:border-slate-800">
         <table className="w-full text-left border-collapse text-xs">
           <thead>
-            <tr className="bg-slate-900/80 border-b border-slate-800 text-slate-400">
+            <tr className="bg-slate-100 dark:bg-slate-900/80 border-b border-slate-200 dark:border-slate-800 text-slate-700 dark:text-slate-400">
               <th className="p-4 font-semibold">Vendor</th>
               <th className="p-4 font-semibold">Category</th>
               <th className="p-4 font-semibold">Date</th>
@@ -101,18 +118,18 @@ export const ExpenseList = () => {
               <th className="p-4 font-semibold text-right">Actions</th>
             </tr>
           </thead>
-          <tbody className="divide-y divide-slate-800/60">
+          <tbody className="divide-y divide-slate-200 dark:divide-slate-800/60">
             {expenses.map((exp) => (
-              <tr key={exp.expenseId} className="hover:bg-slate-800/30 transition-colors">
-                <td className="p-4 font-bold text-slate-200">{exp.vendor}</td>
-                <td className="p-4 text-slate-300">{exp.category}</td>
-                <td className="p-4 text-slate-400">{exp.date}</td>
-                <td className="p-4 font-bold text-rose-400">${exp.amount?.toLocaleString()}</td>
-                <td className="p-4 text-slate-400 max-w-xs truncate">{exp.notes || '—'}</td>
+              <tr key={exp.expenseId || exp.id} className="hover:bg-slate-50 dark:hover:bg-slate-800/30 transition-colors">
+                <td className="p-4 font-bold text-slate-900 dark:text-slate-200">{exp.vendor}</td>
+                <td className="p-4 text-slate-700 dark:text-slate-300">{exp.category}</td>
+                <td className="p-4 text-slate-600 dark:text-slate-400">{exp.date}</td>
+                <td className="p-4 font-bold text-rose-600 dark:text-rose-400">₹{exp.amount?.toLocaleString('en-IN')}</td>
+                <td className="p-4 text-slate-600 dark:text-slate-400 max-w-xs truncate">{exp.notes || '—'}</td>
                 <td className="p-4 text-right">
                   <button
-                    onClick={() => deleteExpense(exp.expenseId)}
-                    className="p-1.5 hover:bg-rose-500/10 text-slate-400 hover:text-rose-400 rounded-lg transition-colors"
+                    onClick={() => setDeleteConfirmExpense(exp)}
+                    className="p-1.5 hover:bg-rose-500/10 text-slate-400 hover:text-rose-600 dark:hover:text-rose-400 rounded-lg transition-colors"
                   >
                     <Trash2 className="w-4 h-4" />
                   </button>
@@ -126,12 +143,12 @@ export const ExpenseList = () => {
       {/* Create Expense Modal */}
       {showAddModal && (
         <div className="fixed inset-0 z-50 bg-black/70 backdrop-blur-sm flex items-center justify-center p-4">
-          <Card className="w-full max-w-lg p-6 space-y-4 border-slate-800 shadow-2xl relative">
-            <div className="flex items-center justify-between pb-3 border-b border-slate-800">
-              <h3 className="font-bold text-slate-100 text-sm">Log Expense</h3>
+          <Card className="w-full max-w-lg p-6 space-y-4 border-slate-200 dark:border-slate-800 shadow-2xl relative bg-white dark:bg-[#181C27]">
+            <div className="flex items-center justify-between pb-3 border-b border-slate-200 dark:border-slate-800">
+              <h3 className="font-bold text-slate-900 dark:text-slate-100 text-sm">Log Expense</h3>
               <button
                 onClick={() => setShowAddModal(false)}
-                className="text-slate-400 hover:text-white p-1 rounded-lg hover:bg-slate-800"
+                className="text-slate-400 hover:text-slate-600 dark:hover:text-white p-1 rounded-lg hover:bg-slate-100 dark:hover:bg-slate-800 transition-colors"
               >
                 <X className="w-4 h-4" />
               </button>
@@ -139,40 +156,70 @@ export const ExpenseList = () => {
 
             <form onSubmit={handleCreateExpense} className="space-y-4">
               <Input
-                label="Vendor Name"
-                placeholder="e.g. AWS, Google Cloud, Stripe"
+                label="Vendor / Payee *"
+                placeholder="e.g. AWS Cloud Services"
                 value={vendor}
                 onChange={(e) => setVendor(e.target.value)}
                 required
               />
 
               <div className="space-y-1.5 text-left">
-                <label className="block text-xs font-medium text-slate-300">Expense Category</label>
-                <select
-                  value={category}
-                  onChange={(e) => setCategory(e.target.value)}
-                  className="w-full bg-[#11141E] border border-slate-800 text-slate-100 text-sm rounded-xl py-2.5 px-3.5 focus:outline-none"
-                >
-                  <option value="Software & Infrastructure">Software & Infrastructure</option>
-                  <option value="Marketing & Ads">Marketing & Ads</option>
-                  <option value="Office & Supplies">Office & Supplies</option>
-                  <option value="Legal & Advisory">Legal & Advisory</option>
-                  <option value="Travel & Meals">Travel & Meals</option>
-                </select>
+                <div className="flex items-center justify-between">
+                  <label className="block text-xs font-medium text-slate-700 dark:text-slate-300">Category</label>
+                  <button
+                    type="button"
+                    onClick={() => {
+                      setIsCustomCategory(!isCustomCategory)
+                      setCustomCategory('')
+                    }}
+                    className="text-[11px] font-semibold text-indigo-600 dark:text-indigo-400 hover:underline cursor-pointer"
+                  >
+                    {isCustomCategory ? '← Select existing' : '+ Type custom category'}
+                  </button>
+                </div>
+
+                {isCustomCategory ? (
+                  <Input
+                    placeholder="e.g. Equipment & Hardware"
+                    value={customCategory}
+                    onChange={(e) => setCustomCategory(e.target.value)}
+                    required
+                  />
+                ) : (
+                  <select
+                    value={category}
+                    onChange={(e) => {
+                      if (e.target.value === '__ADD_NEW__') {
+                        setIsCustomCategory(true)
+                        setCustomCategory('')
+                      } else {
+                        setCategory(e.target.value)
+                      }
+                    }}
+                    className="w-full bg-slate-100 dark:bg-slate-900 border border-slate-300 dark:border-slate-800 text-slate-900 dark:text-slate-100 text-xs rounded-xl p-2.5 focus:outline-none cursor-pointer"
+                  >
+                    {(categories || []).map((cat) => (
+                      <option key={cat} value={cat}>
+                        {cat}
+                      </option>
+                    ))}
+                    <option value="__ADD_NEW__">+ Type Custom Category...</option>
+                  </select>
+                )}
               </div>
 
               <Input
-                label="Amount ($ USD)"
+                label="Amount (₹) *"
                 type="number"
-                placeholder="1200"
+                placeholder="e.g. 15000"
                 value={amount}
                 onChange={(e) => setAmount(e.target.value)}
                 required
               />
 
               <Input
-                label="Notes / Description"
-                placeholder="e.g. Monthly server hosting costs"
+                label="Notes / Receipt Ref"
+                placeholder="Reference number or description..."
                 value={notes}
                 onChange={(e) => setNotes(e.target.value)}
               />
@@ -186,6 +233,44 @@ export const ExpenseList = () => {
                 </Button>
               </div>
             </form>
+          </Card>
+        </div>
+      )}
+
+      {/* Confirm Delete Expense Modal */}
+      {deleteConfirmExpense && (
+        <div className="fixed inset-0 z-50 bg-black/70 backdrop-blur-sm flex items-center justify-center p-4">
+          <Card className="w-full max-w-md p-6 space-y-4 border-slate-200 dark:border-slate-800 shadow-2xl relative bg-white dark:bg-[#181C27]">
+            <div className="flex items-center justify-between pb-3 border-b border-slate-200 dark:border-slate-800">
+              <h3 className="font-bold text-slate-900 dark:text-slate-100 text-sm flex items-center gap-2">
+                <Trash2 className="w-4 h-4 text-rose-500" /> Confirm Delete Expense
+              </h3>
+              <button
+                onClick={() => setDeleteConfirmExpense(null)}
+                className="text-slate-400 hover:text-slate-600 dark:hover:text-white p-1 rounded-lg hover:bg-slate-100 dark:hover:bg-slate-800 transition-colors"
+              >
+                <X className="w-4 h-4" />
+              </button>
+            </div>
+
+            <p className="text-xs text-slate-600 dark:text-slate-300 leading-relaxed">
+              Are you sure you want to delete expense for <strong className="text-slate-900 dark:text-white">{deleteConfirmExpense.vendor}</strong> (₹{deleteConfirmExpense.amount?.toLocaleString('en-IN')})? This action cannot be undone.
+            </p>
+
+            <div className="flex items-center justify-end gap-3 pt-3 border-t border-slate-200 dark:border-slate-800">
+              <Button variant="secondary" onClick={() => setDeleteConfirmExpense(null)}>
+                Cancel
+              </Button>
+              <Button
+                variant="danger"
+                onClick={() => {
+                  deleteExpense(deleteConfirmExpense.expenseId || deleteConfirmExpense.id)
+                  setDeleteConfirmExpense(null)
+                }}
+              >
+                Yes, Delete Expense
+              </Button>
+            </div>
           </Card>
         </div>
       )}

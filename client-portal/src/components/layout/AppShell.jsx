@@ -25,7 +25,7 @@ export const AppShell = () => {
   }
 
   return (
-    <div className="min-h-screen bg-slate-50 dark:bg-[#0F1117] text-slate-900 dark:text-slate-100 flex flex-col transition-colors">
+    <div className="min-h-screen bg-[#F8FAFC] dark:bg-[#0B0F17] text-slate-900 dark:text-slate-100 flex flex-col transition-colors">
       <ClientSidebar />
       <div
         className={`flex-1 flex flex-col transition-all duration-300 ${
@@ -33,10 +33,11 @@ export const AppShell = () => {
         }`}
       >
         <ClientTopBar />
-        <main className="flex-1 p-6 overflow-y-auto">
+        <main className="flex-1 p-6 md:p-8 overflow-y-auto">
           <Outlet />
         </main>
       </div>
     </div>
   )
 }
+

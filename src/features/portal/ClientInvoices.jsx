@@ -53,15 +53,15 @@ export const ClientInvoices = () => {
           description="View client invoices, project billing breakdown, payment receipts, and download professional PDF copies"
         />
 
-        <div className="flex items-center gap-2 border-b border-slate-800 pb-3">
+        <div className="flex items-center gap-2 border-b border-slate-200 dark:border-slate-800/80 pb-3 overflow-x-auto">
           <NavLink
             to="/portal"
             end
             className={({ isActive }) =>
-              `flex items-center gap-2 px-3 py-1.5 rounded-xl text-xs font-semibold transition-colors ${
+              `flex items-center gap-2 px-3.5 py-1.5 rounded-xl text-xs font-semibold transition-all whitespace-nowrap ${
                 isActive
-                  ? 'bg-indigo-600/20 text-indigo-400 border border-indigo-500/30'
-                  : 'text-slate-400 hover:text-slate-200 hover:bg-slate-800'
+                  ? 'bg-emerald-50 text-emerald-700 border border-emerald-300 shadow-xs dark:bg-emerald-500/20 dark:text-emerald-300 dark:border-emerald-500/30'
+                  : 'text-slate-600 dark:text-slate-400 hover:text-slate-900 dark:hover:text-slate-100 hover:bg-slate-100 dark:hover:bg-slate-800/60 border border-transparent'
               }`
             }
           >
@@ -70,10 +70,10 @@ export const ClientInvoices = () => {
           <NavLink
             to="/portal/projects"
             className={({ isActive }) =>
-              `flex items-center gap-2 px-3 py-1.5 rounded-xl text-xs font-semibold transition-colors ${
+              `flex items-center gap-2 px-3.5 py-1.5 rounded-xl text-xs font-semibold transition-all whitespace-nowrap ${
                 isActive
-                  ? 'bg-indigo-600/20 text-indigo-400 border border-indigo-500/30'
-                  : 'text-slate-400 hover:text-slate-200 hover:bg-slate-800'
+                  ? 'bg-emerald-50 text-emerald-700 border border-emerald-300 shadow-xs dark:bg-emerald-500/20 dark:text-emerald-300 dark:border-emerald-500/30'
+                  : 'text-slate-600 dark:text-slate-400 hover:text-slate-900 dark:hover:text-slate-100 hover:bg-slate-100 dark:hover:bg-slate-800/60 border border-transparent'
               }`
             }
           >
@@ -82,10 +82,10 @@ export const ClientInvoices = () => {
           <NavLink
             to="/portal/invoices"
             className={({ isActive }) =>
-              `flex items-center gap-2 px-3 py-1.5 rounded-xl text-xs font-semibold transition-colors ${
+              `flex items-center gap-2 px-3.5 py-1.5 rounded-xl text-xs font-semibold transition-all whitespace-nowrap ${
                 isActive
-                  ? 'bg-indigo-600/20 text-indigo-400 border border-indigo-500/30'
-                  : 'text-slate-400 hover:text-slate-200 hover:bg-slate-800'
+                  ? 'bg-emerald-50 text-emerald-700 border border-emerald-300 shadow-xs dark:bg-emerald-500/20 dark:text-emerald-300 dark:border-emerald-500/30'
+                  : 'text-slate-600 dark:text-slate-400 hover:text-slate-900 dark:hover:text-slate-100 hover:bg-slate-100 dark:hover:bg-slate-800/60 border border-transparent'
               }`
             }
           >
@@ -94,10 +94,10 @@ export const ClientInvoices = () => {
           <NavLink
             to="/portal/files"
             className={({ isActive }) =>
-              `flex items-center gap-2 px-3 py-1.5 rounded-xl text-xs font-semibold transition-colors ${
+              `flex items-center gap-2 px-3.5 py-1.5 rounded-xl text-xs font-semibold transition-all whitespace-nowrap ${
                 isActive
-                  ? 'bg-indigo-600/20 text-indigo-400 border border-indigo-500/30'
-                  : 'text-slate-400 hover:text-slate-200 hover:bg-slate-800'
+                  ? 'bg-emerald-50 text-emerald-700 border border-emerald-300 shadow-xs dark:bg-emerald-500/20 dark:text-emerald-300 dark:border-emerald-500/30'
+                  : 'text-slate-600 dark:text-slate-400 hover:text-slate-900 dark:hover:text-slate-100 hover:bg-slate-100 dark:hover:bg-slate-800/60 border border-transparent'
               }`
             }
           >
@@ -107,10 +107,10 @@ export const ClientInvoices = () => {
       </div>
 
       {/* Invoices Table */}
-      <Card className="overflow-x-auto p-0 border-slate-800">
+      <Card className="overflow-x-auto p-0 border-slate-200 dark:border-slate-800 shadow-xs">
         <table className="w-full text-left border-collapse text-xs">
           <thead>
-            <tr className="bg-slate-900/80 border-b border-slate-800 text-slate-400">
+            <tr className="bg-slate-50 dark:bg-slate-900/80 border-b border-slate-200 dark:border-slate-800 text-slate-700 dark:text-slate-400 font-semibold">
               <th className="p-4 font-semibold">Invoice #</th>
               <th className="p-4 font-semibold">Associated Project</th>
               <th className="p-4 font-semibold">Issue Date</th>
@@ -120,17 +120,17 @@ export const ClientInvoices = () => {
               <th className="p-4 font-semibold text-right">Actions</th>
             </tr>
           </thead>
-          <tbody className="divide-y divide-slate-800/60">
+          <tbody className="divide-y divide-slate-200 dark:divide-slate-800/60">
             {isLoading ? (
               <tr>
-                <td colSpan={7} className="p-10 text-center text-slate-400">
-                  <Loader2 className="w-5 h-5 animate-spin mx-auto text-indigo-400 mb-2" />
+                <td colSpan={7} className="p-10 text-center text-slate-500 dark:text-slate-400">
+                  <Loader2 className="w-5 h-5 animate-spin mx-auto text-emerald-600 dark:text-emerald-400 mb-2" />
                   <span className="text-xs">Loading client invoices...</span>
                 </td>
               </tr>
             ) : allInvoices.length === 0 ? (
               <tr>
-                <td colSpan={7} className="p-8 text-center text-slate-400">
+                <td colSpan={7} className="p-8 text-center text-slate-500 dark:text-slate-400">
                   No invoices available yet.
                 </td>
               </tr>
@@ -138,19 +138,19 @@ export const ClientInvoices = () => {
               allInvoices.map((inv) => (
                 <tr
                   key={inv.invoiceId}
-                  className="hover:bg-slate-800/30 transition-colors cursor-pointer"
+                  className="hover:bg-slate-50 dark:hover:bg-slate-800/30 transition-colors cursor-pointer text-slate-700 dark:text-slate-300"
                   onClick={() => setSelectedInvoice(inv)}
                 >
-                  <td className="p-4 font-bold text-slate-200">{inv.invoiceNumber}</td>
+                  <td className="p-4 font-bold text-slate-900 dark:text-slate-200">{inv.invoiceNumber}</td>
                   <td className="p-4">
-                    <span className="inline-flex items-center gap-1.5 px-2 py-0.5 rounded bg-indigo-950/60 text-indigo-400 font-medium text-[11px] border border-indigo-900/40">
-                      <Briefcase className="w-3 h-3" />
+                    <span className="inline-flex items-center gap-1.5 px-2.5 py-1 rounded-lg bg-emerald-50 dark:bg-emerald-950/60 text-emerald-700 dark:text-emerald-400 font-medium text-[11px] border border-emerald-200 dark:border-emerald-900/40">
+                      <Briefcase className="w-3 h-3 text-emerald-600 dark:text-emerald-400" />
                       {inv.projectName || 'SaaS Platform Redesign'}
                     </span>
                   </td>
-                  <td className="p-4 text-slate-400">{inv.issueDate}</td>
-                  <td className="p-4 text-slate-400">{inv.dueDate}</td>
-                  <td className="p-4 font-bold text-slate-100">
+                  <td className="p-4 text-slate-600 dark:text-slate-400">{inv.issueDate}</td>
+                  <td className="p-4 text-slate-600 dark:text-slate-400">{inv.dueDate}</td>
+                  <td className="p-4 font-bold text-slate-900 dark:text-slate-100">
                     ₹{(inv.total || 0).toLocaleString('en-IN')}
                   </td>
                   <td className="p-4">
@@ -161,10 +161,10 @@ export const ClientInvoices = () => {
                   <td className="p-4 text-right space-x-2" onClick={(e) => e.stopPropagation()}>
                     <button
                       onClick={() => downloadInvoiceAsPDF(inv)}
-                      className="inline-flex items-center gap-1 px-2.5 py-1 hover:bg-slate-800 text-slate-300 hover:text-white rounded-lg border border-slate-700 transition-colors text-xs font-medium"
+                      className="inline-flex items-center gap-1 px-2.5 py-1 bg-white dark:bg-slate-800 hover:bg-slate-50 dark:hover:bg-slate-700 text-slate-700 dark:text-slate-200 rounded-lg border border-slate-200 dark:border-slate-700 transition-colors text-xs font-medium cursor-pointer shadow-2xs"
                       title="Download PDF Invoice File"
                     >
-                      <Download className="w-3.5 h-3.5 text-indigo-400" />
+                      <Download className="w-3.5 h-3.5 text-emerald-600 dark:text-emerald-400" />
                       <span>Download PDF</span>
                     </button>
 

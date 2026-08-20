@@ -25,6 +25,7 @@ import {
   BarChart2,
   Calendar,
   LifeBuoy,
+  IndianRupee,
 } from 'lucide-react'
 import haloLogo from '../../assets/halologo.png'
 import { useUIStore } from '../../stores/uiStore'
@@ -115,10 +116,10 @@ const ADMIN_GROUPS = [
   {
     key: 'finance',
     label: 'Finance',
-    icon: DollarSign,
+    icon: IndianRupee,
     items: [
       { name: 'Invoices', path: '/finance/invoices', icon: FileText },
-      { name: 'Expenses', path: '/finance/expenses', icon: DollarSign },
+      { name: 'Expenses', path: '/finance/expenses', icon: IndianRupee },
       { name: 'Recurring Billing', path: '/finance/recurring', icon: Calendar },
     ],
   },
@@ -193,9 +194,6 @@ const ADMIN_GROUPS = [
     icon: Settings,
     items: [
       { name: 'My Profile', path: '/settings/profile', icon: User },
-      { name: 'Org Settings', path: '/settings/org', icon: Building },
-      { name: 'Roles', path: '/settings/roles', icon: UserCheck },
-      { name: 'Integrations', path: '/settings/integrations', icon: GitBranch },
     ],
   },
 ]

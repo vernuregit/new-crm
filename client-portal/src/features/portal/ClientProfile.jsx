@@ -58,15 +58,16 @@ export const ClientProfile = () => {
 
       if (currentDoc) {
         setDisplayName(currentDoc.displayName || '')
-        setCompanyName(currentDoc.companyName || '')
+        setCompanyName(currentDoc.companyName || currentDoc.organization || '')
         setPhoneNumber(currentDoc.phoneNumber || '')
       } else {
         setDisplayName(user.displayName || '')
-        setCompanyName('Acme Corp') // fallback
+        setCompanyName(user.companyName || user.organization || '')
       }
     }
     loadProfile()
   }, [user, userDoc, setUser])
+
 
   const handleUpdateProfile = async (e) => {
     e.preventDefault()

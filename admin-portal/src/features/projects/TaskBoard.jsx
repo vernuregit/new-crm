@@ -224,14 +224,13 @@ export const TaskBoard = () => {
   const [assigneeId, setAssigneeId] = useState('')
   const [estimatedHours, setEstimatedHours] = useState('10')
 
-  useEffect(() => {
-    if (showAddModal) {
-      setProjectId(currentProjId)
-      if (!assigneeId && employees.length > 0) {
-        setAssigneeId(String(employees[0].uid || employees[0].employeeId || employees[0].id || ''))
-      }
+  const handleOpenAddModal = () => {
+    setProjectId(currentProjId)
+    if (!assigneeId && employees.length > 0) {
+      setAssigneeId(String(employees[0].uid || employees[0].employeeId || employees[0].id || ''))
     }
-  }, [showAddModal, currentProjId, assigneeId, employees])
+    setShowAddModal(true)
+  }
 
   const handleProjectFilterChange = (pId) => {
     if (pId === 'all') {
@@ -330,7 +329,7 @@ export const TaskBoard = () => {
           title="Task Sprint Board"
           description="Track cross-project task assignments, sprint statuses, and logged work hours"
           actions={
-            <Button icon={Plus} variant="primary" onClick={() => setShowAddModal(true)}>
+            <Button icon={Plus} variant="primary" onClick={handleOpenAddModal}>
               New Task
             </Button>
           }

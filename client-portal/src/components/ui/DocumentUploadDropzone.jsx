@@ -94,8 +94,13 @@ export const DocumentUploadDropzone = ({
       let cloudUrl = ''
       try {
         const fileExt = file.name.split('.').pop() || 'bin'
+        const cleanFileName = file.name.replace(/[^a-zA-Z0-9._-]/g, '_')
         const storageRef = ref(storage, `clients/onboarding/${docId}_${Date.now()}.${fileExt}`)
-        const snapshot = await uploadBytes(storageRef, file)
+        const metadata = {
+          contentType: file.type || 'application/octet-stream',
+          contentDisposition: `attachment; filename="${cleanFileName}"`,
+        }
+        const snapshot = await uploadBytes(storageRef, file, metadata)
         cloudUrl = await getDownloadURL(snapshot.ref)
       } catch (storageErr) {
         console.warn('Firebase Storage upload fallback to portable dataUrl:', storageErr.message)
@@ -159,19 +164,19 @@ export const DocumentUploadDropzone = ({
   }
 
   return (
-    <div className="bg-slate-900/70 rounded-2xl border border-slate-800 p-5 space-y-3 text-slate-100 shadow-lg">
-      <div className="flex items-center justify-between pb-2 border-b border-slate-800">
+    <div className="bg-white dark:bg-slate-900/70 rounded-2xl border border-slate-200 dark:border-slate-800 p-5 space-y-3 text-slate-900 dark:text-slate-100 shadow-sm dark:shadow-lg transition-colors">
+      <div className="flex items-center justify-between pb-2 border-b border-slate-200 dark:border-slate-800">
         <div>
           <div className="flex items-center gap-2">
-            <FileText className="w-4 h-4 text-emerald-400" />
-            <h4 className="font-semibold text-slate-100 text-sm">{title}</h4>
+            <FileText className="w-4 h-4 text-emerald-600 dark:text-emerald-400" />
+            <h4 className="font-semibold text-slate-900 dark:text-slate-100 text-sm">{title}</h4>
             {required && (
-              <span className="text-[10px] uppercase font-bold tracking-wider px-2 py-0.5 rounded-full bg-emerald-500/10 text-emerald-400 border border-emerald-500/20">
+              <span className="text-[10px] uppercase font-bold tracking-wider px-2 py-0.5 rounded-full bg-emerald-50 dark:bg-emerald-500/10 text-emerald-600 dark:text-emerald-400 border border-emerald-200 dark:border-emerald-500/20">
                 Required
               </span>
             )}
           </div>
-          <p className="text-xs text-slate-400 mt-0.5">{description}</p>
+          <p className="text-xs text-slate-500 dark:text-slate-400 mt-0.5">{description}</p>
         </div>
 
         {currentFile ? (
@@ -186,37 +191,37 @@ export const DocumentUploadDropzone = ({
       </div>
 
       {error && (
-        <div className="p-2.5 rounded-xl bg-rose-500/10 border border-rose-500/20 text-rose-400 text-xs flex items-center gap-2">
+        <div className="p-2.5 rounded-xl bg-rose-50 dark:bg-rose-500/10 border border-rose-200 dark:border-rose-500/20 text-rose-600 dark:text-rose-400 text-xs flex items-center gap-2">
           <AlertCircle className="w-4 h-4 shrink-0" />
           <span>{error}</span>
         </div>
       )}
 
       {uploading ? (
-        <div className="p-6 rounded-xl bg-slate-950/80 border border-slate-800 flex flex-col items-center justify-center gap-2">
-          <Loader2 className="w-6 h-6 animate-spin text-emerald-400" />
-          <span className="text-xs text-slate-300">Processing & encrypting document file...</span>
+        <div className="p-6 rounded-xl bg-slate-50 dark:bg-slate-950/80 border border-slate-200 dark:border-slate-800 flex flex-col items-center justify-center gap-2">
+          <Loader2 className="w-6 h-6 animate-spin text-emerald-600 dark:text-emerald-400" />
+          <span className="text-xs text-slate-600 dark:text-slate-300">Processing & encrypting document file...</span>
         </div>
       ) : currentFile ? (
-        <div className="p-3.5 rounded-xl bg-slate-950/80 border border-slate-800 flex items-center justify-between gap-3">
+        <div className="p-3.5 rounded-xl bg-slate-50 dark:bg-slate-950/80 border border-slate-200 dark:border-slate-800 flex items-center justify-between gap-3">
           <div className="flex items-center gap-3 min-w-0">
             {currentFile.fileUrl && (currentFile.fileUrl.startsWith('data:image') || currentFile.fileUrl.match(/\.(png|jpg|jpeg|webp)$/i)) ? (
               <img
                 src={currentFile.fileUrl}
                 alt="Thumbnail"
-                className="w-12 h-12 rounded-lg object-cover border border-slate-700 shrink-0 bg-slate-900"
+                className="w-12 h-12 rounded-lg object-cover border border-slate-300 dark:border-slate-700 shrink-0 bg-slate-100 dark:bg-slate-900"
               />
             ) : (
-              <div className="w-10 h-10 rounded-xl bg-emerald-500/10 text-emerald-400 flex items-center justify-center shrink-0 border border-emerald-500/20">
+              <div className="w-10 h-10 rounded-xl bg-emerald-50 dark:bg-emerald-500/10 text-emerald-600 dark:text-emerald-400 flex items-center justify-center shrink-0 border border-emerald-200 dark:border-emerald-500/20">
                 <File className="w-5 h-5" />
               </div>
             )}
 
             <div className="min-w-0">
-              <p className="font-medium text-slate-200 text-xs truncate max-w-xs sm:max-w-sm">
+              <p className="font-medium text-slate-800 dark:text-slate-200 text-xs truncate max-w-xs sm:max-w-sm">
                 {currentFile.fileName}
               </p>
-              <div className="flex items-center gap-2 text-[11px] text-slate-400 mt-0.5">
+              <div className="flex items-center gap-2 text-[11px] text-slate-500 dark:text-slate-400 mt-0.5">
                 <span>{currentFile.fileSize}</span>
                 <span>• {currentFile.timestampFormatted || currentFile.uploadedAt}</span>
               </div>
@@ -227,7 +232,7 @@ export const DocumentUploadDropzone = ({
             <button
               type="button"
               onClick={handleRemove}
-              className="p-1.5 rounded-lg text-slate-400 hover:text-rose-400 hover:bg-slate-900 border border-slate-800 transition-colors"
+              className="p-1.5 rounded-lg text-slate-400 hover:text-rose-600 dark:hover:text-rose-400 hover:bg-slate-200 dark:hover:bg-slate-900 border border-slate-200 dark:border-slate-800 transition-colors cursor-pointer"
               title="Remove File"
             >
               <Trash2 className="w-4 h-4" />
@@ -243,7 +248,7 @@ export const DocumentUploadDropzone = ({
           className={`border-2 border-dashed rounded-xl p-6 flex flex-col items-center justify-center cursor-pointer transition-all ${
             dragOver
               ? 'border-emerald-500 bg-emerald-500/5'
-              : 'border-slate-800 hover:border-slate-700 bg-slate-950/50'
+              : 'border-slate-300 dark:border-slate-800 hover:border-slate-400 dark:hover:border-slate-700 bg-slate-50/50 dark:bg-slate-950/50'
           }`}
         >
           <input
@@ -253,13 +258,13 @@ export const DocumentUploadDropzone = ({
             onChange={handleInputChange}
             className="hidden"
           />
-          <div className="w-10 h-10 rounded-full bg-slate-900 flex items-center justify-center text-slate-400 mb-2 border border-slate-800">
+          <div className="w-10 h-10 rounded-full bg-slate-100 dark:bg-slate-900 flex items-center justify-center text-slate-500 dark:text-slate-400 mb-2 border border-slate-200 dark:border-slate-800">
             <UploadCloud className="w-5 h-5" />
           </div>
-          <p className="text-xs font-medium text-slate-200 text-center">
+          <p className="text-xs font-medium text-slate-800 dark:text-slate-200 text-center">
             Click to upload or drag & drop document
           </p>
-          <p className="text-[11px] text-slate-500 mt-1">
+          <p className="text-[11px] text-slate-500 dark:text-slate-500 mt-1">
             Supported formats: {acceptedFormats} (Max 15 MB)
           </p>
         </div>

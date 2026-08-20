@@ -8,7 +8,7 @@ import { Input } from '../../shared/components/ui/Input'
 import { SubtaskStepper } from './components/SubtaskStepper'
 import { useProjectStore, DEFAULT_TASK_STATUSES } from './stores/projectStore'
 import { useUserStore } from '../../shared/stores/userStore'
-import { getProjects, getTasks, getTaskStatusesFromDb, createTask, updateTaskStatusInDb, deleteTaskFromDb } from './services/projectService'
+import { getProjects, getTasks, getTaskStatusesFromDb, createTask, updateTaskStatusInDb, deleteTaskFromDb, isTaskVisibleToUser } from './services/projectService'
 import {
   FolderKanban,
   Kanban,
@@ -19,32 +19,6 @@ import {
   Trash2,
   Filter
 } from 'lucide-react'
-
-const isTaskVisibleToUser = (t, user, userDoc, claims) => {
-  if (!t) return false
-  const currentUserId = userDoc?.uid || user?.uid || userDoc?.id
-  const currentUserEmail = userDoc?.email || user?.email
-  const currentDisplayName = userDoc?.displayName || user?.displayName
-
-  const rawRole = claims?.role || userDoc?.role || 'employee'
-  const isAdmin =
-    rawRole === 'admin' ||
-    rawRole === 'owner' ||
-    rawRole === 'superadmin'
-
-  if (isAdmin) return true
-
-  const isCreatorByUid =
-    t.createdBy && currentUserId && String(t.createdBy) === String(currentUserId)
-  const isCreatorByEmail =
-    t.createdByEmail && currentUserEmail && String(t.createdByEmail).toLowerCase() === String(currentUserEmail).toLowerCase()
-  const isCreatorByName =
-    t.createdByName && currentDisplayName && String(t.createdByName).toLowerCase() === String(currentDisplayName).toLowerCase()
-  const isAssigneeByName =
-    t.assigneeName && currentDisplayName && String(t.assigneeName).toLowerCase() === String(currentDisplayName).toLowerCase()
-
-  return Boolean(isCreatorByUid || isCreatorByEmail || isCreatorByName || isAssigneeByName)
-}
 
 export const TaskBoard = () => {
   const [searchParams, setSearchParams] = useSearchParams()
@@ -109,11 +83,10 @@ export const TaskBoard = () => {
   const [assignee, setAssignee] = useState('Sarah Jenkins')
   const [estimatedHours, setEstimatedHours] = useState('10')
 
-  useEffect(() => {
-    if (showAddModal) {
-      setProjectId(currentProjId)
-    }
-  }, [showAddModal, currentProjId])
+  const handleOpenAddModal = () => {
+    setProjectId(currentProjId)
+    setShowAddModal(true)
+  }
 
   const handleProjectFilterChange = (pId) => {
     if (pId === 'all') {
@@ -137,7 +110,7 @@ export const TaskBoard = () => {
       )
     : tasks
 
-  const filteredTasks = rawFilteredTasks.filter((t) => isTaskVisibleToUser(t, user, userDoc, claims))
+  const filteredTasks = rawFilteredTasks.filter((t) => isTaskVisibleToUser(t, user, userDoc, claims, projects, tasks))
 
   const activeStatuses = statuses || DEFAULT_TASK_STATUSES
 
@@ -157,6 +130,8 @@ export const TaskBoard = () => {
       projectId: projectId || 'proj_default',
       projectName: proj?.name || 'Project Work',
       priority,
+      assigneeId: currentUserId || null,
+      assigneeEmail: currentUserEmail || null,
       assigneeName: isAdmin ? assignee : employeeName,
       estimatedHours: Number(estimatedHours) || 0,
       loggedHours: 0,
@@ -203,7 +178,7 @@ export const TaskBoard = () => {
           title="Task Sprint Board"
           description="Track cross-project task assignments, sprint statuses, and subtask execution timelines"
           actions={
-            <Button icon={Plus} variant="primary" onClick={() => setShowAddModal(true)}>
+            <Button icon={Plus} variant="primary" onClick={handleOpenAddModal}>
               New Task
             </Button>
           }

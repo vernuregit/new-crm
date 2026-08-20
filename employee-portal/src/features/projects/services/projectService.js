@@ -5,6 +5,8 @@ import {
   setDoc,
   updateDoc,
   deleteDoc,
+  query,
+  where,
   serverTimestamp,
 } from 'firebase/firestore'
 import { db } from '../../../shared/services/firebaseService'
@@ -16,53 +18,114 @@ export const DEFAULT_TASK_STATUSES = [
   { id: 'done', name: 'Done', color: 'emerald' },
 ]
 
+const GENERIC_NAMES = ['employee', 'team member', 'unassigned', 'creator', 'user', 'admin', '']
+
+export const isGenericName = (name) => {
+  if (!name || typeof name !== 'string') return true
+  return GENERIC_NAMES.includes(name.trim().toLowerCase())
+}
+
 /**
- * Check whether the current user is creator/owner/member of a project
+ * Check whether a target identity (id, email, name) matches the current logged-in user
  */
-export const isUserOnProject = (project, user, userDoc) => {
-  if (!project) return false
+export const matchesUserIdentity = (targetId, targetEmail, targetName, user, userDoc) => {
   const currentUserId = userDoc?.uid || user?.uid || userDoc?.id
   const currentUserEmail = userDoc?.email || user?.email
   const currentDisplayName = userDoc?.displayName || user?.displayName || userDoc?.name
 
-  const matchesIdentity = (id, email, name) =>
-    Boolean(
-      (currentUserId && id && String(id) === String(currentUserId)) ||
-        (currentUserEmail &&
-          email &&
-          String(email).toLowerCase() === String(currentUserEmail).toLowerCase()) ||
-        (currentDisplayName &&
-          name &&
-          String(name).toLowerCase() === String(currentDisplayName).toLowerCase())
-    )
+  // Match by UID if provided on target
+  if (targetId && currentUserId) {
+    return String(targetId) === String(currentUserId)
+  }
 
+  // Match by Email if provided on target
+  if (targetEmail && currentUserEmail) {
+    return String(targetEmail).toLowerCase() === String(currentUserEmail).toLowerCase()
+  }
+
+  // Match by Name only if provided and NOT a generic placeholder name
   if (
-    matchesIdentity(project.createdBy, project.createdByEmail, project.createdByName) ||
-    matchesIdentity(null, null, project.ownerName)
+    targetName &&
+    currentDisplayName &&
+    !isGenericName(targetName) &&
+    !isGenericName(currentDisplayName)
+  ) {
+    return String(targetName).trim().toLowerCase() === String(currentDisplayName).trim().toLowerCase()
+  }
+
+  return false
+}
+
+/**
+ * Check if the user is creator or assignee of a specific task
+ */
+export const isUserAssignedToTask = (t, user, userDoc) => {
+  if (!t) return false
+  const isCreator = matchesUserIdentity(t.createdBy, t.createdByEmail, t.createdByName, user, userDoc)
+  const isAssignee = matchesUserIdentity(t.assigneeId, t.assigneeEmail, t.assigneeName, user, userDoc)
+  return Boolean(isCreator || isAssignee)
+}
+
+/**
+ * Check whether the current user is creator/owner/member of a project OR assigned to any task in that project
+ */
+export const isUserOnProject = (project, user, userDoc, tasks = []) => {
+  if (!project) return false
+
+  // 1. Check if user is project creator
+  if (
+    matchesUserIdentity(project.createdBy, project.createdByEmail, project.createdByName, user, userDoc)
   ) {
     return true
   }
 
+  // 2. Check if user is the assigned employee via employeeId
+  if (
+    project.employeeId &&
+    matchesUserIdentity(project.employeeId, null, null, user, userDoc)
+  ) {
+    return true
+  }
+
+  // 3. Check if user is in project.members array
   const members = Array.isArray(project.members) ? project.members : []
-  return members.some((m) => {
+  const isMember = members.some((m) => {
     if (m == null) return false
     if (typeof m !== 'object') {
-      return matchesIdentity(m, m, m)
+      return matchesUserIdentity(m, m, m, user, userDoc)
     }
-    return matchesIdentity(m.uid || m.id, m.email, m.name || m.displayName)
+    return matchesUserIdentity(m.uid || m.id, m.email, m.name || m.displayName, user, userDoc)
   })
+  if (isMember) return true
+
+  // 4. Only fall back to ownerName matching if no UID-based creator / employeeId is set
+  if (!project.createdBy && !project.createdByEmail && !project.employeeId) {
+    if (matchesUserIdentity(null, null, project.ownerName, user, userDoc)) {
+      return true
+    }
+  }
+
+  // 5. Check if user is creator or assignee of any task in this project
+  if (Array.isArray(tasks) && tasks.length > 0) {
+    const pId = project.projectId || project.id
+    const hasTaskInProject = tasks.some((t) => {
+      const isProjMatch =
+        (t.projectId && (t.projectId === pId || String(t.projectId) === String(pId))) ||
+        (t.projectName && project.name && String(t.projectName).toLowerCase() === String(project.name).toLowerCase())
+      return isProjMatch && isUserAssignedToTask(t, user, userDoc)
+    })
+    if (hasTaskInProject) return true
+  }
+
+  return false
 }
 
 /**
  * Helper to check if a task should be visible to the current user.
- * Includes tasks on projects where the user was added as a member.
+ * Includes tasks directly assigned to/created by the user, OR tasks on projects where the user is a member/participant.
  */
-export const isTaskVisibleToUser = (t, user, userDoc, claims, projects = []) => {
+export const isTaskVisibleToUser = (t, user, userDoc, claims, projects = [], tasks = []) => {
   if (!t) return false
-  const currentUserId = userDoc?.uid || user?.uid || userDoc?.id
-  const currentUserEmail = userDoc?.email || user?.email
-  const currentDisplayName = userDoc?.displayName || user?.displayName
-
   const rawRole = claims?.role || userDoc?.role || 'employee'
   const isAdmin =
     rawRole === 'admin' ||
@@ -71,40 +134,19 @@ export const isTaskVisibleToUser = (t, user, userDoc, claims, projects = []) => 
 
   if (isAdmin) return true
 
-  const isCreatorByUid =
-    t.createdBy && currentUserId && String(t.createdBy) === String(currentUserId)
-  const isCreatorByEmail =
-    t.createdByEmail && currentUserEmail && String(t.createdByEmail).toLowerCase() === String(currentUserEmail).toLowerCase()
-  const isCreatorByName =
-    t.createdByName && currentDisplayName && String(t.createdByName).toLowerCase() === String(currentDisplayName).toLowerCase()
-  const isAssigneeByName =
-    t.assigneeName && currentDisplayName && String(t.assigneeName).toLowerCase() === String(currentDisplayName).toLowerCase()
-  const isAssigneeById =
-    t.assigneeId && currentUserId && String(t.assigneeId) === String(currentUserId)
-  const isAssigneeByEmail =
-    t.assigneeEmail &&
-    currentUserEmail &&
-    String(t.assigneeEmail).toLowerCase() === String(currentUserEmail).toLowerCase()
-
-  if (
-    isCreatorByUid ||
-    isCreatorByEmail ||
-    isCreatorByName ||
-    isAssigneeByName ||
-    isAssigneeById ||
-    isAssigneeByEmail
-  ) {
+  // 1. Direct task creator or assignee
+  if (isUserAssignedToTask(t, user, userDoc)) {
     return true
   }
 
-  // Show project tasks to employees who were added as project members
+  // 2. Project member / creator / participant
   if (Array.isArray(projects) && projects.length > 0) {
     const project = projects.find(
       (p) =>
-        (t.projectId && (p.projectId === t.projectId || p.id === t.projectId)) ||
+        (t.projectId && (p.projectId === t.projectId || p.id === t.projectId || String(p.projectId) === String(t.projectId))) ||
         (t.projectName && p.name && String(p.name).toLowerCase() === String(t.projectName).toLowerCase())
     )
-    if (project && isUserOnProject(project, user, userDoc)) {
+    if (project && isUserOnProject(project, user, userDoc, tasks)) {
       return true
     }
   }
@@ -231,6 +273,34 @@ export const createProjectInDb = async (projData) => {
     console.error('Error creating project in Firestore:', err)
     const projectId = `proj_${Date.now()}`
     return { projectId, id: projectId, ...projData }
+  }
+}
+
+// ─── Update Project ───────────────────────────────────────────────────────────
+export const updateProjectInDb = async (projectId, updates) => {
+  try {
+    if (!projectId || !updates) return
+    const payload = {
+      ...updates,
+      updatedAt: serverTimestamp(),
+    }
+    Object.keys(payload).forEach((k) => payload[k] === undefined && delete payload[k])
+    await updateDoc(doc(db, 'projects', projectId), payload)
+
+    // Sync updated project name to associated tasks in Firestore
+    if (updates.name && typeof updates.name === 'string' && updates.name.trim()) {
+      const q = query(collection(db, 'tasks'), where('projectId', '==', projectId))
+      const snap = await getDocs(q)
+      const promises = snap.docs.map((d) =>
+        updateDoc(doc(db, 'tasks', d.id), {
+          projectName: updates.name.trim(),
+          updatedAt: serverTimestamp(),
+        })
+      )
+      await Promise.all(promises)
+    }
+  } catch (err) {
+    console.error('Error updating project in Firestore:', err)
   }
 }
 

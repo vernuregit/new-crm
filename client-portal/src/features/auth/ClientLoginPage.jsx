@@ -1,10 +1,11 @@
 import React, { useState } from 'react'
 import { useNavigate } from 'react-router-dom'
-import { Mail, Lock, ArrowRight, AlertCircle } from 'lucide-react'
+import { Mail, Lock, ArrowRight, AlertCircle, Sun, Moon } from 'lucide-react'
 import { Button } from '../../components/ui/Button'
 import { Input } from '../../components/ui/Input'
 import { Card } from '../../components/ui/Card'
 import { useUserStore } from '../../stores/userStore'
+import { useUIStore } from '../../stores/uiStore'
 import haloLogo from '../../assets/halologo.png'
 import { loginWithEmail, signupWithEmail, fetchCustomClaims } from '../../shared/services/authService'
 import { getClientOnboardingDoc } from '../../shared/services/onboardingService'
@@ -12,6 +13,7 @@ import { getClientOnboardingDoc } from '../../shared/services/onboardingService'
 export const ClientLoginPage = () => {
   const navigate = useNavigate()
   const { setUser } = useUserStore()
+  const { theme, toggleTheme } = useUIStore()
 
   const [email, setEmail] = useState('')
   const [password, setPassword] = useState('')
@@ -73,11 +75,27 @@ export const ClientLoginPage = () => {
 
   return (
     <div className="min-h-screen bg-slate-50 dark:bg-[#0F1117] flex items-center justify-center p-4 relative overflow-hidden text-slate-900 dark:text-slate-100 transition-colors duration-200">
+      {/* Top right theme toggle */}
+      <div className="absolute top-4 right-4 z-20">
+        <button
+          type="button"
+          onClick={toggleTheme}
+          title={theme === 'dark' ? 'Switch to Light Mode' : 'Switch to Dark Mode'}
+          className="w-9 h-9 rounded-xl bg-white dark:bg-slate-800 hover:bg-slate-100 dark:hover:bg-slate-700 text-slate-600 dark:text-amber-400 flex items-center justify-center transition-all cursor-pointer border border-slate-200 dark:border-slate-700 shadow-sm"
+        >
+          {theme === 'dark' ? (
+            <Sun className="w-4 h-4 text-amber-400 transition-transform duration-300 rotate-0 hover:rotate-45" />
+          ) : (
+            <Moon className="w-4 h-4 text-slate-700 transition-transform duration-300 -rotate-12 hover:rotate-0" />
+          )}
+        </button>
+      </div>
+
       <div className="absolute top-1/4 left-1/2 -translate-x-1/2 w-96 h-96 bg-emerald-500/10 dark:bg-emerald-600/15 blur-[120px] rounded-full pointer-events-none" />
 
       <Card className="w-full max-w-md p-8 relative z-10 border-emerald-200/80 dark:border-emerald-500/30 shadow-xl dark:shadow-2xl space-y-6">
         <div className="text-center space-y-2">
-          <div className="inline-flex w-20 h-20 rounded-full bg-white p-2 items-center justify-center border border-slate-200 dark:border-slate-700/80 shadow-md mb-2">
+          <div className="inline-flex w-20 h-20 rounded-full bg-slate-100 dark:bg-slate-800/90 p-2 items-center justify-center border border-slate-200 dark:border-slate-700/80 shadow-md mb-2">
             <img src={haloLogo} alt="The Halo Effect Consulting" className="w-full h-full object-contain rounded-full" />
           </div>
           <h2 className="text-2xl font-bold text-slate-900 dark:text-slate-100 tracking-tight">Client Portal Sign In</h2>
@@ -120,3 +138,4 @@ export const ClientLoginPage = () => {
     </div>
   )
 }
+

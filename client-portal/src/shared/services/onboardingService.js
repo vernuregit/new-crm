@@ -92,8 +92,13 @@ export const uploadDocumentToStorage = async (uid, docId, file) => {
   if (!file || !uid) return null
   try {
     const fileExt = file.name.split('.').pop() || 'pdf'
+    const cleanFileName = (file.name || `${docId}.${fileExt}`).replace(/[^a-zA-Z0-9._-]/g, '_')
     const storageRef = ref(storage, `clients/${uid}/documents/${docId}_${Date.now()}.${fileExt}`)
-    const snapshot = await uploadBytes(storageRef, file)
+    const metadata = {
+      contentType: file.type || 'application/octet-stream',
+      contentDisposition: `attachment; filename="${cleanFileName}"`,
+    }
+    const snapshot = await uploadBytes(storageRef, file, metadata)
     const downloadURL = await getDownloadURL(snapshot.ref)
     return downloadURL
   } catch (err) {

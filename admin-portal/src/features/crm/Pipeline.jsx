@@ -89,7 +89,6 @@ export const Pipeline = () => {
   const [newEmail, setNewEmail] = useState('')
   const [newValue, setNewValue] = useState('')
   const [newStageId, setNewStageId] = useState('stage_new')
-  const [newOwner, setNewOwner] = useState('Sarah Jenkins')
 
   // Fetch real leads & custom pipeline stages from Firestore on component mount
   useEffect(() => {
@@ -208,7 +207,7 @@ export const Pipeline = () => {
       estimatedValue: Number(newValue) || 0,
       pipelineStageId: stageObj.id,
       pipelineStage: stageObj.name,
-      ownerName: newOwner,
+      ownerName: 'Unassigned',
       score: 75,
       tags: ['New Lead'],
     }
@@ -613,34 +612,19 @@ export const Pipeline = () => {
                 />
               </div>
 
-              <div className="grid grid-cols-2 gap-3">
-                <div className="space-y-1.5 text-left">
-                  <label className="block text-xs font-medium text-slate-700 dark:text-slate-300">Initial Pipeline Stage</label>
-                  <select
-                    value={newStageId}
-                    onChange={(e) => setNewStageId(e.target.value)}
-                    className="w-full bg-slate-100/80 dark:bg-[#11141E] border border-slate-300 dark:border-slate-800 text-slate-900 dark:text-slate-100 text-sm rounded-xl py-2.5 px-3.5 focus:outline-none focus:border-indigo-500 focus:ring-1 focus:ring-indigo-500 transition-all cursor-pointer"
-                  >
-                    {stages.map((s) => (
-                      <option key={s.id} value={s.id} className="bg-white dark:bg-[#11141E] text-slate-900 dark:text-slate-100">
-                        {s.name}
-                      </option>
-                    ))}
-                  </select>
-                </div>
-
-                <div className="space-y-1.5 text-left">
-                  <label className="block text-xs font-medium text-slate-700 dark:text-slate-300">Deal Owner</label>
-                  <select
-                    value={newOwner}
-                    onChange={(e) => setNewOwner(e.target.value)}
-                    className="w-full bg-slate-100/80 dark:bg-[#11141E] border border-slate-300 dark:border-slate-800 text-slate-900 dark:text-slate-100 text-sm rounded-xl py-2.5 px-3.5 focus:outline-none focus:border-indigo-500 focus:ring-1 focus:ring-indigo-500 transition-all cursor-pointer"
-                  >
-                    <option value="Sarah Jenkins" className="bg-white dark:bg-[#11141E] text-slate-900 dark:text-slate-100">Sarah Jenkins</option>
-                    <option value="Alex Rivera" className="bg-white dark:bg-[#11141E] text-slate-900 dark:text-slate-100">Alex Rivera</option>
-                    <option value="David Chen" className="bg-white dark:bg-[#11141E] text-slate-900 dark:text-slate-100">David Chen</option>
-                  </select>
-                </div>
+              <div className="space-y-1.5 text-left">
+                <label className="block text-xs font-medium text-slate-700 dark:text-slate-300">Initial Pipeline Stage</label>
+                <select
+                  value={newStageId}
+                  onChange={(e) => setNewStageId(e.target.value)}
+                  className="w-full bg-slate-100/80 dark:bg-[#11141E] border border-slate-300 dark:border-slate-800 text-slate-900 dark:text-slate-100 text-sm rounded-xl py-2.5 px-3.5 focus:outline-none focus:border-indigo-500 focus:ring-1 focus:ring-indigo-500 transition-all cursor-pointer"
+                >
+                  {stages.map((s) => (
+                    <option key={s.id} value={s.id} className="bg-white dark:bg-[#11141E] text-slate-900 dark:text-slate-100">
+                      {s.name}
+                    </option>
+                  ))}
+                </select>
               </div>
 
               <div className="flex gap-3 pt-2">

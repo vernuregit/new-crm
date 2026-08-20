@@ -1,236 +1,381 @@
 import React, { useEffect } from 'react'
-import { NavLink } from 'react-router-dom'
-import { PageHeader } from '../../components/layout/PageHeader'
+import { Link } from 'react-router-dom'
 import { Card } from '../../components/ui/Card'
-import { Badge } from '../../components/ui/Badge'
-import { Button } from '../../components/ui/Button'
 import { usePortalStore } from './stores/portalStore'
-import { getClientProjects, getClientInvoices, getClientDeliverables } from './services/portalService'
+import { useUserStore } from '../../stores/userStore'
 import {
-  ShieldCheck,
-  Briefcase,
-  FileText,
-  Download,
+  getClientProjects,
+  getClientInvoices,
+  getClientDeliverables,
+  getClientTickets,
+} from './services/portalService'
+import {
+  Folder,
   CheckCircle2,
-  XCircle,
-  Clock,
-  Layers,
-  Check,
-  X,
-  CreditCard
+  FileText,
+  Headphones,
+  Calendar,
+  MessageSquare,
+  Receipt,
 } from 'lucide-react'
 
 export const ClientPortal = () => {
+  const { user, userDoc } = useUserStore()
   const {
     projects,
     invoices,
     files,
-    approvals,
+    activities,
+    tickets,
     setProjects,
     setInvoices,
     setFiles,
-    approveDeliverable,
-    rejectDeliverable,
+    setTickets,
   } = usePortalStore()
 
   useEffect(() => {
     const fetchPortalData = async () => {
-      const projs = await getClientProjects()
-      const invs = await getClientInvoices()
-      const delivs = await getClientDeliverables()
-      if (projs && projs.length > 0) setProjects(projs)
-      if (invs && invs.length > 0) setInvoices(invs)
-      if (delivs && delivs.length > 0) setFiles(delivs)
+      try {
+        const projs = await getClientProjects(user?.uid)
+        const invs = await getClientInvoices(user?.uid)
+        const delivs = await getClientDeliverables(user?.uid)
+        const tcks = await getClientTickets(user?.uid)
+
+        setProjects(projs)
+        setInvoices(invs)
+        setFiles(delivs)
+        setTickets(tcks)
+      } catch (err) {
+        console.warn('Failed to load remote Firestore portal data:', err)
+      }
     }
     fetchPortalData()
-  }, [setProjects, setInvoices, setFiles])
+  }, [user, setProjects, setInvoices, setFiles, setTickets])
 
-  const pendingApprovals = approvals.filter((a) => a.status === 'pending')
-  const openBalance = invoices
-    .filter((i) => i.status !== 'paid')
-    .reduce((sum, i) => sum + i.total, 0)
+  // Greeting name
+  const firstName =
+    userDoc?.displayName?.split(' ')[0] ||
+    user?.displayName?.split(' ')[0] ||
+    'Client'
+
+  // Metric counts dynamically calculated from real data
+  const activeProjectsCount = projects.length
+  const pendingInvoicesCount = invoices.filter(
+    (i) => i.status?.toLowerCase() !== 'paid'
+  ).length
+  const documentsCount = files.length
+  const openTicketsCount = tickets.filter(
+    (t) => t.status?.toLowerCase() === 'open'
+  ).length
 
   return (
-    <div className="space-y-6">
-      {/* Header & Sub Nav */}
-      <div className="space-y-4">
-        <PageHeader
-          title="Client Portal Environment"
-          description="Tenant-isolated workspace for tracking your project deliverables, approving milestones, and managing invoices"
-        />
-
-        <div className="flex items-center gap-2 border-b border-slate-800 pb-3">
-          <NavLink
-            to="/portal"
-            end
-            className={({ isActive }) =>
-              `flex items-center gap-2 px-3 py-1.5 rounded-xl text-xs font-semibold transition-colors ${
-                isActive
-                  ? 'bg-indigo-600/20 text-indigo-400 border border-indigo-500/30'
-                  : 'text-slate-400 hover:text-slate-200 hover:bg-slate-800'
-              }`
-            }
-          >
-            <Layers className="w-3.5 h-3.5" /> Portal Overview
-          </NavLink>
-          <NavLink
-            to="/portal/projects"
-            className={({ isActive }) =>
-              `flex items-center gap-2 px-3 py-1.5 rounded-xl text-xs font-semibold transition-colors ${
-                isActive
-                  ? 'bg-indigo-600/20 text-indigo-400 border border-indigo-500/30'
-                  : 'text-slate-400 hover:text-slate-200 hover:bg-slate-800'
-              }`
-            }
-          >
-            <Briefcase className="w-3.5 h-3.5" /> Projects Status
-          </NavLink>
-          <NavLink
-            to="/portal/invoices"
-            className={({ isActive }) =>
-              `flex items-center gap-2 px-3 py-1.5 rounded-xl text-xs font-semibold transition-colors ${
-                isActive
-                  ? 'bg-indigo-600/20 text-indigo-400 border border-indigo-500/30'
-                  : 'text-slate-400 hover:text-slate-200 hover:bg-slate-800'
-              }`
-            }
-          >
-            <FileText className="w-3.5 h-3.5" /> Invoices & Receipts
-          </NavLink>
-          <NavLink
-            to="/portal/files"
-            className={({ isActive }) =>
-              `flex items-center gap-2 px-3 py-1.5 rounded-xl text-xs font-semibold transition-colors ${
-                isActive
-                  ? 'bg-indigo-600/20 text-indigo-400 border border-indigo-500/30'
-                  : 'text-slate-400 hover:text-slate-200 hover:bg-slate-800'
-              }`
-            }
-          >
-            <Download className="w-3.5 h-3.5" /> Deliverables & Files
-          </NavLink>
-        </div>
+    <div className="space-y-7 max-w-7xl mx-auto pb-10">
+      {/* 1. Greeting Section */}
+      <div>
+        <h2 className="text-2xl font-bold text-slate-900 dark:text-white tracking-tight flex items-center gap-2">
+          <span>Welcome, {firstName}!</span>
+        </h2>
+        <p className="text-sm text-slate-500 dark:text-slate-400 mt-1">
+          Here&apos;s what&apos;s happening with your account.
+        </p>
       </div>
 
-      {/* Security Isolation Banner */}
-      <Card className="p-4 border-indigo-200 dark:border-indigo-500/30 bg-gradient-to-r from-indigo-50 to-purple-50 dark:from-indigo-500/10 dark:to-purple-500/5 flex items-center justify-between">
-        <div className="flex items-center gap-3">
-          <div className="w-9 h-9 rounded-xl bg-indigo-100 dark:bg-indigo-600/20 text-indigo-600 dark:text-indigo-400 flex items-center justify-center shrink-0 border border-indigo-200 dark:border-indigo-500/30">
-            <ShieldCheck className="w-5 h-5" />
-          </div>
-          <div>
-            <h4 className="font-bold text-slate-900 dark:text-slate-100 text-xs">Secure Client Isolation Active</h4>
-            <p className="text-[11px] text-slate-600 dark:text-slate-400 mt-0.5">
-              Filtered exclusively for <strong className="text-slate-900 dark:text-slate-200">Acme Corp</strong> via Custom Claims & Firestore Path Rules.
-            </p>
-          </div>
-        </div>
-        <Badge variant="brand">Client Portal Tier</Badge>
-      </Card>
-
-      {/* Portal Metrics */}
-      <div className="grid grid-cols-1 sm:grid-cols-3 gap-4">
-        <Card className="p-4 flex items-center justify-between border-slate-200 dark:border-slate-800/80">
-          <div>
-            <span className="text-[11px] font-medium text-slate-500 dark:text-slate-400 uppercase tracking-wider">
-              Active Projects
-            </span>
-            <p className="text-xl font-bold text-slate-900 dark:text-slate-100 mt-1">{projects.length}</p>
-          </div>
-          <div className="w-9 h-9 rounded-xl bg-indigo-50 dark:bg-indigo-500/10 text-indigo-600 dark:text-indigo-400 flex items-center justify-center">
-            <Briefcase className="w-5 h-5" />
-          </div>
-        </Card>
-
-        <Card className="p-4 flex items-center justify-between border-slate-200 dark:border-slate-800/80">
-          <div>
-            <span className="text-[11px] font-medium text-slate-500 dark:text-slate-400 uppercase tracking-wider">
-              Pending Approvals
-            </span>
-            <p className="text-xl font-bold text-amber-600 dark:text-amber-400 mt-1">{pendingApprovals.length}</p>
-          </div>
-          <div className="w-9 h-9 rounded-xl bg-amber-50 dark:bg-amber-500/10 text-amber-600 dark:text-amber-400 flex items-center justify-center">
-            <Clock className="w-5 h-5" />
-          </div>
-        </Card>
-
-        <Card className="p-4 flex items-center justify-between border-slate-200 dark:border-slate-800/80">
-          <div>
-            <span className="text-[11px] font-medium text-slate-500 dark:text-slate-400 uppercase tracking-wider">
-              Outstanding Balance
-            </span>
-            <p className="text-xl font-bold text-rose-600 dark:text-rose-400 mt-1">
-              ${openBalance.toLocaleString()}
-            </p>
-          </div>
-          <div className="w-9 h-9 rounded-xl bg-rose-50 dark:bg-rose-500/10 text-rose-600 dark:text-rose-400 flex items-center justify-center">
-            <CreditCard className="w-5 h-5" />
-          </div>
-        </Card>
-      </div>
-
-      {/* Deliverable Approvals Section */}
-      <div className="space-y-3">
-        <h3 className="text-sm font-bold text-slate-900 dark:text-slate-100">Deliverable Sign-offs Needed</h3>
-        {approvals.map((app) => (
-          <Card key={app.approvalId} hover className="flex items-center justify-between p-4 border-slate-200 dark:border-slate-800">
-            <div className="space-y-1">
-              <div className="flex items-center gap-2">
-                <h4 className="font-bold text-slate-900 dark:text-slate-100 text-sm">{app.title}</h4>
-                <Badge variant={app.status === 'approved' ? 'success' : app.status === 'rejected' ? 'danger' : 'warning'}>
-                  {app.status}
-                </Badge>
-              </div>
-              <p className="text-xs text-slate-600 dark:text-slate-400">{app.notes}</p>
-              <span className="text-[10px] text-slate-500 dark:text-slate-400 block">Project: {app.projectName} • Requested: {app.requestedAt}</span>
+      {/* 2. Top 4 Stat Metric Cards */}
+      <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-5">
+        {/* Card 1: Active Projects */}
+        <Card className="p-6 bg-white dark:bg-[#111827] border-slate-200/80 dark:border-slate-800 rounded-2xl shadow-2xs hover:shadow-xs transition-shadow">
+          <div className="flex items-start gap-4">
+            <div className="w-11 h-11 rounded-xl bg-blue-50 dark:bg-blue-500/15 text-blue-600 dark:text-blue-400 flex items-center justify-center shrink-0">
+              <Folder className="w-5 h-5" />
             </div>
-
-            {app.status === 'pending' && (
-              <div className="flex items-center gap-2">
-                <Button
-                  size="sm"
-                  variant="primary"
-                  icon={Check}
-                  onClick={() => approveDeliverable(app.approvalId)}
-                >
-                  Approve
-                </Button>
-                <Button
-                  size="sm"
-                  variant="outline"
-                  icon={X}
-                  onClick={() => rejectDeliverable(app.approvalId)}
-                >
-                  Request Changes
-                </Button>
+            <div>
+              <div className="text-2xl font-bold text-slate-900 dark:text-white leading-tight">
+                {activeProjectsCount}
               </div>
-            )}
-          </Card>
-        ))}
+              <div className="text-xs text-slate-500 dark:text-slate-400 font-medium mt-0.5">
+                Active Projects
+              </div>
+            </div>
+          </div>
+          <div className="mt-5 pt-1">
+            <Link
+              to="/portal/projects"
+              className="text-xs font-semibold text-blue-600 dark:text-blue-400 hover:text-blue-700 dark:hover:text-blue-300 inline-flex items-center gap-1 group"
+            >
+              <span>View all</span>
+              <span className="group-hover:translate-x-0.5 transition-transform">→</span>
+            </Link>
+          </div>
+        </Card>
+
+        {/* Card 2: Pending Invoice */}
+        <Card className="p-6 bg-white dark:bg-[#111827] border-slate-200/80 dark:border-slate-800 rounded-2xl shadow-2xs hover:shadow-xs transition-shadow">
+          <div className="flex items-start gap-4">
+            <div className="w-11 h-11 rounded-xl bg-emerald-50 dark:bg-emerald-500/15 text-emerald-600 dark:text-emerald-400 flex items-center justify-center shrink-0">
+              <CheckCircle2 className="w-5 h-5" />
+            </div>
+            <div>
+              <div className="text-2xl font-bold text-slate-900 dark:text-white leading-tight">
+                {pendingInvoicesCount}
+              </div>
+              <div className="text-xs text-slate-500 dark:text-slate-400 font-medium mt-0.5">
+                Pending Invoice
+              </div>
+            </div>
+          </div>
+          <div className="mt-5 pt-1">
+            <Link
+              to="/portal/invoices"
+              className="text-xs font-semibold text-blue-600 dark:text-blue-400 hover:text-blue-700 dark:hover:text-blue-300 inline-flex items-center gap-1 group"
+            >
+              <span>View all</span>
+              <span className="group-hover:translate-x-0.5 transition-transform">→</span>
+            </Link>
+          </div>
+        </Card>
+
+        {/* Card 3: Documents */}
+        <Card className="p-6 bg-white dark:bg-[#111827] border-slate-200/80 dark:border-slate-800 rounded-2xl shadow-2xs hover:shadow-xs transition-shadow">
+          <div className="flex items-start gap-4">
+            <div className="w-11 h-11 rounded-xl bg-purple-50 dark:bg-purple-500/15 text-purple-600 dark:text-purple-400 flex items-center justify-center shrink-0">
+              <FileText className="w-5 h-5" />
+            </div>
+            <div>
+              <div className="text-2xl font-bold text-slate-900 dark:text-white leading-tight">
+                {documentsCount}
+              </div>
+              <div className="text-xs text-slate-500 dark:text-slate-400 font-medium mt-0.5">
+                Documents
+              </div>
+            </div>
+          </div>
+          <div className="mt-5 pt-1">
+            <Link
+              to="/portal/files"
+              className="text-xs font-semibold text-blue-600 dark:text-blue-400 hover:text-blue-700 dark:hover:text-blue-300 inline-flex items-center gap-1 group"
+            >
+              <span>View all</span>
+              <span className="group-hover:translate-x-0.5 transition-transform">→</span>
+            </Link>
+          </div>
+        </Card>
+
+        {/* Card 4: Open Tickets */}
+        <Card className="p-6 bg-white dark:bg-[#111827] border-slate-200/80 dark:border-slate-800 rounded-2xl shadow-2xs hover:shadow-xs transition-shadow">
+          <div className="flex items-start gap-4">
+            <div className="w-11 h-11 rounded-xl bg-amber-50 dark:bg-amber-500/15 text-amber-600 dark:text-amber-400 flex items-center justify-center shrink-0">
+              <Headphones className="w-5 h-5" />
+            </div>
+            <div>
+              <div className="text-2xl font-bold text-slate-900 dark:text-white leading-tight">
+                {openTicketsCount}
+              </div>
+              <div className="text-xs text-slate-500 dark:text-slate-400 font-medium mt-0.5">
+                Open Tickets
+              </div>
+            </div>
+          </div>
+          <div className="mt-5 pt-1">
+            <Link
+              to="/portal/support"
+              className="text-xs font-semibold text-blue-600 dark:text-blue-400 hover:text-blue-700 dark:hover:text-blue-300 inline-flex items-center gap-1 group"
+            >
+              <span>View all</span>
+              <span className="group-hover:translate-x-0.5 transition-transform">→</span>
+            </Link>
+          </div>
+        </Card>
       </div>
 
-      {/* Project Status Overview */}
-      <div className="space-y-3">
-        <h3 className="text-sm font-bold text-slate-900 dark:text-slate-100">Project Progress Overview</h3>
-        <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-          {projects.map((p) => (
-            <Card key={p.projectId} hover className="space-y-3 border-slate-200 dark:border-slate-800">
-              <div className="flex items-center justify-between">
-                <h4 className="font-bold text-slate-900 dark:text-slate-100 text-sm">{p.name}</h4>
-                <Badge variant="brand">{p.completionPercent}% Completed</Badge>
-              </div>
-              <p className="text-xs text-slate-600 dark:text-slate-400">{p.description}</p>
-              <div className="w-full bg-slate-100 dark:bg-slate-900 h-2 rounded-full overflow-hidden border border-slate-200/60 dark:border-slate-800">
-                <div className="bg-indigo-600 dark:bg-indigo-500 h-full" style={{ width: `${p.completionPercent}%` }} />
-              </div>
-              <div className="flex justify-between text-[11px] text-slate-500 dark:text-slate-400 pt-1">
-                <span>Next Milestone: {p.nextMilestone}</span>
-                <span>Due: {p.dueDate}</span>
-              </div>
-            </Card>
-          ))}
+      {/* 3. Middle Section: My Projects & Recent Activity */}
+      <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
+        {/* Left Card: My Projects */}
+        <Card className="p-6 bg-white dark:bg-[#111827] border-slate-200/80 dark:border-slate-800 rounded-2xl shadow-2xs">
+          <div className="flex items-center justify-between pb-5 border-b border-slate-100 dark:border-slate-800/80">
+            <h3 className="font-bold text-slate-900 dark:text-white text-sm">
+              My Projects
+            </h3>
+            <Link
+              to="/portal/projects"
+              className="text-xs font-semibold text-blue-600 dark:text-blue-400 hover:text-blue-700 dark:hover:text-blue-300"
+            >
+              View all projects
+            </Link>
+          </div>
+
+          {projects.length === 0 ? (
+            <div className="py-8 text-center text-xs text-slate-500 dark:text-slate-400">
+              No active projects assigned yet.
+            </div>
+          ) : (
+            <div className="divide-y divide-slate-100 dark:divide-slate-800/80">
+              {projects.slice(0, 4).map((p) => (
+                <div key={p.projectId || p.name} className="py-5 first:pt-4 last:pb-1 space-y-3">
+                  <div className="flex items-center justify-between">
+                    <div className="flex items-center gap-2.5">
+                      <span className="font-bold text-slate-900 dark:text-white text-xs">
+                        {p.name}
+                      </span>
+                      <span className="inline-flex items-center px-2 py-0.5 rounded-full text-[11px] font-medium bg-emerald-50 dark:bg-emerald-500/15 text-emerald-600 dark:text-emerald-400">
+                        {p.status || 'In Progress'}
+                      </span>
+                    </div>
+                    <span className="font-bold text-slate-900 dark:text-white text-xs">
+                      {p.completionPercent || 0}%
+                    </span>
+                  </div>
+
+                  <div className="flex items-center justify-between text-xs text-slate-500 dark:text-slate-400">
+                    <div className="flex items-center gap-1.5">
+                      <span>Next Milestone: {p.nextMilestone || 'Under Review'}</span>
+                    </div>
+                    {p.dueDate && (
+                      <div className="flex items-center gap-1">
+                        <Calendar className="w-3.5 h-3.5 text-slate-400" />
+                        <span>{p.dueDate}</span>
+                      </div>
+                    )}
+                  </div>
+
+                  {/* Progress bar */}
+                  <div className="w-full bg-slate-100 dark:bg-slate-800 h-1.5 rounded-full overflow-hidden">
+                    <div
+                      className="bg-blue-600 dark:bg-blue-500 h-full rounded-full transition-all duration-500"
+                      style={{ width: `${p.completionPercent || 0}%` }}
+                    />
+                  </div>
+                </div>
+              ))}
+            </div>
+          )}
+        </Card>
+
+        {/* Right Card: Recent Activity */}
+        <Card className="p-6 bg-white dark:bg-[#111827] border-slate-200/80 dark:border-slate-800 rounded-2xl shadow-2xs">
+          <div className="flex items-center justify-between pb-5 border-b border-slate-100 dark:border-slate-800/80">
+            <h3 className="font-bold text-slate-900 dark:text-white text-sm">
+              Recent Activity
+            </h3>
+            <Link
+              to="/portal/projects"
+              className="text-xs font-semibold text-blue-600 dark:text-blue-400 hover:text-blue-700 dark:hover:text-blue-300"
+            >
+              View all
+            </Link>
+          </div>
+
+          {activities.length === 0 ? (
+            <div className="py-8 text-center text-xs text-slate-500 dark:text-slate-400">
+              No recent activity recorded yet.
+            </div>
+          ) : (
+            <div className="space-y-4 pt-4">
+              {activities.map((act) => {
+                let Icon = FileText
+                let iconStyle = 'bg-purple-50 dark:bg-purple-500/15 text-purple-600 dark:text-purple-400'
+                if (act.type === 'milestone') {
+                  Icon = CheckCircle2
+                  iconStyle = 'bg-emerald-50 dark:bg-emerald-500/15 text-emerald-600 dark:text-emerald-400'
+                } else if (act.type === 'invoice') {
+                  Icon = Receipt
+                  iconStyle = 'bg-amber-50 dark:bg-amber-500/15 text-amber-600 dark:text-amber-400'
+                } else if (act.type === 'comment') {
+                  Icon = MessageSquare
+                  iconStyle = 'bg-blue-50 dark:bg-blue-500/15 text-blue-600 dark:text-blue-400'
+                }
+
+                return (
+                  <div key={act.id} className="flex items-center justify-between gap-3">
+                    <div className="flex items-center gap-3 min-w-0">
+                      <div className={`w-8 h-8 rounded-full flex items-center justify-center shrink-0 ${iconStyle}`}>
+                        <Icon className="w-4 h-4" />
+                      </div>
+                      <div className="min-w-0">
+                        <p className="text-xs font-semibold text-slate-900 dark:text-slate-100 truncate">
+                          {act.title}
+                        </p>
+                        <p className="text-[11px] text-slate-400 dark:text-slate-400 truncate mt-0.5">
+                          {act.project}
+                        </p>
+                      </div>
+                    </div>
+                    <span className="text-xs text-slate-400 dark:text-slate-400 whitespace-nowrap shrink-0">
+                      {act.time}
+                    </span>
+                  </div>
+                )
+              })}
+            </div>
+          )}
+        </Card>
+      </div>
+
+      {/* 4. Bottom Section: Recent Invoices Table */}
+      <Card className="p-6 bg-white dark:bg-[#111827] border-slate-200/80 dark:border-slate-800 rounded-2xl shadow-2xs">
+        <div className="flex items-center justify-between pb-5 border-b border-slate-100 dark:border-slate-800/80">
+          <h3 className="font-bold text-slate-900 dark:text-white text-sm">
+            Recent Invoices
+          </h3>
+          <Link
+            to="/portal/invoices"
+            className="text-xs font-semibold text-blue-600 dark:text-blue-400 hover:text-blue-700 dark:hover:text-blue-300"
+          >
+            View all invoices
+          </Link>
         </div>
-      </div>
+
+        {invoices.length === 0 ? (
+          <div className="py-8 text-center text-xs text-slate-500 dark:text-slate-400">
+            No recent invoices found.
+          </div>
+        ) : (
+          <div className="overflow-x-auto">
+            <table className="w-full text-left text-xs border-collapse">
+              <thead>
+                <tr className="border-b border-slate-100 dark:border-slate-800/80 text-slate-400 dark:text-slate-400 font-semibold">
+                  <th className="py-4 font-semibold">Invoice #</th>
+                  <th className="py-4 font-semibold">Project</th>
+                  <th className="py-4 font-semibold">Amount</th>
+                  <th className="py-4 font-semibold">Status</th>
+                  <th className="py-4 font-semibold">Due Date</th>
+                </tr>
+              </thead>
+              <tbody className="divide-y divide-slate-100 dark:divide-slate-800/60">
+                {invoices.slice(0, 3).map((inv) => (
+                  <tr key={inv.invoiceId} className="hover:bg-slate-50/60 dark:hover:bg-slate-800/40 transition-colors">
+                    <td className="py-4 font-semibold text-slate-900 dark:text-slate-100">
+                      {inv.invoiceNumber || inv.invoiceId}
+                    </td>
+                    <td className="py-4 text-slate-700 dark:text-slate-300">
+                      {inv.projectName || 'General Consulting'}
+                    </td>
+                    <td className="py-4 font-semibold text-slate-900 dark:text-slate-100">
+                      ${Number(inv.total || 0).toLocaleString('en-US', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}
+                    </td>
+                    <td className="py-4">
+                      <span
+                        className={`inline-flex items-center px-2.5 py-0.5 rounded-full text-[11px] font-medium ${
+                          inv.status?.toLowerCase() === 'paid'
+                            ? 'bg-emerald-50 text-emerald-600 dark:bg-emerald-500/15 dark:text-emerald-400'
+                            : 'bg-rose-50 text-rose-500 dark:bg-rose-500/15 dark:text-rose-400'
+                        }`}
+                      >
+                        {inv.status || 'Due'}
+                      </span>
+                    </td>
+                    <td className="py-4 text-slate-700 dark:text-slate-300">
+                      {inv.dueDate || '—'}
+                    </td>
+                  </tr>
+                ))}
+              </tbody>
+            </table>
+          </div>
+        )}
+      </Card>
     </div>
   )
 }
+
+
+

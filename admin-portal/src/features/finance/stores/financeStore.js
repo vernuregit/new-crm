@@ -1,8 +1,23 @@
 import { create } from 'zustand'
+import {
+  getInvoices,
+  getExpenses,
+  getRetainersFromDb,
+  getExpenseCategoriesFromDb,
+  createExpenseCategoryInDb,
+  DEFAULT_EXPENSE_CATEGORIES,
+  createExpense,
+  deleteExpenseFromDb,
+  createRetainerInDb,
+  updateRetainerInDb,
+  deleteRetainerFromDb,
+} from '../services/financeService'
 
 export const useFinanceStore = create((set) => ({
   invoices: [],
   expenses: [],
+  retainers: [],
+  categories: DEFAULT_EXPENSE_CATEGORIES,
   isLoading: true,
   selectedInvoice: null,
   invoiceStatusFilter: 'all',
@@ -13,9 +28,43 @@ export const useFinanceStore = create((set) => ({
       isLoading: false,
     }),
   setIsLoading: (isLoading) => set({ isLoading }),
-  setExpenses: (expenses) => set({ expenses }),
+  setExpenses: (expenses) => set({ expenses: Array.isArray(expenses) ? expenses : [] }),
+  setRetainers: (retainers) => set({ retainers: Array.isArray(retainers) ? retainers : [] }),
+  setCategories: (categories) => set({ categories: Array.isArray(categories) ? categories : DEFAULT_EXPENSE_CATEGORIES }),
   setSelectedInvoice: (selectedInvoice) => set({ selectedInvoice }),
   setInvoiceStatusFilter: (invoiceStatusFilter) => set({ invoiceStatusFilter }),
+
+  fetchFinanceData: async () => {
+    set({ isLoading: true })
+    try {
+      const [invData, expData, retData, catData] = await Promise.all([
+        getInvoices(),
+        getExpenses(),
+        getRetainersFromDb(),
+        getExpenseCategoriesFromDb(),
+      ])
+      set({
+        invoices: invData || [],
+        expenses: expData || [],
+        retainers: retData || [],
+        categories: catData && catData.length > 0 ? catData : DEFAULT_EXPENSE_CATEGORIES,
+        isLoading: false,
+      })
+    } catch (err) {
+      console.error('Error fetching finance data from Firestore:', err)
+      set({ isLoading: false })
+    }
+  },
+
+  addCategory: async (categoryName) => {
+    const name = categoryName?.trim()
+    if (!name) return
+    set((state) => {
+      if (state.categories.includes(name)) return state
+      return { categories: [...state.categories, name] }
+    })
+    await createExpenseCategoryInDb(name)
+  },
 
   addInvoice: (newInv) =>
     set((state) => ({
@@ -66,21 +115,54 @@ export const useFinanceStore = create((set) => ({
       invoices: state.invoices.filter((inv) => inv.invoiceId !== invoiceId),
     })),
 
-  addExpense: (newExp) =>
+  addExpense: async (newExp) => {
+    const payload = {
+      status: 'approved',
+      date: new Date().toISOString().split('T')[0],
+      ...newExp,
+    }
+    const created = await createExpense(payload)
     set((state) => ({
-      expenses: [
-        {
-          expenseId: `exp_${Date.now()}`,
-          status: 'approved',
-          date: new Date().toISOString().split('T')[0],
-          ...newExp,
-        },
-        ...state.expenses,
-      ],
-    })),
+      expenses: [created, ...state.expenses],
+    }))
+  },
 
-  deleteExpense: (expenseId) =>
+  deleteExpense: async (expenseId) => {
+    const eId = String(expenseId)
     set((state) => ({
-      expenses: state.expenses.filter((e) => e.expenseId !== expenseId),
-    })),
+      expenses: state.expenses.filter((e) => String(e.expenseId) !== eId && String(e.id) !== eId),
+    }))
+    await deleteExpenseFromDb(eId)
+  },
+
+  addRetainer: async (newRet) => {
+    const payload = {
+      status: 'Active',
+      interval: 'Monthly (1st)',
+      createdAt: new Date().toISOString(),
+      ...newRet,
+    }
+    const created = await createRetainerInDb(payload)
+    set((state) => ({
+      retainers: [created, ...state.retainers],
+    }))
+  },
+
+  updateRetainer: async (retainerId, updates) => {
+    const rId = String(retainerId)
+    set((state) => ({
+      retainers: state.retainers.map((r) =>
+        String(r.retainerId) === rId || String(r.id) === rId ? { ...r, ...updates } : r
+      ),
+    }))
+    await updateRetainerInDb(rId, updates)
+  },
+
+  deleteRetainer: async (retainerId) => {
+    const rId = String(retainerId)
+    set((state) => ({
+      retainers: state.retainers.filter((r) => String(r.retainerId) !== rId && String(r.id) !== rId),
+    }))
+    await deleteRetainerFromDb(rId)
+  },
 }))

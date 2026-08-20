@@ -16,6 +16,7 @@ import { NotificationsPage } from './features/notifications/NotificationsPage'
 import { AnnouncementsPage } from './features/announcements/AnnouncementsPage'
 import { CompanyCalendarPage } from './features/calendar/CompanyCalendarPage'
 import { DocumentsPage } from './features/documents/DocumentsPage'
+import { ClientDocumentsPage } from './features/documents/ClientDocumentsPage'
 import { PayslipsPage } from './features/payslips/PayslipsPage'
 import { GoalsPage } from './features/goals/GoalsPage'
 import { HelpDeskPage } from './features/helpdesk/HelpDeskPage'
@@ -37,6 +38,7 @@ export const router = createBrowserRouter([
       { path: 'projects/list', element: <ProjectList /> },
       { path: 'projects/tasks', element: <TaskBoard /> },
       { path: 'tasks', element: <TaskBoard /> },
+      { path: 'client-documents', element: <ClientDocumentsPage /> },
 
       // Work Timeline (daily work diary)
       { path: 'timeline', element: <WorkTimelinePage /> },
@@ -66,5 +68,6 @@ export const router = createBrowserRouter([
       { path: 'helpdesk', element: <HelpDeskPage /> },
     ],
   },
+
   { path: '*', element: <Navigate to="/dashboard" replace /> },
 ])

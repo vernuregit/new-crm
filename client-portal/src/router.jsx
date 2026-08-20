@@ -7,6 +7,7 @@ import { ClientPortal } from './features/portal/ClientPortal'
 import { ClientProjects } from './features/portal/ClientProjects'
 import { ClientInvoices } from './features/portal/ClientInvoices'
 import { ClientFiles } from './features/portal/ClientFiles'
+import { ClientSupport } from './features/portal/ClientSupport'
 import { ClientProfile } from './features/portal/ClientProfile'
 
 export const router = createBrowserRouter([
@@ -27,8 +28,10 @@ export const router = createBrowserRouter([
       { path: 'portal/projects', element: <ClientProjects /> },
       { path: 'portal/invoices', element: <ClientInvoices /> },
       { path: 'portal/files', element: <ClientFiles /> },
+      { path: 'portal/support', element: <ClientSupport /> },
       { path: 'portal/profile', element: <ClientProfile /> },
     ],
   },
   { path: '*', element: <Navigate to="/portal" replace /> },
 ])
+

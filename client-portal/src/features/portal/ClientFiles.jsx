@@ -1,100 +1,302 @@
-import React from 'react'
-import { NavLink } from 'react-router-dom'
-import { PageHeader } from '../../components/layout/PageHeader'
+import React, { useState, useEffect } from 'react'
 import { Card } from '../../components/ui/Card'
 import { Badge } from '../../components/ui/Badge'
 import { Button } from '../../components/ui/Button'
 import { usePortalStore } from './stores/portalStore'
-import { Briefcase, FileText, Download, Layers, File } from 'lucide-react'
+import { useUserStore } from '../../stores/userStore'
+import { getClientDeliverables } from './services/portalService'
+import { db } from '../../shared/services/firebaseService'
+import { collection, query, where, onSnapshot } from 'firebase/firestore'
+import {
+  FileText,
+  Download,
+  Eye,
+  FileImage,
+  FileCode,
+  FileSpreadsheet,
+  File,
+  Loader2,
+  FolderOpen,
+  X,
+  ExternalLink,
+} from 'lucide-react'
 
 export const ClientFiles = () => {
-  const { files } = usePortalStore()
+  const { user } = useUserStore()
+  const { files, setFiles } = usePortalStore()
+  const [isLoading, setIsLoading] = useState(false)
+  const [filterCategory, setFilterCategory] = useState('All')
+  const [previewDoc, setPreviewDoc] = useState(null)
+
+  useEffect(() => {
+    if (!user?.uid) return
+
+    setIsLoading(true)
+    const delivRef = collection(db, 'deliverables')
+    const q1 = query(delivRef, where('clientId', '==', user.uid))
+
+    const unsub1 = onSnapshot(
+      q1,
+      (snap) => {
+        const list = snap.docs.map((d) => ({ fileId: d.id, ...d.data() }))
+        setFiles(list)
+        setIsLoading(false)
+      },
+      async () => {
+        // Fallback to fetch
+        const docs = await getClientDeliverables(user.uid, user.email)
+        setFiles(docs)
+        setIsLoading(false)
+      }
+    )
+
+    return () => unsub1()
+  }, [user, setFiles])
+
+
+  // Helpers to get file type icon
+  const getFileIcon = (filename = '', fileType = '') => {
+    const lower = (filename + ' ' + fileType).toLowerCase()
+    if (lower.includes('.pdf') || lower.includes('pdf')) {
+      return (
+        <div className="w-11 h-11 rounded-xl bg-red-50 dark:bg-red-500/15 text-red-600 dark:text-red-400 flex items-center justify-center shrink-0">
+          <FileText className="w-5 h-5" />
+        </div>
+      )
+    }
+    if (lower.includes('.png') || lower.includes('.jpg') || lower.includes('.jpeg') || lower.includes('.webp') || lower.includes('image')) {
+      return (
+        <div className="w-11 h-11 rounded-xl bg-blue-50 dark:bg-blue-500/15 text-blue-600 dark:text-blue-400 flex items-center justify-center shrink-0">
+          <FileImage className="w-5 h-5" />
+        </div>
+      )
+    }
+    if (lower.includes('.xls') || lower.includes('.xlsx') || lower.includes('.csv')) {
+      return (
+        <div className="w-11 h-11 rounded-xl bg-emerald-50 dark:bg-emerald-500/15 text-emerald-600 dark:text-emerald-400 flex items-center justify-center shrink-0">
+          <FileSpreadsheet className="w-5 h-5" />
+        </div>
+      )
+    }
+    if (lower.includes('.js') || lower.includes('.json') || lower.includes('.html') || lower.includes('.zip')) {
+      return (
+        <div className="w-11 h-11 rounded-xl bg-amber-50 dark:bg-amber-500/15 text-amber-600 dark:text-amber-400 flex items-center justify-center shrink-0">
+          <FileCode className="w-5 h-5" />
+        </div>
+      )
+    }
+    return (
+      <div className="w-11 h-11 rounded-xl bg-purple-50 dark:bg-purple-500/15 text-purple-600 dark:text-purple-400 flex items-center justify-center shrink-0">
+        <File className="w-5 h-5" />
+      </div>
+    )
+  }
+
+  // Handle file view / preview
+  const handleView = (f) => {
+    const url = f.downloadURL || f.fileUrl || f.url
+    if (url) {
+      // If it's an external link or image/pdf, we can preview or open in new tab
+      window.open(url, '_blank', 'noopener,noreferrer')
+    } else {
+      setPreviewDoc(f)
+    }
+  }
+
+  // Handle file download
+  const handleDownload = async (f) => {
+    const url = f.downloadURL || f.fileUrl || f.url
+    const name = f.filename || f.fileName || f.name || 'document'
+    if (url) {
+      try {
+        const link = document.createElement('a')
+        link.href = url
+        link.download = name
+        link.target = '_blank'
+        document.body.appendChild(link)
+        link.click()
+        document.body.removeChild(link)
+      } catch {
+        window.open(url, '_blank')
+      }
+    } else {
+      alert(`Preparing ${name} for download...`)
+    }
+  }
+
+  const filteredFiles = files.filter((f) => {
+    if (filterCategory === 'All') return true
+    const cat = (f.category || 'Other').toLowerCase()
+    return cat.includes(filterCategory.toLowerCase())
+  })
 
   return (
-    <div className="space-y-6">
-      {/* Header & Sub Nav */}
-      <div className="space-y-4">
-        <PageHeader
-          title="Deliverables & Shared Documents"
-          description="Download client contracts, design specifications, technical documentation, and project reports"
-        />
-
-        <div className="flex items-center gap-2 border-b border-slate-200 dark:border-slate-800 pb-3">
-          <NavLink
-            to="/portal"
-            end
-            className={({ isActive }) =>
-              `flex items-center gap-2 px-3 py-1.5 rounded-xl text-xs font-semibold transition-colors ${
-                isActive
-                  ? 'bg-indigo-600/20 text-indigo-400 border border-indigo-500/30'
-                  : 'text-slate-500 dark:text-slate-400 hover:text-slate-800 dark:hover:text-slate-200 hover:bg-slate-100 dark:hover:bg-slate-800'
-              }`
-            }
-          >
-            <Layers className="w-3.5 h-3.5" /> Portal Overview
-          </NavLink>
-          <NavLink
-            to="/portal/projects"
-            className={({ isActive }) =>
-              `flex items-center gap-2 px-3 py-1.5 rounded-xl text-xs font-semibold transition-colors ${
-                isActive
-                  ? 'bg-indigo-600/20 text-indigo-400 border border-indigo-500/30'
-                  : 'text-slate-500 dark:text-slate-400 hover:text-slate-800 dark:hover:text-slate-200 hover:bg-slate-100 dark:hover:bg-slate-800'
-              }`
-            }
-          >
-            <Briefcase className="w-3.5 h-3.5" /> Projects Status
-          </NavLink>
-          <NavLink
-            to="/portal/invoices"
-            className={({ isActive }) =>
-              `flex items-center gap-2 px-3 py-1.5 rounded-xl text-xs font-semibold transition-colors ${
-                isActive
-                  ? 'bg-indigo-600/20 text-indigo-400 border border-indigo-500/30'
-                  : 'text-slate-500 dark:text-slate-400 hover:text-slate-800 dark:hover:text-slate-200 hover:bg-slate-100 dark:hover:bg-slate-800'
-              }`
-            }
-          >
-            <FileText className="w-3.5 h-3.5" /> Invoices & Receipts
-          </NavLink>
-          <NavLink
-            to="/portal/files"
-            className={({ isActive }) =>
-              `flex items-center gap-2 px-3 py-1.5 rounded-xl text-xs font-semibold transition-colors ${
-                isActive
-                  ? 'bg-indigo-600/20 text-indigo-400 border border-indigo-500/30'
-                  : 'text-slate-500 dark:text-slate-400 hover:text-slate-800 dark:hover:text-slate-200 hover:bg-slate-100 dark:hover:bg-slate-800'
-              }`
-            }
-          >
-            <Download className="w-3.5 h-3.5" /> Deliverables & Files
-          </NavLink>
-        </div>
+    <div className="space-y-7 max-w-7xl mx-auto pb-10">
+      <div>
+        <h2 className="text-2xl font-bold text-slate-900 dark:text-white tracking-tight">
+          Documents & Deliverables
+        </h2>
+        <p className="text-sm text-slate-500 dark:text-slate-400 mt-1">
+          Download client contracts, design specifications, technical documentation, and project deliverables.
+        </p>
       </div>
 
-      <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-        {files.map((f) => (
-          <Card key={f.fileId} hover className="flex items-center justify-between p-4 border-slate-200 dark:border-slate-800">
-            <div className="flex items-center gap-3">
-              <div className="w-10 h-10 rounded-xl bg-indigo-50 dark:bg-indigo-500/10 text-indigo-600 dark:text-indigo-400 flex items-center justify-center shrink-0 border border-indigo-100 dark:border-indigo-500/20">
-                <File className="w-5 h-5" />
-              </div>
-              <div>
-                <h4 className="font-bold text-slate-900 dark:text-slate-100 text-xs">{f.filename}</h4>
-                <div className="flex items-center gap-2 text-[11px] text-slate-500 dark:text-slate-400 mt-0.5">
-                  <Badge variant="neutral">{f.category}</Badge>
-                  <span>{f.size}</span>
-                  <span>• Uploaded: {f.uploadedAt}</span>
-                </div>
-              </div>
-            </div>
-
-            <Button size="sm" variant="secondary" icon={Download}>
-              Download
-            </Button>
-          </Card>
+      {/* Category Tabs */}
+      <div className="flex gap-2 overflow-x-auto pb-1">
+        {['All', 'Contract', 'Deliverable', 'Design Spec', 'Report', 'Technical', 'Other'].map((tab) => (
+          <button
+            key={tab}
+            onClick={() => setFilterCategory(tab)}
+            className={`px-3.5 py-1.5 rounded-full text-xs font-semibold transition-all cursor-pointer whitespace-nowrap ${
+              filterCategory === tab
+                ? 'bg-blue-600 text-white shadow-xs'
+                : 'bg-white dark:bg-[#111827] text-slate-600 dark:text-slate-400 hover:text-slate-900 dark:hover:text-slate-100 hover:bg-slate-100 dark:hover:bg-slate-800 border border-slate-200/80 dark:border-slate-800'
+            }`}
+          >
+            {tab}
+          </button>
         ))}
       </div>
+
+      {isLoading ? (
+        <div className="py-16 text-center text-slate-500 dark:text-slate-400">
+          <Loader2 className="w-6 h-6 animate-spin mx-auto text-blue-600 dark:text-blue-400 mb-2" />
+          <span className="text-xs">Loading documents & deliverables...</span>
+        </div>
+      ) : filteredFiles.length === 0 ? (
+        <Card className="p-12 text-center text-slate-500 dark:text-slate-400 border-dashed space-y-3">
+          <div className="w-12 h-12 rounded-full bg-slate-100 dark:bg-slate-800 text-slate-400 flex items-center justify-center mx-auto">
+            <FolderOpen className="w-6 h-6" />
+          </div>
+          <h4 className="text-sm font-bold text-slate-900 dark:text-white">
+            No downloadable deliverables uploaded yet
+          </h4>
+          <p className="text-xs text-slate-400 max-w-sm mx-auto">
+            Documents and project deliverables uploaded by the team for your organization will appear here automatically.
+          </p>
+        </Card>
+      ) : (
+        <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+          {filteredFiles.map((f) => {
+            const fileName = f.filename || f.fileName || f.name || 'Untitled Document'
+            const fileSize = f.size || f.fileSize || '1.2 MB'
+            const fileCategory = f.category || 'Deliverable'
+            const uploadedDate = f.uploadedAt || f.date || 'Recent'
+            const projectName = f.projectName || f.project || null
+
+            return (
+              <Card
+                key={f.fileId || f.id || fileName}
+                className="p-5 bg-white dark:bg-[#111827] border-slate-200/80 dark:border-slate-800 rounded-2xl shadow-2xs hover:shadow-xs transition-all flex flex-col justify-between gap-4"
+              >
+                <div className="flex items-start gap-3.5 min-w-0">
+                  {getFileIcon(fileName, f.fileType)}
+                  <div className="min-w-0 flex-1">
+                    <h4 className="font-bold text-slate-900 dark:text-white text-xs truncate" title={fileName}>
+                      {fileName}
+                    </h4>
+                    {projectName && (
+                      <p className="text-[11px] text-blue-600 dark:text-blue-400 font-medium truncate mt-0.5">
+                        {projectName}
+                      </p>
+                    )}
+                    <div className="flex flex-wrap items-center gap-2 text-[11px] text-slate-400 dark:text-slate-400 mt-1.5">
+                      <span className="inline-flex items-center px-2 py-0.5 rounded-md text-[10px] font-medium bg-slate-100 dark:bg-slate-800 text-slate-600 dark:text-slate-300">
+                        {fileCategory}
+                      </span>
+                      <span>{fileSize}</span>
+                      <span>• {uploadedDate}</span>
+                    </div>
+                  </div>
+                </div>
+
+                <div className="flex items-center justify-end gap-2 pt-3 border-t border-slate-100 dark:border-slate-800/80">
+                  <button
+                    onClick={() => handleView(f)}
+                    className="inline-flex items-center gap-1 px-3 py-1.5 bg-slate-50 dark:bg-slate-800 hover:bg-slate-100 dark:hover:bg-slate-700 text-slate-700 dark:text-slate-200 rounded-xl border border-slate-200/80 dark:border-slate-700 text-xs font-semibold cursor-pointer transition-colors"
+                  >
+                    <Eye className="w-3.5 h-3.5 text-slate-500 dark:text-slate-400" />
+                    <span>View</span>
+                  </button>
+                  <Button
+                    size="sm"
+                    variant="primary"
+                    icon={Download}
+                    onClick={() => handleDownload(f)}
+                    className="bg-blue-600 hover:bg-blue-700 text-white cursor-pointer px-3 py-1.5 text-xs font-semibold rounded-xl"
+                  >
+                    Download
+                  </Button>
+                </div>
+              </Card>
+            )
+          })}
+        </div>
+      )}
+
+      {/* Document Detail / Information Modal */}
+      {previewDoc && (
+        <div className="fixed inset-0 bg-black/60 backdrop-blur-sm z-50 flex items-center justify-center p-4">
+          <div className="bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800 rounded-2xl max-w-lg w-full p-6 space-y-5 shadow-2xl">
+            <div className="flex items-center justify-between pb-3 border-b border-slate-100 dark:border-slate-800">
+              <h3 className="font-bold text-sm text-slate-900 dark:text-white truncate">
+                {previewDoc.filename || previewDoc.fileName || previewDoc.name}
+              </h3>
+              <button
+                onClick={() => setPreviewDoc(null)}
+                className="p-1 rounded-lg text-slate-400 hover:text-slate-600 dark:hover:text-slate-200 cursor-pointer"
+              >
+                <X className="w-4 h-4" />
+              </button>
+            </div>
+
+            <div className="bg-slate-50 dark:bg-slate-950/60 p-4 rounded-xl border border-slate-200/80 dark:border-slate-800 space-y-3 text-xs">
+              <div className="flex justify-between">
+                <span className="text-slate-500">Category:</span>
+                <span className="font-semibold text-slate-800 dark:text-slate-200">{previewDoc.category || 'Deliverable'}</span>
+              </div>
+              <div className="flex justify-between">
+                <span className="text-slate-500">Size:</span>
+                <span className="font-semibold text-slate-800 dark:text-slate-200">{previewDoc.size || '1.5 MB'}</span>
+              </div>
+              <div className="flex justify-between">
+                <span className="text-slate-500">Uploaded Date:</span>
+                <span className="font-semibold text-slate-800 dark:text-slate-200">{previewDoc.uploadedAt || 'Recent'}</span>
+              </div>
+              {previewDoc.description && (
+                <div className="pt-2 border-t border-slate-200 dark:border-slate-800">
+                  <span className="text-slate-500 block mb-1">Description:</span>
+                  <p className="text-slate-700 dark:text-slate-300">{previewDoc.description}</p>
+                </div>
+              )}
+            </div>
+
+            <div className="flex justify-end gap-2">
+              <Button
+                variant="secondary"
+                size="sm"
+                onClick={() => setPreviewDoc(null)}
+              >
+                Close
+              </Button>
+              <Button
+                variant="primary"
+                size="sm"
+                icon={Download}
+                onClick={() => {
+                  handleDownload(previewDoc)
+                  setPreviewDoc(null)
+                }}
+                className="bg-blue-600 hover:bg-blue-700 text-white"
+              >
+                Download File
+              </Button>
+            </div>
+          </div>
+        </div>
+      )}
     </div>
   )
 }
+
+

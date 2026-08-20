@@ -92,14 +92,11 @@ service cloud.firestore {
       allow read, write: if isOwner(uid);
     }
 
-    // ─── Help Desk Tickets (employee owns; admin reads all) ──────────
+    // ─── Help Desk Tickets (clients, project employees, and admins) ─
     match /helpDeskTickets/{ticketId} {
-      allow create: if isAuthenticated();
-      allow read: if isAuthenticated() &&
-        (request.auth.uid == resource.data.createdBy || isAdmin());
-      allow update, delete: if isAuthenticated() &&
-        (request.auth.uid == resource.data.createdBy || isAdmin());
+      allow read, write: if isAuthenticated();
     }
+
 
     // ─── Notifications (private to each user) ────────────────────────
     match /notifications/{uid}/items/{notifId} {

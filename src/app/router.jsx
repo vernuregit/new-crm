@@ -222,7 +222,7 @@ export const router = createBrowserRouter([
               // Settings & Role Manager Sub-Routes
               {
                 path: 'settings',
-                element: <Navigate to="/settings/org" replace />,
+                element: <Navigate to="/settings/profile" replace />,
               },
               {
                 path: 'settings/org',

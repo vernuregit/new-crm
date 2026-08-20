@@ -18,9 +18,11 @@ import {
   Megaphone,
   FileText,
   Receipt,
+  IndianRupee,
   Target,
   LifeBuoy,
   Building2,
+  Send,
 } from 'lucide-react'
 import haloLogo from '../../assets/halologo.png'
 import { useUIStore } from '../../stores/uiStore'
@@ -43,8 +45,10 @@ const NAV_GROUPS = [
       { name: 'Projects', path: '/projects/list', icon: FolderKanban },
       { name: 'Sprint Tasks', path: '/tasks', icon: Briefcase },
       { name: 'Work Timeline', path: '/timeline', icon: CalendarDays },
+      { name: 'Client Documents', path: '/client-documents', icon: Send },
     ],
   },
+
   {
     key: 'team',
     label: 'Team',
@@ -57,10 +61,10 @@ const NAV_GROUPS = [
   },
   {
     key: 'hr',
-    label: 'HR & Finance',
-    icon: Receipt,
+    label: 'Finance',
+    icon: IndianRupee,
     items: [
-      { name: 'My Payslips', path: '/payslips', icon: Receipt },
+      { name: 'My Payslips', path: '/payslips', icon: IndianRupee },
       { name: 'Documents', path: '/documents', icon: FileText },
     ],
   },
@@ -83,15 +87,16 @@ const NAV_GROUPS = [
       { name: 'Company Calendar', path: '/calendar', icon: Calendar },
     ],
   },
-  {
-    key: 'support',
-    label: 'Support',
-    icon: LifeBuoy,
-    items: [
-      { name: 'Notifications', path: '/notifications', icon: Bell },
-      { name: 'Help Desk', path: '/helpdesk', icon: LifeBuoy },
-    ],
-  },
+  // Hidden for now — can be re-enabled later:
+  // {
+  //   key: 'support',
+  //   label: 'Support',
+  //   icon: LifeBuoy,
+  //   items: [
+  //     { name: 'Notifications', path: '/notifications', icon: Bell },
+  //     { name: 'Help Desk', path: '/helpdesk', icon: LifeBuoy },
+  //   ],
+  // },
 ]
 
 export const EmployeeSidebar = () => {

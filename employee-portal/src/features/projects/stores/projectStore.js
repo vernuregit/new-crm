@@ -18,6 +18,7 @@ import {
   deleteTaskFromDb,
   deleteTaskStatusFromDb,
   updateProjectMembersInDb,
+  updateProjectInDb,
   updateProjectStatsInDb,
   deleteProjectFromDb,
   computeProjectMetrics,
@@ -232,6 +233,23 @@ export const useProjectStore = create(
         }))
 
         await createProjectInDb(payload)
+      },
+
+      updateProject: async (projectId, updates) => {
+        set((state) => ({
+          projects: state.projects.map((p) =>
+            p.projectId === projectId || p.id === projectId ? { ...p, ...updates } : p
+          ),
+          tasks: updates.name
+            ? state.tasks.map((t) =>
+                t.projectId === projectId
+                  ? { ...t, projectName: updates.name }
+                  : t
+              )
+            : state.tasks,
+        }))
+
+        await updateProjectInDb(projectId, updates)
       },
 
       updateProjectMembers: async (projectId, members) => {

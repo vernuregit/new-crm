@@ -47,6 +47,7 @@ import {
   ChevronUp,
   Navigation,
   Loader2,
+  Calendar,
 } from 'lucide-react'
 
 // #region agent log
@@ -878,16 +879,33 @@ export const AttendancePage = () => {
 
         {/* Date picker */}
         <div className="flex items-center gap-2">
-          <label className="text-xs text-slate-400 font-medium">Date:</label>
-          <input
-            type="date"
-            value={selectedDate}
-            onChange={(e) => setSelectedDate(e.target.value)}
-            className="bg-slate-800 border border-slate-700 text-slate-200 text-xs rounded-xl px-3 py-1.5 focus:outline-none focus:border-indigo-500 transition-colors cursor-pointer"
-          />
+          <div className="relative flex items-center">
+            <button
+              type="button"
+              onClick={(e) => {
+                const input = e.currentTarget.parentElement?.querySelector('input[type="date"]');
+                if (input && typeof input.showPicker === 'function') {
+                  input.showPicker();
+                } else if (input) {
+                  input.focus();
+                }
+              }}
+              className="absolute left-2.5 text-indigo-400 hover:text-indigo-300 transition-colors z-10 p-0.5 rounded-md hover:bg-slate-700/50"
+              title="Open Calendar Picker"
+            >
+              <Calendar className="w-4 h-4" />
+            </button>
+            <input
+              type="date"
+              value={selectedDate}
+              onChange={(e) => setSelectedDate(e.target.value)}
+              className="bg-slate-800 border border-slate-700 text-slate-200 text-xs rounded-xl pl-9 pr-3 py-1.5 focus:outline-none focus:border-indigo-500 focus:ring-1 focus:ring-indigo-500 transition-colors cursor-pointer [color-scheme:dark]"
+            />
+          </div>
           <button
+            type="button"
             onClick={() => setSelectedDate(todayStr())}
-            className="text-xs px-3 py-1.5 bg-indigo-600/20 border border-indigo-500/30 text-indigo-400 rounded-xl hover:bg-indigo-600/30 transition-colors"
+            className="text-xs px-3 py-1.5 bg-indigo-600/20 border border-indigo-500/30 text-indigo-400 rounded-xl hover:bg-indigo-600/30 transition-colors font-medium flex items-center gap-1"
           >
             Today
           </button>

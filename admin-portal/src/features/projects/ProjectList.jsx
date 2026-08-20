@@ -8,7 +8,7 @@ import { Badge } from '../../components/ui/Badge'
 import { Button } from '../../components/ui/Button'
 import { Input } from '../../components/ui/Input'
 import { useProjectStore } from './stores/projectStore'
-import { getProjects, createProject, deleteProjectFromDb, updateProjectMembersInDb } from './services/projectService'
+import { getProjects, createProject, deleteProjectFromDb, updateProjectMembersInDb, updateProjectInDb } from './services/projectService'
 import {
   Plus,
   Search,
@@ -24,6 +24,7 @@ import {
   X,
   TrendingUp,
   Trash2,
+  Pencil,
   Loader2,
   ShieldCheck,
   Calendar,
@@ -35,6 +36,7 @@ export const ProjectList = () => {
     projects,
     setProjects,
     addProject,
+    updateProject,
     deleteProject,
     updateProjectMembers,
     setSelectedProjectId,
@@ -59,6 +61,17 @@ export const ProjectList = () => {
   const [dropdownLoading, setDropdownLoading] = useState(false)
   const [deleteConfirmProj, setDeleteConfirmProj] = useState(null)
 
+  // Edit Project Modal state
+  const [editModalProj, setEditModalProj] = useState(null)
+  const [editProjName, setEditProjName] = useState('')
+  const [editClientName, setEditClientName] = useState('')
+  const [editSelectedClientId, setEditSelectedClientId] = useState('')
+  const [editBudget, setEditBudget] = useState('')
+  const [editDescription, setEditDescription] = useState('')
+  const [editEstimatedDate, setEditEstimatedDate] = useState('')
+  const [editStatus, setEditStatus] = useState('active')
+  const [editSubmitting, setEditSubmitting] = useState(false)
+
   // Manage Project Members Modal state
   const [memberModalProj, setMemberModalProj] = useState(null)
   const [allEmployees, setAllEmployees] = useState([])
@@ -77,7 +90,7 @@ export const ProjectList = () => {
 
   // Fetch clients & employees when modal opens
   useEffect(() => {
-    if (!showAddModal) return
+    if (!showAddModal && !editModalProj) return
     const fetchDropdowns = async () => {
       setDropdownLoading(true)
       try {
@@ -108,8 +121,12 @@ export const ProjectList = () => {
 
         setClients(clientList)
         setEmployees(empList)
-        if (clientList.length > 0) setSelectedClientId(clientList[0].id)
-        if (empList.length > 0) setSelectedEmployeeId(empList[0].id)
+        if (clientList.length > 0 && showAddModal && !selectedClientId) {
+          setSelectedClientId(clientList[0].id)
+        }
+        if (empList.length > 0 && showAddModal && !selectedEmployeeId) {
+          setSelectedEmployeeId(empList[0].id)
+        }
       } catch (err) {
         console.error('Error fetching dropdown data:', err)
       } finally {
@@ -117,7 +134,7 @@ export const ProjectList = () => {
       }
     }
     fetchDropdowns()
-  }, [showAddModal])
+  }, [showAddModal, editModalProj])
 
   // Fetch available employees when Member Modal opens
   useEffect(() => {
@@ -229,6 +246,48 @@ export const ProjectList = () => {
     const pId = proj.projectId || proj.id
     setSelectedProjectId(pId)
     navigate(`/projects/tasks?projectId=${pId}`)
+  }
+
+  const handleOpenEditModal = (proj) => {
+    setEditModalProj(proj)
+    setEditProjName(proj.name || '')
+    setEditClientName(proj.clientName || '')
+    setEditSelectedClientId(proj.clientId || '')
+    setEditBudget(proj.budget !== undefined && proj.budget !== null ? String(proj.budget) : '')
+    setEditDescription(proj.description || '')
+    setEditEstimatedDate(proj.estimatedDate || '')
+    setEditStatus(proj.status || 'active')
+  }
+
+  const handleUpdateProject = async (e) => {
+    e.preventDefault()
+    if (!editModalProj || !editProjName.trim()) return
+
+    const pId = editModalProj.projectId || editModalProj.id
+    setEditSubmitting(true)
+    try {
+      const selectedClient = clients.find((c) => c.id === editSelectedClientId)
+      const finalClientName = editClientName || selectedClient?.name || editModalProj.clientName || 'Independent'
+
+      const updates = {
+        name: editProjName.trim(),
+        clientName: finalClientName,
+        clientId: editSelectedClientId || '',
+        budget: editBudget ? Number(editBudget) : 0,
+        description: editDescription,
+        estimatedDate: editEstimatedDate || null,
+        status: editStatus || 'active',
+      }
+
+      updateProject(pId, updates)
+      await updateProjectInDb(pId, updates)
+
+      setEditModalProj(null)
+    } catch (err) {
+      console.error('Failed to update project:', err)
+    } finally {
+      setEditSubmitting(false)
+    }
   }
 
   const handleToggleMemberSelection = (empId) => {
@@ -419,7 +478,7 @@ export const ProjectList = () => {
                       <Building className="w-3 h-3 text-slate-400 dark:text-slate-500" /> {proj.clientName}
                     </p>
                   </div>
-                  <div className="flex items-center gap-2" onClick={(e) => e.stopPropagation()}>
+                  <div className="flex items-center gap-1.5" onClick={(e) => e.stopPropagation()}>
                     <Badge
                       variant={
                         proj.status === 'active'
@@ -431,6 +490,16 @@ export const ProjectList = () => {
                     >
                       {proj.status}
                     </Badge>
+                    <button
+                      onClick={(e) => {
+                        e.stopPropagation()
+                        handleOpenEditModal(proj)
+                      }}
+                      title="Edit project name & details"
+                      className="text-slate-400 dark:text-slate-500 hover:text-indigo-600 dark:hover:text-indigo-400 p-1 rounded hover:bg-slate-100 dark:hover:bg-slate-800 transition-colors"
+                    >
+                      <Pencil className="w-3.5 h-3.5" />
+                    </button>
                     <button
                       onClick={(e) => {
                         e.stopPropagation()
@@ -716,6 +785,120 @@ export const ProjectList = () => {
                 </Button>
                 <Button type="submit" variant="primary" className="w-2/3" icon={Plus}>
                   Create Project
+                </Button>
+              </div>
+            </form>
+          </Card>
+        </div>
+      )}
+
+      {/* Edit Project Modal */}
+      {editModalProj && (
+        <div className="fixed inset-0 z-50 bg-black/70 backdrop-blur-sm flex items-center justify-center p-4">
+          <Card className="w-full max-w-lg p-6 space-y-4 border-slate-200 dark:border-slate-800 shadow-2xl relative bg-white dark:bg-[#181C27]">
+            <div className="flex items-center justify-between pb-3 border-b border-slate-200 dark:border-slate-800">
+              <div className="flex items-center gap-2">
+                <div className="w-7 h-7 rounded-lg bg-indigo-50 dark:bg-indigo-500/10 text-indigo-600 dark:text-indigo-400 flex items-center justify-center">
+                  <Pencil className="w-4 h-4" />
+                </div>
+                <h3 className="font-bold text-slate-900 dark:text-slate-100 text-sm">Edit Project</h3>
+              </div>
+              <button
+                onClick={() => setEditModalProj(null)}
+                className="text-slate-400 hover:text-slate-600 dark:hover:text-white p-1 rounded-lg hover:bg-slate-100 dark:hover:bg-slate-800 transition-colors"
+              >
+                <X className="w-4 h-4" />
+              </button>
+            </div>
+
+            <form onSubmit={handleUpdateProject} className="space-y-4">
+              <Input
+                label="Project Title *"
+                placeholder="e.g. SaaS Refactor & API Redesign"
+                value={editProjName}
+                onChange={(e) => setEditProjName(e.target.value)}
+                required
+                autoFocus
+              />
+
+              <div className="grid grid-cols-2 gap-3">
+                {/* Client Dropdown */}
+                <div className="space-y-1.5 text-left">
+                  <label className="block text-xs font-medium text-slate-700 dark:text-slate-300">Client Name</label>
+                  <select
+                    value={editSelectedClientId}
+                    onChange={(e) => {
+                      setEditSelectedClientId(e.target.value)
+                      const found = clients.find((c) => c.id === e.target.value)
+                      if (found) setEditClientName(found.name)
+                    }}
+                    className="w-full bg-slate-100/80 dark:bg-[#11141E] border border-slate-300 dark:border-slate-800 text-slate-900 dark:text-slate-100 text-sm rounded-xl py-2.5 px-3.5 focus:outline-none focus:border-indigo-500 focus:ring-1 focus:ring-indigo-500 transition-all cursor-pointer"
+                  >
+                    <option value="">{editClientName || 'Independent / Internal'}</option>
+                    {clients.map((client) => (
+                      <option key={client.id} value={client.id} className="bg-white dark:bg-[#11141E] text-slate-900 dark:text-slate-100">
+                        {client.name}
+                      </option>
+                    ))}
+                  </select>
+                </div>
+
+                {/* Status Dropdown */}
+                <div className="space-y-1.5 text-left">
+                  <label className="block text-xs font-medium text-slate-700 dark:text-slate-300">
+                    Project Status
+                  </label>
+                  <select
+                    value={editStatus}
+                    onChange={(e) => setEditStatus(e.target.value)}
+                    className="w-full bg-slate-100/80 dark:bg-[#11141E] border border-slate-300 dark:border-slate-800 text-slate-900 dark:text-slate-100 text-sm rounded-xl py-2.5 px-3.5 focus:outline-none focus:border-indigo-500 focus:ring-1 focus:ring-indigo-500 transition-all cursor-pointer"
+                  >
+                    <option value="active">Active</option>
+                    <option value="completed">Completed</option>
+                    <option value="on_hold">On Hold</option>
+                  </select>
+                </div>
+              </div>
+
+              <div className="grid grid-cols-2 gap-3">
+                <Input
+                  label="Total Budget (₹)"
+                  type="number"
+                  placeholder="e.g. 500000"
+                  value={editBudget}
+                  onChange={(e) => setEditBudget(e.target.value)}
+                />
+
+                <Input
+                  label="Estimated Date"
+                  type="date"
+                  value={editEstimatedDate}
+                  onChange={(e) => setEditEstimatedDate(e.target.value)}
+                />
+              </div>
+
+              <div className="space-y-1.5 text-left">
+                <label className="block text-xs font-medium text-slate-700 dark:text-slate-300">Project Description</label>
+                <textarea
+                  placeholder="Brief summary of deliverables & tech stack..."
+                  value={editDescription}
+                  onChange={(e) => setEditDescription(e.target.value)}
+                  className="w-full bg-slate-100/80 dark:bg-[#11141E] border border-slate-300 dark:border-slate-800 text-slate-900 dark:text-slate-100 placeholder-slate-400 dark:placeholder-slate-500 text-xs rounded-xl p-3 h-20 focus:outline-none focus:border-indigo-500 focus:ring-1 focus:ring-indigo-500 transition-all"
+                />
+              </div>
+
+              <div className="flex gap-3 pt-2">
+                <Button type="button" variant="secondary" onClick={() => setEditModalProj(null)} className="w-1/3">
+                  Cancel
+                </Button>
+                <Button type="submit" variant="primary" className="w-2/3" disabled={editSubmitting}>
+                  {editSubmitting ? (
+                    <span className="flex items-center gap-2">
+                      <Loader2 className="w-4 h-4 animate-spin" /> Saving...
+                    </span>
+                  ) : (
+                    'Save Changes'
+                  )}
                 </Button>
               </div>
             </form>

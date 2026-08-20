@@ -1,4 +1,4 @@
-import React, { useState } from 'react'
+import React, { useState, useEffect } from 'react'
 import { NavLink } from 'react-router-dom'
 import { PageHeader } from '../../components/layout/PageHeader'
 import { Card } from '../../components/ui/Card'
@@ -9,22 +9,35 @@ import { useFinanceStore } from './stores/financeStore'
 import { FileText, CreditCard, Clock, Plus, Trash2, X } from 'lucide-react'
 
 export const ExpenseList = () => {
-  const { expenses, addExpense, deleteExpense } = useFinanceStore()
+  const { expenses, categories, addExpense, deleteExpense, addCategory, fetchFinanceData } = useFinanceStore()
+
+  useEffect(() => {
+    fetchFinanceData()
+  }, [fetchFinanceData])
 
   const [showAddModal, setShowAddModal] = useState(false)
   const [deleteConfirmExpense, setDeleteConfirmExpense] = useState(null)
   const [vendor, setVendor] = useState('')
   const [category, setCategory] = useState('Software & Infrastructure')
+  const [customCategory, setCustomCategory] = useState('')
+  const [isCustomCategory, setIsCustomCategory] = useState(false)
   const [amount, setAmount] = useState('')
   const [notes, setNotes] = useState('')
 
-  const handleCreateExpense = (e) => {
+  const handleCreateExpense = async (e) => {
     e.preventDefault()
     if (!vendor.trim()) return
 
-    addExpense({
-      vendor,
-      category,
+    const finalCategory = isCustomCategory ? customCategory.trim() : category
+    if (!finalCategory) return
+
+    if (isCustomCategory && customCategory.trim()) {
+      await addCategory(customCategory.trim())
+    }
+
+    await addExpense({
+      vendor: vendor.trim(),
+      category: finalCategory,
       amount: Number(amount) || 0,
       notes,
     })
@@ -32,6 +45,9 @@ export const ExpenseList = () => {
     setVendor('')
     setAmount('')
     setNotes('')
+    setCustomCategory('')
+    setIsCustomCategory(false)
+    setCategory(finalCategory)
     setShowAddModal(false)
   }
 
@@ -49,7 +65,7 @@ export const ExpenseList = () => {
           }
         />
 
-        <div className="flex items-center gap-2 border-b border-slate-800 pb-3">
+        <div className="flex items-center gap-2 border-b border-slate-200 dark:border-slate-800 pb-3">
           <NavLink
             to="/finance/invoices"
             className={({ isActive }) =>
@@ -104,7 +120,7 @@ export const ExpenseList = () => {
           </thead>
           <tbody className="divide-y divide-slate-200 dark:divide-slate-800/60">
             {expenses.map((exp) => (
-              <tr key={exp.expenseId} className="hover:bg-slate-50 dark:hover:bg-slate-800/30 transition-colors">
+              <tr key={exp.expenseId || exp.id} className="hover:bg-slate-50 dark:hover:bg-slate-800/30 transition-colors">
                 <td className="p-4 font-bold text-slate-900 dark:text-slate-200">{exp.vendor}</td>
                 <td className="p-4 text-slate-700 dark:text-slate-300">{exp.category}</td>
                 <td className="p-4 text-slate-600 dark:text-slate-400">{exp.date}</td>
@@ -148,18 +164,48 @@ export const ExpenseList = () => {
               />
 
               <div className="space-y-1.5 text-left">
-                <label className="block text-xs font-medium text-slate-700 dark:text-slate-300">Category</label>
-                <select
-                  value={category}
-                  onChange={(e) => setCategory(e.target.value)}
-                  className="w-full bg-slate-100 dark:bg-slate-900 border border-slate-300 dark:border-slate-800 text-slate-900 dark:text-slate-100 text-xs rounded-xl p-2.5 focus:outline-none"
-                >
-                  <option value="Software & Infrastructure">Software & Infrastructure</option>
-                  <option value="Office & Supplies">Office & Supplies</option>
-                  <option value="Marketing & Ads">Marketing & Ads</option>
-                  <option value="Legal & Professional">Legal & Professional</option>
-                  <option value="Travel & Meals">Travel & Meals</option>
-                </select>
+                <div className="flex items-center justify-between">
+                  <label className="block text-xs font-medium text-slate-700 dark:text-slate-300">Category</label>
+                  <button
+                    type="button"
+                    onClick={() => {
+                      setIsCustomCategory(!isCustomCategory)
+                      setCustomCategory('')
+                    }}
+                    className="text-[11px] font-semibold text-indigo-600 dark:text-indigo-400 hover:underline cursor-pointer"
+                  >
+                    {isCustomCategory ? '← Select existing' : '+ Type custom category'}
+                  </button>
+                </div>
+
+                {isCustomCategory ? (
+                  <Input
+                    placeholder="e.g. Equipment & Hardware"
+                    value={customCategory}
+                    onChange={(e) => setCustomCategory(e.target.value)}
+                    required
+                  />
+                ) : (
+                  <select
+                    value={category}
+                    onChange={(e) => {
+                      if (e.target.value === '__ADD_NEW__') {
+                        setIsCustomCategory(true)
+                        setCustomCategory('')
+                      } else {
+                        setCategory(e.target.value)
+                      }
+                    }}
+                    className="w-full bg-slate-100 dark:bg-slate-900 border border-slate-300 dark:border-slate-800 text-slate-900 dark:text-slate-100 text-xs rounded-xl p-2.5 focus:outline-none cursor-pointer"
+                  >
+                    {(categories || []).map((cat) => (
+                      <option key={cat} value={cat}>
+                        {cat}
+                      </option>
+                    ))}
+                    <option value="__ADD_NEW__">+ Type Custom Category...</option>
+                  </select>
+                )}
               </div>
 
               <Input
@@ -218,7 +264,7 @@ export const ExpenseList = () => {
               <Button
                 variant="danger"
                 onClick={() => {
-                  deleteExpense(deleteConfirmExpense.expenseId)
+                  deleteExpense(deleteConfirmExpense.expenseId || deleteConfirmExpense.id)
                   setDeleteConfirmExpense(null)
                 }}
               >

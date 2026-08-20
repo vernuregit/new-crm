@@ -166,6 +166,20 @@ export const useProjectStore = create(
           ],
         })),
 
+      updateProject: (projectId, updates) =>
+        set((state) => ({
+          projects: state.projects.map((p) =>
+            p.projectId === projectId || p.id === projectId ? { ...p, ...updates } : p
+          ),
+          tasks: updates.name
+            ? state.tasks.map((t) =>
+                t.projectId === projectId
+                  ? { ...t, projectName: updates.name }
+                  : t
+              )
+            : state.tasks,
+        })),
+
       deleteProject: (projectId) =>
         set((state) => ({
           projects: state.projects.filter(

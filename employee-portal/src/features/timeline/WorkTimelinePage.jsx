@@ -24,13 +24,14 @@ const ENTRY_TYPES = [
   { id: 'upskilling', label: 'Upskilling' },
 ]
 
-/** Format decimal hours as zero-padded HH:MM (e.g. 1.75 → 01:45). */
+/** Format decimal hours cleanly (e.g. 0 -> 0h, 8 -> 8h, 1.5 -> 1h 30m). */
 function formatHours(hours) {
   const n = Number(hours) || 0
   const totalMinutes = Math.round(n * 60)
   const h = Math.floor(totalMinutes / 60)
   const m = totalMinutes % 60
-  return `${String(h).padStart(2, '0')}:${String(m).padStart(2, '0')} hr`
+  if (m === 0) return `${h}h`
+  return `${h}h ${m}m`
 }
 
 /** Split decimal hours into integer hours + quarter minutes (snap nearest). */
@@ -176,7 +177,7 @@ export const WorkTimelinePage = () => {
   const durationPreview = useMemo(() => {
     const h = Number(hoursPart)
     const m = Number(minutesPart)
-    if (hoursPart === '' || Number.isNaN(h) || Number.isNaN(m)) return '00:00'
+    if (hoursPart === '' || Number.isNaN(h) || Number.isNaN(m)) return '0h'
     return formatHours(h + m / 60)
   }, [hoursPart, minutesPart])
 

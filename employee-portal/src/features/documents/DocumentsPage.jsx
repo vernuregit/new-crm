@@ -140,9 +140,11 @@ export const DocumentsPage = () => {
         )}
       </Card>
 
+
       <div className="flex gap-2 overflow-x-auto pb-2">
         {['All', 'Certificate', 'Marksheet', 'ID', 'Other'].map(tab => (
           <button
+
             key={tab}
             onClick={() => setFilterTab(tab)}
             className={`px-4 py-2 rounded-full text-sm font-medium transition-colors ${

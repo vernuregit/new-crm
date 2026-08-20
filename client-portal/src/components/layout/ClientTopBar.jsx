@@ -1,63 +1,92 @@
 import React from 'react'
-import { Link } from 'react-router-dom'
-import { Bell, ShieldCheck, User, Sun, Moon } from 'lucide-react'
-import haloLogo from '../../assets/halologo.png'
+import { Link, useLocation } from 'react-router-dom'
+import { Bell, User, Sun, Moon } from 'lucide-react'
 import { useUserStore } from '../../stores/userStore'
 import { useUIStore } from '../../stores/uiStore'
+import { useNotificationStore } from '../../features/notifications/stores/notificationStore'
+import { NotificationCenter } from '../../features/notifications/NotificationCenter'
 
 export const ClientTopBar = () => {
-  const { user } = useUserStore()
+  const location = useLocation()
+  const { user, userDoc } = useUserStore()
   const { theme, toggleTheme } = useUIStore()
+  const { notifications, toggleOpen } = useNotificationStore()
+
+  const unreadCount = notifications.filter((n) => !n.isRead).length
+
+  // Derive current page title
+  const getPageTitle = () => {
+    const path = location.pathname
+    if (path === '/portal' || path === '/portal/') return 'Overview'
+    if (path.includes('/projects')) return 'My Projects'
+    if (path.includes('/invoices')) return 'Invoices'
+    if (path.includes('/files')) return 'Documents'
+    if (path.includes('/support')) return 'Support'
+    if (path.includes('/profile')) return 'My Profile'
+    return 'Overview'
+  }
+
+  const displayName =
+    userDoc?.displayName ||
+    user?.displayName ||
+    user?.email?.split('@')[0] ||
+    'Client User'
 
   return (
-    <header className="h-16 bg-white/90 dark:bg-[#0E1420]/90 backdrop-blur-md border-b border-slate-200 dark:border-emerald-900/40 px-6 flex items-center justify-between sticky top-0 z-30 transition-colors">
-      {/* Security badge */}
-      <div className="flex items-center gap-2 text-xs text-emerald-600 dark:text-emerald-400">
-        <ShieldCheck className="w-4 h-4" />
-        <span className="font-semibold hidden sm:block">
-          Secure Client Environment — <span className="text-slate-700 dark:text-slate-300">Acme Corp</span>
-        </span>
+    <header className="h-20 bg-white/90 dark:bg-[#111827]/90 backdrop-blur-md border-b border-slate-100 dark:border-slate-800/80 px-8 flex items-center justify-between sticky top-0 z-30 transition-colors">
+      {/* Page Title */}
+      <div>
+        <h1 className="text-base font-bold text-slate-900 dark:text-white tracking-tight">
+          {getPageTitle()}
+        </h1>
       </div>
 
       {/* Right Controls */}
-      <div className="flex items-center gap-3">
-        {/* Sun/Moon Theme Toggle Button */}
+      <div className="flex items-center gap-4">
+        {/* Sun/Moon Theme Toggle */}
         <button
           onClick={toggleTheme}
           title={theme === 'dark' ? 'Switch to Light Mode' : 'Switch to Dark Mode'}
-          className="relative w-9 h-9 rounded-xl bg-slate-100 dark:bg-emerald-900/20 hover:bg-slate-200 dark:hover:bg-emerald-900/40 text-slate-600 dark:text-emerald-400 flex items-center justify-center transition-all cursor-pointer border border-slate-200 dark:border-emerald-900/40"
+          className="w-9 h-9 rounded-xl bg-slate-50 dark:bg-slate-800 hover:bg-slate-100 dark:hover:bg-slate-700 text-slate-500 dark:text-slate-400 hover:text-slate-900 dark:hover:text-white flex items-center justify-center transition-all cursor-pointer border border-slate-200/60 dark:border-slate-700/60"
         >
           {theme === 'dark' ? (
-            <Sun className="w-4 h-4 text-amber-400 transition-transform duration-300 rotate-0 hover:rotate-45" />
+            <Sun className="w-4 h-4 text-amber-400" />
           ) : (
-            <Moon className="w-4 h-4 text-slate-700 transition-transform duration-300 -rotate-12 hover:rotate-0" />
+            <Moon className="w-4 h-4 text-slate-600" />
           )}
         </button>
 
         {/* Notification Bell */}
-        <button className="relative w-9 h-9 rounded-xl bg-slate-100 dark:bg-emerald-900/20 hover:bg-slate-200 dark:hover:bg-emerald-900/40 text-slate-600 dark:text-emerald-400 flex items-center justify-center transition-colors border border-slate-200 dark:border-emerald-900/40 cursor-pointer">
-          <Bell className="w-4 h-4" />
-        </button>
+        <div className="relative">
+          <button
+            onClick={toggleOpen}
+            aria-label="Notifications"
+            className="w-9 h-9 rounded-xl bg-slate-50 dark:bg-slate-800 hover:bg-slate-100 dark:hover:bg-slate-700 text-slate-500 dark:text-slate-400 hover:text-slate-900 dark:hover:text-white flex items-center justify-center transition-colors border border-slate-200/60 dark:border-slate-700/60 cursor-pointer"
+          >
+            <Bell className="w-4 h-4" />
+            {unreadCount > 0 && (
+              <span className="absolute top-2 right-2 w-2 h-2 rounded-full bg-blue-500 ring-2 ring-white dark:ring-[#111827]" />
+            )}
+          </button>
+          <NotificationCenter />
+        </div>
 
-        {/* User Profile */}
+        {/* User Profile Pill - Icon & Username only */}
         <Link
           to="/portal/profile"
-          className="flex items-center gap-3 pl-3 border-l border-slate-200 dark:border-emerald-900/40 hover:opacity-80 transition-opacity cursor-pointer group"
+          className="flex items-center gap-2.5 pl-2 pr-3 py-1.5 rounded-full hover:bg-slate-50 dark:hover:bg-slate-800/60 transition-colors cursor-pointer group"
         >
-          <div className="w-9 h-9 rounded-xl bg-emerald-50 dark:bg-emerald-600/20 border border-emerald-200 dark:border-emerald-500/30 text-emerald-600 dark:text-emerald-400 flex items-center justify-center font-medium text-xs group-hover:scale-105 transition-transform">
-            {user?.displayName ? user.displayName.charAt(0).toUpperCase() : <User className="w-4 h-4" />}
+          <div className="w-8 h-8 rounded-full bg-blue-100 dark:bg-blue-500/20 text-blue-600 dark:text-blue-400 flex items-center justify-center font-semibold text-xs shrink-0">
+            <User className="w-4 h-4" />
           </div>
-          <div className="hidden sm:flex flex-col text-left">
-            <span className="text-xs font-semibold text-slate-800 dark:text-slate-200">
-              {user?.displayName || 'Client User'}
-            </span>
-            <span className="text-[10px] text-emerald-600 dark:text-emerald-400 font-medium">
-              Client Portal
-            </span>
-          </div>
+          <span className="text-xs font-semibold text-slate-800 dark:text-slate-200 group-hover:text-blue-600 dark:group-hover:text-blue-400 transition-colors">
+            {displayName}
+          </span>
         </Link>
       </div>
     </header>
   )
 }
+
+
 

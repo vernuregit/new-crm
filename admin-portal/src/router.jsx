@@ -121,7 +121,7 @@ export const router = createBrowserRouter([
       { path: 'helpdesk', element: <Navigate to="/team/helpdesk" replace /> },
 
       // Settings
-      { path: 'settings', element: <Navigate to="/settings/org" replace /> },
+      { path: 'settings', element: <Navigate to="/settings/profile" replace /> },
       { path: 'settings/org', element: <OrgSettings /> },
       { path: 'settings/roles', element: <RoleManager /> },
       { path: 'settings/integrations', element: <IntegrationsPage /> },

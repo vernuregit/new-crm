@@ -53,3 +53,50 @@ export const deleteDocument = async (uid, docId, storagePath) => {
     await deleteObject(storageRef);
   }
 };
+
+export const uploadClientDeliverable = async (employeeUid, file, metadata, onProgress) => {
+  return new Promise((resolve, reject) => {
+    const timestamp = Date.now();
+    const clientId = metadata.clientId || 'general';
+    const storagePath = `deliverables/${clientId}/${file.name}_${timestamp}`;
+    const storageRef = ref(storage, storagePath);
+    
+    const uploadTask = uploadBytesResumable(storageRef, file);
+    
+    uploadTask.on('state_changed', 
+      (snapshot) => {
+        const progress = (snapshot.bytesTransferred / snapshot.totalBytes) * 100;
+        if (onProgress) onProgress(progress);
+      }, 
+      (error) => reject(error), 
+      async () => {
+        const downloadURL = await getDownloadURL(uploadTask.snapshot.ref);
+        const deliverableData = {
+          filename: file.name,
+          fileName: file.name,
+          fileType: file.type,
+          fileSize: file.size,
+          size: `${(file.size / (1024 * 1024)).toFixed(1)} MB`,
+          storagePath,
+          downloadURL,
+          fileUrl: downloadURL,
+          uploadedAt: new Date().toLocaleDateString('en-US', { day: '2-digit', month: 'short', year: 'numeric' }),
+          uploadedAtTimestamp: serverTimestamp(),
+          description: metadata.description || '',
+          category: metadata.category || 'Deliverable',
+          clientId: metadata.clientId || '',
+          clientEmail: metadata.clientEmail || '',
+          clientName: metadata.clientName || '',
+          projectId: metadata.projectId || '',
+          projectName: metadata.projectName || '',
+          uploadedBy: employeeUid,
+        };
+
+        const docRef = await addDoc(collection(db, 'deliverables'), deliverableData);
+        await addDoc(collection(db, 'clientDocuments'), { id: docRef.id, ...deliverableData }).catch(() => {});
+        resolve({ id: docRef.id, downloadURL });
+      }
+    );
+  });
+};
+

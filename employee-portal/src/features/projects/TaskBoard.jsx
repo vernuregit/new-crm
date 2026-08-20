@@ -221,15 +221,22 @@ export const TaskBoard = () => {
     (p) => p.projectId === selectedProjectId || p.id === selectedProjectId
   )
 
-  const visibleProjects = isAdmin
-    ? projects
-    : projects.filter((p) => {
-        const isLegacy = !p.createdBy && (!p.members || p.members.length === 0)
-        return isLegacy || isUserOnProject(p, user, userDoc)
-      })
+  const visibleProjects = React.useMemo(() => {
+    return isAdmin
+      ? projects
+      : projects.filter((p) => isUserOnProject(p, user, userDoc, tasks))
+  }, [isAdmin, projects, user, userDoc, tasks])
+
+  const handleOpenAddModal = () => {
+    const fallbackId = visibleProjects[0]?.projectId || visibleProjects[0]?.id || ''
+    setProjectId(
+      selectedProjectId && selectedProjectId !== 'all' ? selectedProjectId : fallbackId
+    )
+    setShowAddModal(true)
+  }
 
   const filteredTasks = tasks.filter((t) => {
-    if (!isTaskVisibleToUser(t, user, userDoc, claims, projects)) return false
+    if (!isTaskVisibleToUser(t, user, userDoc, claims, projects, tasks)) return false
 
     if (selectedProjectId && selectedProjectId !== 'all') {
       const isProjectMatch =
@@ -246,15 +253,6 @@ export const TaskBoard = () => {
       t.projectName?.toLowerCase().includes(searchQuery.toLowerCase())
     return matchesSearch
   })
-
-  useEffect(() => {
-    if (showAddModal) {
-      const fallbackId = visibleProjects[0]?.projectId || visibleProjects[0]?.id || ''
-      setProjectId(
-        selectedProjectId && selectedProjectId !== 'all' ? selectedProjectId : fallbackId
-      )
-    }
-  }, [showAddModal, selectedProjectId, visibleProjects])
 
   const liveSelectedTask = selectedTask
     ? tasks.find((t) => t.taskId === selectedTask.taskId) || null
@@ -286,6 +284,8 @@ export const TaskBoard = () => {
       projectId: targetProjId,
       projectName: proj?.name || 'Project Work',
       priority,
+      assigneeId: currentUserId || null,
+      assigneeEmail: currentUserEmail || null,
       assigneeName: employeeName,
       dueDate: new Date(Date.now() + 86400000 * 7).toISOString().split('T')[0],
       createdBy: currentUserId || null,
@@ -338,7 +338,7 @@ export const TaskBoard = () => {
           title="Task Sprint Board"
           description="Track cross-project task assignments, sprint statuses, and subtask execution timelines"
           actions={
-            <Button icon={Plus} variant="primary" onClick={() => setShowAddModal(true)}>
+            <Button icon={Plus} variant="primary" onClick={handleOpenAddModal}>
               New Task
             </Button>
           }
