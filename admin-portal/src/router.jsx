@@ -8,6 +8,7 @@ import { LeadList } from './features/crm/LeadList'
 import { ContactList } from './features/crm/ContactList'
 import { ClientProfileView } from './features/crm/ClientProfileView'
 import { ProjectList } from './features/projects/ProjectList'
+import { ProjectDetailPage } from './features/projects/ProjectDetailPage'
 import { TaskBoard } from './features/projects/TaskBoard'
 import { TimeTracker } from './features/projects/TimeTracker'
 import { InvoiceList } from './features/finance/InvoiceList'
@@ -63,6 +64,8 @@ export const router = createBrowserRouter([
       // Projects Module
       { path: 'projects', element: <Navigate to="/projects/list" replace /> },
       { path: 'projects/list', element: <ProjectList /> },
+      { path: 'projects/:projectId', element: <ProjectDetailPage /> },
+      { path: 'projects/manage/:projectId', element: <ProjectDetailPage /> },
       { path: 'projects/tasks', element: <TaskBoard /> },
       { path: 'projects/time', element: <TimeTracker /> },
 

@@ -26,6 +26,7 @@ export const router = createBrowserRouter([
       { index: true, element: <Navigate to="/portal" replace /> },
       { path: 'portal', element: <ClientPortal /> },
       { path: 'portal/projects', element: <ClientProjects /> },
+      { path: 'portal/projects/:projectId', element: <ClientProjects /> },
       { path: 'portal/invoices', element: <ClientInvoices /> },
       { path: 'portal/files', element: <ClientFiles /> },
       { path: 'portal/support', element: <ClientSupport /> },

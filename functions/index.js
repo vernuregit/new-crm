@@ -180,3 +180,82 @@ exports.aggregateHealthScores = onSchedule('0 0 * * *', async (event) => {
     })
   }
 })
+
+/**
+ * 5. Firestore Trigger: On Announcement Created
+ * Dispatches notifications to all employees when an announcement is published
+ */
+exports.onAnnouncementCreated = onDocumentCreated('announcements/{announcementId}', async (event) => {
+  const announcement = event.data?.data()
+  if (!announcement) return
+
+  const announcementId = event.params.announcementId
+  console.log(`[Announcements] New announcement created (${announcementId}): "${announcement.title}". Dispatching to employees...`)
+
+  try {
+    // 1. Fetch active employees
+    const empSnap = await db.collection('employees').get()
+    const employeeIds = new Set()
+
+    empSnap.docs.forEach((d) => {
+      const data = d.data()
+      if (data.status !== 'inactive' && data.status !== 'terminated') {
+        employeeIds.add(d.id)
+        if (data.uid) employeeIds.add(data.uid)
+      }
+    })
+
+    // Also fetch non-admin users from 'users'
+    const usersSnap = await db.collection('users').get()
+    usersSnap.docs.forEach((d) => {
+      const data = d.data()
+      if (data.role !== 'admin' && data.status !== 'inactive') {
+        employeeIds.add(d.id)
+        if (data.uid) employeeIds.add(data.uid)
+      }
+    })
+
+    if (employeeIds.size === 0) {
+      console.log('[Announcements] No active employees found to notify.')
+      return
+    }
+
+    const previewMessage = announcement.body?.length > 120 
+      ? `${announcement.body.slice(0, 120)}...` 
+      : (announcement.body || '')
+
+    const nowIso = new Date().toISOString()
+    const idList = Array.from(employeeIds)
+
+    // 2. Batch write notifications in chunks
+    const CHUNK_SIZE = 400
+    for (let i = 0; i < idList.length; i += CHUNK_SIZE) {
+      const chunk = idList.slice(i, i + CHUNK_SIZE)
+      const batch = db.batch()
+
+      chunk.forEach((empId) => {
+        const notifRef = db.collection(`notifications/${empId}/items`).doc()
+        batch.set(notifRef, {
+          notificationId: notifRef.id,
+          title: `📢 ${announcement.title || 'New Announcement'}`,
+          message: previewMessage,
+          type: 'announcement',
+          priority: (announcement.priority || 'info').toLowerCase(),
+          isRead: false,
+          announcementId: announcementId,
+          link: '/announcements',
+          author: announcement.author || 'Admin',
+          createdAt: nowIso,
+          serverCreatedAt: admin.firestore.FieldValue.serverTimestamp(),
+        })
+      })
+
+      await batch.commit()
+    }
+
+    console.log(`[Announcements] Successfully notified ${idList.length} employees for announcement "${announcement.title}".`)
+  } catch (err) {
+    console.error('[Announcements] Error broadcasting announcement notifications:', err)
+  }
+})
+

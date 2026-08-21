@@ -245,7 +245,7 @@ export const ProjectList = () => {
   const handleProjectClick = (proj) => {
     const pId = proj.projectId || proj.id
     setSelectedProjectId(pId)
-    navigate(`/projects/tasks?projectId=${pId}`)
+    navigate(`/projects/${pId}`)
   }
 
   const handleOpenEditModal = (proj) => {
@@ -575,24 +575,50 @@ export const ProjectList = () => {
                   </button>
                 </div>
 
-                {/* Card Footer Info */}
-                <div className="pt-2 border-t border-slate-200 dark:border-slate-800/60 flex items-center justify-between text-[11px] text-slate-600 dark:text-slate-400">
-                  <div className="flex items-center gap-1">
-                    <span className="font-medium text-slate-700 dark:text-slate-300">Client: </span>
-                    <span className="truncate max-w-[100px] font-semibold text-slate-800 dark:text-slate-200">
-                      {proj.clientName || 'Independent'}
-                    </span>
-                  </div>
-                  <div className="flex items-center gap-3">
-                    {proj.estimatedDate && (
-                      <span className="flex items-center gap-1 text-amber-600 dark:text-amber-400 font-semibold">
-                        <Calendar className="w-3 h-3" /> {proj.estimatedDate}
-                      </span>
-                    )}
+                {/* Card Footer Info & Quick Actions */}
+                <div className="pt-2 border-t border-slate-200 dark:border-slate-800/60 space-y-2">
+                  <div className="flex items-center justify-between text-[11px] text-slate-600 dark:text-slate-400">
                     <div className="flex items-center gap-1">
-                      <span className="font-medium text-slate-700 dark:text-slate-300">Lead: </span>
-                      <span className="truncate max-w-[100px]">{proj.ownerName || 'Unassigned'}</span>
+                      <span className="font-medium text-slate-700 dark:text-slate-300">Client: </span>
+                      <span className="truncate max-w-[100px] font-semibold text-slate-800 dark:text-slate-200">
+                        {proj.clientName || 'Independent'}
+                      </span>
                     </div>
+                    <div className="flex items-center gap-3">
+                      {proj.estimatedDate && (
+                        <span className="flex items-center gap-1 text-amber-600 dark:text-amber-400 font-semibold">
+                          <Calendar className="w-3 h-3" /> {proj.estimatedDate}
+                        </span>
+                      )}
+                      <div className="flex items-center gap-1">
+                        <span className="font-medium text-slate-700 dark:text-slate-300">Lead: </span>
+                        <span className="truncate max-w-[100px]">{proj.ownerName || 'Unassigned'}</span>
+                      </div>
+                    </div>
+                  </div>
+
+                  <div className="flex items-center gap-2 pt-1">
+                    <button
+                      type="button"
+                      onClick={(e) => {
+                        e.stopPropagation()
+                        navigate(`/projects/${pId}`)
+                      }}
+                      className="flex-1 text-center py-1.5 px-2 bg-indigo-50 dark:bg-indigo-950/40 hover:bg-indigo-100 dark:hover:bg-indigo-900/60 text-indigo-600 dark:text-indigo-400 text-[11px] font-bold rounded-lg transition-colors border border-indigo-200 dark:border-indigo-800/60 flex items-center justify-center gap-1"
+                    >
+                      <Clock className="w-3 h-3" /> Timeline & Manage
+                    </button>
+                    <button
+                      type="button"
+                      onClick={(e) => {
+                        e.stopPropagation()
+                        setSelectedProjectId(pId)
+                        navigate(`/projects/tasks?projectId=${pId}`)
+                      }}
+                      className="py-1.5 px-3 bg-slate-100 dark:bg-slate-800 hover:bg-slate-200 dark:hover:bg-slate-700 text-slate-700 dark:text-slate-300 text-[11px] font-semibold rounded-lg transition-colors border border-slate-200 dark:border-slate-700 flex items-center justify-center gap-1"
+                    >
+                      <Kanban className="w-3 h-3" /> Tasks
+                    </button>
                   </div>
                 </div>
               </Card>

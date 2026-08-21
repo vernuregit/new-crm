@@ -1,5 +1,6 @@
 import React, { useEffect, useState } from 'react'
-import { Bell, Check, DollarSign, HeartPulse, Info, Briefcase, CheckCircle2 } from 'lucide-react'
+import { useNavigate } from 'react-router-dom'
+import { Bell, Check, DollarSign, HeartPulse, Info, Briefcase, CheckCircle2, Megaphone } from 'lucide-react'
 import { useNotificationStore } from './stores/notificationStore'
 import { useUserStore } from '../../stores/userStore'
 import { PageHeader } from '../../components/layout/PageHeader'
@@ -9,6 +10,8 @@ import { Badge } from '../../components/ui/Badge'
 
 const getIconForType = (type) => {
   switch (type) {
+    case 'announcement':
+      return <Megaphone className="w-5 h-5 text-amber-500" />
     case 'finance':
       return <DollarSign className="w-5 h-5 text-emerald-500" />
     case 'project':
@@ -25,6 +28,8 @@ const getIconForType = (type) => {
 
 const getBgForType = (type) => {
   switch (type) {
+    case 'announcement':
+      return 'bg-amber-50 dark:bg-amber-500/10'
     case 'finance':
       return 'bg-emerald-50 dark:bg-emerald-500/10'
     case 'project':
@@ -42,6 +47,7 @@ const getBgForType = (type) => {
 const TABS = [
   { id: 'all', label: 'All' },
   { id: 'unread', label: 'Unread' },
+  { id: 'announcement', label: 'Announcements' },
   { id: 'finance', label: 'Finance' },
   { id: 'project', label: 'Project' },
   { id: 'wellness', label: 'Wellness' },
@@ -73,6 +79,7 @@ const isYesterday = (dateStr) => {
 }
 
 export const NotificationsPage = () => {
+  const navigate = useNavigate()
   const { user } = useUserStore()
   const { notifications, fetchNotifications, unsubscribe, markAsRead, markAllAsRead } = useNotificationStore()
   const [activeTab, setActiveTab] = useState('all')
@@ -96,6 +103,15 @@ export const NotificationsPage = () => {
   const handleMarkAsRead = (notificationId) => {
     if (user?.uid) {
       markAsRead(user.uid, notificationId)
+    }
+  }
+
+  const handleNotificationClick = (notif) => {
+    if (!notif.isRead) {
+      handleMarkAsRead(notif.notificationId)
+    }
+    if (notif.link) {
+      navigate(notif.link)
     }
   }
 
@@ -129,7 +145,7 @@ export const NotificationsPage = () => {
             <Card 
               key={notif.notificationId}
               className={`p-4 transition-colors ${!notif.isRead ? 'bg-white dark:bg-[#12151E]' : 'bg-slate-50/50 dark:bg-[#0F1117]/50'} cursor-pointer hover:border-purple-500/50`}
-              onClick={() => !notif.isRead && handleMarkAsRead(notif.notificationId)}
+              onClick={() => handleNotificationClick(notif)}
             >
               <div className="flex items-start gap-4">
                 <div className={`p-2 rounded-xl shrink-0 ${getBgForType(notif.type)}`}>

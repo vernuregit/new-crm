@@ -28,6 +28,7 @@ import {
   Clock,
   Sparkles,
   Eye,
+  Bell,
 } from 'lucide-react'
 
 // ─── Priority Badges & Styles ────────────────────────────────────────────────
@@ -626,6 +627,14 @@ export const AnnouncementManager = () => {
                     <h4 className="text-xs font-bold text-slate-900 dark:text-white mb-1">{formData.title || 'Untitled'}</h4>
                     <p className="text-[11px] text-slate-600 dark:text-slate-300 line-clamp-3 whitespace-pre-wrap">{formData.body}</p>
                   </div>
+                </div>
+              )}
+
+              {/* Notification Notice */}
+              {!editingItem && (
+                <div className="flex items-center gap-2 p-3 rounded-xl bg-indigo-50 dark:bg-indigo-950/40 border border-indigo-100 dark:border-indigo-900/50 text-[11px] text-indigo-700 dark:text-indigo-300">
+                  <Bell className="w-4 h-4 shrink-0 text-indigo-600 dark:text-indigo-400" />
+                  <span>Publishing this announcement will instantly send a notification to all active employees.</span>
                 </div>
               )}
 

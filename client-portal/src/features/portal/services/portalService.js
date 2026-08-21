@@ -1,6 +1,7 @@
 import {
   collection,
   doc,
+  getDoc,
   getDocs,
   query,
   where,
@@ -13,6 +14,23 @@ import {
 } from 'firebase/firestore'
 
 import { db } from '../../../shared/services/firebaseService'
+
+/**
+ * Fetch a single project by ID from Firestore
+ */
+export const getProjectById = async (projectId) => {
+  try {
+    if (!projectId) return null
+    const snap = await getDoc(doc(db, 'projects', projectId))
+    if (snap.exists()) {
+      return { projectId: snap.id, id: snap.id, ...snap.data() }
+    }
+    return null
+  } catch (err) {
+    console.error('Error fetching project by ID:', err)
+    return null
+  }
+}
 
 /**
  * Fetch projects for a specific client from Firestore /projects
@@ -28,6 +46,85 @@ export const getClientProjects = async (clientId) => {
   } catch (err) {
     console.error('Error fetching client projects from Firestore:', err)
     return []
+  }
+}
+
+/**
+ * Process Steps & Workflow Operations for Client Portal
+ */
+export const getProjectProcessSteps = async (projectId) => {
+  try {
+    if (!projectId) return []
+    const processRef = collection(db, 'projects', projectId, 'processSteps')
+    const snap = await getDocs(processRef)
+    const list = snap.docs.map((d) => ({ id: d.id, ...d.data() }))
+    list.sort((a, b) => (a.stepNumber || 0) - (b.stepNumber || 0))
+    return list
+  } catch (err) {
+    console.error('Error fetching project process steps:', err)
+    return []
+  }
+}
+
+export const subscribeProjectProcessSteps = (projectId, callback) => {
+  if (!projectId) return () => {}
+  try {
+    const processRef = collection(db, 'projects', projectId, 'processSteps')
+    return onSnapshot(
+      processRef,
+      (snap) => {
+        const list = snap.docs.map((d) => ({ id: d.id, ...d.data() }))
+        list.sort((a, b) => (a.stepNumber || 0) - (b.stepNumber || 0))
+        callback(list)
+      },
+      (err) => {
+        console.warn('Error subscribing to process steps:', err)
+      }
+    )
+  } catch (err) {
+    console.error('Error setting up process steps subscription:', err)
+    return () => {}
+  }
+}
+
+/**
+ * Fetch project timeline events for a given project
+ */
+export const getProjectTimeline = async (projectId) => {
+  try {
+    if (!projectId) return []
+    const timelineRef = collection(db, 'projects', projectId, 'timeline')
+    const snap = await getDocs(timelineRef)
+    const list = snap.docs.map((d) => ({ id: d.id, ...d.data() }))
+    list.sort((a, b) => new Date(b.timestamp || b.createdAt || 0) - new Date(a.timestamp || a.createdAt || 0))
+    return list
+  } catch (err) {
+    console.error('Error fetching project timeline:', err)
+    return []
+  }
+}
+
+/**
+ * Subscribe to project timeline events in real-time
+ */
+export const subscribeProjectTimeline = (projectId, callback) => {
+  if (!projectId) return () => {}
+  try {
+    const timelineRef = collection(db, 'projects', projectId, 'timeline')
+    return onSnapshot(
+      timelineRef,
+      (snap) => {
+        const list = snap.docs.map((d) => ({ id: d.id, ...d.data() }))
+        list.sort((a, b) => new Date(b.timestamp || b.createdAt || 0) - new Date(a.timestamp || a.createdAt || 0))
+        callback(list)
+      },
+      (err) => {
+        console.warn('Error subscribing to project timeline:', err)
+      }
+    )
+  } catch (err) {
+    console.error('Error setting up timeline subscription:', err)
+    return () => {}
   }
 }
 

@@ -14,6 +14,7 @@ import {
   X,
   Heart,
   ArrowRight,
+  Megaphone,
 } from 'lucide-react'
 
 export const NotificationCenter = () => {
@@ -26,6 +27,8 @@ export const NotificationCenter = () => {
 
   const getIcon = (type) => {
     switch (type) {
+      case 'announcement':
+        return <Megaphone className="w-4 h-4 text-amber-500" />
       case 'finance':
         return <DollarSign className="w-4 h-4 text-emerald-400" />
       case 'crm':
