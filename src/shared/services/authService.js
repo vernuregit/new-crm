@@ -11,6 +11,7 @@ import {
 } from 'firebase/auth'
 import { auth, db } from './firebaseService'
 import { doc, getDoc, setDoc, serverTimestamp } from 'firebase/firestore'
+import { ONBOARDING_STATUS, buildDefaultAgreementTexts } from './contractTemplates'
 
 const googleProvider = new GoogleAuthProvider()
 
@@ -150,27 +151,77 @@ const tempConfig = {
 }
 
 /**
- * Programmatically create a Client Auth user & Firestore profile without logging out the active admin.
+ * Build the /users and /clientOnboarding records for a new client from the admin form.
+ * The onboarding record is seeded up front so the client only has to sign.
  */
-export const createClientAccount = async (email, password, displayName, companyName, phone) => {
+const buildClientRecords = (uid, email, payload) => {
+  const {
+    displayName,
+    companyName,
+    phone,
+    billingEmail,
+    billingAddress,
+    taxId,
+    paymentMethod,
+    signerPhone,
+    signatoryTitle,
+    dealName,
+  } = payload
+
+  const now = new Date().toISOString()
+
+  const clientData = {
+    uid,
+    email,
+    displayName: displayName || email.split('@')[0],
+    companyName: companyName || '',
+    phoneNumber: phone || null,
+    role: 'client',
+    tier: 'client',
+    status: 'active',
+    onboardingStatus: ONBOARDING_STATUS.PENDING_SIGNATURE,
+    createdAt: now,
+    updatedAt: now,
+  }
+
+  const onboardingData = {
+    uid,
+    email,
+    displayName: clientData.displayName,
+    companyName: companyName || '',
+    billingInfo: {
+      billingEmail: billingEmail || email,
+      billingAddress: billingAddress || '',
+      taxId: taxId || '',
+      paymentMethod: paymentMethod || 'ach',
+      signerPhone: signerPhone || phone || '',
+    },
+    signatoryTitle: signatoryTitle || 'Authorized Representative',
+    dealName: dealName || '',
+    agreementTexts: buildDefaultAgreementTexts(),
+    agreements: {},
+    onboardingStatus: ONBOARDING_STATUS.PENDING_SIGNATURE,
+    createdAt: now,
+    updatedAt: now,
+  }
+
+  return { clientData, onboardingData }
+}
+
+/**
+ * Programmatically create a Client Auth user & Firestore profile without logging out the active admin.
+ * Accepts the full onboarding payload captured by the admin at creation time.
+ */
+export const createClientAccount = async (payload = {}) => {
+  const { email, password } = payload
+
   if (import.meta.env.VITE_FIREBASE_API_KEY === 'mock_api_key_dev') {
     // Return dummy data in local mock mode
     const mockUid = `client_${Date.now()}`
-    const mockData = {
-      uid: mockUid,
-      email,
-      displayName,
-      companyName,
-      phoneNumber: phone || null,
-      role: 'client',
-      tier: 'client',
-      status: 'active',
-      createdAt: new Date().toISOString(),
-      updatedAt: new Date().toISOString(),
-    }
-    const userRef = doc(db, 'users', mockUid)
-    await setDoc(userRef, mockData)
-    return mockData
+    const { clientData, onboardingData } = buildClientRecords(mockUid, email, payload)
+    await setDoc(doc(db, 'users', mockUid), clientData)
+    await setDoc(doc(db, 'clientOnboarding', mockUid), onboardingData)
+    return clientData
   }
 
   let secondaryApp
@@ -185,21 +236,10 @@ export const createClientAccount = async (email, password, displayName, companyN
     const userCred = await createUserWithEmailAndPassword(secondaryAuth, email, password)
     const user = userCred.user
 
-    const clientData = {
-      uid: user.uid,
-      email: user.email,
-      displayName: displayName || email.split('@')[0],
-      companyName,
-      phoneNumber: phone || null,
-      role: 'client',
-      tier: 'client',
-      status: 'active',
-      createdAt: new Date().toISOString(),
-      updatedAt: new Date().toISOString(),
-    }
+    const { clientData, onboardingData } = buildClientRecords(user.uid, user.email, payload)
 
-    const userRef = doc(db, 'users', user.uid)
-    await setDoc(userRef, clientData)
+    await setDoc(doc(db, 'users', user.uid), clientData)
+    await setDoc(doc(db, 'clientOnboarding', user.uid), onboardingData)
 
     await signOut(secondaryAuth)
     await deleteApp(secondaryApp)

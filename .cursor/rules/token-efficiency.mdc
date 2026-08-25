@@ -1,0 +1,13 @@
+---
+description: Rules for maximum token efficiency and concise responses
+alwaysApply: true
+---
+
+# Output Constraints for Token Efficiency
+
+- **No Conversational Fluff:** Skip preambles ("Sure, here is...", "I'd be happy to help"), explanations of obvious code, and post-summaries.
+- **Diff-Only Output:** Do NOT output entire files when editing code. Return ONLY the updated code block or targeted unified diffs.
+- **No Self-Evident Comments:** Do not add redundant code comments (e.g., `// import React`).
+- **Plan First, Code Second:** For multi-file changes, list a short 3-line execution plan before making tool calls.
+- **Strict Scope:** Edit only the targeted function or line items. Never rewrite surrounding unmodified code.
+- **No Unused imports/boilerplates:** Strip unnecessary declarations in output.

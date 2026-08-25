@@ -25,6 +25,7 @@ export const SignaturePad = ({
   const [agreedToTerms, setAgreedToTerms] = useState(initialData?.signed || false)
   const [showFullAgreement, setShowFullAgreement] = useState(showFullAgreementByDefault)
   const [savedSignature, setSavedSignature] = useState(initialData || null)
+  const [savingSignature, setSavingSignature] = useState(false)
 
   // Sync state when initialData changes
   useEffect(() => {
@@ -183,9 +184,26 @@ export const SignaturePad = ({
       timestampFormatted: new Date().toLocaleString(),
     }
 
-    setSavedSignature(signatureRecord)
-    if (onSave) {
-      onSave(signatureRecord)
+    const commit = async () => {
+      if (onSave) await onSave(signatureRecord)
+      setSavedSignature(signatureRecord)
+    }
+
+    setSavingSignature(true)
+    Promise.resolve(commit())
+      .catch(() => {})
+      .finally(() => setSavingSignature(false))
+  }
+
+  const handleResign = async () => {
+    setSavingSignature(true)
+    try {
+      if (onSave) await onSave(null)
+      setSavedSignature(null)
+    } catch {
+      // Parent surfaces the error; keep the previous signature visible.
+    } finally {
+      setSavingSignature(false)
     }
   }
 
@@ -267,12 +285,10 @@ export const SignaturePad = ({
               type="button"
               size="sm"
               variant="secondary"
-              onClick={() => {
-                setSavedSignature(null)
-                if (onSave) onSave(null)
-              }}
+              onClick={handleResign}
+              disabled={savingSignature}
             >
-              Re-Sign
+              {savingSignature ? 'Saving...' : 'Re-Sign'}
             </Button>
           </div>
         </div>
@@ -399,10 +415,11 @@ export const SignaturePad = ({
               variant="primary"
               size="sm"
               onClick={handleConfirmSignature}
+              disabled={savingSignature}
               className="bg-indigo-600 hover:bg-indigo-500"
               icon={Check}
             >
-              Sign & Accept Agreement
+              {savingSignature ? 'Saving...' : 'Sign & Accept Agreement'}
             </Button>
           </div>
         </div>

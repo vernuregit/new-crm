@@ -20,7 +20,8 @@ import {
   Download,
   FolderKanban,
   CheckCircle2,
-  Crown
+  Crown,
+  CreditCard
 } from 'lucide-react'
 import haloLogo from '../../assets/halologo.png'
 import { useUIStore } from '../../stores/uiStore'
@@ -42,6 +43,7 @@ export const Sidebar = () => {
         { name: 'Portal Overview', path: '/portal', icon: Layers },
         { name: 'My Projects', path: '/portal/projects', icon: Briefcase },
         { name: 'Invoices & Receipts', path: '/portal/invoices', icon: FileText },
+        { name: 'Billing', path: '/portal/billing', icon: CreditCard },
         { name: 'Deliverables & Files', path: '/portal/files', icon: Download },
       ]
     }

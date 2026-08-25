@@ -3,8 +3,6 @@ import { useNavigate } from 'react-router-dom'
 import {
   Shield,
   FileCheck2,
-  UploadCloud,
-  CreditCard,
   CheckCircle2,
   Clock,
   AlertTriangle,
@@ -18,24 +16,27 @@ import {
   Lock,
   Sun,
   Moon,
+  CreditCard,
+  Landmark,
 } from 'lucide-react'
 import { Card } from '../../components/ui/Card'
 import { Button } from '../../components/ui/Button'
-import { Input } from '../../components/ui/Input'
 import { Badge } from '../../components/ui/Badge'
 import { Spinner } from '../../components/ui/Spinner'
 import { SignaturePad } from '../../components/ui/SignaturePad'
-import { DocumentUploadDropzone } from '../../components/ui/DocumentUploadDropzone'
 import { useUserStore } from '../../stores/userStore'
 import { useUIStore } from '../../stores/uiStore'
 import haloLogo from '../../assets/halologo.png'
 import {
-  DEFAULT_AGREEMENTS,
-  REQUIRED_DOCUMENT_TYPES,
+  ONBOARDING_STATUS,
+  resolveAgreements,
   getClientOnboardingDoc,
   submitClientOnboarding,
+  persistClientAgreement,
 } from '../../shared/services/onboardingService'
 import { logoutUser } from '../../shared/services/authService'
+import { getPaymentDetails } from '../../shared/services/paymentDetailsService'
+import { CompanyBankDetails } from '../../components/ui/CompanyBankDetails'
 
 export const ClientOnboardingGate = () => {
   const navigate = useNavigate()
@@ -44,30 +45,28 @@ export const ClientOnboardingGate = () => {
 
   const [loading, setLoading] = useState(false)
   const [submitting, setSubmitting] = useState(false)
-  const [step, setStep] = useState(1) // 1: Signatures, 2: Documents, 3: Billing, 4: Review
+  const [step, setStep] = useState(1) // 1: Signatures, 2: Payment details, 3: Review & Submit
   const [agreementIndex, setAgreementIndex] = useState(0) // 0: MSA, 1: NDA, 2: SOW
-  const [kycIndex, setKycIndex] = useState(0) // 0: Incorporation, 1: Tax, 2: Signatory ID
+  const [paymentDetails, setPaymentDetails] = useState(null)
 
   // Onboarding Status State
-  const [onboardingData, setOnboardingData] = useState(null)
-  const [onboardingStatus, setOnboardingStatus] = useState('pending_documents')
+  const [onboardingStatus, setOnboardingStatus] = useState(ONBOARDING_STATUS.PENDING_SIGNATURE)
   const [rejectionReason, setRejectionReason] = useState('')
 
-  // Form Data
+  // Account profile — entered by the admin at account creation, shown read-only here
   const [companyName, setCompanyName] = useState('')
-  const [billingEmail, setBillingEmail] = useState('')
-  const [billingAddress, setBillingAddress] = useState('')
-  const [taxId, setTaxId] = useState('')
-  const [paymentMethod, setPaymentMethod] = useState('ach')
-  const [signerPhone, setSignerPhone] = useState('')
+  const [billingInfo, setBillingInfo] = useState(null)
+  const [signerDefaults, setSignerDefaults] = useState(null)
+
+  // Contract wording, which the admin may have tailored for this client
+  const [agreementTexts, setAgreementTexts] = useState(null)
 
   // Agreements State: { msa: { signed: true, ... }, nda: ... }
   const [agreements, setAgreements] = useState({})
 
-  // Documents State: { incorporationCertificate: { fileName: ... }, taxDocument: ... }
-  const [documents, setDocuments] = useState({})
-
   const [errorMsg, setErrorMsg] = useState('')
+
+  const contracts = resolveAgreements(agreementTexts)
 
   // Load existing onboarding status
   const loadStatus = async () => {
@@ -79,32 +78,34 @@ export const ClientOnboardingGate = () => {
     try {
       const data = await getClientOnboardingDoc(user.uid)
       if (data) {
-        setOnboardingData(data)
-        const status = data.onboardingStatus || 'pending_documents'
+        const status = data.onboardingStatus || ONBOARDING_STATUS.PENDING_SIGNATURE
         setOnboardingStatus(status)
         setRejectionReason(data.rejectionReason || '')
         setCompanyName(data.companyName || userDoc?.companyName || '')
-        setAgreements(data.agreements || {})
-        setDocuments(data.documents || {})
+        const loadedAgreements = data.agreements || {}
+        setAgreements(loadedAgreements)
+        setAgreementTexts(data.agreementTexts || null)
+        setBillingInfo(data.billingInfo || null)
+        setSignerDefaults({
+          signatoryName: data.displayName || userDoc?.displayName || '',
+          signatoryTitle: data.signatoryTitle || '',
+        })
 
-        if (data.billingInfo) {
-          setBillingEmail(data.billingInfo.billingEmail || user.email || '')
-          setBillingAddress(data.billingInfo.billingAddress || '')
-          setTaxId(data.billingInfo.taxId || '')
-          setPaymentMethod(data.billingInfo.paymentMethod || 'ach')
-          setSignerPhone(data.billingInfo.signerPhone || '')
-        } else {
-          setBillingEmail(user.email || '')
+        const resolved = resolveAgreements(data.agreementTexts || null)
+        const firstUnsigned = resolved.findIndex((ag) => !loadedAgreements[ag.id]?.signed)
+        setAgreementIndex(firstUnsigned >= 0 ? firstUnsigned : Math.max(0, resolved.length - 1))
+        if (firstUnsigned < 0 && resolved.length > 0) {
+          setStep(1)
         }
 
         // If approved, update store and localStorage before navigating to prevent AppShell bounce
-        if (status === 'approved') {
+        if (status === ONBOARDING_STATUS.APPROVED) {
           try {
-            localStorage.setItem(`onboarding_status_${user.uid}`, 'approved')
+            localStorage.setItem(`onboarding_status_${user.uid}`, ONBOARDING_STATUS.APPROVED)
           } catch {
             // ignore
           }
-          setUser(user, { ...userDoc, onboardingStatus: 'approved', ...data })
+          setUser(user, { ...userDoc, onboardingStatus: ONBOARDING_STATUS.APPROVED, ...data })
           navigate('/portal', { replace: true })
         }
       }
@@ -119,40 +120,77 @@ export const ClientOnboardingGate = () => {
     }
   }, [user?.uid])
 
-  const handleAgreementSave = (agreementId, sigRecord) => {
-    setAgreements((prev) => {
-      if (!sigRecord) {
-        const copy = { ...prev }
-        delete copy[agreementId]
-        return copy
-      }
-      return { ...prev, [agreementId]: sigRecord }
-    })
+  useEffect(() => {
+    let cancelled = false
+    getPaymentDetails()
+      .then((details) => {
+        if (!cancelled) setPaymentDetails(details)
+      })
+      .catch(() => {
+        if (!cancelled) setPaymentDetails(null)
+      })
+    return () => {
+      cancelled = true
+    }
+  }, [])
+
+  /**
+   * Store the exact wording the client saw alongside the signature, so the
+   * executed copy is preserved even if a template is edited later.
+   * Persist immediately so Re-Sign survives refresh and admin sees the update.
+   */
+  const handleAgreementSave = async (contract, sigRecord) => {
+    const nextRecord = sigRecord
+      ? {
+          ...sigRecord,
+          signedTitle: contract.title,
+          signedContent: contract.content,
+        }
+      : null
+
+    try {
+      await persistClientAgreement(user.uid, contract.id, nextRecord)
+      setAgreements((prev) => {
+        if (!nextRecord) {
+          const copy = { ...prev }
+          delete copy[contract.id]
+          return copy
+        }
+        return {
+          ...prev,
+          [contract.id]: nextRecord,
+        }
+      })
+      if (!nextRecord) setStep(1)
+      setErrorMsg('')
+    } catch (err) {
+      setErrorMsg(err.message || 'Could not save your signature. Please try again.')
+      throw err
+    }
   }
 
-  const handleDocumentSelect = (docId, fileRecord) => {
-    setDocuments((prev) => ({ ...prev, [docId]: fileRecord }))
-  }
-
-  const handleDocumentRemove = (docId) => {
-    setDocuments((prev) => {
-      const copy = { ...prev }
-      delete copy[docId]
-      return copy
-    })
-  }
-
-  // Validate step completion
   const areSignaturesComplete = () => {
-    return DEFAULT_AGREEMENTS.every((ag) => agreements[ag.id]?.signed)
+    return contracts.length > 0 && contracts.every((ag) => agreements[ag.id]?.signed)
   }
 
-  const areDocumentsComplete = () => {
-    return REQUIRED_DOCUMENT_TYPES.every((doc) => !!documents[doc.id])
+  const isAgreementUnlocked = (idx) => {
+    if (idx <= 0) return true
+    return contracts.slice(0, idx).every((ag) => agreements[ag.id]?.signed)
   }
 
-  const isBillingComplete = () => {
-    return companyName.trim() && billingEmail.trim() && billingAddress.trim()
+  const agreementKindLabel = (idx) => {
+    if (idx === 0) return 'Master Services'
+    if (idx === 1) return 'Non-Disclosure'
+    return 'Statement of Work'
+  }
+
+  const goToAgreement = (idx) => {
+    if (!isAgreementUnlocked(idx)) {
+      setErrorMsg('Finish and sign the current agreement before opening the next one.')
+      return
+    }
+    setErrorMsg('')
+    setAgreementIndex(idx)
   }
 
   const handleSubmitOnboarding = async (e) => {
@@ -165,40 +203,15 @@ export const ClientOnboardingGate = () => {
       return
     }
 
-    if (!areDocumentsComplete()) {
-      setErrorMsg('All required compliance documents must be uploaded.')
-      setStep(2)
-      return
-    }
-
-    if (!isBillingComplete()) {
-      setErrorMsg('Please fill in all mandatory company and billing fields.')
-      setStep(3)
-      return
-    }
-
     try {
       setSubmitting(true)
-      const payload = {
-        companyName: companyName.trim(),
-        agreements,
-        documents,
-        billingInfo: {
-          billingEmail: billingEmail.trim(),
-          billingAddress: billingAddress.trim(),
-          taxId: taxId.trim(),
-          paymentMethod,
-          signerPhone: signerPhone.trim(),
-        },
-      }
-
-      const result = await submitClientOnboarding(user.uid, payload)
-      setOnboardingData(result)
-      setOnboardingStatus('pending_approval')
-      setUser(user, { ...userDoc, onboardingStatus: 'pending_approval', companyName })
+      const result = await submitClientOnboarding(user.uid, { agreements })
+      setOnboardingStatus(ONBOARDING_STATUS.PENDING_APPROVAL)
+      setUser(user, { ...userDoc, onboardingStatus: ONBOARDING_STATUS.PENDING_APPROVAL })
+      return result
     } catch (err) {
       console.error('Submission failed:', err)
-      setErrorMsg(err.message || 'Failed to submit onboarding package. Please try again.')
+      setErrorMsg(err.message || 'Failed to submit your signed agreements. Please try again.')
     } finally {
       setSubmitting(false)
     }
@@ -220,7 +233,7 @@ export const ClientOnboardingGate = () => {
   }
 
   // ─── RENDER: PENDING APPROVAL SCREEN (UNDER ADMIN REVIEW) ───────────────────────
-  if (onboardingStatus === 'pending_approval') {
+  if (onboardingStatus === ONBOARDING_STATUS.PENDING_APPROVAL) {
     return (
       <div className="min-h-screen bg-slate-50 dark:bg-[#0A0D14] text-slate-900 dark:text-slate-100 flex items-center justify-center p-4 relative overflow-hidden transition-colors">
         <div className="absolute top-1/4 left-1/2 -translate-x-1/2 w-[500px] h-[500px] bg-amber-500/10 dark:bg-amber-500/10 blur-[140px] rounded-full pointer-events-none" />
@@ -232,11 +245,11 @@ export const ClientOnboardingGate = () => {
                 <img src={haloLogo} alt="Logo" className="w-full h-full object-contain rounded-full" />
               </div>
               <div>
-                <h2 className="text-lg font-bold text-slate-900 dark:text-slate-100">Client Compliance Verification</h2>
+                <h2 className="text-lg font-bold text-slate-900 dark:text-slate-100">Client Agreement Verification</h2>
                 <p className="text-xs text-slate-500 dark:text-slate-400">Account: {user?.email}</p>
               </div>
             </div>
-            
+
             <div className="flex items-center gap-2">
               <button
                 onClick={toggleTheme}
@@ -255,42 +268,35 @@ export const ClientOnboardingGate = () => {
             <div className="w-16 h-16 rounded-2xl bg-amber-500/10 border border-amber-500/30 text-amber-500 dark:text-amber-400 flex items-center justify-center mx-auto shadow-inner">
               <Shield className="w-8 h-8" />
             </div>
-            <h3 className="text-xl font-bold text-slate-900 dark:text-slate-100">Documents & Signatures Under Review</h3>
+            <h3 className="text-xl font-bold text-slate-900 dark:text-slate-100">Signed Agreements Under Review</h3>
             <p className="text-xs text-slate-600 dark:text-slate-300 max-w-lg mx-auto leading-relaxed">
-              Thank you for submitting your legal agreements and verification documents. Our operations and compliance team has been notified and is currently verifying your submission.
+              Thank you for signing your legal agreements. Our operations team has been notified and is completing the
+              final activation of your workspace.
             </p>
           </div>
 
           {/* Audit Verification Checklist */}
           <div className="bg-slate-50 dark:bg-slate-950/70 border border-slate-200 dark:border-slate-800 rounded-xl p-5 space-y-3">
-            <h4 className="text-xs font-bold uppercase tracking-wider text-slate-500 dark:text-slate-400">Submission Package Details</h4>
-            
+            <h4 className="text-xs font-bold uppercase tracking-wider text-slate-500 dark:text-slate-400">Submission Summary</h4>
+
             <div className="grid grid-cols-1 sm:grid-cols-2 gap-3 text-xs">
               <div className="p-3 rounded-lg bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800 flex items-center gap-2.5 shadow-sm dark:shadow-none">
                 <CheckCircle2 className="w-4 h-4 text-emerald-500 dark:text-emerald-400 shrink-0" />
                 <div>
                   <p className="font-semibold text-slate-800 dark:text-slate-200">Legal Agreements (3/3)</p>
-                  <p className="text-[11px] text-slate-500 dark:text-slate-400">MSA, NDA & SOW Digitally Signed</p>
+                  <p className="text-[11px] text-slate-500 dark:text-slate-400">MSA, NDA &amp; SOW Digitally Signed</p>
                 </div>
               </div>
 
               <div className="p-3 rounded-lg bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800 flex items-center gap-2.5 shadow-sm dark:shadow-none">
                 <CheckCircle2 className="w-4 h-4 text-emerald-500 dark:text-emerald-400 shrink-0" />
                 <div>
-                  <p className="font-semibold text-slate-800 dark:text-slate-200">KYC Documents (3/3)</p>
-                  <p className="text-[11px] text-slate-500 dark:text-slate-400">Certificate, Tax ID & Signatory ID</p>
+                  <p className="font-semibold text-slate-800 dark:text-slate-200">Account Profile</p>
+                  <p className="text-[11px] text-slate-500 dark:text-slate-400">Confirmed for {companyName || 'your entity'}</p>
                 </div>
               </div>
 
-              <div className="p-3 rounded-lg bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800 flex items-center gap-2.5 shadow-sm dark:shadow-none">
-                <CheckCircle2 className="w-4 h-4 text-emerald-500 dark:text-emerald-400 shrink-0" />
-                <div>
-                  <p className="font-semibold text-slate-800 dark:text-slate-200">Billing Setup</p>
-                  <p className="text-[11px] text-slate-500 dark:text-slate-400">Authorized for {companyName || 'Entity'}</p>
-                </div>
-              </div>
-
-              <div className="p-3 rounded-lg bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800 flex items-center gap-2.5 shadow-sm dark:shadow-none">
+              <div className="p-3 rounded-lg bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800 flex items-center gap-2.5 shadow-sm dark:shadow-none sm:col-span-2">
                 <Clock className="w-4 h-4 text-amber-500 dark:text-amber-400 shrink-0" />
                 <div>
                   <p className="font-semibold text-slate-800 dark:text-slate-200">Admin Approval</p>
@@ -327,7 +333,7 @@ export const ClientOnboardingGate = () => {
     )
   }
 
-  // ─── RENDER: MULTI-STEP ONBOARDING WIZARD ──────────────────────────────────────
+  // ─── RENDER: TWO-STEP SIGNATURE WIZARD ─────────────────────────────────────────
   return (
     <div className="min-h-screen bg-slate-50 dark:bg-[#0A0D14] text-slate-900 dark:text-slate-100 flex flex-col p-4 sm:p-8 relative overflow-hidden transition-colors">
       <div className="absolute top-10 left-1/2 -translate-x-1/2 w-[700px] h-[350px] bg-indigo-500/10 dark:bg-indigo-600/10 blur-[150px] rounded-full pointer-events-none" />
@@ -339,8 +345,8 @@ export const ClientOnboardingGate = () => {
             <img src={haloLogo} alt="Logo" className="w-full h-full object-contain rounded-full" />
           </div>
           <div>
-            <h1 className="text-base sm:text-lg font-bold text-slate-900 dark:text-slate-100">Client Onboarding & Compliance Gate</h1>
-            <p className="text-xs text-slate-500 dark:text-slate-400">Complete required documents and signatures to activate your portal</p>
+            <h1 className="text-base sm:text-lg font-bold text-slate-900 dark:text-slate-100">Client Agreement Signing</h1>
+            <p className="text-xs text-slate-500 dark:text-slate-400">Sign your agreements to activate your portal</p>
           </div>
         </div>
 
@@ -368,70 +374,88 @@ export const ClientOnboardingGate = () => {
         </div>
       </div>
 
-      {/* Step Indicators */}
+      {/* Step Indicators — later steps appear only after every agreement is signed */}
       <div className="max-w-4xl w-full mx-auto mb-8">
-        <div className="grid grid-cols-2 sm:grid-cols-4 gap-2 sm:gap-4">
-          {[
-            { num: 1, title: 'Legal Signatures', icon: FileCheck2 },
-            { num: 2, title: 'KYC Documents', icon: UploadCloud },
-            { num: 3, title: 'Billing Setup', icon: CreditCard },
-            { num: 4, title: 'Review & Submit', icon: CheckCircle2 },
-          ].map((s) => {
-            const Icon = s.icon
-            const isDone =
-              (s.num === 1 && areSignaturesComplete()) ||
-              (s.num === 2 && areDocumentsComplete()) ||
-              (s.num === 3 && isBillingComplete())
-            const isCurrent = step === s.num
+        {areSignaturesComplete() ? (
+          <div className="grid grid-cols-3 gap-3 sm:gap-4">
+            {[
+              { num: 1, title: 'Sign Agreements', icon: FileCheck2 },
+              { num: 2, title: 'Payment Details', icon: Landmark },
+              { num: 3, title: 'Review & Submit', icon: CheckCircle2 },
+            ].map((s) => {
+              const Icon = s.icon
+              const isDone = s.num < step
+              const isCurrent = step === s.num
 
-            return (
-              <button
-                key={s.num}
-                type="button"
-                onClick={() => setStep(s.num)}
-                className={`p-3 rounded-xl border text-left transition-all cursor-pointer ${
-                  isCurrent
-                    ? 'bg-indigo-50 dark:bg-indigo-600/15 border-indigo-500 dark:border-indigo-500/60 shadow-md shadow-indigo-500/10'
-                    : isDone
-                    ? 'bg-emerald-50 dark:bg-emerald-950/20 border-emerald-300 dark:border-emerald-500/30 text-emerald-900 dark:text-slate-300'
-                    : 'bg-white dark:bg-slate-900/40 border-slate-200 dark:border-slate-800/80 text-slate-600 dark:text-slate-400 hover:border-slate-300 dark:hover:border-slate-700 shadow-sm dark:shadow-none'
-                }`}
-              >
-                <div className="flex items-center justify-between mb-1.5">
-                  <div
-                    className={`w-6 h-6 rounded-lg flex items-center justify-center text-xs font-bold ${
-                      isDone
-                        ? 'bg-emerald-500 text-white'
-                        : isCurrent
-                        ? 'bg-indigo-600 text-white'
-                        : 'bg-slate-100 dark:bg-slate-800 text-slate-600 dark:text-slate-400'
-                    }`}
-                  >
-                    {isDone ? <Check className="w-3.5 h-3.5 stroke-[3]" /> : s.num}
+              return (
+                <button
+                  key={s.num}
+                  type="button"
+                  onClick={() => {
+                    setErrorMsg('')
+                    setStep(s.num)
+                  }}
+                  className={`p-3 rounded-xl border text-left transition-all cursor-pointer ${
+                    isCurrent
+                      ? 'bg-indigo-50 dark:bg-indigo-600/15 border-indigo-500 dark:border-indigo-500/60 shadow-md shadow-indigo-500/10'
+                      : isDone
+                      ? 'bg-emerald-50 dark:bg-emerald-950/20 border-emerald-300 dark:border-emerald-500/30 text-emerald-900 dark:text-slate-300'
+                      : 'bg-white dark:bg-slate-900/40 border-slate-200 dark:border-slate-800/80 text-slate-600 dark:text-slate-400 hover:border-slate-300 dark:hover:border-slate-700 shadow-sm dark:shadow-none'
+                  }`}
+                >
+                  <div className="flex items-center justify-between mb-1.5">
+                    <div
+                      className={`w-6 h-6 rounded-lg flex items-center justify-center text-xs font-bold ${
+                        isDone
+                          ? 'bg-emerald-500 text-white'
+                          : isCurrent
+                          ? 'bg-indigo-600 text-white'
+                          : 'bg-slate-100 dark:bg-slate-800 text-slate-600 dark:text-slate-400'
+                      }`}
+                    >
+                      {isDone ? <Check className="w-3.5 h-3.5 stroke-[3]" /> : s.num}
+                    </div>
+                    <Icon
+                      className={`w-4 h-4 ${
+                        isDone
+                          ? 'text-emerald-500 dark:text-emerald-400'
+                          : isCurrent
+                          ? 'text-indigo-600 dark:text-indigo-400'
+                          : 'text-slate-400 dark:text-slate-600'
+                      }`}
+                    />
                   </div>
-                  <Icon
-                    className={`w-4 h-4 ${
-                      isDone ? 'text-emerald-500 dark:text-emerald-400' : isCurrent ? 'text-indigo-600 dark:text-indigo-400' : 'text-slate-400 dark:text-slate-600'
-                    }`}
-                  />
-                </div>
-                <p className="text-xs font-semibold truncate text-slate-900 dark:text-slate-200">{s.title}</p>
-              </button>
-            )
-          })}
-        </div>
+                  <p className="text-xs font-semibold truncate text-slate-900 dark:text-slate-200">{s.title}</p>
+                </button>
+              )
+            })}
+          </div>
+        ) : (
+          <div className="p-3 rounded-xl border bg-indigo-50 dark:bg-indigo-600/15 border-indigo-500 dark:border-indigo-500/60 shadow-md shadow-indigo-500/10">
+            <div className="flex items-center justify-between mb-1.5">
+              <div className="w-6 h-6 rounded-lg flex items-center justify-center text-xs font-bold bg-indigo-600 text-white">
+                1
+              </div>
+              <FileCheck2 className="w-4 h-4 text-indigo-600 dark:text-indigo-400" />
+            </div>
+            <p className="text-xs font-semibold text-slate-900 dark:text-slate-200">Sign Agreements</p>
+            <p className="text-[11px] text-slate-500 dark:text-slate-400 mt-0.5">
+              Complete each document in order. Payment details and Review &amp; Submit unlock after all signatures.
+            </p>
+          </div>
+        )}
       </div>
 
       {/* Main Form Container */}
       <div className="max-w-4xl w-full mx-auto pb-16">
         {/* Rejection / Resubmission Banner if applicable */}
-        {onboardingStatus === 'rejected' && (
+        {onboardingStatus === ONBOARDING_STATUS.REJECTED && (
           <div className="mb-6 p-4 rounded-2xl bg-rose-50 dark:bg-rose-950/30 border border-rose-200 dark:border-rose-500/30 text-rose-700 dark:text-rose-300 text-xs flex items-start gap-3">
             <AlertTriangle className="w-5 h-5 text-rose-500 dark:text-rose-400 shrink-0 mt-0.5" />
             <div>
-              <p className="font-bold text-rose-800 dark:text-rose-200">Re-submission Requested by Compliance Admin</p>
+              <p className="font-bold text-rose-800 dark:text-rose-200">Re-signature Requested by Compliance Admin</p>
               <p className="mt-1 text-slate-700 dark:text-slate-300">
-                {rejectionReason || 'Please review your uploaded documents or signatures and re-submit for approval.'}
+                {rejectionReason || 'Please review your signatures and re-submit for approval.'}
               </p>
             </div>
           </div>
@@ -446,97 +470,132 @@ export const ClientOnboardingGate = () => {
 
         {/* STEP 1: LEGAL AGREEMENTS & E-SIGNATURES (INDIVIDUAL CONTRACT SUB-PAGES) */}
         {step === 1 && (() => {
-          const currentAgreement = DEFAULT_AGREEMENTS[agreementIndex] || DEFAULT_AGREEMENTS[0]
-          const isCurrentAgreementSigned = !!agreements[currentAgreement.id]?.signed
-          const signedAgreementsCount = DEFAULT_AGREEMENTS.filter((ag) => agreements[ag.id]?.signed).length
+          const currentAgreement = contracts[agreementIndex] || contracts[0]
+          const isCurrentAgreementSigned = !!agreements[currentAgreement?.id]?.signed
+          const signedAgreementsCount = contracts.filter((ag) => agreements[ag.id]?.signed).length
+          const progressPct = contracts.length ? Math.round((signedAgreementsCount / contracts.length) * 100) : 0
 
           return (
             <div className="space-y-6">
-              {/* Header & Sub-step Progress Banner */}
-              <div className="bg-white dark:bg-slate-900/40 p-5 rounded-2xl border border-slate-200 dark:border-slate-800 shadow-sm dark:shadow-none space-y-4">
+              <div className="bg-white dark:bg-slate-900/40 p-5 rounded-2xl border border-slate-200 dark:border-slate-800 shadow-sm dark:shadow-none space-y-5">
                 <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-2">
                   <div>
-                    <h2 className="text-base font-bold text-slate-900 dark:text-slate-100">Step 1: Execute Legal & Services Agreements</h2>
+                    <h2 className="text-base font-bold text-slate-900 dark:text-slate-100">
+                      Agreement {agreementIndex + 1} of {contracts.length}
+                    </h2>
                     <p className="text-xs text-slate-500 dark:text-slate-400 mt-0.5">
-                      Review and electronically execute each agreement individually. Full contract terms are displayed below.
+                      Sign this document to unlock the next one. You can go back to review a signed agreement.
                     </p>
                   </div>
-                  <div className="text-right">
-                    <span className="inline-flex items-center gap-1.5 px-3 py-1 rounded-full text-xs font-semibold bg-indigo-50 dark:bg-indigo-500/10 text-indigo-700 dark:text-indigo-300 border border-indigo-200 dark:border-indigo-500/20">
-                      Progress: {signedAgreementsCount} of {DEFAULT_AGREEMENTS.length} Signed
-                    </span>
-                  </div>
+                  <span className="inline-flex items-center gap-1.5 px-3 py-1 rounded-full text-xs font-semibold bg-indigo-50 dark:bg-indigo-500/10 text-indigo-700 dark:text-indigo-300 border border-indigo-200 dark:border-indigo-500/20">
+                    Progress: {signedAgreementsCount} of {contracts.length} Signed
+                  </span>
                 </div>
 
-                {/* Agreement Contract Sub-Tabs */}
-                <div className="grid grid-cols-1 sm:grid-cols-3 gap-2.5 pt-1">
-                  {DEFAULT_AGREEMENTS.map((ag, idx) => {
+                <div className="h-1.5 rounded-full bg-slate-100 dark:bg-slate-800 overflow-hidden">
+                  <div
+                    className="h-full rounded-full bg-indigo-500 transition-all duration-300"
+                    style={{ width: `${progressPct}%` }}
+                  />
+                </div>
+
+                {/* Sequential trail — future agreements stay locked until the current one is signed */}
+                <div className="flex items-center gap-2">
+                  {contracts.map((ag, idx) => {
                     const isSigned = !!agreements[ag.id]?.signed
+                    const unlocked = isAgreementUnlocked(idx)
                     const isSelected = agreementIndex === idx
 
                     return (
-                      <button
-                        key={ag.id}
-                        type="button"
-                        onClick={() => {
-                          setErrorMsg('')
-                          setAgreementIndex(idx)
-                        }}
-                        className={`p-3 rounded-xl border text-left transition-all cursor-pointer flex items-center justify-between gap-2 ${
-                          isSelected
-                            ? 'bg-indigo-50/80 dark:bg-indigo-950/40 border-indigo-500 text-indigo-950 dark:text-indigo-200 shadow-sm'
-                            : isSigned
-                            ? 'bg-emerald-50/50 dark:bg-emerald-950/20 border-emerald-200 dark:border-emerald-500/30 text-slate-700 dark:text-slate-300 hover:border-emerald-400'
-                            : 'bg-slate-50/70 dark:bg-slate-950/40 border-slate-200 dark:border-slate-800 text-slate-600 dark:text-slate-400 hover:border-slate-300 dark:hover:border-slate-700'
-                        }`}
-                      >
-                        <div className="flex items-center gap-2.5 min-w-0">
+                      <React.Fragment key={ag.id}>
+                        {idx > 0 && (
+                          <div
+                            className={`flex-1 h-0.5 rounded-full ${
+                              isSigned || unlocked ? 'bg-emerald-400/70 dark:bg-emerald-500/40' : 'bg-slate-200 dark:bg-slate-800'
+                            }`}
+                          />
+                        )}
+                        <button
+                          type="button"
+                          onClick={() => goToAgreement(idx)}
+                          disabled={!unlocked}
+                          title={
+                            unlocked
+                              ? `${ag.id.toUpperCase()} Agreement`
+                              : 'Sign the previous agreement to unlock this document'
+                          }
+                          className={`flex items-center gap-2 min-w-0 px-2.5 py-2 rounded-xl border text-left transition-all ${
+                            !unlocked
+                              ? 'opacity-50 cursor-not-allowed bg-slate-50 dark:bg-slate-950/40 border-slate-200 dark:border-slate-800'
+                              : isSelected
+                              ? 'cursor-pointer bg-indigo-50/80 dark:bg-indigo-950/40 border-indigo-500 shadow-sm'
+                              : isSigned
+                              ? 'cursor-pointer bg-emerald-50/50 dark:bg-emerald-950/20 border-emerald-200 dark:border-emerald-500/30 hover:border-emerald-400'
+                              : 'cursor-pointer bg-slate-50/70 dark:bg-slate-950/40 border-slate-200 dark:border-slate-800'
+                          }`}
+                        >
                           <div
                             className={`w-6 h-6 rounded-lg flex items-center justify-center text-xs font-bold shrink-0 ${
                               isSigned
                                 ? 'bg-emerald-500 text-white'
                                 : isSelected
                                 ? 'bg-indigo-600 text-white'
-                                : 'bg-slate-200 dark:bg-slate-800 text-slate-600 dark:text-slate-400'
+                                : 'bg-slate-200 dark:bg-slate-800 text-slate-500 dark:text-slate-400'
                             }`}
                           >
-                            {isSigned ? <Check className="w-3.5 h-3.5 stroke-[3]" /> : idx + 1}
+                            {isSigned ? (
+                              <Check className="w-3.5 h-3.5 stroke-[3]" />
+                            ) : unlocked ? (
+                              idx + 1
+                            ) : (
+                              <Lock className="w-3 h-3" />
+                            )}
                           </div>
-                          <div className="truncate">
-                            <p className="text-xs font-semibold truncate text-slate-900 dark:text-slate-200">
-                              {ag.id.toUpperCase()} Agreement
-                            </p>
-                            <p className="text-[10px] text-slate-500 dark:text-slate-400 truncate">
-                              {idx === 0 ? 'Master Services' : idx === 1 ? 'Non-Disclosure' : 'Statement of Work'}
-                            </p>
-                          </div>
-                        </div>
-
-                        {isSigned ? (
-                          <Badge variant="success" className="text-[10px] shrink-0">Signed</Badge>
-                        ) : (
-                          <Badge variant="neutral" className="text-[10px] shrink-0">Pending</Badge>
-                        )}
-                      </button>
+                          <span className="hidden sm:block text-[11px] font-semibold truncate text-slate-800 dark:text-slate-200">
+                            {ag.id.toUpperCase()}
+                          </span>
+                        </button>
+                      </React.Fragment>
                     )
                   })}
+                </div>
+
+                {/* Only the current agreement is shown as the active card */}
+                <div className="p-4 rounded-xl border border-indigo-200 dark:border-indigo-500/30 bg-indigo-50/60 dark:bg-indigo-950/20">
+                  <div className="flex items-start justify-between gap-3">
+                    <div className="min-w-0">
+                      <p className="text-[10px] uppercase tracking-wider font-semibold text-indigo-600 dark:text-indigo-400">
+                        Now signing
+                      </p>
+                      <p className="text-sm font-bold text-slate-900 dark:text-slate-100 truncate mt-0.5">
+                        {currentAgreement?.title}
+                      </p>
+                      <p className="text-xs text-slate-500 dark:text-slate-400 mt-0.5">
+                        {agreementKindLabel(agreementIndex)}
+                      </p>
+                    </div>
+                    {isCurrentAgreementSigned ? (
+                      <Badge variant="success" className="text-[10px] shrink-0">Signed</Badge>
+                    ) : (
+                      <Badge variant="neutral" className="text-[10px] shrink-0">Pending</Badge>
+                    )}
+                  </div>
                 </div>
               </div>
 
               {/* Dedicated Agreement Viewer & Signature Card */}
+              {currentAgreement && (
               <SignaturePad
                 key={currentAgreement.id}
                 agreementTitle={currentAgreement.title}
                 agreementSummary={currentAgreement.summary}
                 agreementContent={currentAgreement.content}
-                initialData={agreements[currentAgreement.id]}
-                onSave={(record) => {
-                  handleAgreementSave(currentAgreement.id, record)
-                  setErrorMsg('')
-                }}
+                initialData={agreements[currentAgreement.id] || signerDefaults}
+                onSave={(record) => handleAgreementSave(currentAgreement, record)}
                 showFullAgreementByDefault={true}
                 allowToggle={true}
               />
+              )}
 
               {/* Bottom Sub-step Navigation Controls */}
               <div className="flex flex-col sm:flex-row items-center justify-between gap-3 pt-2">
@@ -545,13 +604,10 @@ export const ClientOnboardingGate = () => {
                     <Button
                       type="button"
                       variant="secondary"
-                      onClick={() => {
-                        setErrorMsg('')
-                        setAgreementIndex((prev) => prev - 1)
-                      }}
+                      onClick={() => goToAgreement(agreementIndex - 1)}
                       icon={ArrowLeft}
                     >
-                      Back to {DEFAULT_AGREEMENTS[agreementIndex - 1]?.title.split('(')[0]}
+                      Back to {contracts[agreementIndex - 1]?.title.split('(')[0]}
                     </Button>
                   ) : (
                     <div />
@@ -559,7 +615,7 @@ export const ClientOnboardingGate = () => {
                 </div>
 
                 <div className="flex items-center gap-3">
-                  {agreementIndex < DEFAULT_AGREEMENTS.length - 1 ? (
+                  {agreementIndex < contracts.length - 1 ? (
                     <Button
                       type="button"
                       variant="primary"
@@ -568,13 +624,13 @@ export const ClientOnboardingGate = () => {
                           setErrorMsg(`Please sign and accept the ${currentAgreement.title.split('(')[0]} before moving to the next document.`)
                           return
                         }
-                        setErrorMsg('')
-                        setAgreementIndex((prev) => prev + 1)
+                        goToAgreement(agreementIndex + 1)
                       }}
+                      disabled={!isCurrentAgreementSigned}
                       className="bg-indigo-600 hover:bg-indigo-500"
                       icon={ArrowRight}
                     >
-                      Next: Review {DEFAULT_AGREEMENTS[agreementIndex + 1]?.title.split('(')[0]}
+                      Next: {contracts[agreementIndex + 1]?.title.split('(')[0]}
                     </Button>
                   ) : (
                     <Button
@@ -582,7 +638,7 @@ export const ClientOnboardingGate = () => {
                       variant="primary"
                       onClick={() => {
                         if (!areSignaturesComplete()) {
-                          setErrorMsg('Please ensure all 3 mandatory agreements are signed before proceeding.')
+                          setErrorMsg('Please sign this last agreement before continuing.')
                           return
                         }
                         setErrorMsg('')
@@ -592,7 +648,7 @@ export const ClientOnboardingGate = () => {
                       className="bg-indigo-600 hover:bg-indigo-500 shadow-md shadow-indigo-600/20"
                       icon={ArrowRight}
                     >
-                      Proceed to Step 2: KYC Document Uploads
+                      Continue to Payment Details
                     </Button>
                   )}
                 </div>
@@ -601,275 +657,50 @@ export const ClientOnboardingGate = () => {
           )
         })()}
 
-        {/* STEP 2: KYC & COMPLIANCE DOCUMENTS (INDIVIDUAL DOCUMENT SUB-PAGES) */}
-        {step === 2 && (() => {
-          const currentDoc = REQUIRED_DOCUMENT_TYPES[kycIndex] || REQUIRED_DOCUMENT_TYPES[0]
-          const isCurrentDocUploaded = !!documents[currentDoc.id]
-          const uploadedDocsCount = REQUIRED_DOCUMENT_TYPES.filter((doc) => !!documents[doc.id]).length
-
-          return (
-            <div className="space-y-6">
-              {/* Header & Sub-step Progress Banner */}
-              <div className="bg-white dark:bg-slate-900/40 p-5 rounded-2xl border border-slate-200 dark:border-slate-800 shadow-sm dark:shadow-none space-y-4">
-                <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-2">
-                  <div>
-                    <h2 className="text-base font-bold text-slate-900 dark:text-slate-100">Step 2: Upload Compliance & Identity Verification Documents</h2>
-                    <p className="text-xs text-slate-500 dark:text-slate-400 mt-0.5">
-                      Upload clear PDF copies or high-resolution images for each mandatory compliance document individually.
-                    </p>
-                  </div>
-                  <div className="text-right">
-                    <span className="inline-flex items-center gap-1.5 px-3 py-1 rounded-full text-xs font-semibold bg-emerald-50 dark:bg-emerald-500/10 text-emerald-700 dark:text-emerald-400 border border-emerald-200 dark:border-emerald-500/20">
-                      Progress: {uploadedDocsCount} of {REQUIRED_DOCUMENT_TYPES.length} Uploaded
-                    </span>
-                  </div>
-                </div>
-
-                {/* KYC Document Sub-Tabs */}
-                <div className="grid grid-cols-1 sm:grid-cols-3 gap-2.5 pt-1">
-                  {REQUIRED_DOCUMENT_TYPES.map((doc, idx) => {
-                    const isUploaded = !!documents[doc.id]
-                    const isSelected = kycIndex === idx
-
-                    return (
-                      <button
-                        key={doc.id}
-                        type="button"
-                        onClick={() => {
-                          setErrorMsg('')
-                          setKycIndex(idx)
-                        }}
-                        className={`p-3 rounded-xl border text-left transition-all cursor-pointer flex items-center justify-between gap-2 ${
-                          isSelected
-                            ? 'bg-indigo-50/80 dark:bg-indigo-950/40 border-indigo-500 text-indigo-950 dark:text-indigo-200 shadow-sm'
-                            : isUploaded
-                            ? 'bg-emerald-50/50 dark:bg-emerald-950/20 border-emerald-200 dark:border-emerald-500/30 text-slate-700 dark:text-slate-300 hover:border-emerald-400'
-                            : 'bg-slate-50/70 dark:bg-slate-950/40 border-slate-200 dark:border-slate-800 text-slate-600 dark:text-slate-400 hover:border-slate-300 dark:hover:border-slate-700'
-                        }`}
-                      >
-                        <div className="flex items-center gap-2.5 min-w-0">
-                          <div
-                            className={`w-6 h-6 rounded-lg flex items-center justify-center text-xs font-bold shrink-0 ${
-                              isUploaded
-                                ? 'bg-emerald-500 text-white'
-                                : isSelected
-                                ? 'bg-indigo-600 text-white'
-                                : 'bg-slate-200 dark:bg-slate-800 text-slate-600 dark:text-slate-400'
-                            }`}
-                          >
-                            {isUploaded ? <Check className="w-3.5 h-3.5 stroke-[3]" /> : idx + 1}
-                          </div>
-                          <div className="truncate">
-                            <p className="text-xs font-semibold truncate text-slate-900 dark:text-slate-200">
-                              {idx === 0 ? 'Business License' : idx === 1 ? 'Tax Document' : 'Signatory ID'}
-                            </p>
-                            <p className="text-[10px] text-slate-500 dark:text-slate-400 truncate">
-                              {doc.name}
-                            </p>
-                          </div>
-                        </div>
-
-                        {isUploaded ? (
-                          <Badge variant="success" className="text-[10px] shrink-0">Uploaded</Badge>
-                        ) : (
-                          <Badge variant="neutral" className="text-[10px] shrink-0">Pending</Badge>
-                        )}
-                      </button>
-                    )
-                  })}
-                </div>
-              </div>
-
-              {/* Dedicated Document Dropzone Card */}
-              <DocumentUploadDropzone
-                key={currentDoc.id}
-                docId={currentDoc.id}
-                title={currentDoc.name}
-                description={currentDoc.description}
-                acceptedFormats={currentDoc.acceptedFormats}
-                initialDoc={documents[currentDoc.id]}
-                onFileSelect={(id, fileData) => {
-                  handleDocumentSelect(id, fileData)
-                  setErrorMsg('')
-                }}
-                onFileRemove={handleDocumentRemove}
-              />
-
-              {/* Bottom Sub-step Navigation Controls */}
-              <div className="flex flex-col sm:flex-row items-center justify-between gap-3 pt-2">
-                <div>
-                  {kycIndex > 0 ? (
-                    <Button
-                      type="button"
-                      variant="secondary"
-                      onClick={() => {
-                        setErrorMsg('')
-                        setKycIndex((prev) => prev - 1)
-                      }}
-                      icon={ArrowLeft}
-                    >
-                      Back to {REQUIRED_DOCUMENT_TYPES[kycIndex - 1]?.name.split('/')[0]}
-                    </Button>
-                  ) : (
-                    <Button
-                      type="button"
-                      variant="secondary"
-                      onClick={() => {
-                        setErrorMsg('')
-                        setStep(1)
-                      }}
-                      icon={ArrowLeft}
-                    >
-                      Back to Legal Agreements
-                    </Button>
-                  )}
-                </div>
-
-                <div className="flex items-center gap-3">
-                  {kycIndex < REQUIRED_DOCUMENT_TYPES.length - 1 ? (
-                    <Button
-                      type="button"
-                      variant="primary"
-                      onClick={() => {
-                        if (!isCurrentDocUploaded) {
-                          setErrorMsg(`Please upload the ${currentDoc.name.split('/')[0]} before continuing.`)
-                          return
-                        }
-                        setErrorMsg('')
-                        setKycIndex((prev) => prev + 1)
-                      }}
-                      className="bg-indigo-600 hover:bg-indigo-500"
-                      icon={ArrowRight}
-                    >
-                      Next: Upload {REQUIRED_DOCUMENT_TYPES[kycIndex + 1]?.name.split('/')[0]}
-                    </Button>
-                  ) : (
-                    <Button
-                      type="button"
-                      variant="primary"
-                      onClick={() => {
-                        if (!areDocumentsComplete()) {
-                          setErrorMsg('Please upload all 3 mandatory compliance documents before continuing.')
-                          return
-                        }
-                        setErrorMsg('')
-                        setStep(3)
-                      }}
-                      disabled={!areDocumentsComplete()}
-                      className="bg-indigo-600 hover:bg-indigo-500 shadow-md shadow-indigo-600/20"
-                      icon={ArrowRight}
-                    >
-                      Complete Documents & Proceed to Billing Setup
-                    </Button>
-                  )}
-                </div>
-              </div>
-            </div>
-          )
-        })()}
-
-        {/* STEP 3: BILLING & ENTITY PROFILE */}
-        {step === 3 && (
+        {/* STEP 2: COMPANY PAYMENT DETAILS */}
+        {step === 2 && areSignaturesComplete() && (
           <div className="space-y-6">
             <div className="bg-white dark:bg-slate-900/40 p-4 rounded-xl border border-slate-200 dark:border-slate-800 shadow-sm dark:shadow-none">
-              <h2 className="text-base font-bold text-slate-900 dark:text-slate-100">Step 3: Company Profile & Billing Authorization</h2>
+              <h2 className="text-base font-bold text-slate-900 dark:text-slate-100">Step 2: Payment Details</h2>
               <p className="text-xs text-slate-500 dark:text-slate-400 mt-1">
-                Provide the registered legal entity details and accounts payable contact for official invoicing.
+                Use these company account details to pay invoices. Copy the account number and include your invoice
+                number in the transfer reference.
               </p>
             </div>
 
-            <Card className="p-6 space-y-4">
-              <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
-                <Input
-                  label="Registered Company / Entity Name"
-                  placeholder="e.g. Acme Innovations Inc."
-                  value={companyName}
-                  onChange={(e) => setCompanyName(e.target.value)}
-                  icon={Building}
-                  required
-                />
-                <Input
-                  label="Accounts Payable / Billing Email"
-                  type="email"
-                  placeholder="billing@company.com"
-                  value={billingEmail}
-                  onChange={(e) => setBillingEmail(e.target.value)}
-                  required
-                />
-              </div>
+            <CompanyBankDetails
+              bank={paymentDetails}
+              title="Our company account"
+              description="Pay into this account. Your account manager can also share these details after your workspace is approved."
+            />
 
-              <div className="space-y-1.5 text-left">
-                <label className="block text-xs font-medium text-slate-700 dark:text-slate-300">Registered Business Physical Address</label>
-                <textarea
-                  rows={3}
-                  placeholder="Suite 400, 100 Innovation Way, San Francisco, CA 94107"
-                  value={billingAddress}
-                  onChange={(e) => setBillingAddress(e.target.value)}
-                  className="w-full bg-slate-100/80 dark:bg-[#11141E] border border-slate-300 dark:border-slate-800 text-slate-900 dark:text-slate-100 placeholder-slate-400 dark:placeholder-slate-500 text-sm rounded-xl p-3 focus:outline-none focus:border-indigo-500 focus:ring-2 focus:ring-indigo-500/20 transition-all resize-none"
-                  required
-                />
-              </div>
-
-              <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
-                <Input
-                  label="Tax ID / EIN / VAT / GST Registration Number"
-                  placeholder="e.g. XX-XXXXXXX"
-                  value={taxId}
-                  onChange={(e) => setTaxId(e.target.value)}
-                />
-                <Input
-                  label="Authorized Contact Phone"
-                  placeholder="+1 (555) 019-2834"
-                  value={signerPhone}
-                  onChange={(e) => setSignerPhone(e.target.value)}
-                />
-              </div>
-
-              <div className="space-y-1.5 text-left pt-2">
-                <label className="block text-xs font-medium text-slate-700 dark:text-slate-300">Preferred Payment Settlement Method</label>
-                <select
-                  value={paymentMethod}
-                  onChange={(e) => setPaymentMethod(e.target.value)}
-                  className="w-full bg-slate-100/80 dark:bg-[#11141E] border border-slate-300 dark:border-slate-800 text-slate-900 dark:text-slate-100 text-sm rounded-xl py-2.5 px-3.5 focus:outline-none focus:border-indigo-500 focus:ring-2 focus:ring-indigo-500/20 transition-all cursor-pointer"
-                >
-                  <option value="ach">ACH Electronic Direct Bank Transfer (US & Global)</option>
-                  <option value="card">Corporate Credit / Debit Card (Stripe Portal)</option>
-                  <option value="wire">International Wire Transfer (SWIFT / IBAN)</option>
-                </select>
-              </div>
-            </Card>
-
-            <div className="flex justify-between pt-4">
-              <Button variant="secondary" onClick={() => setStep(2)} icon={ArrowLeft}>
-                Back to Documents
+            <div className="flex justify-between pt-2">
+              <Button variant="secondary" onClick={() => setStep(1)} icon={ArrowLeft}>
+                Back to Agreements
               </Button>
               <Button
                 variant="primary"
                 onClick={() => {
-                  if (!isBillingComplete()) {
-                    setErrorMsg('Please complete company name, billing email, and address.')
-                    return
-                  }
                   setErrorMsg('')
-                  setStep(4)
+                  setStep(3)
                 }}
-                disabled={!isBillingComplete()}
-                className="bg-indigo-600 hover:bg-indigo-500"
+                className="bg-indigo-600 hover:bg-indigo-500 shadow-md shadow-indigo-600/20"
                 icon={ArrowRight}
               >
-                Proceed to Review & Submit
+                Continue to Review &amp; Submit
               </Button>
             </div>
           </div>
         )}
 
-        {/* STEP 4: REVIEW & SUBMIT */}
-        {step === 4 && (
+        {/* STEP 3: REVIEW & SUBMIT */}
+        {step === 3 && areSignaturesComplete() && (
           <div className="space-y-6">
             <div className="bg-white dark:bg-slate-900/40 p-4 rounded-xl border border-slate-200 dark:border-slate-800 shadow-sm dark:shadow-none">
-              <h2 className="text-base font-bold text-slate-900 dark:text-slate-100">Step 4: Final Compliance Review & Package Submission</h2>
+              <h2 className="text-base font-bold text-slate-900 dark:text-slate-100">Step 3: Review &amp; Submit</h2>
               <p className="text-xs text-slate-500 dark:text-slate-400 mt-1">
-                Please verify the summary below. Upon submission, our operations and admin team will review and approve your workspace access.
+                Please confirm the details below. Your account profile was prepared by our team — if anything is
+                incorrect, contact your account manager before submitting.
               </p>
             </div>
 
@@ -882,7 +713,7 @@ export const ClientOnboardingGate = () => {
                 </div>
 
                 <div className="space-y-2">
-                  {DEFAULT_AGREEMENTS.map((ag) => {
+                  {contracts.map((ag) => {
                     const sig = agreements[ag.id]
                     return (
                       <div key={ag.id} className="p-2.5 rounded-lg bg-slate-50 dark:bg-slate-950 border border-slate-200 dark:border-slate-800/80 flex items-center justify-between text-xs">
@@ -901,63 +732,55 @@ export const ClientOnboardingGate = () => {
                 </div>
               </Card>
 
-              {/* Uploaded Documents Summary */}
+              {/* Account Profile Summary (read-only, prepared by admin) */}
               <Card className="p-5 space-y-3">
-                <div className="flex items-center gap-2 pb-2 border-b border-slate-200 dark:border-slate-800">
-                  <UploadCloud className="w-4 h-4 text-emerald-600 dark:text-emerald-400" />
-                  <h3 className="font-bold text-xs uppercase tracking-wider text-slate-800 dark:text-slate-200">Uploaded Verification Files</h3>
+                <div className="flex items-center justify-between pb-2 border-b border-slate-200 dark:border-slate-800">
+                  <div className="flex items-center gap-2">
+                    <CreditCard className="w-4 h-4 text-emerald-600 dark:text-emerald-400" />
+                    <h3 className="font-bold text-xs uppercase tracking-wider text-slate-800 dark:text-slate-200">Account &amp; Billing</h3>
+                  </div>
+                  <Badge variant="neutral" className="text-[10px]">Prepared for you</Badge>
                 </div>
 
-                <div className="space-y-2">
-                  {REQUIRED_DOCUMENT_TYPES.map((doc) => {
-                    const file = documents[doc.id]
-                    return (
-                      <div key={doc.id} className="p-2.5 rounded-lg bg-slate-50 dark:bg-slate-950 border border-slate-200 dark:border-slate-800/80 flex items-center justify-between text-xs">
-                        <div className="truncate max-w-[200px]">
-                          <p className="font-semibold text-slate-800 dark:text-slate-200 truncate">{doc.name}</p>
-                          <p className="text-[11px] text-slate-500 dark:text-slate-400 truncate">{file?.fileName || 'Pending Upload'}</p>
-                        </div>
-                        {file ? (
-                          <Badge variant="success" className="text-[10px]">Uploaded</Badge>
-                        ) : (
-                          <Badge variant="danger" className="text-[10px]">Missing</Badge>
-                        )}
+                {billingInfo || companyName ? (
+                  <div className="space-y-2">
+                    {[
+                      { label: 'Company', value: companyName, icon: Building },
+                      { label: 'Billing Email', value: billingInfo?.billingEmail },
+                      { label: 'Billing Address', value: billingInfo?.billingAddress },
+                      { label: 'Tax ID / GST', value: billingInfo?.taxId },
+                      { label: 'Payment Method', value: billingInfo?.paymentMethod?.toUpperCase() },
+                    ].map((row) => (
+                      <div
+                        key={row.label}
+                        className="p-2.5 rounded-lg bg-slate-50 dark:bg-slate-950 border border-slate-200 dark:border-slate-800/80 flex items-start justify-between gap-3 text-xs"
+                      >
+                        <span className="text-slate-500 dark:text-slate-400 shrink-0">{row.label}</span>
+                        <span className="font-semibold text-slate-800 dark:text-slate-200 text-right break-words">
+                          {row.value || <span className="text-slate-400 italic font-normal">Not provided</span>}
+                        </span>
                       </div>
-                    )
-                  })}
-                </div>
+                    ))}
+                  </div>
+                ) : (
+                  <p className="text-xs text-slate-500 dark:text-slate-400 italic py-2">
+                    Your account manager has not added billing details yet. You can still submit your signatures.
+                  </p>
+                )}
               </Card>
             </div>
-
-            {/* Entity Summary */}
-            <Card className="p-5 space-y-3">
-              <h3 className="font-bold text-xs uppercase tracking-wider text-slate-800 dark:text-slate-200">Entity & Invoicing Summary</h3>
-              <div className="grid grid-cols-1 sm:grid-cols-3 gap-4 text-xs">
-                <div>
-                  <span className="text-slate-500">Company Entity:</span>
-                  <p className="font-semibold text-slate-800 dark:text-slate-200">{companyName}</p>
-                </div>
-                <div>
-                  <span className="text-slate-500">Billing Email:</span>
-                  <p className="font-semibold text-slate-800 dark:text-slate-200">{billingEmail}</p>
-                </div>
-                <div>
-                  <span className="text-slate-500">Payment Channel:</span>
-                  <p className="font-semibold text-slate-800 dark:text-slate-200 uppercase">{paymentMethod}</p>
-                </div>
-              </div>
-            </Card>
 
             <div className="p-4 rounded-xl bg-amber-50 dark:bg-amber-950/20 border border-amber-200 dark:border-amber-500/20 text-xs text-amber-800 dark:text-amber-300 flex items-start gap-2.5">
               <Clock className="w-4 h-4 shrink-0 mt-0.5 text-amber-600 dark:text-amber-400" />
               <span>
-                By submitting this package, you confirm that all provided legal agreements and company identification files are accurate and authentic. Your workspace access will be activated upon compliance review by the administrator.
+                By submitting, you confirm that you are authorized to execute these agreements on behalf of your
+                organization. Your workspace access will be activated upon review by the administrator.
               </span>
             </div>
 
             <div className="flex justify-between pt-4">
-              <Button variant="secondary" onClick={() => setStep(3)} icon={ArrowLeft}>
-                Back to Billing
+              <Button variant="secondary" onClick={() => setStep(2)} icon={ArrowLeft}>
+                Back to Payment Details
               </Button>
 
               <Button
@@ -967,7 +790,7 @@ export const ClientOnboardingGate = () => {
                 className="bg-emerald-600 hover:bg-emerald-500 shadow-lg shadow-emerald-600/20"
                 icon={Shield}
               >
-                {submitting ? 'Submitting Package...' : 'Submit Package for Admin Approval'}
+                {submitting ? 'Submitting...' : 'Submit for Admin Approval'}
               </Button>
             </div>
           </div>

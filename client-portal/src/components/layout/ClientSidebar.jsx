@@ -11,6 +11,7 @@ import {
   Building2,
   ChevronLeft,
   ChevronRight,
+  CreditCard,
 } from 'lucide-react'
 import { useUIStore } from '../../stores/uiStore'
 import { useUserStore } from '../../stores/userStore'
@@ -19,6 +20,7 @@ const NAV_ITEMS = [
   { name: 'Overview', path: '/portal', icon: Home, end: true },
   { name: 'My Projects', path: '/portal/projects', icon: Folder },
   { name: 'Invoices', path: '/portal/invoices', icon: Receipt },
+  { name: 'Billing', path: '/portal/billing', icon: CreditCard },
   { name: 'Documents', path: '/portal/files', icon: FileText },
   { name: 'Support', path: '/portal/support', icon: Headphones },
   { name: 'My Profile', path: '/portal/profile', icon: User },

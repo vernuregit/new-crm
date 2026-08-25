@@ -1,10 +1,17 @@
-import React from 'react'
+import React, { useState, useEffect } from 'react'
 import { X, Download, Send, FileText, CreditCard, ShieldCheck } from 'lucide-react'
 import { Button } from '../../../shared/components/ui/Button'
 import { Badge } from '../../../shared/components/ui/Badge'
 import { downloadInvoiceAsPDF } from '../utils/pdfGenerator'
+import { getPaymentDetails, DEFAULT_PAYMENT_DETAILS } from '../../../shared/services/paymentDetailsService'
 
 export const ProfessionalInvoiceModal = ({ invoice, onClose, onSendClient }) => {
+  const [bank, setBank] = useState(DEFAULT_PAYMENT_DETAILS)
+
+  useEffect(() => {
+    getPaymentDetails().then(setBank).catch(() => {})
+  }, [])
+
   if (!invoice) return null
 
   const handleDownloadPDF = () => {
@@ -188,10 +195,10 @@ export const ProfessionalInvoiceModal = ({ invoice, onClose, onSendClient }) => 
                   <CreditCard className="w-3.5 h-3.5 text-indigo-500" /> Bank & Wire Transfer Details
                 </p>
                 <div className="text-slate-600 dark:text-slate-400 text-[11px] space-y-0.5 font-mono">
-                  <p><span className="font-semibold text-slate-700 dark:text-slate-300">Bank Name:</span> HDFC Commercial Bank</p>
-                  <p><span className="font-semibold text-slate-700 dark:text-slate-300">Account Name:</span> NEXT-GEN CRM CORP</p>
-                  <p><span className="font-semibold text-slate-700 dark:text-slate-300">Account No:</span> 50200084920192</p>
-                  <p><span className="font-semibold text-slate-700 dark:text-slate-300">IFSC Code:</span> HDFC0001892</p>
+                  <p><span className="font-semibold text-slate-700 dark:text-slate-300">Bank Name:</span> {bank.bankName}</p>
+                  <p><span className="font-semibold text-slate-700 dark:text-slate-300">Account Name:</span> {bank.accountName}</p>
+                  <p><span className="font-semibold text-slate-700 dark:text-slate-300">Account No:</span> {bank.accountNumber}</p>
+                  <p><span className="font-semibold text-slate-700 dark:text-slate-300">IFSC Code:</span> {bank.ifsc}</p>
                 </div>
               </div>
             </div>

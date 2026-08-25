@@ -5,18 +5,23 @@ import { Card } from '../../shared/components/ui/Card'
 import { Badge } from '../../shared/components/ui/Badge'
 import { Button } from '../../shared/components/ui/Button'
 import { Input } from '../../shared/components/ui/Input'
-import { Spinner } from '../../shared/components/ui/Spinner'
 import { getUserDoc } from '../../shared/services/authService'
 import { updateClientInDb } from './services/clientService'
 import {
   getClientOnboardingAdmin,
   approveClientOnboarding,
   rejectClientOnboarding,
+  updateClientAgreementText,
+  updateClientBillingProfile,
 } from './services/clientOnboardingService'
-import { db, auth, storage } from '../../shared/services/firebaseService'
+import {
+  DEFAULT_AGREEMENTS,
+  resolveAgreements,
+  normalizeOnboardingStatus,
+} from '../../shared/services/contractTemplates'
+import { db, auth } from '../../shared/services/firebaseService'
 import { sendPasswordResetEmail } from 'firebase/auth'
-import { collection, query, where, getDocs } from 'firebase/firestore'
-import { ref, updateMetadata, getDownloadURL } from 'firebase/storage'
+import { collection, query, where, getDocs, doc, onSnapshot } from 'firebase/firestore'
 import {
   ArrowLeft,
   Mail,
@@ -32,68 +37,26 @@ import {
   Briefcase,
   AlertCircle,
   FileCheck2,
-  UploadCloud,
+  CreditCard,
   Check,
   XCircle,
   Clock,
-  Download,
   AlertTriangle,
   Eye,
   X,
   Printer,
+  FileCode,
   Shield,
-  Loader2,
+  FileSignature,
+  RotateCcw,
+  PencilLine,
 } from 'lucide-react'
 
-const AGREEMENT_TEMPLATES = {
-  msa: {
-    title: 'Master Services Agreement (MSA)',
-    content: `MASTER SERVICES AGREEMENT (MSA)
-Effective Date: Upon Digital Signature
-Parties: The Service Provider & The Client Entity
-
-1. SCOPE & SERVICES
-The Service Provider agrees to deliver professional services, technical consulting, and digital deliverables as specified in applicable Statements of Work (SOWs) executed under this Agreement.
-
-2. INTELLECTUAL PROPERTY & OWNERSHIP
-Upon receipt of full payment for each respective milestone, all custom deliverables, codebases, and assets created specifically for the Client shall become the exclusive property of the Client, excluding pre-existing frameworks and standard libraries.
-
-3. CONFIDENTIALITY & DATA INTEGRITY
-Both parties agree to hold in strict confidence all non-public information, system architectures, credentials, and business workflows shared during the duration of this engagement.
-
-4. WARRANTIES & LIMITATION OF LIABILITY
-Services are delivered in accordance with modern industry standards. Neither party shall be liable for indirect, incidental, or consequential damages arising from standard project execution.
-
-5. TERMINATION
-Either party may terminate an active engagement with thirty (30) days written notice, provided all outstanding billable milestones completed prior to termination are settled.`,
-  },
-  nda: {
-    title: 'Mutual Non-Disclosure Agreement (NDA)',
-    content: `MUTUAL NON-DISCLOSURE AGREEMENT (NDA)
-
-1. DEFINITION OF CONFIDENTIAL INFORMATION
-"Confidential Information" refers to any proprietary data, customer lists, architectural diagrams, technical source code, business plans, and financial terms disclosed by either party.
-
-2. OBLIGATIONS OF RECEIVING PARTY
-The receiving party agrees to safeguard confidential materials with the same degree of care used for its own sensitive data (and no less than reasonable care), restricting access exclusively to personnel with a strict need-to-know.
-
-3. DURATION & RETURN OF DATA
-This obligation survives for a period of three (3) years from disclosure. Upon project completion or termination, all client data and credentials will be purged or securely returned.`,
-  },
-  sow: {
-    title: 'Statement of Work & Deliverable Terms (SOW)',
-    content: `STATEMENT OF WORK (SOW) & ACCEPTANCE TERMS
-
-1. DELIVERABLE ACCEPTANCE CRITERIA
-Each deliverable milestone deployed to staging shall have an inspection period of ten (10) business days for client review, QA validation, and formal sign-off.
-
-2. PAYMENT & INVOICING SCHEDULE
-Invoices issued through the Client Portal are payable within fourteen (14) days. Deliverable releases and production deployments are tied to completed milestone settlements.
-
-3. CHANGE REQUEST MANAGEMENT
-Any scope modifications outside approved milestone specifications shall be documented in a mutual Change Order before development commences.`,
-  },
-}
+const LocalSpinner = () => (
+  <div className="flex items-center justify-center p-8">
+    <div className="w-8 h-8 border-4 border-indigo-600 border-t-transparent rounded-full animate-spin"></div>
+  </div>
+)
 
 export const ClientProfileView = () => {
   const { clientId } = useParams()
@@ -105,8 +68,13 @@ export const ClientProfileView = () => {
   const [invoices, setInvoices] = useState([])
   const [loading, setLoading] = useState(true)
 
-  // Active Tab: 'compliance' | 'details'
+  // Active Tab: 'compliance' | 'contracts' | 'details'
   const [activeTab, setActiveTab] = useState('compliance')
+
+  // Per-client contract wording editor
+  const [contractId, setContractId] = useState('msa')
+  const [contractDraft, setContractDraft] = useState({ title: '', summary: '', content: '' })
+  const [contractDirty, setContractDirty] = useState(false)
 
   // Edit fields
   const [displayName, setDisplayName] = useState('')
@@ -114,107 +82,21 @@ export const ClientProfileView = () => {
   const [phoneNumber, setPhoneNumber] = useState('')
   const [status, setStatus] = useState('active')
   const [notes, setNotes] = useState('')
+  const [taxId, setTaxId] = useState('')
+  const [billingAddress, setBillingAddress] = useState('')
+  const [billingEmail, setBillingEmail] = useState('')
+  const [paymentMethod, setPaymentMethod] = useState('ach')
+  const [signerPhone, setSignerPhone] = useState('')
+  const [signatoryTitle, setSignatoryTitle] = useState('')
 
   // Modals
   const [showRejectModal, setShowRejectModal] = useState(false)
   const [rejectReason, setRejectReason] = useState('')
-  const [previewDoc, setPreviewDoc] = useState(null)
-  const [previewAgreement, setPreviewAgreement] = useState(null)
-  const [downloadingDocId, setDownloadingDocId] = useState(null)
+  const [previewAgreement, setPreviewAgreement] = useState(null) // { id, title, sigRecord }
 
   const [saving, setSaving] = useState(false)
   const [error, setError] = useState('')
   const [success, setSuccess] = useState('')
-
-  const triggerBlobDownload = (blob, fileName) => {
-    const blobUrl = window.URL.createObjectURL(blob)
-    const link = document.createElement('a')
-    link.href = blobUrl
-    link.download = fileName || 'document'
-    document.body.appendChild(link)
-    link.click()
-    document.body.removeChild(link)
-    setTimeout(() => window.URL.revokeObjectURL(blobUrl), 2000)
-  }
-
-  const handleDownloadFile = async (docId, fileUrl, fileName = 'document') => {
-    if (!fileUrl) return
-    try {
-      setDownloadingDocId(docId)
-
-      // 1. Direct download for base64 data URLs
-      if (fileUrl.startsWith('data:')) {
-        const parts = fileUrl.split(',')
-        const mimeMatch = parts[0].match(/:(.*?);/)
-        const mime = mimeMatch ? mimeMatch[1] : 'application/octet-stream'
-        const byteString = atob(parts[1])
-        const ab = new ArrayBuffer(byteString.length)
-        const ia = new Uint8Array(ab)
-        for (let i = 0; i < byteString.length; i++) {
-          ia[i] = byteString.charCodeAt(i)
-        }
-        const blob = new Blob([ab], { type: mime })
-        triggerBlobDownload(blob, fileName)
-        return
-      }
-
-      // 2. If it's a Firebase Storage URL, ensure attachment header is set on metadata
-      if (fileUrl.includes('firebasestorage.googleapis.com') || fileUrl.startsWith('gs://')) {
-        try {
-          const cleanName = (fileName || 'compliance_document').replace(/[^a-zA-Z0-9._-]/g, '_')
-          const storageRef = ref(storage, fileUrl)
-          
-          // Update the object's metadata in Firebase Storage so the server sends 'Content-Disposition: attachment'
-          await updateMetadata(storageRef, {
-            contentDisposition: `attachment; filename="${cleanName}"`,
-          })
-          
-          const freshUrl = await getDownloadURL(storageRef)
-          
-          // Trigger download using an invisible iframe (completely bypasses CORS and browser tab navigation)
-          const iframe = document.createElement('iframe')
-          iframe.style.position = 'fixed'
-          iframe.style.top = '-9999px'
-          iframe.style.left = '-9999px'
-          iframe.style.width = '1px'
-          iframe.style.height = '1px'
-          iframe.style.opacity = '0'
-          iframe.src = freshUrl
-          document.body.appendChild(iframe)
-          
-          setTimeout(() => {
-            if (document.body.contains(iframe)) {
-              document.body.removeChild(iframe)
-            }
-          }, 6000)
-          return
-        } catch (metaErr) {
-          console.warn('Firebase Storage metadata update failed, trying direct iframe download:', metaErr)
-        }
-      }
-
-      // 3. Fallback: invisible iframe download
-      const iframe = document.createElement('iframe')
-      iframe.style.position = 'fixed'
-      iframe.style.top = '-9999px'
-      iframe.style.left = '-9999px'
-      iframe.style.width = '1px'
-      iframe.style.height = '1px'
-      iframe.style.opacity = '0'
-      iframe.src = fileUrl
-      document.body.appendChild(iframe)
-      setTimeout(() => {
-        if (document.body.contains(iframe)) {
-          document.body.removeChild(iframe)
-        }
-      }, 6000)
-    } catch (err) {
-      console.warn('Download handler error:', err)
-      window.open(fileUrl, '_blank')
-    } finally {
-      setTimeout(() => setDownloadingDocId(null), 1000)
-    }
-  }
 
   const loadClientData = async () => {
     try {
@@ -236,6 +118,15 @@ export const ClientProfileView = () => {
       // Load Onboarding & Compliance Documents
       const obData = await getClientOnboardingAdmin(clientId)
       setOnboarding(obData)
+      setTaxId(obData?.billingInfo?.taxId || '')
+      setBillingAddress(obData?.billingInfo?.billingAddress || '')
+      setBillingEmail(obData?.billingInfo?.billingEmail || clientDoc.email || '')
+      setPaymentMethod(obData?.billingInfo?.paymentMethod || 'ach')
+      setSignerPhone(obData?.billingInfo?.signerPhone || clientDoc.phoneNumber || '')
+      setSignatoryTitle(obData?.signatoryTitle || '')
+      if (obData?.companyName && !clientDoc.companyName) {
+        setCompanyName(obData.companyName)
+      }
 
       // Fetch projects
       const projSnap = await getDocs(
@@ -258,7 +149,78 @@ export const ClientProfileView = () => {
 
   useEffect(() => {
     loadClientData()
+    if (!clientId) return undefined
+
+    const unsub = onSnapshot(
+      doc(db, 'clientOnboarding', clientId),
+      (snap) => {
+        if (!snap.exists()) return
+        const data = snap.data()
+        setOnboarding((prev) => ({
+          ...(prev || {}),
+          agreements: data.agreements || {},
+          onboardingStatus: normalizeOnboardingStatus(data.onboardingStatus),
+          rejectionReason: data.rejectionReason ?? prev?.rejectionReason ?? null,
+          submittedAt: data.submittedAt ?? prev?.submittedAt,
+          updatedAt: data.updatedAt ?? prev?.updatedAt,
+        }))
+      },
+      (err) => {
+        console.warn('Live onboarding listener failed:', err.message)
+      }
+    )
+
+    return () => unsub()
   }, [clientId])
+
+  const resolvedAgreements = resolveAgreements(onboarding?.agreementTexts)
+  const activeContract =
+    resolvedAgreements.find((a) => a.id === contractId) || resolvedAgreements[0]
+  const activeContractSigned = Boolean(onboarding?.agreements?.[contractId]?.signed)
+
+  // Load the selected agreement into the editor whenever the client or selection changes
+  useEffect(() => {
+    if (!activeContract) return
+    setContractDraft({
+      title: activeContract.title,
+      summary: activeContract.summary,
+      content: activeContract.content,
+    })
+    setContractDirty(false)
+  }, [contractId, onboarding])
+
+  const handleSaveContract = async () => {
+    setSaving(true)
+    setError('')
+    setSuccess('')
+    try {
+      await updateClientAgreementText(
+        clientId,
+        contractId,
+        contractDraft,
+        onboarding?.agreements || {}
+      )
+      setSuccess(`${contractId.toUpperCase()} wording saved for this client.`)
+      setContractDirty(false)
+      await loadClientData()
+    } catch (err) {
+      console.error(err)
+      setError(err.message || 'Failed to save the contract wording.')
+    } finally {
+      setSaving(false)
+    }
+  }
+
+  const handleRestoreStandardContract = () => {
+    const standard = DEFAULT_AGREEMENTS.find((a) => a.id === contractId)
+    if (!standard) return
+    setContractDraft({
+      title: standard.title,
+      summary: standard.summary,
+      content: standard.content,
+    })
+    setContractDirty(true)
+  }
 
   const handleApproveClient = async () => {
     setSaving(true)
@@ -292,7 +254,12 @@ export const ClientProfileView = () => {
       await rejectClientOnboarding(clientId, rejectReason.trim())
       setSuccess('Re-submission request sent to client.')
       setShowRejectModal(false)
-      setOnboarding((prev) => ({ ...prev, onboardingStatus: 'rejected', rejectionReason: rejectReason.trim() }))
+      setOnboarding((prev) => ({
+        ...prev,
+        onboardingStatus: 'rejected',
+        rejectionReason: rejectReason.trim(),
+        agreements: {},
+      }))
       loadClientData()
     } catch (err) {
       console.error(err)
@@ -316,7 +283,17 @@ export const ClientProfileView = () => {
         status,
         notes,
       })
-      setSuccess('Client profile updated successfully.')
+      await updateClientBillingProfile(clientId, {
+        companyName,
+        signatoryTitle,
+        billingEmail,
+        billingAddress,
+        taxId,
+        paymentMethod,
+        signerPhone,
+      })
+      setSuccess('Client profile and billing details updated.')
+      await loadClientData()
     } catch (err) {
       console.error(err)
       setError('Failed to update client profile.')
@@ -346,14 +323,10 @@ export const ClientProfileView = () => {
   }
 
   if (loading) {
-    return (
-      <div className="min-h-[50vh] flex items-center justify-center">
-        <Spinner className="w-8 h-8 text-indigo-600" />
-      </div>
-    )
+    return <LocalSpinner />
   }
 
-  const obStatus = onboarding?.onboardingStatus || client?.onboardingStatus || 'pending_documents'
+  const obStatus = normalizeOnboardingStatus(onboarding?.onboardingStatus || client?.onboardingStatus)
 
   return (
     <div className="space-y-6 w-full text-slate-900 dark:text-slate-100">
@@ -380,7 +353,7 @@ export const ClientProfileView = () => {
             </Badge>
           ) : obStatus === 'pending_approval' ? (
             <Badge variant="warning" className="px-3 py-1.5 text-xs flex items-center gap-1.5 bg-amber-500/10 text-amber-500 border-amber-500/30">
-              <Clock className="w-4 h-4" /> Documents Pending Approval
+              <Clock className="w-4 h-4" /> Signatures Pending Approval
             </Badge>
           ) : obStatus === 'rejected' ? (
             <Badge variant="danger" className="px-3 py-1.5 text-xs flex items-center gap-1.5">
@@ -388,7 +361,7 @@ export const ClientProfileView = () => {
             </Badge>
           ) : (
             <Badge variant="neutral" className="px-3 py-1.5 text-xs flex items-center gap-1.5">
-              <Clock className="w-4 h-4" /> Awaiting Client Documents
+              <Clock className="w-4 h-4" /> Awaiting Client Signatures
             </Badge>
           )}
         </div>
@@ -421,6 +394,16 @@ export const ClientProfileView = () => {
           <ShieldCheck className="w-4 h-4" /> Compliance & Signed Agreements
         </button>
         <button
+          onClick={() => setActiveTab('contracts')}
+          className={`flex items-center gap-2 px-4 py-2 rounded-xl text-xs font-semibold transition-all ${
+            activeTab === 'contracts'
+              ? 'bg-indigo-600/15 text-indigo-500 border border-indigo-500/30'
+              : 'text-slate-500 hover:text-slate-800 dark:hover:text-slate-200'
+          }`}
+        >
+          <FileSignature className="w-4 h-4" /> Legal Contracts
+        </button>
+        <button
           onClick={() => setActiveTab('details')}
           className={`flex items-center gap-2 px-4 py-2 rounded-xl text-xs font-semibold transition-all ${
             activeTab === 'details'
@@ -442,7 +425,7 @@ export const ClientProfileView = () => {
                 <ShieldCheck className="w-4 h-4 text-indigo-400" /> Admin Onboarding Gate Decision
               </h3>
               <p className="text-xs text-slate-400 mt-1">
-                Inspect the legal e-signatures and KYC verification documents below before unlocking workspace access.
+                Review the executed e-signatures and the billing profile below before unlocking workspace access.
               </p>
             </div>
 
@@ -456,7 +439,7 @@ export const ClientProfileView = () => {
                     disabled={saving}
                     icon={XCircle}
                   >
-                    Request Re-upload
+                    Request Re-signature
                   </Button>
 
                   <Button
@@ -543,104 +526,39 @@ export const ClientProfileView = () => {
               </div>
             </Card>
 
-            {/* Uploaded Verification Documents */}
+            {/* Billing & Entity Profile captured by the admin at account creation */}
             <Card className="p-6 border-slate-200 dark:border-slate-800 space-y-4">
               <div className="flex items-center justify-between pb-3 border-b border-slate-200 dark:border-slate-800">
                 <h4 className="font-bold text-xs uppercase tracking-wider text-slate-500 dark:text-slate-400 flex items-center gap-2">
-                  <UploadCloud className="w-4 h-4 text-emerald-500" /> Uploaded KYC & Identity Files
+                  <CreditCard className="w-4 h-4 text-emerald-500" /> Billing & Entity Profile
                 </h4>
+                <Badge variant="neutral" className="text-[10px]">Entered by admin</Badge>
               </div>
 
-              <div className="space-y-4">
-                {[
-                  { id: 'incorporationCertificate', name: 'Certificate of Incorporation' },
-                  { id: 'taxDocument', name: 'Tax ID / W-9 / VAT / GST Form' },
-                  { id: 'signatoryId', name: 'Authorized Signatory Photo ID' },
-                ].map((docItem) => {
-                  const file = onboarding?.documents?.[docItem.id]
-                  return (
+              {onboarding?.billingInfo ? (
+                <div className="space-y-3">
+                  {[
+                    { label: 'Registered Entity', value: onboarding.companyName || client?.companyName },
+                    { label: 'Billing Email', value: onboarding.billingInfo.billingEmail },
+                    { label: 'Billing Address', value: onboarding.billingInfo.billingAddress },
+                    { label: 'Tax ID / GST', value: onboarding.billingInfo.taxId },
+                    { label: 'Payment Method', value: onboarding.billingInfo.paymentMethod?.toUpperCase() },
+                    { label: 'Accounts Contact', value: onboarding.billingInfo.signerPhone },
+                  ].map((row) => (
                     <div
-                      key={docItem.id}
-                      className="p-4 rounded-xl bg-slate-50 dark:bg-slate-950/60 border border-slate-200 dark:border-slate-800 flex items-center justify-between gap-3"
+                      key={row.label}
+                      className="p-3 rounded-xl bg-slate-50 dark:bg-slate-950/60 border border-slate-200 dark:border-slate-800 flex items-start justify-between gap-4"
                     >
-                      <div className="min-w-0">
-                        <p className="font-semibold text-xs text-slate-900 dark:text-slate-100">{docItem.name}</p>
-                        {file ? (
-                          <p className="text-[11px] text-slate-400 mt-0.5 truncate">
-                            {file.fileName} • {file.fileSize || 'Uploaded'}
-                          </p>
-                        ) : (
-                          <p className="text-xs text-slate-400 italic mt-0.5">File not uploaded yet</p>
-                        )}
-                      </div>
-
-                      <div className="flex items-center gap-2 shrink-0">
-                        {file ? (
-                          <>
-                            <button
-                              onClick={() =>
-                                setPreviewDoc({
-                                  title: docItem.name,
-                                  fileName: file.fileName,
-                                  fileUrl: file.fileUrl,
-                                  fileSize: file.fileSize,
-                                  uploadedAt: file.timestampFormatted || file.uploadedAt,
-                                })
-                              }
-                              className="px-2.5 py-1.5 rounded-lg bg-indigo-600/10 text-indigo-500 hover:bg-indigo-600/20 text-xs font-semibold flex items-center gap-1 transition-colors border border-indigo-500/20"
-                              title="Preview Document"
-                            >
-                              <Eye className="w-3.5 h-3.5" /> Preview
-                            </button>
-
-                            {file.fileUrl && (
-                              <button
-                                type="button"
-                                onClick={() => handleDownloadFile(docItem.id, file.fileUrl, file.fileName)}
-                                disabled={downloadingDocId === docItem.id}
-                                className="px-2.5 py-1.5 rounded-lg bg-slate-800 hover:bg-slate-700 text-slate-200 text-xs font-semibold flex items-center gap-1.5 transition-colors border border-slate-700 cursor-pointer disabled:opacity-50"
-                                title="Download Original File"
-                              >
-                                {downloadingDocId === docItem.id ? (
-                                  <Loader2 className="w-3.5 h-3.5 animate-spin text-indigo-400" />
-                                ) : (
-                                  <Download className="w-3.5 h-3.5" />
-                                )}
-                                <span>{downloadingDocId === docItem.id ? 'Downloading...' : 'Download'}</span>
-                              </button>
-                            )}
-                          </>
-                        ) : (
-                          <Badge variant="neutral" className="text-[10px]">Missing</Badge>
-                        )}
-                      </div>
+                      <span className="text-[11px] text-slate-500 dark:text-slate-400 shrink-0 pt-0.5">{row.label}</span>
+                      <span className="text-xs font-medium text-slate-900 dark:text-slate-100 text-right break-words">
+                        {row.value || <span className="text-slate-400 italic font-normal">Not provided</span>}
+                      </span>
                     </div>
-                  )
-                })}
-              </div>
-
-              {/* Billing Info Summary */}
-              {onboarding?.billingInfo && (
-                <div className="pt-4 border-t border-slate-200 dark:border-slate-800 space-y-2 text-xs">
-                  <h5 className="font-bold uppercase tracking-wider text-slate-400">Billing Profile</h5>
-                  <div className="grid grid-cols-2 gap-2 text-slate-300">
-                    <div>
-                      <span className="text-slate-500">Billing Email:</span>{' '}
-                      <span className="font-medium">{onboarding.billingInfo.billingEmail}</span>
-                    </div>
-                    <div>
-                      <span className="text-slate-500">Tax ID:</span>{' '}
-                      <span className="font-medium">{onboarding.billingInfo.taxId || 'N/A'}</span>
-                    </div>
-                    <div>
-                      <span className="text-slate-500">Payment Method:</span>{' '}
-                      <span className="font-medium uppercase">{onboarding.billingInfo.paymentMethod}</span>
-                    </div>
-                    <div>
-                      <span className="text-slate-500">Contact Phone:</span>{' '}
-                      <span className="font-medium">{onboarding.billingInfo.signerPhone || 'N/A'}</span>
-                    </div>
-                  </div>
+                  ))}
+                </div>
+              ) : (
+                <div className="p-4 rounded-xl bg-slate-50 dark:bg-slate-950/60 border border-dashed border-slate-300 dark:border-slate-700 text-xs text-slate-500 dark:text-slate-400">
+                  No billing profile on record yet. Add GST, address and payment details on the Profile &amp; Account Settings tab.
                 </div>
               )}
             </Card>
@@ -648,7 +566,161 @@ export const ClientProfileView = () => {
         </div>
       )}
 
-      {/* TAB 2: PROFILE & ACCOUNT DETAILS */}
+      {/* TAB 2: PER-CLIENT LEGAL CONTRACT WORDING */}
+      {activeTab === 'contracts' && (
+        <div className="space-y-6">
+          <Card className="p-5 border-slate-200 dark:border-slate-800 bg-slate-900/50">
+            <h3 className="font-bold text-sm text-slate-100 flex items-center gap-2">
+              <FileSignature className="w-4 h-4 text-indigo-400" /> Tailor the Agreements for This Client
+            </h3>
+            <p className="text-xs text-slate-400 mt-1">
+              Each client starts from our standard wording. Edit any agreement here to match the work this client
+              engaged us for. Once the client signs an agreement, its wording is locked.
+            </p>
+          </Card>
+
+          <div className="grid grid-cols-1 lg:grid-cols-4 gap-6">
+            {/* Agreement selector */}
+            <div className="lg:col-span-1 space-y-3">
+              {resolvedAgreements.map((ag) => {
+                const isSelected = contractId === ag.id
+                const isSigned = Boolean(onboarding?.agreements?.[ag.id]?.signed)
+
+                return (
+                  <button
+                    key={ag.id}
+                    type="button"
+                    onClick={() => setContractId(ag.id)}
+                    className={`w-full p-4 rounded-xl border text-left transition-all cursor-pointer ${
+                      isSelected
+                        ? 'bg-indigo-600/15 border-indigo-500 shadow-sm'
+                        : 'bg-white dark:bg-slate-900/40 border-slate-200 dark:border-slate-800 hover:border-slate-300 dark:hover:border-slate-700'
+                    }`}
+                  >
+                    <div className="flex items-center justify-between gap-2 mb-1.5">
+                      <span className="font-bold text-xs text-slate-900 dark:text-slate-100">{ag.shortName}</span>
+                      {isSigned ? (
+                        <Badge variant="success" className="text-[10px] flex items-center gap-1">
+                          <Lock className="w-3 h-3" /> Signed
+                        </Badge>
+                      ) : ag.customized ? (
+                        <Badge variant="warning" className="text-[10px] bg-amber-500/10 text-amber-500 border-amber-500/30">
+                          Customized
+                        </Badge>
+                      ) : (
+                        <Badge variant="neutral" className="text-[10px]">Standard</Badge>
+                      )}
+                    </div>
+                    <p className="text-[11px] text-slate-500 dark:text-slate-400 leading-snug">{ag.title}</p>
+                  </button>
+                )
+              })}
+
+              <div className="p-3 rounded-xl bg-indigo-500/10 border border-indigo-500/20 text-[11px] text-indigo-600 dark:text-indigo-300 flex items-start gap-2">
+                <AlertCircle className="w-3.5 h-3.5 shrink-0 mt-0.5" />
+                <span>Edits apply to this client only. Other clients keep the standard wording.</span>
+              </div>
+            </div>
+
+            {/* Editor */}
+            <Card className="lg:col-span-3 p-6 border-slate-200 dark:border-slate-800 space-y-4">
+              {activeContractSigned ? (
+                <div className="p-4 rounded-xl bg-emerald-500/10 border border-emerald-500/30 text-xs text-emerald-600 dark:text-emerald-300 flex items-start gap-2.5">
+                  <Lock className="w-4 h-4 shrink-0 mt-0.5" />
+                  <div>
+                    <p className="font-bold">This agreement has been signed and is now locked.</p>
+                    <p className="mt-1">
+                      Signed by {onboarding?.agreements?.[contractId]?.signatoryName || 'the client'} on{' '}
+                      {onboarding?.agreements?.[contractId]?.timestampFormatted || 'record'}. The exact text they
+                      signed is preserved and shown below.
+                    </p>
+                  </div>
+                </div>
+              ) : (
+                <div className="flex items-center justify-between pb-3 border-b border-slate-200 dark:border-slate-800">
+                  <h4 className="font-bold text-xs uppercase tracking-wider text-slate-500 dark:text-slate-400 flex items-center gap-2">
+                    <PencilLine className="w-4 h-4 text-indigo-500" /> Editing {activeContract?.shortName}
+                  </h4>
+                  {contractDirty && (
+                    <Badge variant="warning" className="text-[10px] bg-amber-500/10 text-amber-500 border-amber-500/30">
+                      Unsaved changes
+                    </Badge>
+                  )}
+                </div>
+              )}
+
+              <Input
+                label="Agreement Title"
+                value={contractDraft.title}
+                onChange={(e) => {
+                  setContractDraft((p) => ({ ...p, title: e.target.value }))
+                  setContractDirty(true)
+                }}
+                disabled={activeContractSigned}
+              />
+
+              <Input
+                label="Short Summary (shown to the client above the contract)"
+                value={contractDraft.summary}
+                onChange={(e) => {
+                  setContractDraft((p) => ({ ...p, summary: e.target.value }))
+                  setContractDirty(true)
+                }}
+                disabled={activeContractSigned}
+              />
+
+              <div className="space-y-1.5">
+                <label className="block text-xs font-medium text-slate-700 dark:text-slate-300">
+                  Full Contract Text
+                </label>
+                <textarea
+                  rows={20}
+                  value={
+                    activeContractSigned
+                      ? onboarding?.agreements?.[contractId]?.signedContent || contractDraft.content
+                      : contractDraft.content
+                  }
+                  onChange={(e) => {
+                    setContractDraft((p) => ({ ...p, content: e.target.value }))
+                    setContractDirty(true)
+                  }}
+                  disabled={activeContractSigned}
+                  className="w-full bg-slate-100/80 dark:bg-[#11141E] border border-slate-300 dark:border-slate-800 text-slate-900 dark:text-slate-100 text-xs leading-relaxed font-mono rounded-xl p-4 focus:outline-none focus:border-indigo-500 focus:ring-2 focus:ring-indigo-500/20 transition-all resize-y disabled:opacity-70 disabled:cursor-not-allowed"
+                />
+              </div>
+
+              {!activeContractSigned && (
+                <div className="flex flex-col sm:flex-row items-center justify-between gap-3 pt-2 border-t border-slate-200 dark:border-slate-800">
+                  <Button
+                    type="button"
+                    variant="secondary"
+                    size="sm"
+                    onClick={handleRestoreStandardContract}
+                    disabled={saving}
+                    icon={RotateCcw}
+                  >
+                    Restore Standard Wording
+                  </Button>
+
+                  <Button
+                    type="button"
+                    variant="primary"
+                    size="sm"
+                    onClick={handleSaveContract}
+                    disabled={saving || !contractDirty}
+                    className="bg-indigo-600 hover:bg-indigo-500"
+                    icon={Save}
+                  >
+                    {saving ? 'Saving...' : `Save ${activeContract?.shortName} for This Client`}
+                  </Button>
+                </div>
+              )}
+            </Card>
+          </div>
+        </div>
+      )}
+
+      {/* TAB 3: PROFILE & ACCOUNT DETAILS */}
       {activeTab === 'details' && (
         <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
           <div className="lg:col-span-1 space-y-6">
@@ -758,6 +830,67 @@ export const ClientProfileView = () => {
                   />
                 </div>
 
+                <div className="pt-4 border-t border-slate-200 dark:border-slate-800 space-y-4">
+                  <h4 className="font-bold text-xs uppercase tracking-wider text-slate-500">Billing, GST &amp; Address</h4>
+                  <p className="text-[11px] text-slate-500 dark:text-slate-400">
+                    Update these anytime. Clients see them on their Billing page.
+                  </p>
+
+                  <Input
+                    label="Tax ID / GST Number"
+                    placeholder="e.g. 29AAAAA0000A1Z5"
+                    value={taxId}
+                    onChange={(e) => setTaxId(e.target.value)}
+                  />
+
+                  <div className="space-y-1.5 text-left">
+                    <label className="block text-xs font-medium text-slate-700 dark:text-slate-300">Registered Billing Address</label>
+                    <textarea
+                      value={billingAddress}
+                      onChange={(e) => setBillingAddress(e.target.value)}
+                      placeholder="Street, city, state, PIN"
+                      rows={3}
+                      className="w-full bg-slate-50 dark:bg-[#11141E] border border-slate-200 dark:border-slate-800 text-slate-900 dark:text-slate-100 text-xs rounded-xl p-3 focus:outline-none focus:border-indigo-500 transition-colors"
+                    />
+                  </div>
+
+                  <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+                    <Input
+                      label="Billing Email"
+                      type="email"
+                      placeholder="ap@client.com"
+                      value={billingEmail}
+                      onChange={(e) => setBillingEmail(e.target.value)}
+                    />
+                    <Input
+                      label="Accounts Contact Phone"
+                      value={signerPhone}
+                      onChange={(e) => setSignerPhone(e.target.value)}
+                    />
+                  </div>
+
+                  <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+                    <Input
+                      label="Signatory Title"
+                      placeholder="e.g. Director of Operations"
+                      value={signatoryTitle}
+                      onChange={(e) => setSignatoryTitle(e.target.value)}
+                    />
+                    <div className="space-y-1.5 text-left">
+                      <label className="block text-xs font-medium text-slate-700 dark:text-slate-300">Preferred Payment Method</label>
+                      <select
+                        value={paymentMethod}
+                        onChange={(e) => setPaymentMethod(e.target.value)}
+                        className="w-full bg-slate-50 dark:bg-[#11141E] border border-slate-200 dark:border-slate-800 text-slate-900 dark:text-slate-100 text-sm rounded-xl py-2.5 px-3.5 focus:outline-none focus:border-indigo-500 transition-colors cursor-pointer"
+                      >
+                        <option value="ach">Bank transfer / ACH</option>
+                        <option value="wire">International wire</option>
+                        <option value="card">Card</option>
+                      </select>
+                    </div>
+                  </div>
+                </div>
+
                 <div className="flex justify-end pt-2">
                   <Button
                     type="submit"
@@ -822,89 +955,6 @@ export const ClientProfileView = () => {
         </div>
       )}
 
-      {/* DOCUMENT PREVIEW & DOWNLOAD MODAL */}
-      {previewDoc && (
-        <div className="fixed inset-0 bg-black/75 backdrop-blur-sm z-50 flex items-center justify-center p-4">
-          <div className="bg-slate-900 border border-slate-800 rounded-2xl max-w-2xl w-full p-6 space-y-4 shadow-2xl text-slate-100">
-            <div className="flex items-center justify-between pb-3 border-b border-slate-800">
-              <div className="flex items-center gap-2">
-                <FileText className="w-5 h-5 text-emerald-400" />
-                <div>
-                  <h3 className="font-bold text-slate-100 text-sm">{previewDoc.title}</h3>
-                  <p className="text-[11px] text-slate-400">{previewDoc.fileName} • {previewDoc.fileSize}</p>
-                </div>
-              </div>
-              <button
-                onClick={() => setPreviewDoc(null)}
-                className="p-1 rounded-lg text-slate-400 hover:text-slate-100 hover:bg-slate-800 transition-colors"
-              >
-                <X className="w-5 h-5" />
-              </button>
-            </div>
-
-            {/* Document Viewer Container */}
-            <div className="bg-slate-950 p-4 rounded-xl border border-slate-800 flex flex-col items-center justify-center min-h-[300px] max-h-[500px] overflow-auto">
-              {previewDoc.fileUrl && (previewDoc.fileUrl.startsWith('data:image') || previewDoc.fileUrl.startsWith('blob:') || previewDoc.fileUrl.match(/\.(png|jpg|jpeg|webp|gif|svg)$/i) || previewDoc.fileName?.match(/\.(png|jpg|jpeg|webp|gif|svg)$/i)) ? (
-                <div className="w-full flex flex-col items-center justify-center gap-3">
-                  <img
-                    src={previewDoc.fileUrl}
-                    alt={previewDoc.fileName}
-                    className="max-h-96 w-auto max-w-full rounded-xl object-contain border border-slate-800 shadow-lg bg-slate-900/50"
-                  />
-                  <div className="flex items-center gap-2 text-xs text-slate-400">
-                    <CheckCircle className="w-3.5 h-3.5 text-emerald-400" />
-                    <span>High-resolution KYC verification image</span>
-                  </div>
-                </div>
-              ) : previewDoc.fileUrl && (previewDoc.fileUrl.startsWith('data:application/pdf') || previewDoc.fileUrl.match(/\.pdf$/i) || previewDoc.fileName?.match(/\.pdf$/i)) ? (
-                <div className="w-full h-[420px] rounded-xl overflow-hidden border border-slate-800">
-                  <iframe
-                    src={previewDoc.fileUrl}
-                    title={previewDoc.fileName}
-                    className="w-full h-full border-0 bg-slate-900"
-                  />
-                </div>
-              ) : (
-                <div className="text-center space-y-4 py-8 max-w-md mx-auto">
-                  <div className="w-20 h-20 rounded-2xl bg-emerald-500/10 text-emerald-400 flex items-center justify-center mx-auto border border-emerald-500/20 shadow-inner">
-                    <FileText className="w-10 h-10" />
-                  </div>
-                  <div>
-                    <h4 className="font-bold text-slate-100 text-sm">{previewDoc.fileName}</h4>
-                    <p className="text-xs text-slate-400 mt-1">Uploaded: {previewDoc.uploadedAt}</p>
-                    <p className="text-xs text-slate-400">File Size: {previewDoc.fileSize}</p>
-                  </div>
-                  <div className="p-3 rounded-xl bg-slate-900 border border-slate-800 text-xs text-emerald-400 font-medium flex items-center justify-center gap-2">
-                    <CheckCircle className="w-4 h-4" /> Compliance Document Verified
-                  </div>
-                </div>
-              )}
-            </div>
-
-            <div className="flex items-center justify-between pt-2 border-t border-slate-800">
-              <Button variant="secondary" size="sm" onClick={() => setPreviewDoc(null)}>
-                Close
-              </Button>
-              {previewDoc.fileUrl && (
-                <button
-                  type="button"
-                  onClick={() => handleDownloadFile('modal_preview', previewDoc.fileUrl, previewDoc.fileName)}
-                  disabled={downloadingDocId === 'modal_preview'}
-                  className="inline-flex items-center gap-1.5 px-4 py-2 rounded-xl bg-emerald-600 hover:bg-emerald-500 text-white text-xs font-semibold shadow-lg shadow-emerald-600/20 transition-all cursor-pointer disabled:opacity-50"
-                >
-                  {downloadingDocId === 'modal_preview' ? (
-                    <Loader2 className="w-4 h-4 animate-spin" />
-                  ) : (
-                    <Download className="w-4 h-4" />
-                  )}
-                  <span>{downloadingDocId === 'modal_preview' ? 'Downloading...' : 'Download Document'}</span>
-                </button>
-              )}
-            </div>
-          </div>
-        </div>
-      )}
-
       {/* SIGNED CONTRACT & LEGAL CERTIFICATE MODAL */}
       {previewAgreement && (
         <div className="fixed inset-0 bg-black/75 backdrop-blur-sm z-50 flex items-center justify-center p-4">
@@ -928,7 +978,9 @@ export const ClientProfileView = () => {
             {/* Scrollable Agreement Content */}
             <div className="flex-1 overflow-y-auto space-y-4 pr-1">
               <div className="bg-slate-950 p-4 rounded-xl border border-slate-800 text-xs font-mono text-slate-300 whitespace-pre-wrap leading-relaxed">
-                {AGREEMENT_TEMPLATES[previewAgreement.id]?.content || 'Agreement text content...'}
+                {previewAgreement.sigRecord?.signedContent ||
+                  resolvedAgreements.find((a) => a.id === previewAgreement.id)?.content ||
+                  'Agreement text content...'}
               </div>
 
               {/* Execution Certificate Stamp */}
@@ -982,17 +1034,17 @@ export const ClientProfileView = () => {
           <div className="bg-slate-900 border border-slate-800 rounded-2xl max-w-md w-full p-6 space-y-4 shadow-2xl">
             <div className="flex items-center gap-3 text-rose-400">
               <AlertTriangle className="w-6 h-6" />
-              <h3 className="font-bold text-slate-100 text-base">Request Document Re-submission</h3>
+              <h3 className="font-bold text-slate-100 text-base">Request Re-signature</h3>
             </div>
             <p className="text-xs text-slate-400">
-              Specify what needs correction or re-upload (e.g. illegible tax form, missing authorized signatory ID). The client will see this feedback when logging in.
+              Specify what needs correction (e.g. signed by someone without authority, wrong designation recorded). The client will see this feedback when logging in and can sign again.
             </p>
 
             <textarea
               rows={4}
               value={rejectReason}
               onChange={(e) => setRejectReason(e.target.value)}
-              placeholder="e.g. Please re-upload a clear high-resolution copy of your Certificate of Incorporation and Authorized Signatory ID."
+              placeholder="e.g. The SOW was signed under the wrong designation. Please re-sign as an authorized signatory."
               className="w-full bg-slate-950 border border-slate-800 text-slate-100 text-xs rounded-xl p-3 focus:outline-none focus:border-rose-500 resize-none"
             />
 

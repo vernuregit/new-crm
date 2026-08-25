@@ -1,9 +1,12 @@
+import { getPaymentDetails, DEFAULT_PAYMENT_DETAILS } from '../../../shared/services/paymentDetailsService'
+
 /**
  * Pure JavaScript PDF Generator Utility for Invoices
  * Generates and triggers a direct .pdf file download in the browser with high-contrast text and crisp colors
  */
-export const downloadInvoiceAsPDF = (invoice) => {
+export const downloadInvoiceAsPDF = async (invoice) => {
   if (!invoice) return
+  const bank = await getPaymentDetails().catch(() => DEFAULT_PAYMENT_DETAILS)
 
   const invNum = invoice.invoiceNumber || 'INV-2024'
   const client = invoice.clientName || 'Client'
@@ -112,8 +115,8 @@ export const downloadInvoiceAsPDF = (invoice) => {
   pdfStreamCommands.push('0.1 0.2 0.45 rg') // Dark navy title
   pdfStreamCommands.push(`BT /F1 9 Tf 50 ${bankY - 2} Td (BANK WIRE TRANSFER INSTRUCTIONS) Tj ET`)
   pdfStreamCommands.push('0.2 0.2 0.2 rg') // Dark charcoal details
-  pdfStreamCommands.push(`BT /F2 8 Tf 50 ${bankY - 16} Td (Bank: HDFC Commercial Bank | Account: NEXT-GEN CRM CORP) Tj ET`)
-  pdfStreamCommands.push(`BT /F2 8 Tf 50 ${bankY - 28} Td (A/C No: 50200084920192 | IFSC Code: HDFC0001892) Tj ET`)
+  pdfStreamCommands.push(`BT /F2 8 Tf 50 ${bankY - 16} Td (Bank: ${escapePdfString(bank.bankName)} | Account: ${escapePdfString(bank.accountName)}) Tj ET`)
+  pdfStreamCommands.push(`BT /F2 8 Tf 50 ${bankY - 28} Td (A/C No: ${escapePdfString(bank.accountNumber)} | IFSC Code: ${escapePdfString(bank.ifsc)}) Tj ET`)
   pdfStreamCommands.push(`BT /F2 8 Tf 50 ${bankY - 40} Td (Reference: Include Invoice #${escapePdfString(invNum)} with wire payment) Tj ET`)
 
   // --- FOOTER NOTE ---

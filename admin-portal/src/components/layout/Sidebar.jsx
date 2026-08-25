@@ -26,6 +26,8 @@ import {
   Calendar,
   LifeBuoy,
   IndianRupee,
+  Shield,
+  Sliders,
 } from 'lucide-react'
 import haloLogo from '../../assets/halologo.png'
 import { useUIStore } from '../../stores/uiStore'
@@ -193,6 +195,7 @@ const ADMIN_GROUPS = [
     label: 'Settings',
     icon: Settings,
     items: [
+      { name: 'Organization Settings', path: '/settings/org', icon: Building },
       { name: 'My Profile', path: '/settings/profile', icon: User },
     ],
   },

@@ -26,6 +26,11 @@ service cloud.firestore {
       allow read, write: if isAuthenticated();
     }
 
+    match /companySettings/{id} {
+      allow read: if isAuthenticated();
+      allow write: if isAdmin();
+    }
+
     // ─── Client-specific deliverables and invoices ───────────────────
     match /deliverables/{deliverableId} {
       allow read: if isAuthenticated();

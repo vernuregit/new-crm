@@ -22,7 +22,8 @@ import {
   Shield,
   Search,
   Eye,
-  EyeOff
+  EyeOff,
+  FileSignature
 } from 'lucide-react'
 
 export const ContactList = () => {
@@ -35,14 +36,18 @@ export const ContactList = () => {
   const [error, setError] = useState('')
   const [success, setSuccess] = useState('')
 
-  // Form State for Add Client Contact
-  const [clientName, setClientName] = useState('')
-  const [companyName, setCompanyName] = useState('')
-  const [email, setEmail] = useState('')
-  const [phone, setPhone] = useState('')
-  const [password, setPassword] = useState('')
+  // Login-only create — GST, address and billing are filled on Manage Profile
+  const EMPTY_FORM = {
+    clientName: '',
+    email: '',
+    password: '',
+    phone: '',
+    signatoryTitle: '',
+  }
+  const [form, setForm] = useState(EMPTY_FORM)
   const [showPassword, setShowPassword] = useState(false)
-  const [dealName, setDealName] = useState('')
+
+  const setField = (key) => (e) => setForm((prev) => ({ ...prev, [key]: e.target.value }))
 
   const fetchClients = async () => {
     const data = await getClientsFromDb()
@@ -65,12 +70,19 @@ export const ContactList = () => {
 
   const handleCreateClient = async (e) => {
     e.preventDefault()
-    if (!clientName.trim() || !companyName.trim() || !email.trim() || !password.trim()) {
-      setError('Please fill in all required fields.')
+
+    const required = [
+      ['clientName', 'Client Representative Name'],
+      ['email', 'Client Login Email'],
+      ['password', 'Account Password'],
+    ]
+    const missing = required.filter(([key]) => !form[key].trim()).map(([, label]) => label)
+    if (missing.length) {
+      setError(`Please fill in: ${missing.join(', ')}.`)
       return
     }
 
-    if (password.length < 6) {
+    if (form.password.length < 6) {
       setError('Password must be at least 6 characters.')
       return
     }
@@ -80,16 +92,29 @@ export const ContactList = () => {
     setSuccess('')
 
     try {
-      // 1. Create Firebase Auth user & Firestore document in /users/{uid}
-      const clientUser = await createClientAccount(email, password, clientName, companyName, phone)
+      // 1. Create the Auth user plus /users and /clientOnboarding records
+      const displayName = form.clientName.trim()
+      const clientUser = await createClientAccount({
+        email: form.email.trim(),
+        password: form.password,
+        displayName,
+        companyName: displayName,
+        phone: form.phone.trim(),
+        billingEmail: form.email.trim(),
+        billingAddress: '',
+        taxId: '',
+        paymentMethod: 'ach',
+        signerPhone: form.phone.trim(),
+        signatoryTitle: form.signatoryTitle.trim(),
+        dealName: '',
+      })
 
-      // 2. Add lead to local Zustand CRM store so it updates pipeline too
       addLead({
-        name: dealName || `${companyName} Account`,
-        companyName,
-        contactName: clientName,
-        email,
-        phone: phone || '',
+        name: `${displayName} Account`,
+        companyName: displayName,
+        contactName: displayName,
+        email: form.email.trim(),
+        phone: form.phone.trim(),
         estimatedValue: 25000,
         pipelineStageId: 'stage_won',
         pipelineStage: 'Won',
@@ -97,22 +122,15 @@ export const ContactList = () => {
         clientId: clientUser.uid
       })
 
-      setSuccess(`Client account created successfully for ${email}!`)
-      
-      // Reset Form fields
-      setClientName('')
-      setCompanyName('')
-      setEmail('')
-      setPhone('')
-      setPassword('')
-      setDealName('')
-      
+      setSuccess(`Account created for ${form.email.trim()}. Open Manage Profile to add GST, address and billing details.`)
+      setForm(EMPTY_FORM)
+
       // Refresh list and close modal
       await fetchClients()
       setTimeout(() => {
         setShowAddModal(false)
         setSuccess('')
-      }, 1500)
+      }, 2200)
     } catch (err) {
       console.error(err)
       setError(err.message || 'Failed to create client account.')
@@ -330,9 +348,14 @@ export const ContactList = () => {
       {/* Add Client Account Modal */}
       {showAddModal && (
         <div className="fixed inset-0 z-50 bg-black/70 backdrop-blur-sm flex items-center justify-center p-4">
-          <Card className="w-full max-w-lg p-6 space-y-4 border-slate-200 dark:border-slate-800 shadow-2xl relative bg-white dark:bg-[#181C27]">
+          <Card className="w-full max-w-2xl max-h-[90vh] overflow-y-auto p-6 space-y-4 border-slate-200 dark:border-slate-800 shadow-2xl relative bg-white dark:bg-[#181C27]">
             <div className="flex items-center justify-between pb-3 border-b border-slate-200 dark:border-slate-800">
-              <h3 className="font-bold text-slate-900 dark:text-slate-100 text-sm">Register Client Portal User</h3>
+              <div>
+                <h3 className="font-bold text-slate-900 dark:text-slate-100 text-sm">Register Client Portal User</h3>
+                <p className="text-[11px] text-slate-500 dark:text-slate-400 mt-0.5">
+                  Create login access now. Add GST, address and billing anytime on Manage Profile.
+                </p>
+              </div>
               <button
                 onClick={() => setShowAddModal(false)}
                 className="text-slate-400 hover:text-slate-600 dark:hover:text-white p-1 rounded-lg hover:bg-slate-100 dark:hover:bg-slate-800 transition-colors"
@@ -353,67 +376,73 @@ export const ContactList = () => {
               </div>
             )}
 
-            <form onSubmit={handleCreateClient} className="space-y-4">
-              <Input
-                label="Client Representative Name *"
-                placeholder="e.g. Jane Smith"
-                value={clientName}
-                onChange={(e) => setClientName(e.target.value)}
-                required
-              />
+            <form onSubmit={handleCreateClient} className="space-y-5">
+              <fieldset className="space-y-3">
+                <legend className="text-[10px] font-bold uppercase tracking-wider text-indigo-600 dark:text-indigo-400 mb-2">
+                  Account &amp; Login
+                </legend>
 
-              <Input
-                label="Company / Account Name *"
-                placeholder="e.g. Acme Corporation"
-                value={companyName}
-                onChange={(e) => setCompanyName(e.target.value)}
-                required
-              />
+                <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
+                  <Input
+                    label="Client Representative Name *"
+                    placeholder="e.g. Jane Smith"
+                    value={form.clientName}
+                    onChange={setField('clientName')}
+                    required
+                  />
+                  <Input
+                    label="Signatory Designation"
+                    placeholder="e.g. Director of Operations"
+                    value={form.signatoryTitle}
+                    onChange={setField('signatoryTitle')}
+                  />
+                </div>
 
-              <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
-                <Input
-                  label="Client Login Email *"
-                  type="email"
-                  placeholder="jane@acme.com"
-                  value={email}
-                  onChange={(e) => setEmail(e.target.value)}
-                  required
-                />
-                <Input
-                  label="Phone Number"
-                  placeholder=""
-                  value={phone}
-                  onChange={(e) => setPhone(e.target.value)}
-                />
+                <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
+                  <Input
+                    label="Client Login Email *"
+                    type="email"
+                    placeholder="jane@acme.com"
+                    value={form.email}
+                    onChange={setField('email')}
+                    required
+                  />
+                  <Input
+                    label="Phone Number"
+                    placeholder="+1 (555) 019-2834"
+                    value={form.phone}
+                    onChange={setField('phone')}
+                  />
+                </div>
+
+                <div className="relative">
+                  <Input
+                    label="Set Account Password *"
+                    type={showPassword ? 'text' : 'password'}
+                    placeholder="Minimum 6 characters"
+                    value={form.password}
+                    onChange={setField('password')}
+                    required
+                  />
+                  <button
+                    type="button"
+                    onClick={() => setShowPassword(!showPassword)}
+                    className="absolute right-3 top-[32px] text-slate-400 hover:text-slate-600 dark:hover:text-slate-200"
+                  >
+                    {showPassword ? <EyeOff className="w-4 h-4" /> : <Eye className="w-4 h-4" />}
+                  </button>
+                </div>
+              </fieldset>
+
+              <div className="p-3 text-[11px] bg-indigo-500/10 text-indigo-600 dark:text-indigo-300 rounded-xl border border-indigo-500/20 flex items-start gap-2">
+                <FileSignature className="w-3.5 h-3.5 shrink-0 mt-0.5" />
+                <span>
+                  GST, registered address and billing details are added on Manage Profile after the account exists.
+                  Agreement wording can be tailored there before the client signs.
+                </span>
               </div>
 
-              {/* Password field */}
-              <div className="relative">
-                <Input
-                  label="Set Account Password *"
-                  type={showPassword ? 'text' : 'password'}
-                  placeholder="•••••••• )"
-                  value={password}
-                  onChange={(e) => setPassword(e.target.value)}
-                  required
-                />
-                <button
-                  type="button"
-                  onClick={() => setShowPassword(!showPassword)}
-                  className="absolute right-3 top-[32px] text-slate-400 hover:text-slate-600 dark:hover:text-slate-200"
-                >
-                  {showPassword ? <EyeOff className="w-4 h-4" /> : <Eye className="w-4 h-4" />}
-                </button>
-              </div>
-
-              <Input
-                label="Primary Deal Contract Title"
-                placeholder="e.g. Enterprise Platform Portal Retainer"
-                value={dealName}
-                onChange={(e) => setDealName(e.target.value)}
-              />
-
-              <div className="flex gap-3 pt-2">
+              <div className="flex gap-3 pt-1">
                 <Button type="button" variant="secondary" onClick={() => setShowAddModal(false)} className="w-1/3" disabled={loading}>
                   Cancel
                 </Button>

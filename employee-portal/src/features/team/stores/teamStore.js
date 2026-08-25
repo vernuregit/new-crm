@@ -16,12 +16,21 @@ export const WORKDAY_SECONDS = 8 * 3600
 /**
  * Returns a "YYYY-MM-DD" string for today (local date).
  */
-function todayDateStr() {
-  const d = new Date()
+function dateKeyFromDate(d = new Date()) {
   const year = d.getFullYear()
   const month = String(d.getMonth() + 1).padStart(2, '0')
   const day = String(d.getDate()).padStart(2, '0')
   return `${year}-${month}-${day}`
+}
+
+function todayDateStr() {
+  return dateKeyFromDate(new Date())
+}
+
+function dateKeyFromMs(ms) {
+  const n = Number(ms)
+  if (!Number.isFinite(n)) return null
+  return dateKeyFromDate(new Date(n))
 }
 
 function localMidnightMs(date = new Date()) {
@@ -83,24 +92,33 @@ function isStaleLocalAttendance(state, today = todayDateStr()) {
 }
 
 /**
- * Firestore today-doc written by overnight auto clock-out has no real clock-in today.
+ * True only when this log has a real clock-in on the local calendar day.
+ * Overnight leftovers (no clock-out, then a next-day write) must not count.
  */
 function attendanceLogBelongsToToday(log, today = todayDateStr()) {
   if (!log) return false
   if (log.date && log.date !== today) return false
 
   const midnight = localMidnightMs()
-  if (log.clockInTimestamp && log.clockInTimestamp >= midnight) return true
-  if (log.extraTimeStart && log.extraTimeStart >= midnight) return true
+  const clockInTs = toEpochMs(log.clockInTimestamp)
+  if (clockInTs != null && clockInTs >= midnight) return true
 
   const logs = log.todayShiftLogs || log.shiftLogs || []
-  if (hasClockInOnLocalDay(logs, midnight)) return true
+  return hasClockInOnLocalDay(logs, midnight)
+}
 
-  return logs.some(
-    (l) =>
-      Number(l?.timestamp) >= midnight &&
-      l.type !== 'auto_clock_out'
-  )
+function hasGenuineClockInToday(state, midnight = localMidnightMs()) {
+  if (!state) return false
+  const ts = toEpochMs(state.clockInTimestamp)
+  if (ts != null && ts >= midnight) return true
+  return hasClockInOnLocalDay(state.todayShiftLogs, midnight)
+}
+
+function previousSessionDate(state, today = todayDateStr()) {
+  if (state?.lastWorkDate && state.lastWorkDate !== today) return state.lastWorkDate
+  const ts = toEpochMs(state?.clockInTimestamp)
+  if (ts != null && ts < localMidnightMs()) return dateKeyFromMs(ts)
+  return null
 }
 
 /**
@@ -240,6 +258,19 @@ export const useTeamStore = create(
         const state = get()
         const today = todayDateStr()
         if (!isStaleLocalAttendance(state, today)) return false
+
+        const prevDate = previousSessionDate(state, today)
+        if (state.currentUserId && prevDate && (state.clockedIn || state.clockInTime)) {
+          upsertAttendanceLog(state.currentUserId, {
+            clockedIn: false,
+            isOnBreak: false,
+            breakStartTime: null,
+            date: prevDate,
+            clockInTime: state.clockInTime,
+            clockInTimestamp: state.clockInTimestamp,
+          })
+        }
+
         set(freshWorkdayFields(today))
         return true
       },
@@ -265,9 +296,31 @@ export const useTeamStore = create(
 
           const monthlyLogsList = Object.values(monthlyLogsMap || {})
           const today = todayDateStr()
+          const live = get()
+          const alreadyClockedInToday =
+            live.currentUserId === uid &&
+            live.lastWorkDate === today &&
+            hasGenuineClockInToday(live)
 
           let todayState = {}
-          if (todayLog && attendanceLogBelongsToToday(todayLog, today)) {
+          if (alreadyClockedInToday) {
+            todayState = {
+              clockedIn: live.clockedIn,
+              clockInTime: live.clockInTime,
+              clockInTimestamp: live.clockInTimestamp,
+              clockOutTime: live.clockOutTime,
+              isOnBreak: live.isOnBreak,
+              breakStartTime: live.breakStartTime,
+              accumulatedBreakSeconds: live.accumulatedBreakSeconds,
+              accumulatedWorkSeconds: live.accumulatedWorkSeconds,
+              todayShiftLogs: live.todayShiftLogs,
+              isInExtraTime: live.isInExtraTime,
+              extraTimeStart: live.extraTimeStart,
+              accumulatedExtraSeconds: live.accumulatedExtraSeconds,
+              extraTimeLogs: live.extraTimeLogs,
+              lastWorkDate: live.lastWorkDate,
+            }
+          } else if (todayLog && attendanceLogBelongsToToday(todayLog, today)) {
             // Trust today's stored totals — prior completed sessions are valid
             // even when the current open session is short (multi-session days).
             const rawWorkSec = todayLog.regularSeconds ?? todayLog.accumulatedWorkSeconds ?? 0
@@ -310,6 +363,7 @@ export const useTeamStore = create(
               Boolean(todayLog?.autoClockOut) ||
               Boolean(todayLog?.clockOutTime) ||
               Boolean(todayLog?.clockedIn) ||
+              Boolean(todayLog?.clockInTime) ||
               (todayLog?.todayShiftLogs || todayLog?.shiftLogs || []).length > 0
 
             // Overnight auto clock-out may have written 8h onto today's Firestore doc.
@@ -466,9 +520,12 @@ export const useTeamStore = create(
        */
       toggleClockIn: (userMeta = {}, gate = {}) => {
         const meta = resolveUserMeta(userMeta)
+        get().rollOverStaleWorkday()
         const state = get()
         const now = new Date()
         const timeStr = canonicalTimeFromDate(now)
+        const today = todayDateStr()
+        const midnight = localMidnightMs()
 
         if (!state.clockedIn) {
           // --- Clocking In ---
@@ -486,15 +543,14 @@ export const useTeamStore = create(
           }
 
           const nowMs = Date.now()
-          const today = todayDateStr()
-          const isNewDay = state.lastWorkDate !== today
+          const isNewDay = state.lastWorkDate !== today || !hasGenuineClockInToday(state, midnight)
 
           const currentAccWorkSec = isNewDay ? 0 : (state.accumulatedWorkSeconds || 0)
           const currentAccBreakSec = isNewDay ? 0 : (state.accumulatedBreakSeconds || 0)
           const currentAccExtraSec = isNewDay ? 0 : (state.accumulatedExtraSeconds || 0)
           const currentShiftLogs = isNewDay ? [] : (state.todayShiftLogs || [])
 
-          // Keep the day's first clock-in time for attendance stats; timestamp tracks this session
+          // First clock-in of the local day only — never reuse yesterday if they forgot to clock out
           const dayFirstClockIn = !isNewDay && state.clockInTime ? state.clockInTime : timeStr
           const newLogs = [
             {
@@ -556,6 +612,11 @@ export const useTeamStore = create(
           return { success: true }
         } else {
           // --- Clocking Out ---
+          const sessionDate =
+            previousSessionDate(state, today) ||
+            state.lastWorkDate ||
+            today
+
           const sessionSeconds = state.clockInTimestamp
             ? Math.floor((Date.now() - state.clockInTimestamp) / 1000)
             : 0
@@ -573,7 +634,7 @@ export const useTeamStore = create(
 
           const record = {
             id: `ot_${Date.now()}`,
-            date: todayDateStr(),
+            date: sessionDate,
             regularSeconds: totalRegularSeconds,
             extraSeconds: state.accumulatedExtraSeconds,
             clockIn: state.clockInTime,
@@ -589,19 +650,19 @@ export const useTeamStore = create(
             breakStartTime: null,
             accumulatedWorkSeconds: totalRegularSeconds,
             accumulatedBreakSeconds: 0,
-            lastWorkDate: todayDateStr(),
+            lastWorkDate: sessionDate,
             todayShiftLogs: updatedLogs,
             overtimeRecords: [record, ...state.overtimeRecords],
           })
 
-          // Write to Firestore
+          // Write to the session's date — never attach yesterday's clock-in to today
           if (meta.uid) {
             upsertAttendanceLog(meta.uid, {
               displayName: meta.displayName || 'Employee',
               departmentName: meta.departmentName || '',
               clockedIn: false,
               clockInTime: state.clockInTime,
-              clockInTimestamp: null,
+              clockInTimestamp: toEpochMs(state.clockInTimestamp),
               clockOutTime: timeStr,
               autoClockOut: false,
               regularSeconds: totalRegularSeconds,
@@ -611,7 +672,7 @@ export const useTeamStore = create(
               isOnBreak: false,
               extraSeconds: state.accumulatedExtraSeconds,
               extraHours: secToHrsStr(state.accumulatedExtraSeconds),
-              date: todayDateStr(),
+              date: sessionDate,
               todayShiftLogs: updatedLogs,
               shiftLogs: updatedLogs,
             })

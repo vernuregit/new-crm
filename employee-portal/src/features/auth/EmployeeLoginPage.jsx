@@ -65,7 +65,7 @@ export const EmployeeLoginPage = () => {
           <div className="inline-flex w-20 h-20 rounded-full bg-white p-2 items-center justify-center border border-slate-200 dark:border-slate-700/80 shadow-md mb-2">
             <img src={haloLogo} alt="The Halo Effect Consulting" className="w-full h-full object-contain rounded-full" />
           </div>
-          <h2 className="text-2xl font-bold text-slate-900 dark:text-slate-100 tracking-tight">Employee   EMPLOYEE PORTAL</h2>
+          <h2 className="text-2xl font-bold text-slate-900 dark:text-slate-100 tracking-tight">EMPLOYEE PORTAL</h2>
           <p className="text-xs text-slate-500 dark:text-slate-400">Sprint Tasks & Attendance Workspace</p>
         </div>
 

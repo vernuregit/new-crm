@@ -470,7 +470,7 @@ export const ClockInOverviewWidget = () => {
             </div>
           </Card>
 
-          {/* Avg Arrival Time */}
+          {/* Earliest Clock-In */}
           <Card className="p-3 border-slate-200 dark:border-slate-800 flex flex-col justify-between hover:border-teal-400/40 transition-colors">
             <div className="w-8 h-8 rounded-lg bg-teal-50 dark:bg-teal-500/10 text-teal-600 dark:text-teal-400 flex items-center justify-center mb-2">
               <TrendingUp className="w-4 h-4" />
@@ -480,7 +480,7 @@ export const ClockInOverviewWidget = () => {
                 {attendanceStats?.avgArrival || clockInTime || '—'}
               </div>
               <span className="text-[10px] font-medium text-slate-500 dark:text-slate-400 uppercase tracking-wider block mt-0.5">
-                Avg arrival time
+                Earliest clock-in
               </span>
             </div>
           </Card>

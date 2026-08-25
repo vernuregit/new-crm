@@ -6,6 +6,7 @@ import { useUserStore } from '../../stores/userStore'
 import { db } from '../../shared/services/firebaseService'
 import { collection, query, where, getDocs, doc, updateDoc } from 'firebase/firestore'
 import { Briefcase, FileText, CreditCard, Loader2, X, Printer } from 'lucide-react'
+import { Link } from 'react-router-dom'
 
 export const ClientInvoices = () => {
   const { user } = useUserStore()
@@ -61,7 +62,10 @@ export const ClientInvoices = () => {
           Invoices & Payments
         </h2>
         <p className="text-sm text-slate-500 dark:text-slate-400 mt-1">
-          View client billing statements, settlement history, and download PDF receipts.
+          View client billing statements, settlement history, and download PDF receipts.{' '}
+          <Link to="/portal/billing" className="text-indigo-600 dark:text-indigo-400 font-semibold hover:underline">
+            How to pay
+          </Link>
         </p>
       </div>
 

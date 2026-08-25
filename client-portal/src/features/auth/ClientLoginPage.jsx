@@ -8,7 +8,11 @@ import { useUserStore } from '../../stores/userStore'
 import { useUIStore } from '../../stores/uiStore'
 import haloLogo from '../../assets/halologo.png'
 import { loginWithEmail, signupWithEmail, fetchCustomClaims } from '../../shared/services/authService'
-import { getClientOnboardingDoc } from '../../shared/services/onboardingService'
+import {
+  getClientOnboardingDoc,
+  normalizeOnboardingStatus,
+  ONBOARDING_STATUS,
+} from '../../shared/services/onboardingService'
 
 export const ClientLoginPage = () => {
   const navigate = useNavigate()
@@ -40,12 +44,14 @@ export const ClientLoginPage = () => {
       const claims = await fetchCustomClaims(firebaseUser)
       const onboardingDoc = await getClientOnboardingDoc(firebaseUser.uid)
 
+      const onboardingStatus = normalizeOnboardingStatus(onboardingDoc?.onboardingStatus)
+
       const userDocData = {
         uid: firebaseUser.uid,
         email: firebaseUser.email,
-        onboardingStatus: onboardingDoc?.onboardingStatus || 'pending_documents',
         companyName: onboardingDoc?.companyName || '',
         ...onboardingDoc,
+        onboardingStatus,
       }
 
       setUser(
@@ -54,7 +60,7 @@ export const ClientLoginPage = () => {
         { orgId: 'org_real', role: 'client', tier: 'client', ...claims }
       )
 
-      if (onboardingDoc?.onboardingStatus === 'approved') {
+      if (onboardingStatus === ONBOARDING_STATUS.APPROVED) {
         navigate('/portal')
       } else {
         navigate('/onboarding')

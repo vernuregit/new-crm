@@ -1175,7 +1175,7 @@ export const AttendancePage = () => {
                 <th className="p-4 font-semibold">Department</th>
                 <th className="p-4 font-semibold">Avg Hours / Day</th>
                 <th className="p-4 font-semibold">Avg Check-In</th>
-                <th className="p-4 font-semibold">Avg Arrival Time</th>
+                <th className="p-4 font-semibold">Earliest Clock-In</th>
                 <th className="p-4 font-semibold">Avg Check-Out</th>
               </tr>
             </thead>

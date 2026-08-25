@@ -27,6 +27,10 @@ export const useAutoClockOutAfterWorkday = () => {
 
   useEffect(() => {
     rollOverStaleWorkday()
+    const id = setInterval(() => {
+      useTeamStore.getState().rollOverStaleWorkday()
+    }, 60_000)
+    return () => clearInterval(id)
   }, [rollOverStaleWorkday])
 
   useEffect(() => {

@@ -1,7 +1,26 @@
-import { doc, getDoc, setDoc, updateDoc, serverTimestamp } from 'firebase/firestore'
-import { ref, uploadBytes, getDownloadURL } from 'firebase/storage'
-import { db, storage } from './firebaseService'
+import { doc, getDoc, setDoc, updateDoc, serverTimestamp, deleteField } from 'firebase/firestore'
+import { db } from './firebaseService'
 
+export const ONBOARDING_STATUS = {
+  PENDING_SIGNATURE: 'pending_signature',
+  PENDING_APPROVAL: 'pending_approval',
+  APPROVED: 'approved',
+  REJECTED: 'rejected',
+}
+
+/**
+ * Accounts created before admin-managed onboarding used 'pending_documents'.
+ * They are read as 'pending_signature' so existing clients are not locked out.
+ */
+export const normalizeOnboardingStatus = (status) => {
+  if (!status || status === 'pending_documents') return ONBOARDING_STATUS.PENDING_SIGNATURE
+  return status
+}
+
+/**
+ * House standard wording. Every client is seeded with a copy of these, which an
+ * admin may then tailor per client before any signature is captured.
+ */
 export const DEFAULT_AGREEMENTS = [
   {
     id: 'msa',
@@ -61,50 +80,33 @@ Any scope modifications outside approved milestone specifications shall be docum
   },
 ]
 
-export const REQUIRED_DOCUMENT_TYPES = [
-  {
-    id: 'incorporationCertificate',
-    name: 'Certificate of Incorporation / Business License',
-    description: 'Official government-issued registration or certificate proving company entity status.',
-    required: true,
-    acceptedFormats: '.pdf, .png, .jpg, .jpeg',
-  },
-  {
-    id: 'taxDocument',
-    name: 'Tax ID / W-9 / VAT / GST Registration',
-    description: 'Official tax compliance document or VAT/GST tax identification certificate.',
-    required: true,
-    acceptedFormats: '.pdf, .png, .jpg, .jpeg',
-  },
-  {
-    id: 'signatoryId',
-    name: 'Authorized Signatory Photo ID',
-    description: 'Government photo ID (Passport or Driver’s License) of the person signing legal agreements.',
-    required: true,
-    acceptedFormats: '.pdf, .png, .jpg, .jpeg',
-  },
-]
+/**
+ * Merge the house standard wording with any per-client wording an admin has saved.
+ * Always returns all three agreements in a fixed order.
+ */
+export const resolveAgreements = (agreementTexts) => {
+  return DEFAULT_AGREEMENTS.map((base) => {
+    const custom = agreementTexts?.[base.id]
+    if (!custom) return { ...base, customized: false }
+    return {
+      ...base,
+      title: custom.title || base.title,
+      summary: custom.summary || base.summary,
+      content: custom.content || base.content,
+      customized: Boolean(custom.content && custom.content !== base.content),
+    }
+  })
+}
 
 /**
- * Upload an actual document file to Firebase Storage if available, returning download URL
+ * Build the seed set of agreement texts written when an admin creates a client.
  */
-export const uploadDocumentToStorage = async (uid, docId, file) => {
-  if (!file || !uid) return null
-  try {
-    const fileExt = file.name.split('.').pop() || 'pdf'
-    const cleanFileName = (file.name || `${docId}.${fileExt}`).replace(/[^a-zA-Z0-9._-]/g, '_')
-    const storageRef = ref(storage, `clients/${uid}/documents/${docId}_${Date.now()}.${fileExt}`)
-    const metadata = {
-      contentType: file.type || 'application/octet-stream',
-      contentDisposition: `attachment; filename="${cleanFileName}"`,
-    }
-    const snapshot = await uploadBytes(storageRef, file, metadata)
-    const downloadURL = await getDownloadURL(snapshot.ref)
-    return downloadURL
-  } catch (err) {
-    console.warn('Storage upload unavailable or offline mode:', err.message)
-    return null
+export const buildDefaultAgreementTexts = () => {
+  const texts = {}
+  for (const base of DEFAULT_AGREEMENTS) {
+    texts[base.id] = { title: base.title, summary: base.summary, content: base.content }
   }
+  return texts
 }
 
 /**
@@ -116,7 +118,8 @@ export const getClientOnboardingDoc = async (uid) => {
     const onboardingRef = doc(db, 'clientOnboarding', uid)
     const snap = await getDoc(onboardingRef)
     if (snap.exists()) {
-      return snap.data()
+      const data = snap.data()
+      return { ...data, onboardingStatus: normalizeOnboardingStatus(data.onboardingStatus) }
     }
 
     // Fallback: check users collection
@@ -129,10 +132,10 @@ export const getClientOnboardingDoc = async (uid) => {
         email: uData.email,
         companyName: uData.companyName || '',
         displayName: uData.displayName || '',
-        onboardingStatus: uData.onboardingStatus || 'pending_documents',
+        onboardingStatus: normalizeOnboardingStatus(uData.onboardingStatus),
         rejectionReason: uData.rejectionReason || null,
         agreements: uData.agreements || {},
-        documents: uData.documents || {},
+        agreementTexts: uData.agreementTexts || null,
         billingInfo: uData.billingInfo || null,
       }
     }
@@ -144,7 +147,8 @@ export const getClientOnboardingDoc = async (uid) => {
   try {
     const localSaved = localStorage.getItem(`onboarding_${uid}`)
     if (localSaved) {
-      return JSON.parse(localSaved)
+      const parsed = JSON.parse(localSaved)
+      return { ...parsed, onboardingStatus: normalizeOnboardingStatus(parsed.onboardingStatus) }
     }
   } catch {
     // ignore
@@ -152,9 +156,9 @@ export const getClientOnboardingDoc = async (uid) => {
 
   return {
     uid,
-    onboardingStatus: 'pending_documents',
+    onboardingStatus: ONBOARDING_STATUS.PENDING_SIGNATURE,
     agreements: {},
-    documents: {},
+    agreementTexts: null,
     billingInfo: null,
   }
 }
@@ -178,11 +182,7 @@ const deepCleanForFirestore = (obj) => {
     if (val === undefined || typeof val === 'function') {
       continue
     }
-    if (typeof File !== 'undefined' && val instanceof File) {
-      cleaned[key] = val.name
-    } else if (typeof Blob !== 'undefined' && val instanceof Blob) {
-      cleaned[key] = 'blob'
-    } else if (typeof val === 'object' && val !== null) {
+    if (typeof val === 'object' && val !== null) {
       cleaned[key] = deepCleanForFirestore(val)
     } else {
       cleaned[key] = val
@@ -192,70 +192,105 @@ const deepCleanForFirestore = (obj) => {
 }
 
 /**
- * Sanitize document objects to prevent exceeding Firestore 1MB or LocalStorage 5MB quota
+ * Sanitize a single signature record to guaranteed primitives before persistence.
+ * The exact contract text signed is stored alongside each signature so the
+ * executed copy survives any later template change.
  */
-const sanitizeSubmissionPayload = (data) => {
-  const sanitizedDocs = {}
-  if (data.documents && typeof data.documents === 'object') {
-    for (const [key, docVal] of Object.entries(data.documents)) {
-      if (docVal && typeof docVal === 'object') {
-        sanitizedDocs[key] = {
-          docId: String(docVal.docId || key),
-          fileName: String(docVal.fileName || 'document.pdf'),
-          fileSize: String(docVal.fileSize || '1 MB'),
-          fileType: String(docVal.fileType || 'application/pdf'),
-          uploadedAt: String(docVal.uploadedAt || new Date().toISOString()),
-          timestampFormatted: String(docVal.timestampFormatted || new Date().toLocaleString()),
-          status: String(docVal.status || 'submitted'),
-          fileUrl: typeof docVal.fileUrl === 'string' ? docVal.fileUrl : '',
-        }
-      }
-    }
-  }
-
-  const sanitizedAgreements = {}
-  if (data.agreements && typeof data.agreements === 'object') {
-    for (const [key, agVal] of Object.entries(data.agreements)) {
-      if (agVal && typeof agVal === 'object') {
-        sanitizedAgreements[key] = {
-          signed: Boolean(agVal.signed),
-          signatoryName: String(agVal.signatoryName || ''),
-          signatoryTitle: String(agVal.signatoryTitle || ''),
-          mode: String(agVal.mode || 'draw'),
-          signatureDataUrl: String(agVal.signatureDataUrl || ''),
-          signedAt: String(agVal.signedAt || new Date().toISOString()),
-          timestampFormatted: String(agVal.timestampFormatted || new Date().toLocaleString()),
-        }
-      }
-    }
-  }
-
-  const sanitizedBilling = data.billingInfo && typeof data.billingInfo === 'object' ? {
-    billingEmail: String(data.billingInfo.billingEmail || ''),
-    billingAddress: String(data.billingInfo.billingAddress || ''),
-    taxId: String(data.billingInfo.taxId || ''),
-    paymentMethod: String(data.billingInfo.paymentMethod || 'ach'),
-    signerPhone: String(data.billingInfo.signerPhone || ''),
-  } : null
-
+export const sanitizeAgreementRecord = (agVal) => {
+  if (!agVal || typeof agVal !== 'object') return null
   return {
-    companyName: String(data.companyName || ''),
-    agreements: sanitizedAgreements,
-    documents: sanitizedDocs,
-    billingInfo: sanitizedBilling,
+    signed: Boolean(agVal.signed),
+    signatoryName: String(agVal.signatoryName || ''),
+    signatoryTitle: String(agVal.signatoryTitle || ''),
+    mode: String(agVal.mode || 'draw'),
+    signatureDataUrl: String(agVal.signatureDataUrl || ''),
+    signedAt: String(agVal.signedAt || new Date().toISOString()),
+    timestampFormatted: String(agVal.timestampFormatted || new Date().toLocaleString()),
+    signedTitle: String(agVal.signedTitle || ''),
+    signedContent: String(agVal.signedContent || ''),
+  }
+}
+
+export const sanitizeAgreements = (agreements) => {
+  const sanitized = {}
+  if (!agreements || typeof agreements !== 'object') return sanitized
+
+  for (const [key, agVal] of Object.entries(agreements)) {
+    const cleaned = sanitizeAgreementRecord(agVal)
+    if (cleaned) sanitized[key] = cleaned
+  }
+  return sanitized
+}
+
+const patchLocalOnboardingAgreement = (uid, agreementId, sanitizedOrNull) => {
+  try {
+    const key = `onboarding_${uid}`
+    const raw = localStorage.getItem(key)
+    const parsed = raw ? JSON.parse(raw) : { uid }
+    const agreements = { ...(parsed.agreements || {}) }
+    if (!sanitizedOrNull) delete agreements[agreementId]
+    else agreements[agreementId] = sanitizedOrNull
+
+    const next = {
+      ...parsed,
+      uid,
+      agreements,
+      updatedAt: new Date().toISOString(),
+    }
+
+    try {
+      localStorage.setItem(key, JSON.stringify(next))
+    } catch {
+      const lightAgreements = {}
+      for (const [k, v] of Object.entries(agreements)) {
+        lightAgreements[k] = { ...v, signatureDataUrl: '', signedContent: '' }
+      }
+      localStorage.setItem(key, JSON.stringify({ ...next, agreements: lightAgreements }))
+    }
+  } catch (storageErr) {
+    console.warn('LocalStorage notice (non-fatal):', storageErr.message)
   }
 }
 
 /**
- * Submit full onboarding package with signatures, documents, and billing info
+ * Persist a single agreement Sign or Re-Sign immediately so refresh and admin
+ * do not restore a stale signature.
+ */
+export const persistClientAgreement = async (uid, agreementId, record) => {
+  if (!uid || !agreementId) throw new Error('Missing client or agreement reference.')
+
+  const sanitized = record ? sanitizeAgreementRecord(record) : null
+  const updates = {
+    [`agreements.${agreementId}`]: sanitized ? deepCleanForFirestore(sanitized) : deleteField(),
+    updatedAt: new Date().toISOString(),
+  }
+
+  try {
+    const onboardingRef = doc(db, 'clientOnboarding', uid)
+    try {
+      await updateDoc(onboardingRef, updates)
+    } catch {
+      await setDoc(onboardingRef, { uid, ...updates }, { merge: true })
+    }
+  } catch (err) {
+    console.warn('Could not persist agreement:', err.message)
+    throw new Error(err.message || 'Could not save the signature.')
+  }
+
+  patchLocalOnboardingAgreement(uid, agreementId, sanitized)
+  return sanitized
+}
+
+/**
+ * Submit the signed agreements for admin approval.
+ * Company and billing details are set by the admin at account creation and are
+ * intentionally not writable from here.
  */
 export const submitClientOnboarding = async (uid, data) => {
-  const sanitized = sanitizeSubmissionPayload(data)
-
   const submissionRecord = {
-    ...sanitized,
     uid: String(uid),
-    onboardingStatus: 'pending_approval',
+    agreements: sanitizeAgreements(data?.agreements),
+    onboardingStatus: ONBOARDING_STATUS.PENDING_APPROVAL,
     submittedAt: new Date().toISOString(),
     updatedAt: new Date().toISOString(),
   }
@@ -263,15 +298,12 @@ export const submitClientOnboarding = async (uid, data) => {
   const firestoreCleanedRecord = deepCleanForFirestore(submissionRecord)
 
   try {
-    // Save to clientOnboarding collection
     const onboardingRef = doc(db, 'clientOnboarding', uid)
     await setDoc(onboardingRef, firestoreCleanedRecord, { merge: true })
 
-    // Also update users collection
     const userRef = doc(db, 'users', uid)
     await updateDoc(userRef, {
-      onboardingStatus: 'pending_approval',
-      companyName: sanitized.companyName || '',
+      onboardingStatus: ONBOARDING_STATUS.PENDING_APPROVAL,
       updatedAt: serverTimestamp(),
     })
   } catch (err) {
@@ -280,18 +312,19 @@ export const submitClientOnboarding = async (uid, data) => {
 
   // Safe update to localStorage (guarded against QuotaExceededError)
   try {
-    // Save lightweight version without huge base64 strings if storage is near limit
-    localStorage.setItem(`onboarding_status_${uid}`, 'pending_approval')
+    localStorage.setItem(`onboarding_status_${uid}`, ONBOARDING_STATUS.PENDING_APPROVAL)
     try {
       localStorage.setItem(`onboarding_${uid}`, JSON.stringify(firestoreCleanedRecord))
     } catch {
-      // If full record exceeds quota, strip large URLs and save essential status
-      const lightDocs = {}
-      for (const [k, v] of Object.entries(sanitized.documents)) {
-        lightDocs[k] = { ...v, fileUrl: '' }
+      // Signature images are the only large payload; drop them if the quota is hit
+      const lightAgreements = {}
+      for (const [k, v] of Object.entries(submissionRecord.agreements)) {
+        lightAgreements[k] = { ...v, signatureDataUrl: '', signedContent: '' }
       }
-      const lightRecord = { ...firestoreCleanedRecord, documents: lightDocs }
-      localStorage.setItem(`onboarding_${uid}`, JSON.stringify(lightRecord))
+      localStorage.setItem(
+        `onboarding_${uid}`,
+        JSON.stringify({ ...firestoreCleanedRecord, agreements: lightAgreements })
+      )
     }
   } catch (storageErr) {
     console.warn('LocalStorage notice (non-fatal):', storageErr.message)

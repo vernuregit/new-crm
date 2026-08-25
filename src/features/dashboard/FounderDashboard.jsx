@@ -569,7 +569,7 @@ export const FounderDashboard = () => {
       <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4">
         <div>
           <h1 className="text-xl font-bold text-slate-900 dark:text-slate-100 flex items-center gap-2">
-            Welcome back, Admin! <span className="text-lg">👋</span>
+            Welcome back, Admin! <span className="text-lg"></span>
           </h1>
           <p className="text-xs text-slate-500 dark:text-slate-400 mt-0.5">
             Here's what's happening in your organization today.

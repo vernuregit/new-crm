@@ -1,12 +1,12 @@
-import React, { useState } from 'react'
-import { NavLink } from 'react-router-dom'
+import React, { useState, useEffect } from 'react'
 import { PageHeader } from '../../shared/components/layout/PageHeader'
 import { Card } from '../../shared/components/ui/Card'
 import { Badge } from '../../shared/components/ui/Badge'
 import { Button } from '../../shared/components/ui/Button'
 import { Input } from '../../shared/components/ui/Input'
 import { useSettingsStore } from './stores/settingsStore'
-import { Building, ShieldCheck, SlidersHorizontal, Save, Key } from 'lucide-react'
+import { getPaymentDetails, savePaymentDetails } from '../../shared/services/paymentDetailsService'
+import { Save, Landmark } from 'lucide-react'
 
 export const OrgSettings = () => {
   const { orgDetails, updateOrgDetails } = useSettingsStore()
@@ -16,6 +16,23 @@ export const OrgSettings = () => {
   const [currency, setCurrency] = useState(orgDetails.currency)
   const [timezone, setTimezone] = useState(orgDetails.timezone)
   const [saved, setSaved] = useState(false)
+  const [bankSaved, setBankSaved] = useState(false)
+  const [bankSaving, setBankSaving] = useState(false)
+  const [bankError, setBankError] = useState('')
+  const [bank, setBank] = useState({
+    bankName: '',
+    accountName: '',
+    accountNumber: '',
+    ifsc: '',
+    swift: '',
+    upi: '',
+    branch: '',
+    notes: '',
+  })
+
+  useEffect(() => {
+    getPaymentDetails().then(setBank).catch(() => {})
+  }, [])
 
   const handleSave = (e) => {
     e.preventDefault()
@@ -24,54 +41,30 @@ export const OrgSettings = () => {
     setTimeout(() => setSaved(false), 2000)
   }
 
+  const setBankField = (key) => (e) => setBank((prev) => ({ ...prev, [key]: e.target.value }))
+
+  const handleSaveBank = async (e) => {
+    e.preventDefault()
+    setBankError('')
+    setBankSaving(true)
+    try {
+      const savedBank = await savePaymentDetails(bank)
+      setBank(savedBank)
+      setBankSaved(true)
+      setTimeout(() => setBankSaved(false), 2000)
+    } catch (err) {
+      setBankError(err.message || 'Failed to save bank details.')
+    } finally {
+      setBankSaving(false)
+    }
+  }
+
   return (
     <div className="space-y-6">
-      {/* Header & Sub Nav */}
-      <div className="space-y-4">
-        <PageHeader
-          title="Organization Settings"
-          description="Configure company profile, multi-tenant workspace preferences, custom roles, and API integrations"
-        />
-
-        <div className="flex items-center gap-2 border-b border-slate-200 dark:border-slate-800 pb-3">
-          <NavLink
-            to="/settings/org"
-            className={({ isActive }) =>
-              `flex items-center gap-2 px-3 py-1.5 rounded-xl text-xs font-semibold transition-colors ${
-                isActive
-                  ? 'bg-indigo-50 dark:bg-indigo-600/20 text-indigo-600 dark:text-indigo-400 border border-indigo-200 dark:border-indigo-500/30'
-                  : 'text-slate-600 dark:text-slate-400 hover:text-slate-900 dark:hover:text-slate-200 hover:bg-slate-100 dark:hover:bg-slate-800'
-              }`
-            }
-          >
-            <Building className="w-3.5 h-3.5" /> Organization Profile
-          </NavLink>
-          <NavLink
-            to="/settings/roles"
-            className={({ isActive }) =>
-              `flex items-center gap-2 px-3 py-1.5 rounded-xl text-xs font-semibold transition-colors ${
-                isActive
-                  ? 'bg-indigo-50 dark:bg-indigo-600/20 text-indigo-600 dark:text-indigo-400 border border-indigo-200 dark:border-indigo-500/30'
-                  : 'text-slate-600 dark:text-slate-400 hover:text-slate-900 dark:hover:text-slate-200 hover:bg-slate-100 dark:hover:bg-slate-800'
-              }`
-            }
-          >
-            <ShieldCheck className="w-3.5 h-3.5" /> Custom Roles & Permissions
-          </NavLink>
-          <NavLink
-            to="/settings/integrations"
-            className={({ isActive }) =>
-              `flex items-center gap-2 px-3 py-1.5 rounded-xl text-xs font-semibold transition-colors ${
-                isActive
-                  ? 'bg-indigo-50 dark:bg-indigo-600/20 text-indigo-600 dark:text-indigo-400 border border-indigo-200 dark:border-indigo-500/30'
-                  : 'text-slate-600 dark:text-slate-400 hover:text-slate-900 dark:hover:text-slate-200 hover:bg-slate-100 dark:hover:bg-slate-800'
-              }`
-            }
-          >
-            <Key className="w-3.5 h-3.5" /> Integrations & API
-          </NavLink>
-        </div>
-      </div>
+      <PageHeader
+        title="Organization Settings"
+        description="Configure company profile and workspace preferences"
+      />
 
       <Card className="max-w-2xl space-y-4 border-slate-800">
         <div className="flex items-center justify-between pb-3 border-b border-slate-800">
@@ -111,6 +104,49 @@ export const OrgSettings = () => {
             {saved && <span className="text-xs text-emerald-400 font-semibold">Settings Saved!</span>}
             <Button type="submit" variant="primary" icon={Save} className="ml-auto">
               Save Settings
+            </Button>
+          </div>
+        </form>
+      </Card>
+
+      <Card className="max-w-2xl space-y-4 border-slate-200 dark:border-slate-800 bg-white dark:bg-[#181C27]">
+        <div className="flex items-center gap-2 pb-3 border-b border-slate-200 dark:border-slate-800">
+          <Landmark className="w-4 h-4 text-indigo-500" />
+          <h3 className="font-bold text-slate-900 dark:text-slate-100 text-sm">Bank Transfer Details</h3>
+        </div>
+        <p className="text-xs text-slate-500 dark:text-slate-400">
+          Clients see these account details on their Billing page so they can send payment to your company.
+        </p>
+        {bankError && (
+          <div className="p-3 text-xs text-rose-500 bg-rose-500/10 border border-rose-500/20 rounded-xl">{bankError}</div>
+        )}
+        <form onSubmit={handleSaveBank} className="space-y-4">
+          <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
+            <Input label="Bank Name" value={bank.bankName} onChange={setBankField('bankName')} required />
+            <Input label="Account Name" value={bank.accountName} onChange={setBankField('accountName')} required />
+          </div>
+          <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
+            <Input label="Account Number" value={bank.accountNumber} onChange={setBankField('accountNumber')} required />
+            <Input label="IFSC" value={bank.ifsc} onChange={setBankField('ifsc')} />
+          </div>
+          <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
+            <Input label="SWIFT (optional)" value={bank.swift} onChange={setBankField('swift')} />
+            <Input label="UPI ID (optional)" value={bank.upi} onChange={setBankField('upi')} />
+          </div>
+          <Input label="Branch (optional)" value={bank.branch} onChange={setBankField('branch')} />
+          <div className="space-y-1.5">
+            <label className="block text-xs font-medium text-slate-700 dark:text-slate-300">Payment notes</label>
+            <textarea
+              rows={2}
+              value={bank.notes}
+              onChange={setBankField('notes')}
+              className="w-full bg-slate-50 dark:bg-[#11141E] border border-slate-200 dark:border-slate-800 text-slate-900 dark:text-slate-100 text-sm rounded-xl p-3 focus:outline-none focus:border-indigo-500"
+            />
+          </div>
+          <div className="pt-2 flex items-center justify-between">
+            {bankSaved && <span className="text-xs text-emerald-400 font-semibold">Bank details saved.</span>}
+            <Button type="submit" variant="primary" icon={Save} className="ml-auto" disabled={bankSaving}>
+              {bankSaving ? 'Saving...' : 'Save Bank Details'}
             </Button>
           </div>
         </form>
