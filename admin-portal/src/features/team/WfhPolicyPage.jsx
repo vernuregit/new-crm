@@ -10,6 +10,7 @@ import {
   resolveEmployeeWfhPolicy,
   getWfhAllowanceLabel,
 } from './services/wfhPolicyUtils'
+import { resolveLeaveLimits } from './services/leaveEntitlementUtils'
 import { TeamSubNav } from './components/TeamSubNav'
 import {
   Save,
@@ -57,6 +58,9 @@ export const WfhPolicyPage = () => {
   const [selected, setSelected] = useState(null)
   const [mode, setMode] = useState('off')
   const [limit, setLimit] = useState(1)
+  const [casualLimit, setCasualLimit] = useState(1)
+  const [sickLimit, setSickLimit] = useState(1)
+  const [wfhMonthLimit, setWfhMonthLimit] = useState(1)
   const [saving, setSaving] = useState(false)
   const [saved, setSaved] = useState(false)
 
@@ -79,9 +83,13 @@ export const WfhPolicyPage = () => {
 
   const openEditor = (emp) => {
     const policy = resolveEmployeeWfhPolicy(emp)
+    const limits = resolveLeaveLimits(emp)
     setSelected(emp)
     setMode(policy.mode)
     setLimit(policy.limit)
+    setCasualLimit(limits.casual)
+    setSickLimit(limits.sick)
+    setWfhMonthLimit(limits.wfh)
     setSaved(false)
   }
 
@@ -99,12 +107,17 @@ export const WfhPolicyPage = () => {
     setSaving(true)
     const data = await saveEmployeeWfhPolicy(
       uid,
-      { wfhMode: mode, wfhLimit: limit },
+      {
+        wfhMode: mode,
+        wfhLimit: limit,
+        leaveLimits: { casual: casualLimit, sick: sickLimit, wfh: wfhMonthLimit },
+      },
       adminName
     )
     updateEmployee(uid, {
       wfhMode: data.wfhMode,
       wfhLimit: data.wfhLimit,
+      leaveLimits: data.leaveLimits,
       wfhUpdatedBy: data.wfhUpdatedBy,
     })
     setSelected((prev) => (prev ? { ...prev, ...data } : prev))
@@ -117,8 +130,8 @@ export const WfhPolicyPage = () => {
     <div className="space-y-6">
       <div className="space-y-4">
         <PageHeader
-          title="WFH Policy"
-          description="Set each employee’s Work From Home type: Off, Full WFH, Weekly, or Monthly."
+          title="Leave & WFH Policy"
+          description="Set monthly Casual, Sick, and WFH entitlements plus each employee’s Work From Home type."
         />
 
         <TeamSubNav />
@@ -142,6 +155,7 @@ export const WfhPolicyPage = () => {
             <tr className="bg-slate-100 dark:bg-slate-900/80 border-b border-slate-200 dark:border-slate-800 text-slate-700 dark:text-slate-400 font-semibold">
               <th className="p-4 font-semibold">Employee</th>
               <th className="p-4 font-semibold">Department / Role</th>
+              <th className="p-4 font-semibold">Monthly limits</th>
               <th className="p-4 font-semibold">WFH Policy</th>
               <th className="p-4 font-semibold text-right">Action</th>
             </tr>
@@ -149,13 +163,14 @@ export const WfhPolicyPage = () => {
           <tbody className="divide-y divide-slate-200 dark:divide-slate-800/60">
             {filtered.length === 0 && (
               <tr>
-                <td colSpan={4} className="p-8 text-center text-slate-500">
+                <td colSpan={5} className="p-8 text-center text-slate-500">
                   No employees found.
                 </td>
               </tr>
             )}
             {filtered.map((emp) => {
               const policy = resolveEmployeeWfhPolicy(emp)
+              const limits = resolveLeaveLimits(emp)
               const name = emp.displayName || emp.name || 'Employee'
               const initials = name
                 .split(' ')
@@ -182,6 +197,9 @@ export const WfhPolicyPage = () => {
                   </td>
                   <td className="p-4 text-slate-600 dark:text-slate-300">
                     {emp.department || emp.role || emp.designation || '—'}
+                  </td>
+                  <td className="p-4 text-slate-600 dark:text-slate-300 text-[11px]">
+                    CL {limits.casual} · SL {limits.sick} · WFH {limits.wfh}
                   </td>
                   <td className="p-4">
                     <span
@@ -216,7 +234,7 @@ export const WfhPolicyPage = () => {
             <div className="flex items-center justify-between pb-3 border-b border-slate-200 dark:border-slate-800">
               <div>
                 <h3 className="font-bold text-slate-900 dark:text-slate-100 text-sm">
-                  Set WFH Policy
+                  Set leave & WFH policy
                 </h3>
                 <p className="text-[11px] text-slate-500 mt-0.5">
                   {selected.displayName || selected.name}
@@ -265,7 +283,7 @@ export const WfhPolicyPage = () => {
 
               {(mode === 'weekly' || mode === 'monthly') && (
                 <Input
-                  label={mode === 'weekly' ? 'WFH days allowed per week' : 'WFH days allowed per month'}
+                  label={mode === 'weekly' ? 'WFH days allowed per week (clock-in)' : 'WFH days allowed per month (clock-in / requests)'}
                   type="number"
                   min={1}
                   max={mode === 'weekly' ? 7 : 31}
@@ -274,6 +292,39 @@ export const WfhPolicyPage = () => {
                   required
                 />
               )}
+
+              <div className="grid grid-cols-3 gap-3 pt-1">
+                <Input
+                  label="Monthly Casual"
+                  type="number"
+                  min={0}
+                  max={31}
+                  value={casualLimit}
+                  onChange={(e) => setCasualLimit(Math.max(0, Number(e.target.value) || 0))}
+                  required
+                />
+                <Input
+                  label="Monthly Sick"
+                  type="number"
+                  min={0}
+                  max={31}
+                  value={sickLimit}
+                  onChange={(e) => setSickLimit(Math.max(0, Number(e.target.value) || 0))}
+                  required
+                />
+                <Input
+                  label="Monthly paid WFH"
+                  type="number"
+                  min={0}
+                  max={31}
+                  value={wfhMonthLimit}
+                  onChange={(e) => setWfhMonthLimit(Math.max(0, Number(e.target.value) || 0))}
+                  required
+                />
+              </div>
+              <p className="text-[11px] text-slate-500">
+                Extra Casual, Sick, or WFH days beyond these monthly caps are marked LOP (unpaid), even if approved.
+              </p>
 
               <div className="flex gap-3 pt-1">
                 <Button type="button" variant="secondary" className="w-1/3" onClick={closeEditor}>

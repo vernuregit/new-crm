@@ -18,6 +18,7 @@ import {
   Moon,
   CreditCard,
   Landmark,
+  Download,
 } from 'lucide-react'
 import { Card } from '../../components/ui/Card'
 import { Button } from '../../components/ui/Button'
@@ -37,6 +38,7 @@ import {
 import { logoutUser } from '../../shared/services/authService'
 import { getPaymentDetails } from '../../shared/services/paymentDetailsService'
 import { CompanyBankDetails } from '../../components/ui/CompanyBankDetails'
+import { downloadAgreementRecordAsPDF } from '../../shared/utils/agreementPdf'
 
 export const ClientOnboardingGate = () => {
   const navigate = useNavigate()
@@ -167,6 +169,17 @@ export const ClientOnboardingGate = () => {
       setErrorMsg(err.message || 'Could not save your signature. Please try again.')
       throw err
     }
+  }
+
+  const handleDownloadAgreement = (ag) => {
+    if (!ag) return
+    downloadAgreementRecordAsPDF({
+      id: ag.id,
+      title: ag.title,
+      content: ag.content,
+      sigRecord: agreements[ag.id],
+      clientName: companyName || userDoc?.companyName || user?.displayName,
+    })
   }
 
   const areSignaturesComplete = () => {
@@ -594,6 +607,7 @@ export const ClientOnboardingGate = () => {
                 onSave={(record) => handleAgreementSave(currentAgreement, record)}
                 showFullAgreementByDefault={true}
                 allowToggle={true}
+                onDownload={() => handleDownloadAgreement(currentAgreement)}
               />
               )}
 
@@ -716,16 +730,25 @@ export const ClientOnboardingGate = () => {
                   {contracts.map((ag) => {
                     const sig = agreements[ag.id]
                     return (
-                      <div key={ag.id} className="p-2.5 rounded-lg bg-slate-50 dark:bg-slate-950 border border-slate-200 dark:border-slate-800/80 flex items-center justify-between text-xs">
-                        <div>
+                      <div key={ag.id} className="p-2.5 rounded-lg bg-slate-50 dark:bg-slate-950 border border-slate-200 dark:border-slate-800/80 flex items-center justify-between gap-2 text-xs">
+                        <div className="min-w-0">
                           <p className="font-semibold text-slate-800 dark:text-slate-200">{ag.title}</p>
                           <p className="text-[11px] text-slate-500 dark:text-slate-400">Signatory: {sig?.signatoryName || 'Pending'}</p>
                         </div>
-                        {sig?.signed ? (
-                          <Badge variant="success" className="text-[10px]">Signed</Badge>
-                        ) : (
-                          <Badge variant="danger" className="text-[10px]">Missing</Badge>
-                        )}
+                        <div className="flex items-center gap-2 shrink-0">
+                          {sig?.signed ? (
+                            <Badge variant="success" className="text-[10px]">Signed</Badge>
+                          ) : (
+                            <Badge variant="danger" className="text-[10px]">Missing</Badge>
+                          )}
+                          <button
+                            type="button"
+                            onClick={() => handleDownloadAgreement(ag)}
+                            className="px-2 py-1 rounded-lg border border-slate-200 dark:border-slate-700 text-indigo-600 dark:text-indigo-400 font-semibold inline-flex items-center gap-1 hover:bg-indigo-50 dark:hover:bg-indigo-950/40"
+                          >
+                            <Download className="w-3.5 h-3.5" /> PDF
+                          </button>
+                        </div>
                       </div>
                     )
                   })}

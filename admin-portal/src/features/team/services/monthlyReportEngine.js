@@ -11,6 +11,11 @@ import {
   getLateInfo,
   isAttendancePresent,
 } from './attendanceStatsUtils'
+import {
+  classifyApprovedLeaveByDate,
+  resolveLeaveLimits,
+  formatLeaveTypeLabel,
+} from './leaveEntitlementUtils'
 
 /**
  * @param {string} month YYYY-MM
@@ -82,7 +87,8 @@ export function expandDateRange(startDate, endDate) {
 }
 
 /**
- * Mon–Fri working days in month, minus company holiday dates.
+ * Mon–Sat working days in month, minus company holiday dates.
+ * Sunday is the weekly off.
  * @param {string} month
  * @param {Array<{ date?: string }>} [holidays]
  * @returns {string[]}
@@ -94,7 +100,7 @@ export function getWorkingDaysInMonth(month, holidays = []) {
   return listDatesInMonth(month).filter((dateStr) => {
     if (holidaySet.has(dateStr)) return false
     const day = new Date(`${dateStr}T00:00:00`).getDay()
-    return day >= 1 && day <= 5
+    return day !== 0
   })
 }
 
@@ -211,6 +217,16 @@ export function buildEmployeeMonthlyReport({
   })
 
   const empLeaves = (leaveRequests || []).filter((l) => leaveMatchesEmployee(l, employee))
+  const classifiedByDate = classifyApprovedLeaveByDate(
+    empLeaves,
+    {
+      employeeId: uid,
+      uid,
+      employeeEmail: employee?.email || '',
+      employeeName: employee?.displayName || employee?.name || '',
+    },
+    resolveLeaveLimits(employee)
+  )
   const leaveByDate = {}
   empLeaves.forEach((leave) => {
     leaveDatesInMonth(leave, month).forEach((d) => {
@@ -265,7 +281,8 @@ export function buildEmployeeMonthlyReport({
 
     const dayLeaves = leaveByDate[date] || []
     const approvedLeave = dayLeaves.find((l) => l.status === 'approved')
-    const leaveType = approvedLeave?.leaveType || (dayLeaves[0]?.leaveType ?? null)
+    const classified = classifiedByDate[date]
+    const leaveType = classified?.leaveType || approvedLeave?.leaveType || (dayLeaves[0]?.leaveType ?? null)
 
     const isFuture = date > todayStr
     const isBeforeJoin = Boolean(accountStart && date < accountStart)
@@ -314,15 +331,21 @@ export function buildEmployeeMonthlyReport({
   let pendingDays = 0
   const byType = {}
   const requestSummaries = []
+  let lopDays = 0
+  Object.entries(classifiedByDate).forEach(([date, info]) => {
+    if (!date.startsWith(month)) return
+    const type = info.leaveType || 'Leave'
+    byType[type] = (byType[type] || 0) + 1
+    if (info.status === 'lop') lopDays += 1
+  })
 
   empLeaves.forEach((leave) => {
     const daysInMonth = leaveDatesInMonth(leave, month)
     if (daysInMonth.length === 0) return
     const count = daysInMonth.length
-    const type = leave.leaveType || 'Leave'
+    const type = formatLeaveTypeLabel(leave)
     if (leave.status === 'approved') {
       approvedDays += count
-      byType[type] = (byType[type] || 0) + count
     } else if (leave.status === 'pending') {
       pendingDays += count
     }
@@ -367,6 +390,8 @@ export function buildEmployeeMonthlyReport({
     leave: {
       approvedDays,
       pendingDays,
+      lopDays,
+      unpaidLeaveDays: lopDays,
       byType,
       requests: requestSummaries,
     },
@@ -417,6 +442,7 @@ export function monthlyReportToCsv(report) {
   lines.push(`Total Regular Hours,${csvEscape(a.totalRegularHoursLabel)}`)
   lines.push(`Total Extra Hours,${csvEscape(a.totalExtraHoursLabel)}`)
   lines.push(`Leave Approved Days,${report.leave?.approvedDays ?? ''}`)
+  lines.push(`LOP Unpaid Days,${report.leave?.lopDays ?? report.leave?.unpaidLeaveDays ?? ''}`)
   lines.push(`Leave Pending Days,${report.leave?.pendingDays ?? ''}`)
   lines.push(`Timeline Hours,${report.timeline?.totalHours ?? ''}`)
   lines.push('')

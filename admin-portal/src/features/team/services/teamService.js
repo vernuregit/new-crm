@@ -20,6 +20,7 @@ import {
   leaveDatesInMonth,
   monthlyReportDocId,
 } from './monthlyReportEngine'
+import { applyLopConversion, resolveLeaveLimits } from './leaveEntitlementUtils'
 
 /**
  * Fetch all employee profiles from Firestore /employees
@@ -289,21 +290,48 @@ export const setEmployeeAttendanceStatus = async (employee, isPresent, dateStr) 
  */
 export const updateLeaveStatusInDb = async (leaveId, newStatus, reviewedBy) => {
   try {
-    await updateDoc(doc(db, 'leaveRequests', leaveId), {
+    const patch = {
       status: newStatus,
       reviewedBy: reviewedBy || 'Admin',
       updatedAt: serverTimestamp(),
-    })
+    }
 
     if (newStatus === 'approved') {
       const leaveSnap = await getDoc(doc(db, 'leaveRequests', leaveId))
       if (leaveSnap.exists()) {
         const leaveData = { leaveId, ...leaveSnap.data() }
+        const [empSnap, leavesSnap] = await Promise.all([
+          leaveData.employeeId
+            ? getDoc(doc(db, 'employees', leaveData.employeeId))
+            : Promise.resolve(null),
+          getDocs(collection(db, 'leaveRequests')),
+        ])
+        const emp = empSnap?.exists() ? { uid: empSnap.id, ...empSnap.data() } : {}
+        const conversion = applyLopConversion({
+          requestedType: leaveData.requestedLeaveType || leaveData.leaveType,
+          startDate: leaveData.startDate,
+          endDate: leaveData.endDate,
+          days: leaveData.days,
+          leaveRequests: leavesSnap.docs.map((d) => ({ ...d.data(), leaveId: d.id })),
+          employeeFilter: {
+            employeeId: leaveData.employeeId,
+            employeeEmail: leaveData.employeeEmail,
+            employeeName: leaveData.employeeName,
+          },
+          limits: resolveLeaveLimits(emp),
+          excludeLeaveId: leaveId,
+        })
+        patch.leaveType = conversion.leaveType
+        patch.requestedLeaveType = conversion.requestedLeaveType
+        patch.convertedToLop = conversion.convertedToLop
+        leaveData.leaveType = conversion.leaveType
         if (leaveData.leaveType === 'On Duty') {
           await markOnDutyAttendance(leaveData)
         }
       }
     }
+
+    await updateDoc(doc(db, 'leaveRequests', leaveId), patch)
   } catch (err) {
     console.error('Error updating leave status in Firestore:', err)
   }
@@ -436,12 +464,16 @@ export const updateEmployeeInDb = async (uid, data) => {
 /**
  * Save per-employee WFH policy fields on /employees/{uid}
  */
-export const saveEmployeeWfhPolicy = async (uid, { wfhMode, wfhLimit }, updatedBy) => {
+export const saveEmployeeWfhPolicy = async (uid, { wfhMode, wfhLimit, leaveLimits }, updatedBy) => {
   const mode = ['off', 'full', 'weekly', 'monthly'].includes(wfhMode) ? wfhMode : 'off'
   const limit = Math.max(1, Number(wfhLimit) || 1)
+  const casual = Math.max(0, Math.floor(Number(leaveLimits?.casual) || 0))
+  const sick = Math.max(0, Math.floor(Number(leaveLimits?.sick) || 0))
+  const wfh = Math.max(0, Math.floor(Number(leaveLimits?.wfh) || 0))
   const data = {
     wfhMode: mode,
     wfhLimit: mode === 'weekly' || mode === 'monthly' ? limit : 0,
+    leaveLimits: { casual, sick, wfh },
     wfhUpdatedBy: updatedBy || 'Admin',
     wfhUpdatedAt: serverTimestamp(),
   }

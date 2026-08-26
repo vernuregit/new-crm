@@ -14,6 +14,12 @@ import {
   getWfhAllowanceLabel,
   getWfhLeaveStatus,
 } from './services/wfhPolicyUtils'
+import {
+  applyLopConversion,
+  countUsedPaidDays,
+  formatLeaveTypeLabel,
+  resolveLeaveLimits,
+} from './services/leaveEntitlementUtils'
 import { Users, CheckCircle2, Calendar, Plus, X, Clock, AlertCircle, AlertTriangle, ShieldCheck, ChevronLeft, ChevronRight, Trash2, Ban } from 'lucide-react'
 import { collection, onSnapshot } from 'firebase/firestore'
 import { db } from '../../shared/services/firebaseService'
@@ -324,6 +330,7 @@ export const LeaveManagement = () => {
   const currentMonthName = new Date().toLocaleString('default', { month: 'long', year: 'numeric' })
 
   const wfhPolicy = resolveEmployeeWfhPolicy(currentEmp || userDoc || {})
+  const leaveLimits = resolveLeaveLimits(currentEmp || userDoc || {})
 
   // Real-time Firestore sync for leave requests
   useEffect(() => {
@@ -385,27 +392,9 @@ export const LeaveManagement = () => {
   const approvedRequests = myLeaveRequests.filter((l) => l.status === 'approved')
   const rejectedRequests = myLeaveRequests.filter((l) => l.status === 'rejected')
 
-  // Pending + approved count toward quota; rejected/cancelled do not
-  const currentMonthRequests = myLeaveRequests.filter((l) => {
-    if (l.status === 'rejected' || l.status === 'cancelled') return false
-    return l.startDate && l.startDate.startsWith(currentMonthStr)
-  })
-
   const currentMonthApproved = approvedRequests.filter((l) => {
     return l.startDate && l.startDate.startsWith(currentMonthStr)
   })
-
-  // Dynamic month-wise calculation (1 Sick Leave & 1 Casual Leave per month)
-  const usedCasualDaysThisMonth = currentMonthRequests
-    .filter((l) => l.leaveType === 'Casual Leave' || l.leaveType === 'Annual Leave')
-    .reduce((sum, l) => sum + (Number(l.days) || 1), 0)
-
-  const usedSickDaysThisMonth = currentMonthRequests
-    .filter((l) => l.leaveType === 'Sick Leave')
-    .reduce((sum, l) => sum + (Number(l.days) || 1), 0)
-
-  const remainingCasualDays = Math.max(0, 1 - usedCasualDaysThisMonth)
-  const remainingSickDays = Math.max(0, 1 - usedSickDaysThisMonth)
 
   const employeeWfhFilter = {
     employeeId: resolvedEmployeeId,
@@ -413,6 +402,31 @@ export const LeaveManagement = () => {
     employeeEmail: resolvedEmployeeEmail,
     employeeName: resolvedEmployeeName,
   }
+
+  const usedCasualDaysThisMonth = countUsedPaidDays(
+    myLeaveRequests,
+    employeeWfhFilter,
+    'casual',
+    currentMonthStr
+  )
+
+  const usedSickDaysThisMonth = countUsedPaidDays(
+    myLeaveRequests,
+    employeeWfhFilter,
+    'sick',
+    currentMonthStr
+  )
+
+  const usedPaidWfhDaysThisMonth = countUsedPaidDays(
+    myLeaveRequests,
+    employeeWfhFilter,
+    'wfh',
+    currentMonthStr
+  )
+
+  const remainingCasualDays = Math.max(0, leaveLimits.casual - usedCasualDaysThisMonth)
+  const remainingSickDays = Math.max(0, leaveLimits.sick - usedSickDaysThisMonth)
+  const remainingPaidWfhDays = Math.max(0, leaveLimits.wfh - usedPaidWfhDaysThisMonth)
 
   const wfhReferenceDate = startDate || new Date().toISOString().split('T')[0]
   const usedWfhDays = countUsedWfhDays(myLeaveRequests, employeeWfhFilter, wfhPolicy, wfhReferenceDate)
@@ -484,20 +498,15 @@ export const LeaveManagement = () => {
         ? Math.max(1, Math.round((new Date(endDate) - new Date(startDate)) / 86400000) + 1)
         : 1
 
-    // Monthly Quota Validation: Maximum 1 Sick Leave & 1 Casual Leave per month
-    if ((leaveType === 'Casual Leave' || leaveType === 'Annual Leave') && (usedCasualDaysThisMonth + daysCount > 1)) {
-      setValidationError(
-        `Monthly Casual Leave limit exceeded. Employees can take only 1 Casual Leave per month (${usedCasualDaysThisMonth}/1 used in ${currentMonthName}).`
-      )
-      return
-    }
-
-    if (leaveType === 'Sick Leave' && (usedSickDaysThisMonth + daysCount > 1)) {
-      setValidationError(
-        `Monthly Sick Leave limit exceeded. Employees can take only 1 Sick Leave per month (${usedSickDaysThisMonth}/1 used in ${currentMonthName}).`
-      )
-      return
-    }
+    const conversion = applyLopConversion({
+      requestedType: leaveType,
+      startDate,
+      endDate: finalEndDate,
+      days: daysCount,
+      leaveRequests: myLeaveRequests,
+      employeeFilter: employeeWfhFilter,
+      limits: leaveLimits,
+    })
 
     let wfhStatus = 'pending'
     let wfhAutoApproved = false
@@ -510,16 +519,18 @@ export const LeaveManagement = () => {
         )
         return
       }
-      const usedForRequest = countUsedWfhDays(
-        myLeaveRequests,
-        employeeWfhFilter,
-        wfhPolicy,
-        startDate
-      )
-      const wfhError = validateWfhRequest(wfhPolicy, usedForRequest, daysCount)
-      if (wfhError) {
-        setValidationError(wfhError)
-        return
+      if (wfhPolicy.mode === 'weekly' && !conversion.convertedToLop) {
+        const usedForRequest = countUsedWfhDays(
+          myLeaveRequests,
+          employeeWfhFilter,
+          wfhPolicy,
+          startDate
+        )
+        const wfhError = validateWfhRequest(wfhPolicy, usedForRequest, daysCount)
+        if (wfhError) {
+          setValidationError(wfhError)
+          return
+        }
       }
       wfhStatus = getWfhLeaveStatus(wfhPolicy, { createdByAdmin: false })
       wfhAutoApproved = wfhStatus === 'approved'
@@ -529,12 +540,14 @@ export const LeaveManagement = () => {
       employeeName: stableEmployeeName,
       employeeId: stableEmployeeId || '',
       employeeEmail: stableEmployeeEmail,
-      leaveType,
+      leaveType: conversion.leaveType,
+      requestedLeaveType: conversion.requestedLeaveType,
+      convertedToLop: conversion.convertedToLop,
       startDate,
       endDate: finalEndDate,
       days: daysCount,
       reason: reason.trim(),
-      ...(leaveType === 'Work From Home'
+      ...(leaveType === 'Work From Home' && !conversion.convertedToLop
         ? {
             status: wfhStatus,
             autoApproved: wfhAutoApproved,
@@ -644,7 +657,7 @@ export const LeaveManagement = () => {
       <div className="space-y-4">
         <PageHeader
           title="Monthly Leave & PTO Management"
-          description={`Track monthly leave requests. Each employee can take 1 Sick Leave & 1 Casual Leave per month (${currentMonthName}).`}
+          description={`Track monthly leave. Extra days beyond your entitlement are marked LOP (unpaid) (${currentMonthName}).`}
           actions={
             <Button icon={Plus} variant="primary" onClick={() => setShowAddModal(true)}>
               Request Leave
@@ -747,7 +760,7 @@ export const LeaveManagement = () => {
               Monthly Leave Allowance Policy ({currentMonthName})
             </h4>
             <p className="text-xs text-slate-600 dark:text-slate-300 mt-0.5">
-              Each employee is allocated <strong className="text-indigo-600 dark:text-indigo-400 font-semibold">1 Sick Leave</strong> and <strong className="text-indigo-600 dark:text-indigo-400 font-semibold">1 Casual Leave</strong> per month. Leave tracking is calculated on a month-wise basis.
+              This month: <strong className="text-indigo-600 dark:text-indigo-400 font-semibold">{leaveLimits.casual} Casual</strong>, <strong className="text-indigo-600 dark:text-indigo-400 font-semibold">{leaveLimits.sick} Sick</strong>, and <strong className="text-indigo-600 dark:text-indigo-400 font-semibold">{leaveLimits.wfh} WFH</strong>. Additional leave is marked LOP (unpaid) even if approved.
             </p>
           </div>
         </div>
@@ -765,7 +778,7 @@ export const LeaveManagement = () => {
               {remainingCasualDays} {remainingCasualDays === 1 ? 'Day' : 'Days'} Remaining
             </p>
             <p className="text-[10px] text-slate-500 dark:text-slate-400 mt-0.5">
-              {usedCasualDaysThisMonth} of 1 Day Used ({currentMonthName})
+              {usedCasualDaysThisMonth} of {leaveLimits.casual} {leaveLimits.casual === 1 ? 'Day' : 'Days'} Used ({currentMonthName})
             </p>
           </div>
           <div className="w-9 h-9 rounded-xl bg-emerald-50 dark:bg-emerald-500/10 text-emerald-600 dark:text-emerald-400 flex items-center justify-center shrink-0">
@@ -782,7 +795,7 @@ export const LeaveManagement = () => {
               {remainingSickDays} {remainingSickDays === 1 ? 'Day' : 'Days'} Remaining
             </p>
             <p className="text-[10px] text-slate-500 dark:text-slate-400 mt-0.5">
-              {usedSickDaysThisMonth} of 1 Day Used ({currentMonthName})
+              {usedSickDaysThisMonth} of {leaveLimits.sick} {leaveLimits.sick === 1 ? 'Day' : 'Days'} Used ({currentMonthName})
             </p>
           </div>
           <div className="w-9 h-9 rounded-xl bg-blue-50 dark:bg-blue-500/10 text-blue-600 dark:text-blue-400 flex items-center justify-center shrink-0">
@@ -843,7 +856,9 @@ export const LeaveManagement = () => {
                 const canDelete = canDeleteOwnRequest(req)
                 return (
                   <tr key={req.leaveId} className="hover:bg-slate-50 dark:hover:bg-slate-800/30 transition-colors text-slate-700 dark:text-slate-300">
-                    <td className="p-4 text-slate-800 dark:text-slate-300 font-medium">{req.leaveType}</td>
+                    <td className="p-4 text-slate-800 dark:text-slate-300 font-medium">
+                      {formatLeaveTypeLabel(req)}
+                    </td>
                     <td className="p-4 text-slate-600 dark:text-slate-400">
                       {req.startDate === req.endDate || Number(req.days) === 1
                         ? `${req.startDate} (1 Day)`
@@ -1020,8 +1035,8 @@ export const LeaveManagement = () => {
                   }}
                   className="w-full bg-slate-100 dark:bg-slate-900 border border-slate-300 dark:border-slate-800 text-slate-800 dark:text-slate-100 text-sm rounded-xl py-2.5 px-3.5 focus:outline-none focus:border-indigo-500"
                 >
-                  <option value="Casual Leave">Casual Leave (1 Day / Month · 3 days advance)</option>
-                  <option value="Sick Leave">Sick Leave (1 Day / Month)</option>
+                  <option value="Casual Leave">Casual Leave ({leaveLimits.casual}/month · 3 days advance)</option>
+                  <option value="Sick Leave">Sick Leave ({leaveLimits.sick}/month)</option>
                   {wfhPolicy.leaveFormEnabled && (
                     <option value="Work From Home">
                       Work From Home ({getWfhAllowanceLabel(wfhPolicy)}) — needs approval
@@ -1032,7 +1047,16 @@ export const LeaveManagement = () => {
                 </select>
                 {wfhPolicy.leaveFormEnabled && leaveType === 'Work From Home' && remainingWfhDays !== null && (
                   <p className="text-[11px] text-slate-500 dark:text-slate-400 mt-1">
-                    Remaining this month: {remainingWfhDays} of {wfhPolicy.limit} day(s). Admin approval required.
+                    Paid WFH remaining this month: {remainingPaidWfhDays} of {leaveLimits.wfh}. Extra days are LOP (unpaid). Admin approval required.
+                  </p>
+                )}
+                {(leaveType === 'Casual Leave' || leaveType === 'Sick Leave') && (
+                  <p className="text-[11px] text-slate-500 dark:text-slate-400 mt-1">
+                    Remaining this month:{' '}
+                    {leaveType === 'Casual Leave'
+                      ? `${remainingCasualDays} of ${leaveLimits.casual} Casual`
+                      : `${remainingSickDays} of ${leaveLimits.sick} Sick`}
+                    . Extra days are marked LOP (unpaid).
                   </p>
                 )}
                 {wfhPolicy.clockInChoice && remainingWfhDays !== null && (

@@ -60,7 +60,7 @@ export function TeamSubNav({ className = '' }) {
         <FolderOpen className="w-3.5 h-3.5" /> Documents
       </NavLink>
       <NavLink to="/team/wfh-policy" className={wfhClass}>
-        <Home className="w-3.5 h-3.5" /> WFH Policy
+        <Home className="w-3.5 h-3.5" /> Leave & WFH Policy
       </NavLink>
       <NavLink to="/team/timeline" className={linkClass}>
         <CalendarDays className="w-3.5 h-3.5" /> Work Timeline

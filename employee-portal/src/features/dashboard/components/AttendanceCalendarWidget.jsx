@@ -4,35 +4,17 @@ import { useTeamStore } from '../../team/stores/teamStore'
 import { useUserStore } from '../../../stores/userStore'
 import { getUserMonthlyAttendance } from '../../team/services/attendanceService'
 import { subscribeToCompanyHolidays } from '../../team/services/teamService'
+import {
+  classifyApprovedLeaveByDate,
+  resolveLeaveLimits,
+  attendanceStatusDotClass,
+  attendanceStatusDotSizeClass,
+  attendanceStatusDayClass,
+  attendanceStatusTooltip,
+} from '../../team/services/leaveEntitlementUtils'
 import { collection, doc, getDoc, onSnapshot } from 'firebase/firestore'
 import { db } from '../../../shared/services/firebaseService'
 import { ChevronLeft, ChevronRight } from 'lucide-react'
-
-const LOP_LEAVE_TYPE = 'LOP (Loss of Pay)'
-/** Approved leave types that mark attendance Present (not absent/LOP overlays). */
-const PRESENT_LEAVE_TYPES = new Set(['On Duty', 'Work From Home'])
-
-const expandDateRange = (startDate, endDate) => {
-  const dates = []
-  if (!startDate) return dates
-  const start = new Date(`${startDate}T00:00:00`)
-  const end = new Date(`${(endDate || startDate)}T00:00:00`)
-  if (Number.isNaN(start.getTime()) || Number.isNaN(end.getTime())) return dates
-  const cursor = new Date(start)
-  while (cursor <= end) {
-    const y = cursor.getFullYear()
-    const m = String(cursor.getMonth() + 1).padStart(2, '0')
-    const d = String(cursor.getDate()).padStart(2, '0')
-    dates.push(`${y}-${m}-${d}`)
-    cursor.setDate(cursor.getDate() + 1)
-  }
-  return dates
-}
-
-const leaveMatchesEmployee = (l, { activeUid, activeEmail, activeName }) =>
-  (activeUid && (l.employeeId === activeUid || l.uid === activeUid)) ||
-  (activeEmail && l.employeeEmail?.toLowerCase() === activeEmail.toLowerCase()) ||
-  (activeName && l.employeeName?.toLowerCase() === activeName.toLowerCase())
 
 export const AttendanceCalendarWidget = () => {
   const { clockedIn, todayShiftLogs } = useTeamStore()
@@ -120,24 +102,10 @@ export const AttendanceCalendarWidget = () => {
     return () => unsub()
   }, [])
 
-  /** date → { kind: 'lop' | 'leave', leaveType } from currently approved leave only */
   const approvedLeaveByDate = useMemo(() => {
-    const map = {}
-    const emp = { activeUid, activeEmail, activeName }
-    leaveRequests.forEach((l) => {
-      if (l.status !== 'approved') return
-      if (!leaveMatchesEmployee(l, emp)) return
-      const type = l.leaveType || 'Leave'
-      if (PRESENT_LEAVE_TYPES.has(type)) return
-      const kind = type === LOP_LEAVE_TYPE ? 'lop' : 'leave'
-      expandDateRange(l.startDate, l.endDate || l.startDate).forEach((d) => {
-        // LOP wins if multiple approved leaves overlap a date
-        if (map[d]?.kind === 'lop') return
-        map[d] = { kind, leaveType: type }
-      })
-    })
-    return map
-  }, [leaveRequests, activeUid, activeEmail, activeName])
+    const emp = { employeeId: activeUid, uid: activeUid, employeeEmail: activeEmail, employeeName: activeName }
+    return classifyApprovedLeaveByDate(leaveRequests, emp, resolveLeaveLimits(employeeProfile))
+  }, [leaveRequests, activeUid, activeEmail, activeName, employeeProfile])
 
   // Month name formatting e.g. "July 2026"
   const monthName = currentViewDate.toLocaleDateString('en-US', {
@@ -270,10 +238,13 @@ export const AttendanceCalendarWidget = () => {
     // ── Company holiday takes priority ──
     if (companyHolidays[dateKey]) return 'holiday'
 
-    // ── Live approved leave overlays (LOP violet, other leave red) ──
+    // ── Live approved leave overlays ──
     const approvedLeave = approvedLeaveByDate[dateKey]
-    if (approvedLeave?.kind === 'lop') return 'lop'
-    if (approvedLeave?.kind === 'leave') return 'leave'
+    if (approvedLeave?.status === 'lop') return 'lop'
+    if (approvedLeave?.status === 'wfh') return 'wfh'
+    if (approvedLeave?.status === 'casual') return 'casual'
+    if (approvedLeave?.status === 'sick') return 'sick'
+    if (approvedLeave?.status === 'leave') return 'leave'
 
     const dayOfWeek = cellDate.getDay() // 0 = Sun (Sunday is the only weekend rest day; Saturday is a regular working day)
     const isWeekend = dayOfWeek === 0
@@ -424,13 +395,7 @@ export const AttendanceCalendarWidget = () => {
                       isSelected
                         ? 'bg-indigo-600 text-white font-bold shadow-sm shadow-indigo-500/40'
                         : cell.isCurrentMonth
-                        ? status === 'holiday'
-                          ? 'bg-amber-400/15 text-amber-600 dark:text-amber-400 font-bold'
-                          : status === 'lop'
-                          ? 'bg-violet-500/15 text-violet-600 dark:text-violet-400 font-bold'
-                          : status === 'leave'
-                          ? 'bg-rose-500/15 text-rose-600 dark:text-rose-400 font-bold'
-                          : 'text-slate-800 dark:text-slate-200'
+                        ? attendanceStatusDayClass(status) || 'text-slate-800 dark:text-slate-200'
                         : 'text-slate-300 dark:text-slate-600 font-normal'
                     }`}
                   >
@@ -442,35 +407,20 @@ export const AttendanceCalendarWidget = () => {
                     {cell.isCurrentMonth && status && (
                       <>
                         <span
-                          className={`w-1.5 h-1.5 rounded-full ${
-                            status === 'present'
-                              ? 'bg-emerald-500'
-                              : status === 'holiday'
-                              ? 'bg-amber-400'
-                              : status === 'lop'
-                              ? 'bg-violet-500'
-                              : 'bg-rose-500'
-                          }`}
+                          className={`rounded-full ${attendanceStatusDotSizeClass(status)} ${attendanceStatusDotClass(status)}`}
                         />
-                        {/* Holiday name tooltip */}
-                        {status === 'holiday' && companyHolidays[dateKey]?.name && (
+                        {attendanceStatusTooltip(
+                          status,
+                          leaveOverlay?.leaveType,
+                          companyHolidays[dateKey]?.name
+                        ) && (
                           <div className="absolute bottom-full mb-1.5 left-1/2 -translate-x-1/2 z-20 hidden group-hover/dot:block pointer-events-none">
                             <div className="bg-slate-900 dark:bg-slate-100 text-white dark:text-slate-900 text-[8px] font-semibold rounded-lg px-2 py-1 whitespace-nowrap shadow-xl">
-                              {companyHolidays[dateKey].name}
-                            </div>
-                          </div>
-                        )}
-                        {status === 'lop' && (
-                          <div className="absolute bottom-full mb-1.5 left-1/2 -translate-x-1/2 z-20 hidden group-hover/dot:block pointer-events-none">
-                            <div className="bg-slate-900 dark:bg-slate-100 text-white dark:text-slate-900 text-[8px] font-semibold rounded-lg px-2 py-1 whitespace-nowrap shadow-xl">
-                              LOP (Loss of Pay)
-                            </div>
-                          </div>
-                        )}
-                        {status === 'leave' && leaveOverlay?.leaveType && (
-                          <div className="absolute bottom-full mb-1.5 left-1/2 -translate-x-1/2 z-20 hidden group-hover/dot:block pointer-events-none">
-                            <div className="bg-slate-900 dark:bg-slate-100 text-white dark:text-slate-900 text-[8px] font-semibold rounded-lg px-2 py-1 whitespace-nowrap shadow-xl">
-                              {leaveOverlay.leaveType}
+                              {attendanceStatusTooltip(
+                                status,
+                                leaveOverlay?.leaveType,
+                                companyHolidays[dateKey]?.name
+                              )}
                             </div>
                           </div>
                         )}
@@ -486,20 +436,32 @@ export const AttendanceCalendarWidget = () => {
         {/* Legend Footer */}
         <div className="pt-1.5 mt-1 border-t border-slate-100 dark:border-slate-800/80 flex items-center justify-center gap-3 text-[10px] font-medium text-slate-600 dark:text-slate-400 flex-wrap">
           <div className="flex items-center gap-1.5">
-            <span className="w-1.5 h-1.5 rounded-full bg-emerald-500" />
+            <span className="w-1.5 h-1.5 rounded-full bg-[#22C55E]" />
             <span>Present</span>
           </div>
           <div className="flex items-center gap-1.5">
-            <span className="w-1.5 h-1.5 rounded-full bg-rose-500" />
-            <span>Absent</span>
+            <span className="w-1.5 h-1.5 rounded-full bg-[#06B6D4]" />
+            <span>WFH</span>
           </div>
           <div className="flex items-center gap-1.5">
-            <span className="w-1.5 h-1.5 rounded-full bg-amber-400" />
+            <span className="w-1.5 h-1.5 rounded-full bg-[#A855F7]" />
+            <span>Casual Leave</span>
+          </div>
+          <div className="flex items-center gap-1.5">
+            <span className="w-1.5 h-1.5 rounded-full bg-[#F97316]" />
+            <span>Sick Leave</span>
+          </div>
+          <div className="flex items-center gap-1.5">
+            <span className="w-1.5 h-1.5 rounded-full bg-[#EAB308]" />
             <span>Holiday</span>
           </div>
           <div className="flex items-center gap-1.5">
-            <span className="w-1.5 h-1.5 rounded-full bg-violet-500" />
+            <span className="w-1.5 h-1.5 rounded-full bg-[#EC4899]" />
             <span>LOP</span>
+          </div>
+          <div className="flex items-center gap-1.5">
+            <span className="w-1.5 h-1.5 rounded-full bg-[#EF4444]" />
+            <span>Absent</span>
           </div>
         </div>
       </div>

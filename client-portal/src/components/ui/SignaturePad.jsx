@@ -1,5 +1,5 @@
 import React, { useRef, useState, useEffect } from 'react'
-import { PenTool, Type, RotateCcw, Check, ShieldCheck, FileText, ChevronDown, ChevronUp } from 'lucide-react'
+import { PenTool, Type, RotateCcw, Check, ShieldCheck, FileText, ChevronDown, ChevronUp, Download } from 'lucide-react'
 import { Button } from './Button'
 import { Input } from './Input'
 import { useUIStore } from '../../stores/uiStore'
@@ -13,6 +13,7 @@ export const SignaturePad = ({
   required = true,
   showFullAgreementByDefault = true,
   allowToggle = true,
+  onDownload,
 }) => {
   const { theme } = useUIStore()
   const canvasRef = useRef(null)
@@ -224,19 +225,26 @@ export const SignaturePad = ({
           <p className="text-xs text-slate-500 dark:text-slate-400 mt-1">{agreementSummary}</p>
         </div>
 
-        {allowToggle && (
-          <button
-            type="button"
-            onClick={() => setShowFullAgreement(!showFullAgreement)}
-            className="text-xs text-indigo-600 dark:text-indigo-400 hover:text-indigo-500 dark:hover:text-indigo-300 font-medium inline-flex items-center gap-1 cursor-pointer"
-          >
-            {showFullAgreement ? (
-              <>Hide Contract Terms <ChevronUp className="w-3.5 h-3.5" /></>
-            ) : (
-              <>View Full Contract Terms <ChevronDown className="w-3.5 h-3.5" /></>
-            )}
-          </button>
-        )}
+        <div className="flex items-center gap-2 shrink-0">
+          {onDownload && (
+            <Button type="button" size="sm" variant="secondary" icon={Download} onClick={onDownload}>
+              Download PDF
+            </Button>
+          )}
+          {allowToggle && (
+            <button
+              type="button"
+              onClick={() => setShowFullAgreement(!showFullAgreement)}
+              className="text-xs text-indigo-600 dark:text-indigo-400 hover:text-indigo-500 dark:hover:text-indigo-300 font-medium inline-flex items-center gap-1 cursor-pointer"
+            >
+              {showFullAgreement ? (
+                <>Hide Contract Terms <ChevronUp className="w-3.5 h-3.5" /></>
+              ) : (
+                <>View Full Contract Terms <ChevronDown className="w-3.5 h-3.5" /></>
+              )}
+            </button>
+          )}
+        </div>
       </div>
 
       {/* Full Agreement Text Container */}

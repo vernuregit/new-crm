@@ -17,6 +17,7 @@ import {
   countUsedWfhDays,
   validateWfhRequest,
 } from './services/wfhPolicyUtils'
+import { applyLopConversion, resolveLeaveLimits } from './services/leaveEntitlementUtils'
 import { AttendanceMetricsBar } from './components/AttendanceMetricsBar'
 import { formatTo12HourTime } from './services/attendanceStatsUtils'
 import { collection, onSnapshot } from 'firebase/firestore'
@@ -219,15 +220,29 @@ export const AttendancePage = () => {
         return
       }
 
+      const conversion = applyLopConversion({
+        requestedType: 'Work From Home',
+        startDate: today,
+        endDate: today,
+        days: 1,
+        leaveRequests,
+        employeeFilter,
+        limits: resolveLeaveLimits(currentEmp || {}),
+      })
+
       const created = await createLeaveRequest({
         employeeName: loggedInName,
         employeeId: activeUid,
         employeeEmail: employeeFilter.employeeEmail || '',
-        leaveType: 'Work From Home',
+        leaveType: conversion.leaveType,
+        requestedLeaveType: conversion.requestedLeaveType,
+        convertedToLop: conversion.convertedToLop,
         startDate: today,
         endDate: today,
         days: 1,
-        reason: 'Weekly WFH selected at clock-in',
+        reason: conversion.convertedToLop
+          ? 'Weekly WFH selected at clock-in (over monthly WFH cap → LOP)'
+          : 'Weekly WFH selected at clock-in',
         status: 'approved',
         autoApproved: true,
         reviewedBy: 'WFH Clock-In',

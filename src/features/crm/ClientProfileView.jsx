@@ -19,6 +19,7 @@ import {
   resolveAgreements,
   normalizeOnboardingStatus,
 } from '../../shared/services/contractTemplates'
+import { downloadAgreementRecordAsPDF } from '../../shared/utils/agreementPdf'
 import { db, auth } from '../../shared/services/firebaseService'
 import { sendPasswordResetEmail } from 'firebase/auth'
 import { collection, query, where, getDocs, doc, onSnapshot } from 'firebase/firestore'
@@ -44,12 +45,12 @@ import {
   AlertTriangle,
   Eye,
   X,
-  Printer,
   FileCode,
   Shield,
   FileSignature,
   RotateCcw,
   PencilLine,
+  Download,
 } from 'lucide-react'
 
 const LocalSpinner = () => (
@@ -177,6 +178,17 @@ export const ClientProfileView = () => {
   const activeContract =
     resolvedAgreements.find((a) => a.id === contractId) || resolvedAgreements[0]
   const activeContractSigned = Boolean(onboarding?.agreements?.[contractId]?.signed)
+
+  const handleDownloadAgreementPdf = (agId, title, sigRecord) => {
+    const resolved = resolvedAgreements.find((a) => a.id === agId)
+    downloadAgreementRecordAsPDF({
+      id: agId,
+      title: title || resolved?.title,
+      content: resolved?.content,
+      sigRecord,
+      clientName: companyName || client?.companyName || client?.displayName,
+    })
+  }
 
   // Load the selected agreement into the editor whenever the client or selection changes
   useEffect(() => {
@@ -327,6 +339,12 @@ export const ClientProfileView = () => {
   }
 
   const obStatus = normalizeOnboardingStatus(onboarding?.onboardingStatus || client?.onboardingStatus)
+  const contractList = [
+    { id: 'msa', short: 'MSA', name: 'Master Services Agreement' },
+    { id: 'nda', short: 'NDA', name: 'Mutual Non-Disclosure Agreement' },
+    { id: 'sow', short: 'SOW', name: 'Statement of Work' },
+  ]
+  const signedContractCount = contractList.filter((ag) => onboarding?.agreements?.[ag.id]?.signed).length
 
   return (
     <div className="space-y-6 w-full text-slate-900 dark:text-slate-100">
@@ -418,18 +436,16 @@ export const ClientProfileView = () => {
       {/* TAB 1: COMPLIANCE & ONBOARDING DOCUMENTS */}
       {activeTab === 'compliance' && (
         <div className="space-y-6">
-          {/* Admin Approval Decision Bar */}
-          <Card className="p-5 border-slate-200 dark:border-slate-800 bg-slate-900/50 flex flex-col sm:flex-row sm:items-center justify-between gap-4">
+          <Card className="p-5 flex flex-col sm:flex-row sm:items-center justify-between gap-4">
             <div>
-              <h3 className="font-bold text-sm text-slate-100 flex items-center gap-2">
-                <ShieldCheck className="w-4 h-4 text-indigo-400" /> Admin Onboarding Gate Decision
+              <h3 className="font-semibold text-sm text-slate-900 dark:text-slate-100 flex items-center gap-2">
+                <ShieldCheck className="w-4 h-4 text-indigo-500" /> Onboarding review
               </h3>
-              <p className="text-xs text-slate-400 mt-1">
-                Review the executed e-signatures and the billing profile below before unlocking workspace access.
+              <p className="text-xs text-slate-500 dark:text-slate-400 mt-1">
+                Check contracts and billing, then approve workspace access.
               </p>
             </div>
-
-            <div className="flex items-center gap-3">
+            <div className="flex items-center gap-2 shrink-0">
               {obStatus !== 'approved' ? (
                 <>
                   <Button
@@ -439,9 +455,8 @@ export const ClientProfileView = () => {
                     disabled={saving}
                     icon={XCircle}
                   >
-                    Request Re-signature
+                    Request re-signature
                   </Button>
-
                   <Button
                     variant="primary"
                     size="sm"
@@ -450,116 +465,127 @@ export const ClientProfileView = () => {
                     className="bg-emerald-600 hover:bg-emerald-500 shadow-md shadow-emerald-600/20"
                     icon={Check}
                   >
-                    Approve Client Account
+                    Approve account
                   </Button>
                 </>
               ) : (
-                <div className="flex items-center gap-2 text-xs text-emerald-400 font-semibold bg-emerald-950/40 px-3 py-1.5 rounded-lg border border-emerald-500/30">
-                  <Check className="w-4 h-4" /> Workspace Access Active
-                </div>
+                <span className="inline-flex items-center gap-1.5 text-xs font-medium text-emerald-700 dark:text-emerald-400 bg-emerald-50 dark:bg-emerald-500/10 px-2.5 py-1.5 rounded-lg">
+                  <Check className="w-3.5 h-3.5" /> Access active
+                </span>
               )}
             </div>
           </Card>
 
-          <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
-            {/* Executed Legal Agreements */}
-            <Card className="p-6 border-slate-200 dark:border-slate-800 space-y-4">
-              <div className="flex items-center justify-between pb-3 border-b border-slate-200 dark:border-slate-800">
-                <h4 className="font-bold text-xs uppercase tracking-wider text-slate-500 dark:text-slate-400 flex items-center gap-2">
-                  <FileCheck2 className="w-4 h-4 text-indigo-500" /> Executed Contracts & E-Signatures
+          <div className="grid grid-cols-1 xl:grid-cols-5 gap-6">
+            <Card className="p-0 xl:col-span-3 overflow-hidden">
+              <div className="flex items-center justify-between gap-3 px-5 py-4 border-b border-slate-200 dark:border-slate-800">
+                <h4 className="text-sm font-semibold text-slate-900 dark:text-slate-100 flex items-center gap-2">
+                  <FileCheck2 className="w-4 h-4 text-indigo-500" /> Contracts
                 </h4>
+                <span className="text-[11px] font-medium text-slate-500 dark:text-slate-400">
+                  {signedContractCount} of {contractList.length} signed
+                </span>
               </div>
-
-              <div className="space-y-4">
-                {[
-                  { id: 'msa', name: 'Master Services Agreement (MSA)' },
-                  { id: 'nda', name: 'Mutual Non-Disclosure Agreement (NDA)' },
-                  { id: 'sow', name: 'Statement of Work & Terms (SOW)' },
-                ].map((ag) => {
+              <div>
+                {contractList.map((ag, idx) => {
                   const sig = onboarding?.agreements?.[ag.id]
+                  const signed = Boolean(sig?.signed)
                   return (
                     <div
                       key={ag.id}
-                      className="p-4 rounded-xl bg-slate-50 dark:bg-slate-950/60 border border-slate-200 dark:border-slate-800 space-y-2.5"
+                      className={`px-5 py-4 flex flex-col gap-3 sm:flex-row sm:items-center ${
+                        idx < contractList.length - 1 ? 'border-b border-slate-100 dark:border-slate-800/80' : ''
+                      }`}
                     >
-                      <div className="flex items-center justify-between">
-                        <span className="font-semibold text-xs text-slate-900 dark:text-slate-100">{ag.name}</span>
-                        {sig?.signed ? (
-                          <Badge variant="success" className="text-[10px]">Signed & Verified</Badge>
+                      <div className="min-w-0 flex-1">
+                        <div className="flex items-center gap-2">
+                          <p className="text-sm font-semibold text-slate-900 dark:text-slate-100">{ag.name}</p>
+                          <span className="text-[10px] font-semibold uppercase tracking-wide text-slate-400">
+                            {ag.short}
+                          </span>
+                          {signed ? (
+                            <CheckCircle className="w-3.5 h-3.5 text-emerald-500 shrink-0" />
+                          ) : (
+                            <Clock className="w-3.5 h-3.5 text-slate-400 shrink-0" />
+                          )}
+                        </div>
+                        {signed ? (
+                          <p className="text-[11px] text-slate-500 dark:text-slate-400 mt-1 truncate">
+                            {sig.signatoryName}
+                            {sig.signatoryTitle ? ` · ${sig.signatoryTitle}` : ''}
+                            {' · '}
+                            {sig.timestampFormatted || sig.signedAt}
+                          </p>
                         ) : (
-                          <Badge variant="neutral" className="text-[10px]">Pending</Badge>
+                          <p className="text-[11px] text-slate-400 mt-1">Awaiting signature</p>
                         )}
                       </div>
-
-                      {sig?.signed ? (
-                        <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3 pt-2 border-t border-slate-200 dark:border-slate-800/80 text-xs">
-                          <div>
-                            <p className="text-slate-700 dark:text-slate-300 font-medium">
-                              Signatory: <strong className="text-slate-900 dark:text-slate-100">{sig.signatoryName}</strong> ({sig.signatoryTitle || 'Representative'})
-                            </p>
-                            <p className="text-[11px] text-slate-400">Signed on: {sig.timestampFormatted || sig.signedAt}</p>
-                          </div>
-
-                          <div className="flex items-center gap-2">
-                            {sig.signatureDataUrl && (
-                              <img
-                                src={sig.signatureDataUrl}
-                                alt="Signature"
-                                className="h-8 px-2 py-0.5 bg-slate-900 rounded border border-slate-700 object-contain"
-                              />
-                            )}
-                            <button
-                              onClick={() => setPreviewAgreement({ id: ag.id, title: ag.name, sigRecord: sig })}
-                              className="px-2.5 py-1 bg-indigo-600/10 hover:bg-indigo-600/20 text-indigo-500 rounded-lg border border-indigo-500/20 text-[11px] font-semibold flex items-center gap-1 transition-colors"
-                              title="View Full Signed Contract"
-                            >
-                              <Eye className="w-3.5 h-3.5" /> View Contract
-                            </button>
-                          </div>
-                        </div>
-                      ) : (
-                        <p className="text-xs text-slate-400 italic">No digital signature recorded yet.</p>
-                      )}
+                      <div className="flex items-center gap-2 shrink-0">
+                        {signed && sig.signatureDataUrl && (
+                          <img
+                            src={sig.signatureDataUrl}
+                            alt=""
+                            className="h-7 max-w-[88px] px-1.5 py-0.5 rounded-md bg-white border border-slate-200 dark:border-slate-700 object-contain"
+                          />
+                        )}
+                        {signed && (
+                          <Button
+                            size="sm"
+                            variant="secondary"
+                            icon={Eye}
+                            onClick={() => setPreviewAgreement({ id: ag.id, title: ag.name, sigRecord: sig })}
+                          >
+                            View
+                          </Button>
+                        )}
+                        <Button
+                          size="sm"
+                          variant={signed ? 'primary' : 'secondary'}
+                          icon={Download}
+                          onClick={() => handleDownloadAgreementPdf(ag.id, ag.name, sig)}
+                        >
+                          PDF
+                        </Button>
+                      </div>
                     </div>
                   )
                 })}
               </div>
             </Card>
 
-            {/* Billing & Entity Profile captured by the admin at account creation */}
-            <Card className="p-6 border-slate-200 dark:border-slate-800 space-y-4">
-              <div className="flex items-center justify-between pb-3 border-b border-slate-200 dark:border-slate-800">
-                <h4 className="font-bold text-xs uppercase tracking-wider text-slate-500 dark:text-slate-400 flex items-center gap-2">
-                  <CreditCard className="w-4 h-4 text-emerald-500" /> Billing & Entity Profile
+            <Card className="p-0 xl:col-span-2 overflow-hidden">
+              <div className="px-5 py-4 border-b border-slate-200 dark:border-slate-800">
+                <h4 className="text-sm font-semibold text-slate-900 dark:text-slate-100 flex items-center gap-2">
+                  <CreditCard className="w-4 h-4 text-emerald-500" /> Billing
                 </h4>
-                <Badge variant="neutral" className="text-[10px]">Entered by admin</Badge>
               </div>
-
               {onboarding?.billingInfo ? (
-                <div className="space-y-3">
+                <dl>
                   {[
-                    { label: 'Registered Entity', value: onboarding.companyName || client?.companyName },
-                    { label: 'Billing Email', value: onboarding.billingInfo.billingEmail },
-                    { label: 'Billing Address', value: onboarding.billingInfo.billingAddress },
+                    { label: 'Entity', value: onboarding.companyName || client?.companyName },
+                    { label: 'Email', value: onboarding.billingInfo.billingEmail },
+                    { label: 'Address', value: onboarding.billingInfo.billingAddress },
                     { label: 'Tax ID / GST', value: onboarding.billingInfo.taxId },
-                    { label: 'Payment Method', value: onboarding.billingInfo.paymentMethod?.toUpperCase() },
-                    { label: 'Accounts Contact', value: onboarding.billingInfo.signerPhone },
-                  ].map((row) => (
+                    { label: 'Payment', value: onboarding.billingInfo.paymentMethod?.toUpperCase() },
+                    { label: 'Accounts contact', value: onboarding.billingInfo.signerPhone },
+                  ].map((row, idx, arr) => (
                     <div
                       key={row.label}
-                      className="p-3 rounded-xl bg-slate-50 dark:bg-slate-950/60 border border-slate-200 dark:border-slate-800 flex items-start justify-between gap-4"
+                      className={`px-5 py-3 grid grid-cols-[7.5rem_1fr] gap-3 ${
+                        idx < arr.length - 1 ? 'border-b border-slate-100 dark:border-slate-800/80' : ''
+                      }`}
                     >
-                      <span className="text-[11px] text-slate-500 dark:text-slate-400 shrink-0 pt-0.5">{row.label}</span>
-                      <span className="text-xs font-medium text-slate-900 dark:text-slate-100 text-right break-words">
-                        {row.value || <span className="text-slate-400 italic font-normal">Not provided</span>}
-                      </span>
+                      <dt className="text-[11px] text-slate-500 dark:text-slate-400 pt-0.5">{row.label}</dt>
+                      <dd className="text-xs font-medium text-slate-900 dark:text-slate-100 break-words">
+                        {row.value || <span className="text-slate-400 font-normal">—</span>}
+                      </dd>
                     </div>
                   ))}
-                </div>
+                </dl>
               ) : (
-                <div className="p-4 rounded-xl bg-slate-50 dark:bg-slate-950/60 border border-dashed border-slate-300 dark:border-slate-700 text-xs text-slate-500 dark:text-slate-400">
-                  No billing profile on record yet. Add GST, address and payment details on the Profile &amp; Account Settings tab.
-                </div>
+                <p className="px-5 py-8 text-xs text-slate-500 dark:text-slate-400">
+                  No billing profile yet. Add details on Profile &amp; Account Settings.
+                </p>
               )}
             </Card>
           </div>
@@ -1017,11 +1043,17 @@ export const ClientProfileView = () => {
               <Button
                 variant="primary"
                 size="sm"
-                onClick={() => window.print()}
+                onClick={() =>
+                  handleDownloadAgreementPdf(
+                    previewAgreement.id,
+                    previewAgreement.title,
+                    previewAgreement.sigRecord
+                  )
+                }
                 className="bg-indigo-600 hover:bg-indigo-500"
-                icon={Printer}
+                icon={Download}
               >
-                Print / Save PDF Certificate
+                Download PDF
               </Button>
             </div>
           </div>

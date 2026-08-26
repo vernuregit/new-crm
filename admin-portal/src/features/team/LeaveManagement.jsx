@@ -14,6 +14,11 @@ import {
   getWfhAllowanceLabel,
   getWfhLeaveStatus,
 } from './services/wfhPolicyUtils'
+import {
+  applyLopConversion,
+  formatLeaveTypeLabel,
+  resolveLeaveLimits,
+} from './services/leaveEntitlementUtils'
 import { TeamSubNav } from './components/TeamSubNav'
 import { collection, onSnapshot } from 'firebase/firestore'
 import { db } from '../../shared/services/firebaseService'
@@ -138,13 +143,27 @@ export const LeaveManagement = () => {
         ? Math.max(1, Math.round((new Date(endDate) - new Date(startDate)) / 86400000) + 1)
         : 1
 
+    const conversion = applyLopConversion({
+      requestedType: leaveType,
+      startDate: resolvedStart,
+      endDate: resolvedEnd,
+      days: daysCount,
+      leaveRequests,
+      employeeFilter: {
+        employeeId: matchedEmp?.uid || matchedEmp?.employeeId || '',
+        employeeEmail: matchedEmp?.email || '',
+        employeeName,
+      },
+      limits: resolveLeaveLimits(matchedEmp || {}),
+    })
+
     let wfhExtras = {}
     if (leaveType === 'Work From Home') {
       if (!policy.canRequest) {
         setValidationError(
           policy.mode === 'full'
             ? 'This employee is on Full WFH and does not need WFH leave requests.'
-            : 'WFH is not enabled for this employee. Set their policy under Team → WFH Policy.'
+            : 'WFH is not enabled for this employee. Set their policy under Team → Leave & WFH Policy.'
         )
         return
       }
@@ -153,21 +172,25 @@ export const LeaveManagement = () => {
         employeeEmail: matchedEmp?.email || '',
         employeeName,
       }
-      const usedForRequest = countUsedWfhDays(
-        leaveRequests,
-        employeeFilter,
-        policy,
-        resolvedStart
-      )
-      const wfhError = validateWfhRequest(policy, usedForRequest, daysCount)
-      if (wfhError) {
-        setValidationError(wfhError)
-        return
+      if (!conversion.convertedToLop && policy.mode === 'weekly') {
+        const usedForRequest = countUsedWfhDays(
+          leaveRequests,
+          employeeFilter,
+          policy,
+          resolvedStart
+        )
+        const wfhError = validateWfhRequest(policy, usedForRequest, daysCount)
+        if (wfhError) {
+          setValidationError(wfhError)
+          return
+        }
       }
-      const status = getWfhLeaveStatus(policy, { createdByAdmin: true })
+      const status = conversion.convertedToLop
+        ? 'approved'
+        : getWfhLeaveStatus(policy, { createdByAdmin: true })
       wfhExtras = {
         status,
-        autoApproved: policy.mode === 'weekly',
+        autoApproved: policy.mode === 'weekly' || conversion.convertedToLop,
         reviewedBy: policy.mode === 'weekly' ? 'WFH Policy' : adminName,
       }
     }
@@ -176,7 +199,9 @@ export const LeaveManagement = () => {
       employeeName,
       employeeId: matchedEmp?.uid || matchedEmp?.employeeId || '',
       employeeEmail: matchedEmp?.email || '',
-      leaveType,
+      leaveType: conversion.leaveType,
+      requestedLeaveType: conversion.requestedLeaveType,
+      convertedToLop: conversion.convertedToLop,
       startDate: resolvedStart,
       endDate: resolvedEnd,
       days: daysCount,
@@ -327,7 +352,7 @@ export const LeaveManagement = () => {
                     )
                   })()}
                 </td>
-                <td className="p-4 text-slate-800 dark:text-slate-300 font-medium">{req.leaveType}</td>
+                <td className="p-4 text-slate-800 dark:text-slate-300 font-medium">{formatLeaveTypeLabel(req)}</td>
                 <td className="p-4 text-slate-600 dark:text-slate-400">
                   {req.startDate === req.endDate || Number(req.days) === 1
                     ? `${req.startDate} (1 Day)`

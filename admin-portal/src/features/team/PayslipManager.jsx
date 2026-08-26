@@ -1,4 +1,4 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useMemo } from 'react';
 import { PageHeader } from '../../components/layout/PageHeader';
 import { TeamSubNav } from './components/TeamSubNav';
 import { Card } from '../../components/ui/Card';
@@ -6,6 +6,11 @@ import { Button } from '../../components/ui/Button';
 import { Input } from '../../components/ui/Input';
 import { Badge } from '../../components/ui/Badge';
 import { getEmployees } from './services/teamService';
+import {
+  classifyApprovedLeaveByDate,
+  countClassifiedLopDays,
+  resolveLeaveLimits,
+} from './services/leaveEntitlementUtils';
 import { db, storage } from '../../shared/services/firebaseService';
 import { useUserStore } from '../../stores/userStore';
 import {
@@ -46,6 +51,7 @@ export const PayslipManager = () => {
   const [file, setFile] = useState(null);
   const [submitting, setSubmitting] = useState(false);
   const [successMsg, setSuccessMsg] = useState('');
+  const [leaveRequests, setLeaveRequests] = useState([]);
 
   const netSalary = (Number(grossSalary) || 0) - (Number(deductions) || 0);
 
@@ -62,6 +68,17 @@ export const PayslipManager = () => {
       }
     };
     fetchEmployees();
+  }, []);
+
+  useEffect(() => {
+    const unsub = onSnapshot(
+      collection(db, 'leaveRequests'),
+      (snapshot) => {
+        setLeaveRequests(snapshot.docs.map((d) => ({ ...d.data(), leaveId: d.id })));
+      },
+      () => setLeaveRequests([])
+    );
+    return () => unsub();
   }, []);
 
   useEffect(() => {
@@ -112,6 +129,8 @@ export const PayslipManager = () => {
         grossSalary: Number(grossSalary),
         deductions: Number(deductions),
         netSalary,
+        lopDays,
+        unpaidLeaveDays: lopDays,
         currency: 'INR',
         pdfURL,
         generatedAt: serverTimestamp(),
@@ -148,6 +167,22 @@ export const PayslipManager = () => {
   };
 
   const selectedEmployee = employees.find(e => e.uid === selectedEmployeeUid);
+
+  const monthStr = `${year}-${String(month).padStart(2, '0')}`;
+  const lopDays = useMemo(() => {
+    if (!selectedEmployee) return 0;
+    const classified = classifyApprovedLeaveByDate(
+      leaveRequests,
+      {
+        employeeId: selectedEmployee.uid,
+        uid: selectedEmployee.uid,
+        employeeEmail: selectedEmployee.email || '',
+        employeeName: selectedEmployee.displayName || selectedEmployee.name || '',
+      },
+      resolveLeaveLimits(selectedEmployee)
+    );
+    return countClassifiedLopDays(classified, monthStr);
+  }, [leaveRequests, selectedEmployee, monthStr]);
 
   return (
     <div className="space-y-6">
@@ -296,6 +331,10 @@ export const PayslipManager = () => {
                       </div>
                     </div>
 
+                    <div className="p-3 rounded-xl bg-violet-50 dark:bg-violet-500/10 border border-violet-200 dark:border-violet-500/30 text-sm text-violet-800 dark:text-violet-200">
+                      Unpaid leave (LOP): <strong>{lopDays}</strong> day{lopDays === 1 ? '' : 's'} in {MONTHS[month - 1]} {year}. Display only — salary math is unchanged.
+                    </div>
+
                     <div className="space-y-2">
                       <label className="text-sm font-medium text-slate-700 dark:text-slate-300">Payslip PDF (Optional)</label>
                       <div className="flex items-center space-x-4">
@@ -340,6 +379,7 @@ export const PayslipManager = () => {
                             <th className="px-4 py-3">Gross</th>
                             <th className="px-4 py-3">Deductions</th>
                             <th className="px-4 py-3">Net</th>
+                            <th className="px-4 py-3">LOP</th>
                             <th className="px-4 py-3">PDF</th>
                             <th className="px-4 py-3">Created By</th>
                             <th className="px-4 py-3 rounded-tr-lg"></th>
@@ -359,6 +399,9 @@ export const PayslipManager = () => {
                               </td>
                               <td className="px-4 py-3 font-semibold text-emerald-600 dark:text-emerald-400">
                                 ₹{payslip.netSalary?.toLocaleString()}
+                              </td>
+                              <td className="px-4 py-3 text-violet-700 dark:text-violet-300">
+                                {payslip.lopDays ?? payslip.unpaidLeaveDays ?? 0} unpaid
                               </td>
                               <td className="px-4 py-3">
                                 {payslip.pdfURL ? (

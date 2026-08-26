@@ -49,6 +49,7 @@ function StatCard({ label, value, sub, icon: Icon, accent = 'indigo' }) {
     emerald: 'bg-emerald-50 dark:bg-emerald-500/10 text-emerald-600 dark:text-emerald-400',
     rose: 'bg-rose-50 dark:bg-rose-500/10 text-rose-600 dark:text-rose-400',
     slate: 'bg-slate-100 dark:bg-slate-800 text-slate-600 dark:text-slate-300',
+    violet: 'bg-violet-50 dark:bg-violet-500/10 text-violet-600 dark:text-violet-400',
   }
   return (
     <Card className="p-4 border-slate-200 dark:border-slate-800 flex items-center gap-3">
@@ -323,6 +324,7 @@ export function EmployeeMonthlyReportPage() {
                 employeeUid={selectedUid}
                 employeeEmail={selectedEmployee?.email || ''}
                 employeeName={selectedEmployee?.displayName || selectedEmployee?.name || ''}
+                employee={selectedEmployee}
                 month={month}
                 accountStartDate={accountStartDate}
               />
@@ -378,6 +380,13 @@ export function EmployeeMonthlyReportPage() {
               accent="indigo"
             />
             <StatCard
+              label="LOP (unpaid)"
+              value={leave.lopDays ?? leave.unpaidLeaveDays ?? 0}
+              sub="Loss of pay days"
+              icon={AlertCircle}
+              accent="violet"
+            />
+            <StatCard
               label="Avg Hours"
               value={att.avgHours || '0h 0m'}
               sub={`Total ${att.totalRegularHoursLabel || formatSecondsToHrsMins(att.totalRegularSeconds)}`}
@@ -398,6 +407,7 @@ export function EmployeeMonthlyReportPage() {
               employeeUid={selectedUid}
               employeeEmail={selectedEmployee?.email || ''}
               employeeName={selectedEmployee?.displayName || selectedEmployee?.name || report.displayName || ''}
+              employee={selectedEmployee}
               month={month}
               accountStartDate={accountStartDate}
             />

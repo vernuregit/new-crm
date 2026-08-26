@@ -138,7 +138,7 @@ const ADMIN_GROUPS = [
       { name: 'Holidays', path: '/team/holidays', icon: Calendar },
       { name: 'Payslips', path: '/team/payslips', icon: FileText },
       { name: 'Employee Documents', path: '/team/documents', icon: FileText },
-      { name: 'WFH Policy', path: '/team/wfh-policy', icon: Building },
+      { name: 'Leave & WFH Policy', path: '/team/wfh-policy', icon: Building },
       { name: 'Timelines', path: '/team/timeline', icon: Clock },
       { name: 'Monthly Reports', path: '/team/reports', icon: BarChart2 },
     ],

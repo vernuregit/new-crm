@@ -4,32 +4,24 @@ import {
   getAttendanceLogsForMonth,
   subscribeToCompanyHolidays,
 } from '../services/teamService'
-import { expandDateRange } from '../services/monthlyReportEngine'
 import { isAttendancePresent } from '../services/attendanceStatsUtils'
+import {
+  classifyApprovedLeaveByDate,
+  resolveLeaveLimits,
+  attendanceStatusDotClass,
+  attendanceStatusDotSizeClass,
+  attendanceStatusDayClass,
+  attendanceStatusTooltip,
+} from '../services/leaveEntitlementUtils'
 import { collection, onSnapshot } from 'firebase/firestore'
 import { db } from '../../../shared/services/firebaseService'
 import { ChevronLeft, ChevronRight } from 'lucide-react'
 
-const LOP_LEAVE_TYPE = 'LOP (Loss of Pay)'
-/** Approved leave types that mark attendance Present (not absent/LOP overlays). */
-const PRESENT_LEAVE_TYPES = new Set(['On Duty', 'Work From Home'])
-
-const leaveMatchesEmployee = (l, employeeUid, employeeEmail, employeeName) =>
-  Boolean(
-    (employeeUid && (l.employeeId === employeeUid || l.uid === employeeUid)) ||
-      (employeeEmail && l.employeeEmail?.toLowerCase() === employeeEmail.toLowerCase()) ||
-      (employeeName && l.employeeName?.toLowerCase() === employeeName.toLowerCase())
-  )
-
-/**
- * Admin attendance calendar for one employee/month.
- * Shows Present / Absent / Holiday / LOP (violet) / approved leave (red).
- * Leave overlays always reflect live Admin-approved leaveRequests (deletes clear immediately).
- */
 export function EmployeeAttendanceCalendar({
   employeeUid,
   employeeEmail = '',
   employeeName = '',
+  employee = null,
   month,
   accountStartDate = null,
 }) {
@@ -95,24 +87,19 @@ export function EmployeeAttendanceCalendar({
     }
   }, [employeeUid, viewMonth])
 
-  /** date → { kind: 'lop' | 'leave', leaveType } from currently approved leave only */
   const approvedLeaveByDate = useMemo(() => {
-    const map = {}
-    if (!employeeUid && !employeeEmail && !employeeName) return map
-    leaveRequests.forEach((l) => {
-      if (l.status !== 'approved') return
-      if (!leaveMatchesEmployee(l, employeeUid, employeeEmail, employeeName)) return
-      const type = l.leaveType || 'Leave'
-      if (PRESENT_LEAVE_TYPES.has(type)) return
-      const kind = type === LOP_LEAVE_TYPE ? 'lop' : 'leave'
-      expandDateRange(l.startDate, l.endDate || l.startDate).forEach((d) => {
-        if (viewMonth && !d.startsWith(viewMonth)) return
-        if (map[d]?.kind === 'lop') return
-        map[d] = { kind, leaveType: type }
-      })
-    })
-    return map
-  }, [leaveRequests, employeeUid, employeeEmail, employeeName, viewMonth])
+    if (!employeeUid && !employeeEmail && !employeeName) return {}
+    return classifyApprovedLeaveByDate(
+      leaveRequests,
+      {
+        employeeId: employeeUid,
+        uid: employeeUid,
+        employeeEmail,
+        employeeName,
+      },
+      resolveLeaveLimits(employee)
+    )
+  }, [leaveRequests, employeeUid, employeeEmail, employeeName, employee])
 
   const [year, monthIndex] = useMemo(() => {
     if (!viewMonth || !/^\d{4}-\d{2}$/.test(viewMonth)) {
@@ -177,8 +164,11 @@ export function EmployeeAttendanceCalendar({
     if (companyHolidays[dateKey]) return 'holiday'
 
     const approvedLeave = approvedLeaveByDate[dateKey]
-    if (approvedLeave?.kind === 'lop') return 'lop'
-    if (approvedLeave?.kind === 'leave') return 'leave'
+    if (approvedLeave?.status === 'lop') return 'lop'
+    if (approvedLeave?.status === 'wfh') return 'wfh'
+    if (approvedLeave?.status === 'casual') return 'casual'
+    if (approvedLeave?.status === 'sick') return 'sick'
+    if (approvedLeave?.status === 'leave') return 'leave'
 
     // Future days: never show Absent
     if (isFuture) return null
@@ -263,13 +253,7 @@ export function EmployeeAttendanceCalendar({
                   is6Rows ? 'w-4.5 h-4.5 text-[10px]' : 'w-5 h-5 text-[11px]'
                 } ${
                   cell.isCurrentMonth
-                    ? status === 'holiday'
-                      ? 'bg-amber-400/15 text-amber-600 dark:text-amber-400 font-bold'
-                      : status === 'lop'
-                      ? 'bg-violet-500/15 text-violet-600 dark:text-violet-400 font-bold'
-                      : status === 'leave'
-                      ? 'bg-rose-500/15 text-rose-600 dark:text-rose-400 font-bold'
-                      : 'text-slate-800 dark:text-slate-200'
+                    ? attendanceStatusDayClass(status) || 'text-slate-800 dark:text-slate-200'
                     : 'text-slate-300 dark:text-slate-600 font-normal'
                 }`}
               >
@@ -279,34 +263,20 @@ export function EmployeeAttendanceCalendar({
                 {cell.isCurrentMonth && status && (
                   <>
                     <span
-                      className={`w-1.5 h-1.5 rounded-full ${
-                        status === 'present'
-                          ? 'bg-emerald-500'
-                          : status === 'holiday'
-                          ? 'bg-amber-400'
-                          : status === 'lop'
-                          ? 'bg-violet-500'
-                          : 'bg-rose-500'
-                      }`}
+                      className={`rounded-full ${attendanceStatusDotSizeClass(status)} ${attendanceStatusDotClass(status)}`}
                     />
-                    {status === 'holiday' && companyHolidays[dateKey]?.name && (
+                    {attendanceStatusTooltip(
+                      status,
+                      leaveOverlay?.leaveType,
+                      companyHolidays[dateKey]?.name
+                    ) && (
                       <div className="absolute bottom-full mb-1.5 left-1/2 -translate-x-1/2 z-20 hidden group-hover/dot:block pointer-events-none">
                         <div className="bg-slate-900 dark:bg-slate-100 text-white dark:text-slate-900 text-[8px] font-semibold rounded-lg px-2 py-1 whitespace-nowrap shadow-xl">
-                          {companyHolidays[dateKey].name}
-                        </div>
-                      </div>
-                    )}
-                    {status === 'lop' && (
-                      <div className="absolute bottom-full mb-1.5 left-1/2 -translate-x-1/2 z-20 hidden group-hover/dot:block pointer-events-none">
-                        <div className="bg-slate-900 dark:bg-slate-100 text-white dark:text-slate-900 text-[8px] font-semibold rounded-lg px-2 py-1 whitespace-nowrap shadow-xl">
-                          LOP (Loss of Pay)
-                        </div>
-                      </div>
-                    )}
-                    {status === 'leave' && leaveOverlay?.leaveType && (
-                      <div className="absolute bottom-full mb-1.5 left-1/2 -translate-x-1/2 z-20 hidden group-hover/dot:block pointer-events-none">
-                        <div className="bg-slate-900 dark:bg-slate-100 text-white dark:text-slate-900 text-[8px] font-semibold rounded-lg px-2 py-1 whitespace-nowrap shadow-xl">
-                          {leaveOverlay.leaveType}
+                          {attendanceStatusTooltip(
+                            status,
+                            leaveOverlay?.leaveType,
+                            companyHolidays[dateKey]?.name
+                          )}
                         </div>
                       </div>
                     )}
@@ -320,20 +290,32 @@ export function EmployeeAttendanceCalendar({
 
       <div className="pt-2 mt-1 border-t border-slate-100 dark:border-slate-800/80 flex items-center justify-center gap-3 text-[10px] font-medium text-slate-600 dark:text-slate-400 flex-wrap">
         <div className="flex items-center gap-1.5">
-          <span className="w-1.5 h-1.5 rounded-full bg-emerald-500" />
+          <span className="w-1.5 h-1.5 rounded-full bg-[#22C55E]" />
           <span>Present</span>
         </div>
         <div className="flex items-center gap-1.5">
-          <span className="w-1.5 h-1.5 rounded-full bg-rose-500" />
-          <span>Absent</span>
+          <span className="w-1.5 h-1.5 rounded-full bg-[#06B6D4]" />
+          <span>WFH</span>
         </div>
         <div className="flex items-center gap-1.5">
-          <span className="w-1.5 h-1.5 rounded-full bg-amber-400" />
+          <span className="w-1.5 h-1.5 rounded-full bg-[#A855F7]" />
+          <span>Casual Leave</span>
+        </div>
+        <div className="flex items-center gap-1.5">
+          <span className="w-1.5 h-1.5 rounded-full bg-[#F97316]" />
+          <span>Sick Leave</span>
+        </div>
+        <div className="flex items-center gap-1.5">
+          <span className="w-1.5 h-1.5 rounded-full bg-[#EAB308]" />
           <span>Holiday</span>
         </div>
         <div className="flex items-center gap-1.5">
-          <span className="w-1.5 h-1.5 rounded-full bg-violet-500" />
+          <span className="w-1.5 h-1.5 rounded-full bg-[#EC4899]" />
           <span>LOP</span>
+        </div>
+        <div className="flex items-center gap-1.5">
+          <span className="w-1.5 h-1.5 rounded-full bg-[#EF4444]" />
+          <span>Absent</span>
         </div>
       </div>
     </Card>

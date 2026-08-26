@@ -5,12 +5,20 @@ import { Card } from '../../components/ui/Card';
 import { Button } from '../../components/ui/Button';
 import { PageHeader } from '../../components/layout/PageHeader';
 import { Receipt, Download, IndianRupee } from 'lucide-react';
+import { collection, onSnapshot } from 'firebase/firestore';
+import { db } from '../../shared/services/firebaseService';
+import {
+  classifyApprovedLeaveByDate,
+  resolveLeaveLimits,
+} from '../team/services/leaveEntitlementUtils';
 
 export const PayslipsPage = () => {
   const user = useUserStore(state => state.user);
+  const userDoc = useUserStore(state => state.userDoc);
   const [payslips, setPayslips] = useState([]);
   const [loading, setLoading] = useState(true);
   const [selectedYear, setSelectedYear] = useState(new Date().getFullYear());
+  const [leaveRequests, setLeaveRequests] = useState([]);
 
   useEffect(() => {
     if (!user?.uid) return;
@@ -20,6 +28,35 @@ export const PayslipsPage = () => {
     });
     return () => unsubscribe();
   }, [user?.uid]);
+
+  useEffect(() => {
+    const unsub = onSnapshot(
+      collection(db, 'leaveRequests'),
+      (snap) => setLeaveRequests(snap.docs.map((d) => ({ ...d.data(), leaveId: d.id }))),
+      () => setLeaveRequests([])
+    );
+    return () => unsub();
+  }, []);
+
+  const liveLopByMonth = useMemo(() => {
+    const classified = classifyApprovedLeaveByDate(
+      leaveRequests,
+      {
+        employeeId: user?.uid || userDoc?.uid,
+        uid: user?.uid || userDoc?.uid,
+        employeeEmail: user?.email || userDoc?.email || '',
+        employeeName: userDoc?.displayName || user?.displayName || '',
+      },
+      resolveLeaveLimits(userDoc)
+    );
+    const map = {};
+    Object.entries(classified).forEach(([date, info]) => {
+      if (info?.status !== 'lop') return;
+      const key = date.slice(0, 7);
+      map[key] = (map[key] || 0) + 1;
+    });
+    return map;
+  }, [leaveRequests, user, userDoc]);
 
   const years = useMemo(() => {
     const y = new Set(payslips.map(p => p.year));
@@ -109,6 +146,7 @@ export const PayslipsPage = () => {
                   <th className="px-6 py-4 font-medium">Gross Salary</th>
                   <th className="px-6 py-4 font-medium">Deductions</th>
                   <th className="px-6 py-4 font-medium">Net Salary</th>
+                  <th className="px-6 py-4 font-medium">Unpaid leave (LOP)</th>
                   <th className="px-6 py-4 font-medium text-right">Action</th>
                 </tr>
               </thead>
@@ -126,6 +164,15 @@ export const PayslipsPage = () => {
                     </td>
                     <td className="px-6 py-4 font-medium text-emerald-600 dark:text-emerald-400">
                       {formatCurrency(payslip.netSalary)}
+                    </td>
+                    <td className="px-6 py-4 text-violet-700 dark:text-violet-300">
+                      {(() => {
+                        const stored = payslip.lopDays ?? payslip.unpaidLeaveDays
+                        if (stored != null) return `${stored} day${stored === 1 ? '' : 's'}`
+                        const key = `${payslip.year}-${String(payslip.month).padStart(2, '0')}`
+                        const live = liveLopByMonth[key] || 0
+                        return `${live} day${live === 1 ? '' : 's'}`
+                      })()}
                     </td>
                     <td className="px-6 py-4 text-right">
                       {payslip.pdfURL ? (

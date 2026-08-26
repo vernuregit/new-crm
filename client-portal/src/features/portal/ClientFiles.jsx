@@ -1,12 +1,13 @@
 import React, { useState, useEffect } from 'react'
 import { Card } from '../../components/ui/Card'
-import { Badge } from '../../components/ui/Badge'
 import { Button } from '../../components/ui/Button'
 import { usePortalStore } from './stores/portalStore'
 import { useUserStore } from '../../stores/userStore'
 import { getClientDeliverables } from './services/portalService'
 import { db } from '../../shared/services/firebaseService'
 import { collection, query, where, onSnapshot } from 'firebase/firestore'
+import { getClientOnboardingDoc, resolveAgreements } from '../../shared/services/onboardingService'
+import { downloadAgreementRecordAsPDF } from '../../shared/utils/agreementPdf'
 import {
   FileText,
   Download,
@@ -18,7 +19,7 @@ import {
   Loader2,
   FolderOpen,
   X,
-  ExternalLink,
+  Scale,
 } from 'lucide-react'
 
 export const ClientFiles = () => {
@@ -27,6 +28,9 @@ export const ClientFiles = () => {
   const [isLoading, setIsLoading] = useState(false)
   const [filterCategory, setFilterCategory] = useState('All')
   const [previewDoc, setPreviewDoc] = useState(null)
+  const [agreements, setAgreements] = useState([])
+  const [agreementRecords, setAgreementRecords] = useState({})
+  const [companyName, setCompanyName] = useState('')
 
   useEffect(() => {
     if (!user?.uid) return
@@ -52,6 +56,35 @@ export const ClientFiles = () => {
 
     return () => unsub1()
   }, [user, setFiles])
+
+  useEffect(() => {
+    if (!user?.uid) return
+    let cancelled = false
+    getClientOnboardingDoc(user.uid)
+      .then((data) => {
+        if (cancelled) return
+        setAgreements(resolveAgreements(data?.agreementTexts))
+        setAgreementRecords(data?.agreements || {})
+        setCompanyName(data?.companyName || '')
+      })
+      .catch(() => {
+        if (cancelled) return
+        setAgreements(resolveAgreements(null))
+      })
+    return () => {
+      cancelled = true
+    }
+  }, [user?.uid])
+
+  const handleDownloadAgreement = (ag) => {
+    downloadAgreementRecordAsPDF({
+      id: ag.id,
+      title: ag.title,
+      content: ag.content,
+      sigRecord: agreementRecords[ag.id],
+      clientName: companyName || user?.displayName,
+    })
+  }
 
 
   // Helpers to get file type icon
@@ -141,6 +174,56 @@ export const ClientFiles = () => {
         </p>
       </div>
 
+      {agreements.length > 0 && (
+        <section className="space-y-3">
+          <div>
+            <h3 className="text-sm font-semibold text-slate-900 dark:text-white">Legal agreements</h3>
+            <p className="text-xs text-slate-500 dark:text-slate-400 mt-0.5">
+              MSA, NDA, and SOW — download each PDF separately.
+            </p>
+          </div>
+          <div className="rounded-2xl border border-slate-200/80 dark:border-slate-800 overflow-hidden bg-white dark:bg-[#111827]">
+            {agreements.map((ag, idx) => {
+              const short =
+                ag.id === 'msa' ? 'MSA' : ag.id === 'nda' ? 'NDA' : ag.id === 'sow' ? 'SOW' : ag.id.toUpperCase()
+              const label = ag.title.replace(/\s*\((MSA|NDA|SOW)\)\s*$/i, '')
+              return (
+                <div
+                  key={ag.id}
+                  className={`flex items-center gap-3.5 px-4 py-3.5 ${
+                    idx < agreements.length - 1 ? 'border-b border-slate-100 dark:border-slate-800/80' : ''
+                  }`}
+                >
+                  <div className="w-10 h-10 rounded-xl bg-blue-50 dark:bg-blue-500/10 text-blue-600 dark:text-blue-400 flex items-center justify-center shrink-0">
+                    <Scale className="w-4 h-4" />
+                  </div>
+                  <div className="min-w-0 flex-1">
+                    <p className="text-sm font-semibold text-slate-900 dark:text-white truncate">{label}</p>
+                    <p className="text-[11px] text-slate-500 dark:text-slate-400 mt-0.5">{short} · PDF</p>
+                  </div>
+                  <Button
+                    size="sm"
+                    variant="secondary"
+                    icon={Download}
+                    onClick={() => handleDownloadAgreement(ag)}
+                    className="shrink-0"
+                  >
+                    Download
+                  </Button>
+                </div>
+              )
+            })}
+          </div>
+        </section>
+      )}
+
+      <section className="space-y-3">
+        <div>
+          <h3 className="text-sm font-semibold text-slate-900 dark:text-white">Project files</h3>
+          <p className="text-xs text-slate-500 dark:text-slate-400 mt-0.5">
+            Specs, reports, and deliverables shared by your team.
+          </p>
+        </div>
       {/* Category Tabs */}
       <div className="flex gap-2 overflow-x-auto pb-1">
         {['All', 'Contract', 'Deliverable', 'Design Spec', 'Report', 'Technical', 'Other'].map((tab) => (
@@ -233,6 +316,7 @@ export const ClientFiles = () => {
           })}
         </div>
       )}
+      </section>
 
       {/* Document Detail / Information Modal */}
       {previewDoc && (
