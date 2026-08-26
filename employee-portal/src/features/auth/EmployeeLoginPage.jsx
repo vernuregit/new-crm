@@ -57,16 +57,16 @@ export const EmployeeLoginPage = () => {
   }
 
   return (
-    <div className="min-h-screen bg-slate-50 dark:bg-[#0F1117] flex items-center justify-center p-4 relative overflow-hidden text-slate-900 dark:text-slate-100 transition-colors duration-200">
-      <div className="absolute top-1/4 left-1/2 -translate-x-1/2 w-96 h-96 bg-purple-500/10 dark:bg-purple-600/15 blur-[120px] rounded-full pointer-events-none" />
+    <div className="min-h-screen bg-canvas flex items-center justify-center p-4 relative overflow-hidden text-fg transition-colors duration-200">
+      <div className="absolute top-1/4 left-1/2 -translate-x-1/2 w-96 h-96 bg-accent/8 blur-[120px] rounded-full pointer-events-none" />
 
-      <Card className="w-full max-w-md p-8 relative z-10 border-purple-200/80 dark:border-purple-500/30 shadow-xl dark:shadow-2xl space-y-6">
+      <Card className="w-full max-w-md p-8 relative z-10 space-y-6">
         <div className="text-center space-y-2">
-          <div className="inline-flex w-20 h-20 rounded-full bg-white p-2 items-center justify-center border border-slate-200 dark:border-slate-700/80 shadow-md mb-2">
+          <div className="inline-flex w-20 h-20 rounded-full bg-surface p-2 items-center justify-center border border-border shadow-sm mb-2">
             <img src={haloLogo} alt="The Halo Effect Consulting" className="w-full h-full object-contain rounded-full" />
           </div>
-          <h2 className="text-2xl font-bold text-slate-900 dark:text-slate-100 tracking-tight">EMPLOYEE PORTAL</h2>
-          <p className="text-xs text-slate-500 dark:text-slate-400">Sprint Tasks & Attendance Workspace</p>
+          <h2 className="text-2xl font-bold text-fg tracking-tight">Employee portal</h2>
+          <p className="text-xs text-muted">Sprint tasks and attendance workspace</p>
         </div>
 
         {error && (
@@ -78,7 +78,7 @@ export const EmployeeLoginPage = () => {
 
         <form onSubmit={handleRealLogin} className="space-y-4">
           <Input
-            label=" EMPLOYEEWork Email"
+            label="Work email"
             type="email"
             placeholder="staff@company.com"
             icon={Mail}
@@ -97,7 +97,7 @@ export const EmployeeLoginPage = () => {
             required
           />
 
-          <Button type="submit" variant="primary" className="w-full mt-2 bg-purple-600 hover:bg-purple-500" disabled={loading} icon={ArrowRight}>
+          <Button type="submit" variant="primary" className="w-full mt-2" disabled={loading} icon={ArrowRight}>
             {loading ? 'Authenticating Staff...' : 'Sign In'}
           </Button>
         </form>

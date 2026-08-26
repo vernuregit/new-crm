@@ -9,7 +9,6 @@ import {
   resolveLeaveLimits,
   attendanceStatusDotClass,
   attendanceStatusDotSizeClass,
-  attendanceStatusDayClass,
   attendanceStatusTooltip,
 } from '../../team/services/leaveEntitlementUtils'
 import { collection, doc, getDoc, onSnapshot } from 'firebase/firestore'
@@ -393,9 +392,9 @@ export const AttendanceCalendarWidget = () => {
                       is6Rows ? 'w-4.5 h-4.5 text-[10px]' : 'w-5 h-5 text-[11px]'
                     } ${
                       isSelected
-                        ? 'bg-indigo-600 text-white font-bold shadow-sm shadow-indigo-500/40'
+                        ? 'bg-accent text-white font-bold'
                         : cell.isCurrentMonth
-                        ? attendanceStatusDayClass(status) || 'text-slate-800 dark:text-slate-200'
+                        ? 'text-slate-900 dark:text-white'
                         : 'text-slate-300 dark:text-slate-600 font-normal'
                     }`}
                   >

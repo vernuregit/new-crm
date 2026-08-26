@@ -46,10 +46,10 @@ const quickLinks = [
 ]
 
 const colorMap = {
-  indigo: 'bg-indigo-500/10 text-indigo-400 border-indigo-500/20',
-  blue: 'bg-blue-500/10 text-blue-400 border-blue-500/20',
-  purple: 'bg-purple-500/10 text-purple-400 border-purple-500/20',
-  emerald: 'bg-emerald-500/10 text-emerald-400 border-emerald-500/20',
+  indigo: 'bg-violet-50 dark:bg-violet-500/10 text-violet-600 dark:text-violet-400 border-violet-200 dark:border-violet-500/20',
+  blue: 'bg-blue-50 dark:bg-blue-500/10 text-blue-600 dark:text-blue-400 border-blue-200 dark:border-blue-500/20',
+  purple: 'bg-purple-50 dark:bg-purple-500/10 text-purple-600 dark:text-purple-400 border-purple-200 dark:border-purple-500/20',
+  emerald: 'bg-emerald-50 dark:bg-emerald-500/10 text-emerald-600 dark:text-emerald-400 border-emerald-200 dark:border-emerald-500/20',
 }
 
 const QUICK_ACTIONS = [
@@ -240,7 +240,7 @@ export const EmployeeDashboard = () => {
         <div className="absolute top-0 right-0 w-72 h-72 bg-indigo-500/10 dark:bg-indigo-600/10 blur-3xl rounded-full pointer-events-none" />
         <div className="relative z-10 flex flex-wrap lg:flex-nowrap items-center justify-between gap-4">
           <div className="flex items-center gap-3 shrink-0">
-            <div className="w-12 h-12 rounded-2xl bg-indigo-100 dark:bg-indigo-600/30 border border-indigo-200 dark:border-indigo-500/40 flex items-center justify-center text-indigo-600 dark:text-indigo-300 font-bold text-lg shadow-lg shrink-0">
+            <div className="w-12 h-12 rounded-2xl bg-accent-soft flex items-center justify-center text-accent font-bold text-lg shrink-0">
               {firstName.charAt(0).toUpperCase()}
             </div>
             <div>
@@ -270,9 +270,9 @@ export const EmployeeDashboard = () => {
             ) : (
               <div
                 title="After 5:00 PM / Night: Moon"
-                className="p-3.5 rounded-2xl bg-indigo-500/15 border border-indigo-500/30 text-indigo-400 dark:text-indigo-300 shadow-[0_0_20px_rgba(99,102,241,0.35)] flex items-center justify-center"
+                className="p-3.5 rounded-2xl bg-accent-soft border border-accent/20 text-accent flex items-center justify-center"
               >
-                <Moon className="w-10 h-10 fill-indigo-400/30 text-indigo-400 dark:text-indigo-300 drop-shadow-[0_0_12px_rgba(129,140,248,0.9)]" />
+                <Moon className="w-10 h-10 text-accent" />
               </div>
             )}
           </div>
@@ -293,7 +293,7 @@ export const EmployeeDashboard = () => {
             </div>
             <NavLink
               to="/announcements"
-              className="text-xs text-purple-600 dark:text-purple-400 hover:underline font-medium flex items-center gap-1"
+              className="text-xs text-accent hover:underline font-medium flex items-center gap-1"
             >
               View all <ChevronRight className="w-3 h-3" />
             </NavLink>
@@ -341,7 +341,7 @@ export const EmployeeDashboard = () => {
             </div>
             <NavLink
               to="/calendar"
-              className="text-xs text-purple-600 dark:text-purple-400 hover:underline font-medium flex items-center gap-1"
+              className="text-xs text-accent hover:underline font-medium flex items-center gap-1"
             >
               Calendar <ChevronRight className="w-3 h-3" />
             </NavLink>
@@ -385,7 +385,7 @@ export const EmployeeDashboard = () => {
       <Card className="p-6 border-slate-200 dark:border-slate-800/80 space-y-4">
         <div className="flex items-center justify-between">
           <div className="flex items-center gap-2">
-            <Calendar className="w-4 h-4 text-indigo-600 dark:text-indigo-400" />
+            <Calendar className="w-4 h-4 text-accent" />
             <h2 className="text-sm font-semibold text-slate-900 dark:text-slate-200">Today's Priority Focus</h2>
           </div>
           <Button
@@ -459,7 +459,7 @@ export const EmployeeDashboard = () => {
       {/* Quick Workspaces Grid */}
       <div>
         <h2 className="text-sm font-semibold text-slate-700 dark:text-slate-300 uppercase tracking-wider mb-4 flex items-center gap-2">
-          <Star className="w-4 h-4 text-indigo-600 dark:text-indigo-400" /> Quick Workspaces
+          <Star className="w-4 h-4 text-accent" /> Quick Workspaces
         </h2>
         <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4">
           {quickLinks.map((link) => {
@@ -472,10 +472,10 @@ export const EmployeeDashboard = () => {
                     <div className={`w-10 h-10 rounded-xl border flex items-center justify-center ${colors}`}>
                       <Icon className="w-5 h-5" />
                     </div>
-                    <ArrowRight className="w-4 h-4 text-slate-400 dark:text-slate-600 group-hover:text-indigo-600 dark:group-hover:text-indigo-400 transition-colors" />
+                    <ArrowRight className="w-4 h-4 text-muted group-hover:text-accent transition-colors" />
                   </div>
                   <div>
-                    <h3 className="font-semibold text-slate-900 dark:text-slate-200 text-sm group-hover:text-indigo-600 dark:group-hover:text-indigo-400 transition-colors">{link.name}</h3>
+                    <h3 className="font-semibold text-fg text-sm group-hover:text-accent transition-colors">{link.name}</h3>
                     <p className="text-xs text-slate-500 dark:text-slate-400 mt-1">{link.desc}</p>
                   </div>
                 </Card>

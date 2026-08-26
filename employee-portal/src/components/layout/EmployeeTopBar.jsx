@@ -45,22 +45,22 @@ export const EmployeeTopBar = () => {
   }, [isOpen, setIsOpen])
 
   return (
-    <header className="h-16 bg-white/90 dark:bg-[#12151E]/90 backdrop-blur-md border-b border-slate-200 dark:border-purple-900/40 px-6 flex items-center justify-between sticky top-0 z-30 transition-colors">
+    <header className="h-16 bg-surface/90 backdrop-blur-md border-b border-border px-6 flex items-center justify-between sticky top-0 z-30 transition-colors">
       {/* EMPLOYEE Environment Badge & Search */}
       <div className="flex items-center gap-4">
-        <div className="flex items-center gap-2 text-xs text-purple-600 dark:text-purple-400">
-          <UserCheck className="w-4 h-4" />
+        <div className="flex items-center gap-2 text-xs text-muted">
+          <UserCheck className="w-4 h-4 text-accent" />
           <span className="font-semibold hidden sm:block">
-            EMPLOYEE Workspace
+            Employee workspace
           </span>
         </div>
 
         <div className="relative w-64 hidden md:block">
-          <Search className="w-3.5 h-3.5 absolute left-3 top-1/2 -translate-y-1/2 text-slate-400 dark:text-slate-500" />
+          <Search className="w-3.5 h-3.5 absolute left-3 top-1/2 -translate-y-1/2 text-muted" />
           <input
             type="text"
             placeholder="Search tasks, docs..."
-            className="w-full bg-slate-100 dark:bg-[#181C27] border border-slate-200 dark:border-slate-800 text-xs text-slate-800 dark:text-slate-200 placeholder-slate-400 dark:placeholder-slate-500 rounded-xl pl-8 pr-3 py-1.5 focus:outline-none focus:border-purple-500 transition-colors"
+            className="w-full bg-surface border border-border text-xs text-fg placeholder-muted rounded-xl pl-8 pr-3 py-1.5 focus:outline-none focus:border-accent transition-colors"
           />
         </div>
       </div>
@@ -71,7 +71,7 @@ export const EmployeeTopBar = () => {
         <button
           onClick={toggleTheme}
           title={theme === 'dark' ? 'Switch to Light Mode' : 'Switch to Dark Mode'}
-          className="relative w-9 h-9 rounded-xl bg-slate-100 dark:bg-purple-900/20 hover:bg-slate-200 dark:hover:bg-purple-900/40 text-slate-600 dark:text-purple-400 flex items-center justify-center transition-all cursor-pointer border border-slate-200 dark:border-purple-900/40"
+          className="relative w-9 h-9 rounded-xl bg-chrome hover:bg-border text-muted hover:text-fg flex items-center justify-center transition-all cursor-pointer border border-border"
         >
           {theme === 'dark' ? (
             <Sun className="w-4 h-4 text-amber-400 transition-transform duration-300 rotate-0 hover:rotate-45" />
@@ -85,12 +85,12 @@ export const EmployeeTopBar = () => {
           <button
             ref={bellRef}
             onClick={toggleOpen}
-            className="relative w-9 h-9 rounded-xl bg-slate-100 dark:bg-purple-900/20 hover:bg-slate-200 dark:hover:bg-purple-900/40 text-slate-600 dark:text-purple-400 flex items-center justify-center transition-colors border border-slate-200 dark:border-purple-900/40 cursor-pointer"
+            className="relative w-9 h-9 rounded-xl bg-chrome hover:bg-border text-muted hover:text-fg flex items-center justify-center transition-colors border border-border cursor-pointer"
             title="Notifications"
           >
             <Bell className="w-4 h-4" />
             {unreadCount > 0 && (
-              <span className="absolute -top-1 -right-1 w-4 h-4 rounded-full bg-rose-500 text-white text-[9px] font-bold flex items-center justify-center border-2 border-white dark:border-[#12151E] leading-none">
+              <span className="absolute -top-1 -right-1 w-4 h-4 rounded-full bg-rose-500 text-white text-[9px] font-bold flex items-center justify-center border-2 border-surface leading-none">
                 {unreadCount > 9 ? '9+' : unreadCount}
               </span>
             )}
@@ -107,17 +107,17 @@ export const EmployeeTopBar = () => {
         {/* User Profile */}
         <Link
           to="/profile"
-          className="flex items-center gap-3 pl-3 border-l border-slate-200 dark:border-purple-900/40 hover:opacity-80 transition-opacity cursor-pointer group"
+          className="flex items-center gap-3 pl-3 border-l border-border hover:opacity-80 transition-opacity cursor-pointer group"
         >
-          <div className="w-9 h-9 rounded-xl bg-purple-50 dark:bg-purple-600/20 border border-purple-200 dark:border-purple-500/30 text-purple-600 dark:text-purple-400 flex items-center justify-center font-medium text-xs group-hover:scale-105 transition-transform">
+          <div className="w-9 h-9 rounded-xl bg-accent-soft text-accent flex items-center justify-center font-medium text-xs group-hover:scale-105 transition-transform">
             {displayName ? displayName.charAt(0).toUpperCase() : <User className="w-4 h-4" />}
           </div>
           <div className="hidden sm:flex flex-col text-left">
-            <span className="text-xs font-semibold text-slate-800 dark:text-slate-200 truncate max-w-[120px]">
+            <span className="text-xs font-semibold text-fg truncate max-w-[120px]">
               {displayName}
             </span>
-            <span className="text-[10px] text-purple-600 dark:text-purple-400 font-medium">
-              EMPLOYEE Member
+            <span className="text-[10px] text-muted font-medium">
+              Employee
             </span>
           </div>
         </Link>
