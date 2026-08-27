@@ -283,7 +283,7 @@ export const ProjectList = () => {
   const handleProjectClick = (proj) => {
     const pId = proj.projectId || proj.id
     setSelectedProjectId(pId)
-    navigate(`/projects/tasks?projectId=${pId}`)
+    navigate(`/projects/${pId}/tasks`)
   }
 
   const handleOpenEditModal = (proj) => {

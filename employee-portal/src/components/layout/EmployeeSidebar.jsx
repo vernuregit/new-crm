@@ -1,4 +1,4 @@
-import React, { useState, useEffect } from 'react'
+import React, { useState } from 'react'
 import { NavLink, useLocation } from 'react-router-dom'
 import {
   LayoutDashboard,
@@ -23,6 +23,7 @@ import {
   LifeBuoy,
   Building2,
   Send,
+  StickyNote,
 } from 'lucide-react'
 import haloLogo from '../../assets/halologo.png'
 import { useUIStore } from '../../stores/uiStore'
@@ -46,6 +47,7 @@ const NAV_GROUPS = [
       { name: 'Sprint Tasks', path: '/tasks', icon: Briefcase },
       { name: 'Work Timeline', path: '/timeline', icon: CalendarDays },
       { name: 'Client Documents', path: '/client-documents', icon: Send },
+      { name: 'Notes', path: '/project-notes', icon: StickyNote },
     ],
   },
 
@@ -106,26 +108,25 @@ export const EmployeeSidebar = () => {
 
   // Determine which group contains the active route (auto-expand it)
   const getInitialExpanded = () => {
-    const activeGroup = NAV_GROUPS.find((g) =>
-      g.items.length > 1 && g.items.some((item) => location.pathname.startsWith(item.path))
-    )
-    return activeGroup ? { [activeGroup.key]: true } : {}
+    const expanded = {}
+    NAV_GROUPS.forEach((g) => {
+      if (g.items.some((item) => location.pathname.startsWith(item.path))) {
+        expanded[g.key] = true
+      }
+    })
+    if (/^\/projects\/(?!list$|tasks$)[^/]+/.test(location.pathname)) {
+      expanded.projects = true
+    }
+    // Default expand workspace
+    expanded['workspace'] = true
+    return expanded
   }
 
   const [expandedGroups, setExpandedGroups] = useState(getInitialExpanded)
 
-  useEffect(() => {
-    const activeGroup = NAV_GROUPS.find((g) =>
-      g.items.length > 1 && g.items.some((item) => location.pathname.startsWith(item.path))
-    )
-    if (activeGroup) {
-      setExpandedGroups({ [activeGroup.key]: true })
-    }
-  }, [location.pathname])
-
   const toggleGroup = (key) => {
     if (!sidebarOpen) return // In collapsed mode, don't toggle (all hidden)
-    setExpandedGroups((prev) => (prev[key] ? {} : { [key]: true }))
+    setExpandedGroups((prev) => ({ ...prev, [key]: !prev[key] }))
   }
 
   const displayName = userDoc?.displayName || user?.displayName || 'Employee Staff'
@@ -137,26 +138,27 @@ export const EmployeeSidebar = () => {
   const roleLabel = jobRole || 'Employee Portal'
 
   const isGroupActive = (group) =>
-    group.items.some((item) => location.pathname.startsWith(item.path))
+    group.items.some((item) => location.pathname.startsWith(item.path)) ||
+    (group.key === 'projects' && /^\/projects\/(?!list$|tasks$)[^/]+/.test(location.pathname))
 
   return (
     <aside
-      className={`fixed top-0 left-0 bottom-0 z-40 bg-chrome border-r border-border transition-all duration-300 flex flex-col ${
+      className={`fixed top-0 left-0 bottom-0 z-40 bg-white dark:bg-[#12151E] border-r border-slate-200 dark:border-purple-900/40 transition-all duration-300 flex flex-col ${
         sidebarOpen ? 'w-64' : 'w-20'
       }`}
     >
       {/* Brand Header */}
-      <div className="h-16 flex items-center justify-between px-3 border-b border-border">
+      <div className="h-16 flex items-center justify-between px-3 border-b border-slate-200 dark:border-purple-900/40">
         <div className="flex items-center gap-2 overflow-hidden">
-          <div className="w-11 h-11 bg-surface p-1 rounded-full border border-border shadow-sm flex items-center justify-center shrink-0">
+          <div className="w-11 h-11 bg-white p-1 rounded-full border border-slate-200 dark:border-purple-800/50 shadow-sm flex items-center justify-center shrink-0">
             <img src={haloLogo} alt="The Halo Effect Consulting" className="w-full h-full object-contain rounded-full" />
           </div>
           {sidebarOpen && (
             <div className="flex flex-col leading-tight overflow-hidden">
-              <span className="font-bold text-fg text-xs tracking-wide whitespace-nowrap">
+              <span className="font-bold text-slate-900 dark:text-slate-100 text-xs tracking-wide whitespace-nowrap">
                 EMPLOYEE PORTAL
               </span>
-              <span className="text-[10px] text-accent font-semibold tracking-wider mt-1 uppercase whitespace-nowrap">
+              <span className="text-[10px] text-purple-600 dark:text-purple-400 font-semibold tracking-wider mt-1 uppercase whitespace-nowrap">
                 EMPLOYEE MODE
               </span>
             </div>
@@ -165,7 +167,7 @@ export const EmployeeSidebar = () => {
 
         <button
           onClick={toggleSidebar}
-          className="w-8 h-8 rounded-lg bg-surface hover:bg-border text-muted hover:text-fg flex items-center justify-center transition-colors cursor-pointer shrink-0 border border-border"
+          className="w-8 h-8 rounded-lg bg-slate-100 dark:bg-purple-900/30 hover:bg-slate-200 dark:hover:bg-purple-900/60 text-slate-500 dark:text-purple-400 hover:text-slate-900 dark:hover:text-white flex items-center justify-center transition-colors cursor-pointer shrink-0"
         >
           {sidebarOpen ? <ChevronLeft className="w-4 h-4" /> : <ChevronRight className="w-4 h-4" />}
         </button>
@@ -190,8 +192,8 @@ export const EmployeeSidebar = () => {
                 className={({ isActive }) =>
                   `flex items-center gap-3 px-3 py-2.5 rounded-xl text-sm font-medium transition-all mx-1 ${
                     isActive
-                      ? 'bg-accent-soft text-accent'
-                      : 'text-muted hover:text-fg hover:bg-surface'
+                      ? 'bg-purple-50 dark:bg-purple-600/15 text-purple-600 dark:text-purple-400 border border-purple-200 dark:border-purple-500/30 shadow-sm'
+                      : 'text-slate-600 dark:text-slate-400 hover:text-slate-900 dark:hover:text-slate-200 hover:bg-slate-100 dark:hover:bg-slate-800/50'
                   }`
                 }
                 title={!sidebarOpen ? item.name : undefined}
@@ -210,10 +212,10 @@ export const EmployeeSidebar = () => {
                 title={!sidebarOpen ? group.label : undefined}
                 className={`w-full flex items-center gap-3 px-3 py-2.5 rounded-xl text-sm font-medium transition-all cursor-pointer ${
                   groupActive && !isExpanded
-                    ? 'bg-accent-soft text-accent'
+                    ? 'bg-purple-50 dark:bg-purple-600/15 text-purple-600 dark:text-purple-400 border border-purple-200 dark:border-purple-500/30 shadow-sm'
                     : groupActive && isExpanded
-                    ? 'text-accent'
-                    : 'text-muted hover:text-fg hover:bg-surface'
+                    ? 'text-purple-600 dark:text-purple-400'
+                    : 'text-slate-600 dark:text-slate-400 hover:text-slate-900 dark:hover:text-slate-200 hover:bg-slate-100 dark:hover:bg-slate-800/50'
                 }`}
               >
                 <GroupIcon className="w-5 h-5 shrink-0" />
@@ -221,7 +223,7 @@ export const EmployeeSidebar = () => {
                   <>
                     <span className="flex-1 truncate text-left">{group.label}</span>
                     <ChevronDown
-                      className={`w-3.5 h-3.5 shrink-0 transition-transform duration-300 ease-in-out ${
+                      className={`w-3.5 h-3.5 shrink-0 transition-transform duration-200 ${
                         isExpanded ? 'rotate-180' : ''
                       }`}
                     />
@@ -230,36 +232,43 @@ export const EmployeeSidebar = () => {
               </button>
 
               {/* Group Children */}
-              {sidebarOpen && (
-                <div
-                  className={`grid transition-all duration-300 ease-in-out ${
-                    isExpanded ? 'grid-rows-[1fr] opacity-100' : 'grid-rows-[0fr] opacity-0 pointer-events-none'
-                  }`}
-                >
-                  <div className="overflow-hidden">
-                    <div className="ml-3 mt-0.5 pl-3 border-l border-border space-y-0.5 pb-1">
-                      {group.items.map((item) => {
-                        const Icon = item.icon
-                        return (
-                          <NavLink
-                            key={item.path}
-                            to={item.path}
-                            tabIndex={isExpanded ? 0 : -1}
-                            className={({ isActive }) =>
-                              `flex items-center gap-2.5 px-2.5 py-2 rounded-lg text-xs font-medium transition-all ${
-                                isActive
-                                  ? 'bg-accent-soft text-accent'
-                                  : 'text-muted hover:text-fg hover:bg-surface'
-                              }`
-                            }
-                          >
-                            <Icon className="w-4 h-4 shrink-0" />
-                            <span className="truncate">{item.name}</span>
-                          </NavLink>
-                        )
-                      })}
-                    </div>
-                  </div>
+              {sidebarOpen && isExpanded && (
+                <div className="ml-3 mt-0.5 pl-3 border-l border-slate-200 dark:border-purple-900/30 space-y-0.5 pb-1">
+                  {group.items.map((item) => {
+                    const Icon = item.icon
+                    const sessionNotes = /\/projects\/[^/]+\/notes\/?$/.test(location.pathname)
+                    const sessionTasks = /\/projects\/[^/]+\/tasks\/?$/.test(location.pathname)
+                    const sessionTimeline = /\/projects\/[^/]+\/timeline\/?$/.test(location.pathname)
+                    const sessionDocs = /\/projects\/[^/]+\/documents\/?$/.test(location.pathname)
+                    const sessionActive =
+                      (item.path === '/projects/list' &&
+                        /^\/projects\/(?!list$|tasks$)[^/]+/.test(location.pathname) &&
+                        !sessionNotes &&
+                        !sessionTasks &&
+                        !sessionTimeline &&
+                        !sessionDocs) ||
+                      (item.path === '/tasks' && sessionTasks) ||
+                      (item.path === '/timeline' && sessionTimeline) ||
+                      (item.path === '/client-documents' && sessionDocs) ||
+                      (item.path === '/project-notes' && sessionNotes)
+                    return (
+                      <NavLink
+                        key={item.path}
+                        to={item.path}
+                        className={({ isActive }) => {
+                          const active = isActive || sessionActive
+                          return `flex items-center gap-2.5 px-2.5 py-2 rounded-lg text-xs font-medium transition-all ${
+                            active
+                              ? 'bg-purple-50 dark:bg-purple-600/15 text-purple-600 dark:text-purple-400 border border-purple-200 dark:border-purple-500/30 shadow-sm'
+                              : 'text-slate-500 dark:text-slate-400 hover:text-slate-900 dark:hover:text-slate-200 hover:bg-slate-100 dark:hover:bg-slate-800/50'
+                          }`
+                        }}
+                      >
+                        <Icon className="w-4 h-4 shrink-0" />
+                        <span className="truncate">{item.name}</span>
+                      </NavLink>
+                    )
+                  })}
                 </div>
               )}
             </div>
@@ -268,18 +277,18 @@ export const EmployeeSidebar = () => {
       </nav>
 
       {/* Footer — User Info + Logout */}
-      <div className="p-3 border-t border-border space-y-2">
+      <div className="p-3 border-t border-slate-200 dark:border-purple-900/40 space-y-2">
         {/* User badge */}
-        <div className={`flex items-center gap-3 p-2 rounded-xl bg-surface border border-border ${!sidebarOpen && 'justify-center'}`}>
-          <div className="w-8 h-8 rounded-lg bg-accent-soft text-accent flex items-center justify-center font-bold text-xs shrink-0">
+        <div className={`flex items-center gap-3 p-2 rounded-xl bg-slate-50 dark:bg-purple-900/20 border border-slate-200 dark:border-purple-900/40 ${!sidebarOpen && 'justify-center'}`}>
+          <div className="w-8 h-8 rounded-lg bg-purple-100 dark:bg-purple-600/30 text-purple-600 dark:text-purple-400 flex items-center justify-center font-bold text-xs shrink-0 border border-purple-200 dark:border-purple-500/30">
             {displayName?.charAt(0)?.toUpperCase() || 'E'}
           </div>
           {sidebarOpen && (
             <div className="flex flex-col min-w-0">
-              <span className="text-xs font-semibold text-fg truncate">
+              <span className="text-xs font-semibold text-slate-800 dark:text-slate-200 truncate">
                 {displayName}
               </span>
-              <span className="text-[10px] font-bold px-1.5 py-0.5 rounded-md mt-0.5 text-accent bg-accent-soft truncate">
+              <span className="text-[10px] font-bold px-1.5 py-0.5 rounded-md border mt-0.5 text-purple-600 dark:text-purple-400 bg-purple-50 dark:bg-purple-500/10 border-purple-200 dark:border-purple-500/20 truncate">
                 {roleLabel}
               </span>
             </div>
@@ -289,7 +298,7 @@ export const EmployeeSidebar = () => {
         {/* Logout button */}
         <button
           onClick={() => clearUser()}
-          className={`w-full flex items-center gap-3 px-3 py-2 rounded-xl text-xs font-medium text-muted hover:text-rose-500 dark:hover:text-rose-400 hover:bg-rose-50 dark:hover:bg-rose-500/10 transition-colors cursor-pointer ${!sidebarOpen && 'justify-center'}`}
+          className={`w-full flex items-center gap-3 px-3 py-2 rounded-xl text-xs font-medium text-slate-500 hover:text-rose-500 dark:hover:text-rose-400 hover:bg-rose-50 dark:hover:bg-rose-500/10 transition-colors cursor-pointer ${!sidebarOpen && 'justify-center'}`}
         >
           <LogOut className="w-4 h-4 shrink-0" />
           {sidebarOpen && <span>Sign Out</span>}

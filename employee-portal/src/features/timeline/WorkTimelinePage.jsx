@@ -123,7 +123,7 @@ function weekRangeLabel(days) {
   return `${startStr} – ${endStr}${year}`
 }
 
-export const WorkTimelinePage = () => {
+export const WorkTimelinePage = ({ embedded = false }) => {
   const { user, userDoc } = useUserStore()
   const uid = userDoc?.uid || user?.uid
   const employeeName = userDoc?.displayName || user?.displayName || 'Employee'
@@ -309,19 +309,32 @@ export const WorkTimelinePage = () => {
 
   return (
     <div className="space-y-6">
-      <PageHeader
-        title="Work Timeline"
-        description="Log what you worked on each day "
-        actions={
+      {!embedded ? (
+        <PageHeader
+          title="Work Timeline"
+          description="Log what you worked on each day "
+          actions={
+            <Button
+              icon={Plus}
+              variant="primary"
+              onClick={(e) => openAddModal(todayStr, e)}
+            >
+              Add Entry
+            </Button>
+          }
+        />
+      ) : (
+        <div className="flex items-center justify-end">
           <Button
             icon={Plus}
             variant="primary"
+            size="sm"
             onClick={(e) => openAddModal(todayStr, e)}
           >
             Add Entry
           </Button>
-        }
-      />
+        </div>
+      )}
 
       {/* Week navigator */}
       <div className="flex flex-wrap items-center justify-between gap-3">

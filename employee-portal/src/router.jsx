@@ -5,6 +5,14 @@ import { EmployeeLoginPage } from './features/auth/EmployeeLoginPage'
 import { EmployeeDashboard } from './features/dashboard/EmployeeDashboard'
 import { ProjectList } from './features/projects/ProjectList'
 import { TaskBoard } from './features/projects/TaskBoard'
+import {
+  ProjectSessionPage,
+  SessionTaskBoard,
+  SessionTimelinePage,
+  SessionDocumentsPage,
+  SessionNotesPage,
+  SessionIndexRedirect,
+} from './features/projects/ProjectSessionPage'
 import { EmployeeList } from './features/team/EmployeeList'
 import { AttendancePage } from './features/team/AttendancePage'
 import { LeaveManagement } from './features/team/LeaveManagement'
@@ -20,6 +28,7 @@ import { ClientDocumentsPage } from './features/documents/ClientDocumentsPage'
 import { PayslipsPage } from './features/payslips/PayslipsPage'
 import { GoalsPage } from './features/goals/GoalsPage'
 import { HelpDeskPage } from './features/helpdesk/HelpDeskPage'
+import { ProjectNotesStandalone } from './features/projects/ProjectNotesStandalone'
 
 export const router = createBrowserRouter([
   {
@@ -37,8 +46,20 @@ export const router = createBrowserRouter([
       { path: 'projects', element: <Navigate to="/projects/list" replace /> },
       { path: 'projects/list', element: <ProjectList /> },
       { path: 'projects/tasks', element: <TaskBoard /> },
+      {
+        path: 'projects/:projectId',
+        element: <ProjectSessionPage />,
+        children: [
+          { index: true, element: <SessionIndexRedirect /> },
+          { path: 'tasks', element: <SessionTaskBoard /> },
+          { path: 'timeline', element: <SessionTimelinePage /> },
+          { path: 'documents', element: <SessionDocumentsPage /> },
+          { path: 'notes', element: <SessionNotesPage /> },
+        ],
+      },
       { path: 'tasks', element: <TaskBoard /> },
       { path: 'client-documents', element: <ClientDocumentsPage /> },
+      { path: 'project-notes', element: <ProjectNotesStandalone /> },
 
       // Work Timeline (daily work diary)
       { path: 'timeline', element: <WorkTimelinePage /> },

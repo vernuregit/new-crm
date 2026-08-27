@@ -1,4 +1,4 @@
-import React, { useState, useEffect } from 'react'
+import React, { useState, useEffect, useMemo } from 'react'
 import { PageHeader } from '../../components/layout/PageHeader'
 import { Card } from '../../components/ui/Card'
 import { Badge } from '../../components/ui/Badge'
@@ -22,7 +22,7 @@ import {
 import { TeamSubNav } from './components/TeamSubNav'
 import { collection, onSnapshot } from 'firebase/firestore'
 import { db } from '../../shared/services/firebaseService'
-import { Plus, Check, X, AlertTriangle, Trash2 } from 'lucide-react'
+import { Plus, Check, X, AlertTriangle, Trash2, Filter, Calendar } from 'lucide-react'
 
 const SINGLE_DAY_LEAVE_TYPES = new Set([
   'Work From Home',
@@ -31,6 +31,59 @@ const SINGLE_DAY_LEAVE_TYPES = new Set([
 ])
 
 const isSingleDayLeaveType = (type) => SINGLE_DAY_LEAVE_TYPES.has(type)
+
+const FILTER_SELECT_CLASS =
+  'w-full bg-slate-100/80 dark:bg-[#11141E] border border-slate-300 dark:border-slate-800 text-slate-900 dark:text-slate-100 text-xs rounded-xl py-2.5 px-3 focus:outline-none focus:border-indigo-500 focus:ring-1 focus:ring-indigo-500 transition-all cursor-pointer'
+
+const LEAVE_TYPE_OPTIONS = [
+  'Annual Leave',
+  'Sick Leave',
+  'Casual Leave',
+  'Work From Home',
+  'On Duty',
+  'LOP (Loss of Pay)',
+]
+
+const STATUS_OPTIONS = ['pending', 'approved', 'rejected', 'cancelled']
+
+const toYmd = (value) => {
+  if (!value) return ''
+  if (typeof value === 'string') return value.slice(0, 10)
+  try {
+    const d = value.toDate ? value.toDate() : new Date(value)
+    if (Number.isNaN(d.getTime())) return ''
+    const y = d.getFullYear()
+    const m = String(d.getMonth() + 1).padStart(2, '0')
+    const day = String(d.getDate()).padStart(2, '0')
+    return `${y}-${m}-${day}`
+  } catch {
+    return ''
+  }
+}
+
+const todayYmd = () => toYmd(new Date())
+
+const getLeaveBounds = (req) => {
+  const start = toYmd(req.startDate) || toYmd(req.endDate)
+  const end = toYmd(req.endDate) || start
+  return { start, end }
+}
+
+const leaveCoversDate = (req, dateStr) => {
+  if (!dateStr) return true
+  const { start, end } = getLeaveBounds(req)
+  if (!start) return false
+  return dateStr >= start && dateStr <= end
+}
+
+const leaveOverlapsRange = (req, from, to) => {
+  if (!from && !to) return true
+  const { start, end } = getLeaveBounds(req)
+  if (!start) return false
+  if (from && end < from) return false
+  if (to && start > to) return false
+  return true
+}
 
 export const LeaveManagement = () => {
   const { employees, setEmployees, leaveRequests, setLeaveRequests, addLeaveRequest, updateLeaveStatus, removeLeaveRequest } = useTeamStore()
@@ -46,6 +99,12 @@ export const LeaveManagement = () => {
   const [validationError, setValidationError] = useState('')
   const [deleteTarget, setDeleteTarget] = useState(null)
   const [deleteLoading, setDeleteLoading] = useState(false)
+  const [viewDate, setViewDate] = useState('')
+  const [rangeFrom, setRangeFrom] = useState('')
+  const [rangeTo, setRangeTo] = useState('')
+  const [filterEmployee, setFilterEmployee] = useState('')
+  const [filterLeaveType, setFilterLeaveType] = useState('')
+  const [filterStatus, setFilterStatus] = useState('')
 
   // Load employees from Firestore
   useEffect(() => {
@@ -288,6 +347,80 @@ export const LeaveManagement = () => {
     return { name, email, role, avatar, initials }
   }
 
+  const visibleRequests = useMemo(() => {
+    return leaveRequests.filter((req) => {
+      if (req.hiddenFromAdmin) return false
+      if (!leaveCoversDate(req, viewDate)) return false
+      if (!leaveOverlapsRange(req, rangeFrom, rangeTo)) return false
+      if (filterLeaveType && req.leaveType !== filterLeaveType) return false
+      if (filterStatus && (req.status || 'pending') !== filterStatus) return false
+      if (filterEmployee) {
+        const matchedEmp = employees.find(
+          (emp) =>
+            emp.uid === filterEmployee ||
+            emp.employeeId === filterEmployee ||
+            emp.email === filterEmployee ||
+            (emp.displayName || emp.name) === filterEmployee
+        )
+        const info = getEmployeeInfo(req)
+        const matchedName = matchedEmp?.displayName || matchedEmp?.name
+        const matches =
+          req.employeeId === filterEmployee ||
+          req.employeeEmail === filterEmployee ||
+          req.employeeName === filterEmployee ||
+          info.name === filterEmployee ||
+          (matchedEmp &&
+            ((req.employeeId && (req.employeeId === matchedEmp.uid || req.employeeId === matchedEmp.employeeId)) ||
+              (req.employeeEmail &&
+                matchedEmp.email &&
+                req.employeeEmail.toLowerCase() === matchedEmp.email.toLowerCase()) ||
+              (matchedName && info.name === matchedName)))
+        if (!matches) return false
+      }
+      return true
+    })
+  }, [leaveRequests, viewDate, rangeFrom, rangeTo, filterEmployee, filterLeaveType, filterStatus, employees])
+
+  const employeeFilterOptions = useMemo(() => {
+    const seen = new Set()
+    const options = []
+    const addOption = (value, label) => {
+      if (!value || !label) return
+      const nameKey = label.toLowerCase()
+      if (seen.has(value) || seen.has(nameKey)) return
+      seen.add(value)
+      seen.add(nameKey)
+      options.push({ value, label })
+    }
+    employees.forEach((emp) => {
+      addOption(emp.uid || emp.employeeId || emp.email || emp.displayName || emp.name, emp.displayName || emp.name)
+    })
+    leaveRequests.forEach((req) => {
+      if (req.hiddenFromAdmin) return
+      const info = getEmployeeInfo(req)
+      addOption(req.employeeId || req.employeeEmail || info.name, info.name)
+    })
+    return options.sort((a, b) => a.label.localeCompare(b.label))
+  }, [employees, leaveRequests])
+
+  const leaveTypeFilterOptions = useMemo(() => {
+    const fromData = leaveRequests.map((req) => req.leaveType).filter(Boolean)
+    return Array.from(new Set([...LEAVE_TYPE_OPTIONS, ...fromData]))
+  }, [leaveRequests])
+
+  const hasActiveFilters = Boolean(
+    viewDate || rangeFrom || rangeTo || filterEmployee || filterLeaveType || filterStatus
+  )
+
+  const clearFilters = () => {
+    setViewDate('')
+    setRangeFrom('')
+    setRangeTo('')
+    setFilterEmployee('')
+    setFilterLeaveType('')
+    setFilterStatus('')
+  }
+
   return (
     <div className="space-y-6">
       {/* Header & Sub Nav */}
@@ -299,6 +432,113 @@ export const LeaveManagement = () => {
 
         <TeamSubNav />
       </div>
+
+      <Card className="p-4 border-slate-200 dark:border-slate-800 bg-white dark:bg-[#12151E]">
+        <div className="flex flex-wrap items-center justify-between gap-2 mb-3">
+          <div className="flex items-center gap-2 text-slate-800 dark:text-slate-200">
+            <Filter className="w-4 h-4 text-indigo-500 dark:text-indigo-400" />
+            <h3 className="text-xs font-semibold">Filter leave & WFH requests</h3>
+            {hasActiveFilters && (
+              <span className="text-[11px] text-slate-500 dark:text-slate-400">
+                Showing {visibleRequests.length} of {leaveRequests.filter((r) => !r.hiddenFromAdmin).length}
+              </span>
+            )}
+          </div>
+          <div className="flex items-center gap-2">
+            <Button
+              type="button"
+              size="sm"
+              variant={viewDate === todayYmd() ? 'primary' : 'secondary'}
+              icon={Calendar}
+              onClick={() => {
+                const today = todayYmd()
+                setViewDate(today)
+                setRangeFrom('')
+                setRangeTo('')
+              }}
+            >
+              Today
+            </Button>
+            {hasActiveFilters && (
+              <Button type="button" size="sm" variant="ghost" onClick={clearFilters}>
+                Clear filters
+              </Button>
+            )}
+          </div>
+        </div>
+
+        <div className="grid grid-cols-1 sm:grid-cols-2 xl:grid-cols-6 gap-3">
+          <Input
+            label="View date"
+            type="date"
+            value={viewDate}
+            onChange={(e) => setViewDate(e.target.value)}
+          />
+          <Input
+            label="From"
+            type="date"
+            value={rangeFrom}
+            max={rangeTo || undefined}
+            onChange={(e) => {
+              const next = e.target.value
+              setRangeFrom(next)
+              if (rangeTo && next && rangeTo < next) setRangeTo(next)
+            }}
+          />
+          <Input
+            label="To"
+            type="date"
+            value={rangeTo}
+            min={rangeFrom || undefined}
+            onChange={(e) => setRangeTo(e.target.value)}
+          />
+          <div className="space-y-1.5 text-left">
+            <label className="block text-xs font-medium text-slate-700 dark:text-slate-300">Employee</label>
+            <select
+              value={filterEmployee}
+              onChange={(e) => setFilterEmployee(e.target.value)}
+              className={FILTER_SELECT_CLASS}
+            >
+              <option value="">All employees</option>
+              {employeeFilterOptions.map((opt) => (
+                <option key={opt.value} value={opt.value}>
+                  {opt.label}
+                </option>
+              ))}
+            </select>
+          </div>
+          <div className="space-y-1.5 text-left">
+            <label className="block text-xs font-medium text-slate-700 dark:text-slate-300">Leave type</label>
+            <select
+              value={filterLeaveType}
+              onChange={(e) => setFilterLeaveType(e.target.value)}
+              className={FILTER_SELECT_CLASS}
+            >
+              <option value="">All types</option>
+              {leaveTypeFilterOptions.map((type) => (
+                <option key={type} value={type}>
+                  {type}
+                </option>
+              ))}
+            </select>
+          </div>
+          <div className="space-y-1.5 text-left">
+            <label className="block text-xs font-medium text-slate-700 dark:text-slate-300">Status</label>
+            <select
+              value={filterStatus}
+              onChange={(e) => setFilterStatus(e.target.value)}
+              className={FILTER_SELECT_CLASS}
+            >
+              <option value="">All statuses</option>
+              {STATUS_OPTIONS.map((status) => (
+                <option key={status} value={status}>
+                  {status}
+                </option>
+              ))}
+            </select>
+          </div>
+        </div>
+      </Card>
 
       {/* Leave Requests Table */}
       <Card className="overflow-x-auto p-0 border-slate-200 dark:border-slate-800">
@@ -314,9 +554,19 @@ export const LeaveManagement = () => {
             </tr>
           </thead>
           <tbody className="divide-y divide-slate-200 dark:divide-slate-800/60">
-            {leaveRequests
-              .filter((req) => !req.hiddenFromAdmin)
-              .map((req) => (
+            {visibleRequests.length === 0 && (
+              <tr>
+                <td colSpan={6} className="p-8 text-center text-slate-500 dark:text-slate-400">
+                  <p className="text-sm font-medium text-slate-700 dark:text-slate-300">No leave or WFH requests found</p>
+                  <p className="text-xs mt-1">
+                    {hasActiveFilters
+                      ? 'Try another date, expand the date range, or clear filters.'
+                      : 'Leave and WFH requests will appear here once submitted.'}
+                  </p>
+                </td>
+              </tr>
+            )}
+            {visibleRequests.map((req) => (
               <tr key={req.leaveId} className="hover:bg-slate-50 dark:hover:bg-slate-800/30 transition-colors text-slate-700 dark:text-slate-300">
                 <td className="p-4">
                   {(() => {

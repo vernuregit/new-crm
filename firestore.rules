@@ -59,6 +59,10 @@ service cloud.firestore {
       allow write: if isAuthenticated();
     }
 
+    match /projectNotes/{noteId} {
+      allow read, write: if isAuthenticated();
+    }
+
     // ─── Announcements (read: all employees; write: admins only) ─────
     match /announcements/{announcementId} {
       allow read: if isAuthenticated();

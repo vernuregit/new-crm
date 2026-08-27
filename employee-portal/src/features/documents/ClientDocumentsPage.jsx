@@ -1,5 +1,6 @@
 import React, { useState, useEffect, useRef } from 'react'
 import { useUserStore } from '../../stores/userStore'
+import { useProjectStore } from '../projects/stores/projectStore'
 import { PageHeader } from '../../components/layout/PageHeader'
 import { Card } from '../../components/ui/Card'
 import { Button } from '../../components/ui/Button'
@@ -37,8 +38,9 @@ import {
   Filter,
 } from 'lucide-react'
 
-export const ClientDocumentsPage = () => {
+export const ClientDocumentsPage = ({ embedded = false, lockedProjectId = null }) => {
   const { user } = useUserStore()
+  const { projects, fetchProjectsAndTasks } = useProjectStore()
   const [clients, setClients] = useState([])
   const [clientProjects, setClientProjects] = useState([])
   const [deliverables, setDeliverables] = useState([])
@@ -67,7 +69,7 @@ export const ClientDocumentsPage = () => {
         const snap = await getDocs(q)
         const list = snap.docs.map((d) => ({ uid: d.id, ...d.data() }))
         setClients(list)
-        if (list.length > 0 && !selectedClientId) {
+        if (list.length > 0 && !selectedClientId && !lockedProjectId) {
           setSelectedClientId(list[0].uid)
         }
       } catch (err) {
@@ -76,6 +78,21 @@ export const ClientDocumentsPage = () => {
     }
     fetchClients()
   }, [])
+
+  useEffect(() => {
+    if (lockedProjectId) fetchProjectsAndTasks()
+  }, [lockedProjectId, fetchProjectsAndTasks])
+
+  const lockedProject = projects.find(
+    (p) => p.projectId === lockedProjectId || p.id === lockedProjectId
+  )
+
+  useEffect(() => {
+    if (!lockedProject) return
+    if (lockedProject.clientId) setSelectedClientId(lockedProject.clientId)
+    setSelectedProjectId(lockedProject.projectId || lockedProject.id || '')
+    if (lockedProject.clientId) setClientFilter(lockedProject.clientId)
+  }, [lockedProject])
 
   // 2. Fetch projects for selected client
   useEffect(() => {
@@ -132,7 +149,10 @@ export const ClientDocumentsPage = () => {
     setSuccessMessage('')
 
     const targetClient = clients.find((c) => c.uid === selectedClientId) || {}
-    const targetProject = clientProjects.find((p) => p.id === selectedProjectId) || {}
+    const targetProject =
+      clientProjects.find((p) => p.id === selectedProjectId) ||
+      projects.find((p) => p.projectId === selectedProjectId || p.id === selectedProjectId) ||
+      {}
     const timestamp = Date.now()
     const storagePath = `deliverables/${selectedClientId}/${file.name}_${timestamp}`
     const storageRef = ref(storage, storagePath)
@@ -230,18 +250,37 @@ export const ClientDocumentsPage = () => {
   }
 
   const filteredDeliverables = deliverables.filter((d) => {
+    if (lockedProjectId) {
+      const matchesProject = d.projectId === lockedProjectId
+      const matchesCategory =
+        categoryFilter === 'All' || (d.category || '').toLowerCase() === categoryFilter.toLowerCase()
+      return matchesProject && matchesCategory
+    }
     const matchesClient = clientFilter === 'All' || d.clientId === clientFilter
     const matchesCategory =
       categoryFilter === 'All' || (d.category || '').toLowerCase() === categoryFilter.toLowerCase()
     return matchesClient && matchesCategory
   })
 
+  const projectSelectOptions = (() => {
+    const options = [...clientProjects]
+    if (lockedProject) {
+      const lid = lockedProject.projectId || lockedProject.id
+      if (!options.some((p) => p.id === lid || p.projectId === lid)) {
+        options.unshift({ id: lid, name: lockedProject.name })
+      }
+    }
+    return options
+  })()
+
   return (
     <div className="space-y-6 pb-12">
-      <PageHeader
-        title="Client Documents"
-        description="Upload and manage deliverables, contracts, specifications, and reports shared directly with clients."
-      />
+      {!embedded && (
+        <PageHeader
+          title="Client Documents"
+          description="Upload and manage deliverables, contracts, specifications, and reports shared directly with clients."
+        />
+      )}
 
       {/* Upload Section */}
       <Card className="p-6 bg-white dark:bg-[#12151E] border-slate-200 dark:border-purple-900/40 rounded-2xl shadow-sm">
@@ -266,7 +305,8 @@ export const ClientDocumentsPage = () => {
             <select
               value={selectedClientId}
               onChange={(e) => setSelectedClientId(e.target.value)}
-              className="w-full h-10 px-3 rounded-xl border border-slate-200 dark:border-slate-700 bg-white dark:bg-slate-800 text-xs text-slate-900 dark:text-white focus:outline-none focus:ring-2 focus:ring-blue-500"
+              disabled={Boolean(lockedProjectId)}
+              className="w-full h-10 px-3 rounded-xl border border-slate-200 dark:border-slate-700 bg-white dark:bg-slate-800 text-xs text-slate-900 dark:text-white focus:outline-none focus:ring-2 focus:ring-blue-500 disabled:opacity-70 disabled:cursor-not-allowed"
             >
               {clients.length === 0 ? (
                 <option value="">No clients registered</option>
@@ -288,10 +328,11 @@ export const ClientDocumentsPage = () => {
             <select
               value={selectedProjectId}
               onChange={(e) => setSelectedProjectId(e.target.value)}
-              className="w-full h-10 px-3 rounded-xl border border-slate-200 dark:border-slate-700 bg-white dark:bg-slate-800 text-xs text-slate-900 dark:text-white focus:outline-none focus:ring-2 focus:ring-blue-500"
+              disabled={Boolean(lockedProjectId)}
+              className="w-full h-10 px-3 rounded-xl border border-slate-200 dark:border-slate-700 bg-white dark:bg-slate-800 text-xs text-slate-900 dark:text-white focus:outline-none focus:ring-2 focus:ring-blue-500 disabled:opacity-70 disabled:cursor-not-allowed"
             >
               <option value="">-- General Deliverable --</option>
-              {clientProjects.map((p) => (
+              {projectSelectOptions.map((p) => (
                 <option key={p.id} value={p.id}>
                   {p.name || p.title}
                 </option>
@@ -385,19 +426,20 @@ export const ClientDocumentsPage = () => {
           </h3>
 
           <div className="flex flex-wrap items-center gap-2">
-            {/* Filter by client */}
-            <select
-              value={clientFilter}
-              onChange={(e) => setClientFilter(e.target.value)}
-              className="h-9 px-3 rounded-xl border border-slate-200 dark:border-slate-700 bg-white dark:bg-slate-800 text-xs text-slate-900 dark:text-white focus:outline-none"
-            >
-              <option value="All">All Clients</option>
-              {clients.map((c) => (
-                <option key={c.uid} value={c.uid}>
-                  {c.displayName || c.companyName || c.email}
-                </option>
-              ))}
-            </select>
+            {!embedded && (
+              <select
+                value={clientFilter}
+                onChange={(e) => setClientFilter(e.target.value)}
+                className="h-9 px-3 rounded-xl border border-slate-200 dark:border-slate-700 bg-white dark:bg-slate-800 text-xs text-slate-900 dark:text-white focus:outline-none"
+              >
+                <option value="All">All Clients</option>
+                {clients.map((c) => (
+                  <option key={c.uid} value={c.uid}>
+                    {c.displayName || c.companyName || c.email}
+                  </option>
+                ))}
+              </select>
+            )}
 
             {/* Filter by category */}
             <select
