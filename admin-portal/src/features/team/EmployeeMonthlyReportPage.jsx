@@ -361,7 +361,7 @@ export function EmployeeMonthlyReportPage() {
             <StatCard
               label="Late"
               value={att.lateDays ?? 0}
-              sub="after 10:30 AM"
+              sub="after 10:40 AM (10 min grace)"
               icon={AlertCircle}
               accent="amber"
             />

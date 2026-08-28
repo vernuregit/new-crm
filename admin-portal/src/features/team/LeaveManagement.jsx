@@ -16,8 +16,13 @@ import {
 } from './services/wfhPolicyUtils'
 import {
   applyLopConversion,
+  countUsedPermissionHours,
+  formatLeaveDuration,
   formatLeaveTypeLabel,
+  hoursBetween,
+  PERMISSION_LEAVE_TYPE,
   resolveLeaveLimits,
+  resolvePermissionHours,
 } from './services/leaveEntitlementUtils'
 import { TeamSubNav } from './components/TeamSubNav'
 import { collection, onSnapshot } from 'firebase/firestore'
@@ -28,6 +33,7 @@ const SINGLE_DAY_LEAVE_TYPES = new Set([
   'Work From Home',
   'Sick Leave',
   'Casual Leave',
+  'Permission',
 ])
 
 const isSingleDayLeaveType = (type) => SINGLE_DAY_LEAVE_TYPES.has(type)
@@ -39,6 +45,7 @@ const LEAVE_TYPE_OPTIONS = [
   'Annual Leave',
   'Sick Leave',
   'Casual Leave',
+  'Permission',
   'Work From Home',
   'On Duty',
   'LOP (Loss of Pay)',
@@ -95,6 +102,8 @@ export const LeaveManagement = () => {
   const [leaveType, setLeaveType] = useState('Annual Leave')
   const [startDate, setStartDate] = useState('')
   const [endDate, setEndDate] = useState('')
+  const [startTime, setStartTime] = useState('')
+  const [endTime, setEndTime] = useState('')
   const [reason, setReason] = useState('')
   const [validationError, setValidationError] = useState('')
   const [deleteTarget, setDeleteTarget] = useState(null)
@@ -175,7 +184,8 @@ export const LeaveManagement = () => {
       leaveType === 'Sick Leave' ||
       leaveType === 'LOP (Loss of Pay)' ||
       leaveType === 'Work From Home' ||
-      leaveType === 'On Duty'
+      leaveType === 'On Duty' ||
+      leaveType === PERMISSION_LEAVE_TYPE
 
     // LOP may be recorded for past dates; other types cannot use past dates
     if (leaveType !== 'LOP (Loss of Pay)' && diffDays < 0) {
@@ -186,21 +196,54 @@ export const LeaveManagement = () => {
     // Non-urgent types (except Casual, already checked) still need 3-day advance
     if (!isUrgentLeave && leaveType !== 'Casual Leave' && diffDays < 3) {
       setValidationError(
-        'Standard leave must be requested at least 3 days in advance. Select "Sick Leave", "LOP (Loss of Pay)", "Work From Home", or "On Duty" for urgent requests.'
+        'Standard leave must be requested at least 3 days in advance. Select "Sick Leave", "LOP (Loss of Pay)", "Work From Home", "On Duty", or "Permission" for urgent requests.'
       )
       return
     }
 
     const matchedEmp = selectedEmployee
     const policy = resolveEmployeeWfhPolicy(matchedEmp || {})
+    const employeeFilter = {
+      employeeId: matchedEmp?.uid || matchedEmp?.employeeId || '',
+      employeeEmail: matchedEmp?.email || '',
+      employeeName,
+    }
 
     const resolvedStart = startDate || new Date().toISOString().split('T')[0]
+    const isPermission = leaveType === PERMISSION_LEAVE_TYPE
+    let permissionHours = 0
+    if (isPermission) {
+      if (!startTime || !endTime) {
+        setValidationError('Please select a start time and end time for Permission.')
+        return
+      }
+      permissionHours = hoursBetween(startTime, endTime)
+      if (permissionHours <= 0) {
+        setValidationError('End time must be after start time.')
+        return
+      }
+      const monthStr = resolvedStart.slice(0, 7)
+      const usedHours = countUsedPermissionHours(leaveRequests, employeeFilter, monthStr)
+      const limit = resolvePermissionHours(matchedEmp || {})
+      const remaining = Math.max(0, limit - usedHours)
+      if (permissionHours > remaining + 1e-9) {
+        setValidationError(
+          remaining <= 0
+            ? `No Permission hours remaining this month (${limit} hrs).`
+            : `This request is ${permissionHours} hrs. Only ${Math.round(remaining * 100) / 100} hrs remaining this month.`
+        )
+        return
+      }
+    }
+
     const resolvedEnd = singleDayOnly ? resolvedStart : (endDate || resolvedStart)
-    const daysCount = singleDayOnly
-      ? 1
-      : startDate && endDate
-        ? Math.max(1, Math.round((new Date(endDate) - new Date(startDate)) / 86400000) + 1)
-        : 1
+    const daysCount = isPermission
+      ? 0
+      : singleDayOnly
+        ? 1
+        : startDate && endDate
+          ? Math.max(1, Math.round((new Date(endDate) - new Date(startDate)) / 86400000) + 1)
+          : 1
 
     const conversion = applyLopConversion({
       requestedType: leaveType,
@@ -265,6 +308,13 @@ export const LeaveManagement = () => {
       endDate: resolvedEnd,
       days: daysCount,
       reason: reason || `${leaveType} request`,
+      ...(isPermission
+        ? {
+            startTime,
+            endTime,
+            hours: permissionHours,
+          }
+        : {}),
       ...wfhExtras,
     }
 
@@ -280,6 +330,8 @@ export const LeaveManagement = () => {
       setLeaveType('Annual Leave')
       setStartDate('')
       setEndDate('')
+      setStartTime('')
+      setEndTime('')
       setReason('')
       setValidationError('')
       setShowAddModal(false)
@@ -604,11 +656,9 @@ export const LeaveManagement = () => {
                 </td>
                 <td className="p-4 text-slate-800 dark:text-slate-300 font-medium">{formatLeaveTypeLabel(req)}</td>
                 <td className="p-4 text-slate-600 dark:text-slate-400">
-                  {req.startDate === req.endDate || Number(req.days) === 1
-                    ? `${req.startDate} (1 Day)`
-                    : `${req.startDate} to ${req.endDate} (${req.days} days)`}
+                  {formatLeaveDuration(req)}
                 </td>
-                <td className="p-4 text-slate-600 dark:text-slate-400 max-w-xs truncate">{req.reason}</td>
+                <td className="p-4 text-slate-600 dark:text-slate-400 min-w-[14rem] max-w-lg whitespace-pre-wrap break-words">{req.reason}</td>
                 <td className="p-4">
                   <div className="flex flex-col gap-1">
                     <Badge
@@ -773,6 +823,9 @@ export const LeaveManagement = () => {
                   <option value="Annual Leave" className="bg-white dark:bg-[#11141E] text-slate-900 dark:text-slate-100">Annual Leave</option>
                   <option value="Sick Leave" className="bg-white dark:bg-[#11141E] text-slate-900 dark:text-slate-100">Sick Leave</option>
                   <option value="Casual Leave" className="bg-white dark:bg-[#11141E] text-slate-900 dark:text-slate-100">Casual Leave</option>
+                  <option value="Permission" className="bg-white dark:bg-[#11141E] text-slate-900 dark:text-slate-100">
+                    Permission ({resolvePermissionHours(selectedEmployee || {})} hrs/month)
+                  </option>
                   {selectedWfhPolicy.canRequest && (
                     <option value="Work From Home" className="bg-white dark:bg-[#11141E] text-slate-900 dark:text-slate-100">
                       Work From Home ({getWfhAllowanceLabel(selectedWfhPolicy)})
@@ -787,6 +840,28 @@ export const LeaveManagement = () => {
                     {selectedWfhPolicy.mode === 'full' ? ' (no leave request needed)' : ''}
                     {selectedWfhPolicy.mode === 'monthly' ? ' (admin approval for employee requests)' : ''}
                     {selectedWfhPolicy.mode === 'weekly' ? ' (employee chooses WFH/Office at Check In)' : ''}
+                  </p>
+                )}
+                {leaveType === PERMISSION_LEAVE_TYPE && selectedEmployee && (
+                  <p className="text-[11px] text-slate-500 dark:text-slate-400 mt-1">
+                    Permission remaining this month:{' '}
+                    {Math.max(
+                      0,
+                      Math.round(
+                        (resolvePermissionHours(selectedEmployee) -
+                          countUsedPermissionHours(
+                            leaveRequests,
+                            {
+                              employeeId: selectedEmployee?.uid || selectedEmployee?.employeeId || '',
+                              employeeEmail: selectedEmployee?.email || '',
+                              employeeName,
+                            },
+                            (startDate || new Date().toISOString()).slice(0, 7)
+                          )) *
+                          100
+                      ) / 100
+                    )}{' '}
+                    of {resolvePermissionHours(selectedEmployee)} hrs
                   </p>
                 )}
               </div>
@@ -804,7 +879,8 @@ export const LeaveManagement = () => {
                   />
                   {startDate && (
                     <p className="text-[11px] text-slate-500 dark:text-slate-400">
-                      Selected: <span className="font-semibold text-indigo-600 dark:text-indigo-400">{startDate}</span> (1 Day)
+                      Selected: <span className="font-semibold text-indigo-600 dark:text-indigo-400">{startDate}</span>
+                      {leaveType === PERMISSION_LEAVE_TYPE ? '' : ' (1 Day)'}
                     </p>
                   )}
                 </div>
@@ -836,6 +912,28 @@ export const LeaveManagement = () => {
                         Math.round((new Date(endDate) - new Date(startDate)) / 86400000) + 1
                       )}{' '}
                       Days)
+                    </p>
+                  )}
+                </div>
+              )}
+
+              {leaveType === PERMISSION_LEAVE_TYPE && (
+                <div className="grid grid-cols-2 gap-3">
+                  <Input
+                    label="Start Time"
+                    type="time"
+                    value={startTime}
+                    onChange={(e) => setStartTime(e.target.value)}
+                  />
+                  <Input
+                    label="End Time"
+                    type="time"
+                    value={endTime}
+                    onChange={(e) => setEndTime(e.target.value)}
+                  />
+                  {startTime && endTime && hoursBetween(startTime, endTime) > 0 && (
+                    <p className="col-span-2 text-[11px] text-slate-500 dark:text-slate-400">
+                      Duration: {hoursBetween(startTime, endTime)} {hoursBetween(startTime, endTime) === 1 ? 'hr' : 'hrs'}
                     </p>
                   )}
                 </div>

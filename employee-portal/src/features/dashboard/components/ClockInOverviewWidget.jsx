@@ -232,10 +232,9 @@ export const ClockInOverviewWidget = () => {
       <div className="grid grid-cols-1 lg:grid-cols-12 gap-3 items-stretch">
 
         {/* CARD 1: Today's Overview (Main Clock-In Card) */}
-        <Card className="lg:col-span-5 p-5 sm:p-6 border-slate-200 dark:border-slate-800 flex flex-col justify-between relative overflow-hidden bg-gradient-to-br from-white via-slate-50/50 to-emerald-50/20 dark:from-[#181C27] dark:via-[#181C27] dark:to-emerald-950/20 shadow-lg shadow-slate-200/50 dark:shadow-none">
+        <Card className="lg:col-span-5 p-5 sm:p-6 border-slate-200 dark:border-slate-800 flex flex-col relative overflow-hidden bg-gradient-to-br from-white via-slate-50/50 to-emerald-50/20 dark:from-[#181C27] dark:via-[#181C27] dark:to-emerald-950/20 shadow-lg shadow-slate-200/50 dark:shadow-none">
           {/* Top Row: Title & Badge & Live Clock */}
-          <div>
-            <div className="flex items-center justify-between pb-3 border-b border-slate-200/80 dark:border-slate-800">
+          <div className="flex items-center justify-between pb-3 border-b border-slate-200/80 dark:border-slate-800 shrink-0">
               <div className="flex items-center gap-2">
                 <h3 className="font-extrabold text-slate-900 dark:text-slate-100 text-base tracking-tight">
                   Today's Overview
@@ -264,8 +263,9 @@ export const ClockInOverviewWidget = () => {
               </div>
             </div>
 
-            {/* Gauge & Progress Details */}
-            <div className="grid grid-cols-12 gap-4 items-center py-4">
+            {/* Gauge & Progress Details — vertically centered between header and actions */}
+            <div className="flex-1 min-h-0 flex items-center">
+            <div className="grid grid-cols-12 gap-4 items-center w-full py-2">
               {/* Circular Gauge */}
               <div className="col-span-5 sm:col-span-4 flex flex-col items-center justify-center relative">
                 <div className="relative w-28 h-28 sm:w-30 sm:h-30 flex items-center justify-center">
@@ -340,10 +340,10 @@ export const ClockInOverviewWidget = () => {
                 </p>
               </div>
             </div>
-          </div>
+            </div>
 
           {/* Action Button Strip */}
-          <div className="pt-3 space-y-2">
+          <div className="pt-3 space-y-2 shrink-0">
             {clockError && (
               <div className="flex items-start gap-2 text-xs text-rose-600 dark:text-rose-300 bg-rose-500/10 border border-rose-500/30 rounded-xl px-3 py-2">
                 <AlertCircle className="w-3.5 h-3.5 shrink-0 mt-0.5" />
@@ -441,7 +441,7 @@ export const ClockInOverviewWidget = () => {
         {/* CARD 2: Daily Metrics 2x2 Grid */}
         <div className="lg:col-span-4 grid grid-cols-2 gap-3 items-stretch">
           {/* Avg Hours / Day */}
-          <Card className="p-3 border-slate-200 dark:border-slate-800 flex flex-col justify-between hover:border-indigo-400/40 transition-colors">
+          <Card className="p-3 border-slate-200 dark:border-slate-800 flex flex-col justify-center hover:border-indigo-400/40 transition-colors">
             <div className="w-8 h-8 rounded-lg bg-sky-50 dark:bg-sky-500/10 text-sky-600 dark:text-sky-400 flex items-center justify-center mb-2">
               <Clock className="w-4 h-4" />
             </div>
@@ -456,7 +456,7 @@ export const ClockInOverviewWidget = () => {
           </Card>
 
           {/* Avg Check-In */}
-          <Card className="p-3 border-slate-200 dark:border-slate-800 flex flex-col justify-between hover:border-emerald-400/40 transition-colors">
+          <Card className="p-3 border-slate-200 dark:border-slate-800 flex flex-col justify-center hover:border-emerald-400/40 transition-colors">
             <div className="w-8 h-8 rounded-lg bg-emerald-50 dark:bg-emerald-500/10 text-emerald-600 dark:text-emerald-400 flex items-center justify-center mb-2">
               <LogIn className="w-4 h-4" />
             </div>
@@ -471,7 +471,7 @@ export const ClockInOverviewWidget = () => {
           </Card>
 
           {/* Earliest Clock-In */}
-          <Card className="p-3 border-slate-200 dark:border-slate-800 flex flex-col justify-between hover:border-teal-400/40 transition-colors">
+          <Card className="p-3 border-slate-200 dark:border-slate-800 flex flex-col justify-center hover:border-teal-400/40 transition-colors">
             <div className="w-8 h-8 rounded-lg bg-teal-50 dark:bg-teal-500/10 text-teal-600 dark:text-teal-400 flex items-center justify-center mb-2">
               <TrendingUp className="w-4 h-4" />
             </div>
@@ -486,7 +486,7 @@ export const ClockInOverviewWidget = () => {
           </Card>
 
           {/* Avg Check-Out */}
-          <Card className="p-3 border-slate-200 dark:border-slate-800 flex flex-col justify-between hover:border-purple-400/40 transition-colors">
+          <Card className="p-3 border-slate-200 dark:border-slate-800 flex flex-col justify-center hover:border-purple-400/40 transition-colors">
             <div className="w-8 h-8 rounded-lg bg-purple-50 dark:bg-purple-500/10 text-purple-600 dark:text-purple-400 flex items-center justify-center mb-2">
               <LogOut className="w-4 h-4" />
             </div>

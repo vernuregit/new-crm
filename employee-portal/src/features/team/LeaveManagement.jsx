@@ -1,4 +1,4 @@
-import React, { useState, useEffect } from 'react'
+import React, { useState, useEffect, useRef } from 'react'
 import { NavLink } from 'react-router-dom'
 import { PageHeader } from '../../components/layout/PageHeader'
 import { Card } from '../../components/ui/Card'
@@ -17,10 +17,15 @@ import {
 import {
   applyLopConversion,
   countUsedPaidDays,
+  countUsedPermissionHours,
+  formatLeaveDuration,
   formatLeaveTypeLabel,
+  hoursBetween,
+  PERMISSION_LEAVE_TYPE,
   resolveLeaveLimits,
+  resolvePermissionHours,
 } from './services/leaveEntitlementUtils'
-import { Users, CheckCircle2, Calendar, Plus, X, Clock, AlertCircle, AlertTriangle, ShieldCheck, ChevronLeft, ChevronRight, Trash2, Ban } from 'lucide-react'
+import { Users, CheckCircle2, Calendar, Plus, X, Clock, AlertCircle, AlertTriangle, ShieldCheck, ChevronLeft, ChevronRight, ChevronDown, Trash2, Ban } from 'lucide-react'
 import { collection, onSnapshot } from 'firebase/firestore'
 import { db } from '../../shared/services/firebaseService'
 
@@ -28,9 +33,192 @@ const SINGLE_DAY_LEAVE_TYPES = new Set([
   'Work From Home',
   'Sick Leave',
   'Casual Leave',
+  'Permission',
 ])
 
 const isSingleDayLeaveType = (type) => SINGLE_DAY_LEAVE_TYPES.has(type)
+
+const HOUR_OPTIONS = Array.from({ length: 12 }, (_, i) => String(i + 1))
+const MINUTE_OPTIONS = Array.from({ length: 60 }, (_, i) => String(i).padStart(2, '0'))
+
+const parseHHmm = (value) => {
+  if (!value || !/^\d{1,2}:\d{2}/.test(value)) return { hour: '', minute: '', period: 'AM' }
+  const [hStr, mStr] = value.split(':')
+  const h24 = Number(hStr)
+  if (!Number.isFinite(h24)) return { hour: '', minute: '', period: 'AM' }
+  return {
+    hour: String(h24 % 12 === 0 ? 12 : h24 % 12),
+    minute: String(Number(mStr)).padStart(2, '0'),
+    period: h24 >= 12 ? 'PM' : 'AM',
+  }
+}
+
+const toHHmm = (hour, minute, period) => {
+  if (!hour || minute === '' || minute == null || !period) return ''
+  let h = Number(hour)
+  if (period === 'AM') {
+    if (h === 12) h = 0
+  } else if (h !== 12) {
+    h += 12
+  }
+  return `${String(h).padStart(2, '0')}:${minute}`
+}
+
+const NumberDropdownField = ({ value, onChange, options, placeholder, min, max, pad }) => {
+  const [open, setOpen] = useState(false)
+  const [draft, setDraft] = useState(value || '')
+  const wrapRef = useRef(null)
+
+  useEffect(() => {
+    setDraft(value || '')
+  }, [value])
+
+  useEffect(() => {
+    const onDoc = (e) => {
+      if (!wrapRef.current?.contains(e.target)) setOpen(false)
+    }
+    document.addEventListener('mousedown', onDoc)
+    return () => document.removeEventListener('mousedown', onDoc)
+  }, [])
+
+  const commit = (raw) => {
+    const digits = String(raw ?? '').replace(/\D/g, '')
+    if (digits === '') {
+      setDraft('')
+      onChange('')
+      return
+    }
+    let n = Number(digits)
+    if (Number.isFinite(min)) n = Math.max(min, n)
+    if (Number.isFinite(max)) n = Math.min(max, n)
+    const next = pad ? String(n).padStart(2, '0') : String(n)
+    setDraft(next)
+    onChange(next)
+  }
+
+  return (
+    <div ref={wrapRef} className="relative">
+      <input
+        type="text"
+        inputMode="numeric"
+        value={draft}
+        placeholder={placeholder}
+        onChange={(e) => {
+          const next = e.target.value.replace(/\D/g, '').slice(0, 2)
+          setDraft(next)
+        }}
+        onFocus={() => setOpen(true)}
+        onBlur={() => commit(draft)}
+        onKeyDown={(e) => {
+          if (e.key === 'Enter') {
+            e.preventDefault()
+            commit(draft)
+            setOpen(false)
+          }
+        }}
+        className="w-full bg-surface border border-border text-fg text-sm rounded-xl py-2.5 pl-2.5 pr-6 focus:outline-none focus:border-accent"
+      />
+      <button
+        type="button"
+        tabIndex={-1}
+        aria-label={`Choose ${placeholder}`}
+        onMouseDown={(e) => e.preventDefault()}
+        onClick={() => setOpen((v) => !v)}
+        className="absolute right-1.5 top-1/2 -translate-y-1/2 p-0.5 text-slate-400 hover:text-slate-600 dark:hover:text-slate-200"
+      >
+        <ChevronDown className="w-3 h-3" />
+      </button>
+      {open && (
+        <div className="absolute z-30 mt-1 left-0 right-0 max-h-36 overflow-y-auto rounded-xl border border-border bg-white dark:bg-[#181C27] shadow-lg">
+          {options.map((opt) => (
+            <button
+              key={opt}
+              type="button"
+              onMouseDown={(e) => e.preventDefault()}
+              onClick={() => {
+                commit(opt)
+                setOpen(false)
+              }}
+              className={`w-full text-left px-2.5 py-1.5 text-xs hover:bg-slate-100 dark:hover:bg-slate-800 ${
+                String(value) === String(opt) ? 'text-accent font-semibold' : 'text-fg'
+              }`}
+            >
+              {opt}
+            </button>
+          ))}
+        </div>
+      )}
+    </div>
+  )
+}
+
+const PermissionTimeSelect = ({ label, value, onChange }) => {
+  const parsed = parseHHmm(value)
+  const [hour, setHour] = useState(parsed.hour)
+  const [minute, setMinute] = useState(parsed.minute)
+  const [period, setPeriod] = useState(parsed.period)
+
+  useEffect(() => {
+    const next = parseHHmm(value)
+    setHour(next.hour)
+    setMinute(next.minute)
+    setPeriod(next.period)
+  }, [value])
+
+  const emit = (nextHour, nextMinute, nextPeriod) => {
+    onChange(toHHmm(nextHour, nextMinute, nextPeriod))
+  }
+
+  return (
+    <div className="space-y-1.5 text-left">
+      <label className="block text-xs font-medium text-slate-700 dark:text-slate-300">{label}</label>
+      <div className="grid grid-cols-[1fr_1fr_auto] gap-1.5 items-center">
+        <NumberDropdownField
+          value={hour}
+          onChange={(next) => {
+            setHour(next)
+            emit(next, minute, period)
+          }}
+          options={HOUR_OPTIONS}
+          placeholder="Hr"
+          min={1}
+          max={12}
+        />
+        <NumberDropdownField
+          value={minute}
+          onChange={(next) => {
+            setMinute(next)
+            emit(hour, next, period)
+          }}
+          options={MINUTE_OPTIONS}
+          placeholder="Min"
+          min={0}
+          max={59}
+          pad
+        />
+        <div className="inline-flex rounded-xl border border-border overflow-hidden text-[11px] font-semibold">
+          {['AM', 'PM'].map((p) => (
+            <button
+              key={p}
+              type="button"
+              onClick={() => {
+                setPeriod(p)
+                emit(hour, minute, p)
+              }}
+              className={`px-2.5 py-2.5 ${
+                period === p
+                  ? 'bg-accent text-white'
+                  : 'bg-surface text-slate-500 dark:text-slate-400 hover:text-fg'
+              }`}
+            >
+              {p}
+            </button>
+          ))}
+        </div>
+      </div>
+    </div>
+  )
+}
 
 // ─── Modern Interactive Calendar Picker Component ─────────────────────────────
 const InteractiveCalendarPicker = ({ startDate, setStartDate, endDate, setEndDate, leaveType, setValidationError }) => {
@@ -82,7 +270,8 @@ const InteractiveCalendarPicker = ({ startDate, setStartDate, endDate, setEndDat
       leaveType === 'Sick Leave' ||
       leaveType === 'LOP (Loss of Pay)' ||
       leaveType === 'Work From Home' ||
-      leaveType === 'On Duty'
+      leaveType === 'On Duty' ||
+      leaveType === 'Permission'
     ) {
       return todayStr
     }
@@ -111,7 +300,8 @@ const InteractiveCalendarPicker = ({ startDate, setStartDate, endDate, setEndDat
         leaveType === 'Sick Leave' ||
         leaveType === 'LOP (Loss of Pay)' ||
         leaveType === 'Work From Home' ||
-        leaveType === 'On Duty'
+        leaveType === 'On Duty' ||
+        leaveType === 'Permission'
       ) {
         setValidationError('Past dates cannot be selected.')
       } else if (leaveType === 'Casual Leave') {
@@ -166,7 +356,8 @@ const InteractiveCalendarPicker = ({ startDate, setStartDate, endDate, setEndDat
           {startDate ? (
             singleDayOnly || !endDate || endDate === startDate ? (
               <span className="text-fg">
-                Leave Date: <strong className="text-accent font-semibold">{startDate}</strong> (1 Day)
+                Leave Date: <strong className="text-accent font-semibold">{startDate}</strong>
+                {leaveType === 'Permission' ? '' : ' (1 Day)'}
               </span>
             ) : (
               <span className="text-fg">
@@ -318,6 +509,8 @@ export const LeaveManagement = () => {
   const [leaveType, setLeaveType] = useState('Casual Leave')
   const [startDate, setStartDate] = useState('')
   const [endDate, setEndDate] = useState('')
+  const [startTime, setStartTime] = useState('')
+  const [endTime, setEndTime] = useState('')
   const [reason, setReason] = useState('')
   const [validationError, setValidationError] = useState('')
   const [loadingLeave, setLoadingLeave] = useState(false)
@@ -330,6 +523,7 @@ export const LeaveManagement = () => {
 
   const wfhPolicy = resolveEmployeeWfhPolicy(currentEmp || userDoc || {})
   const leaveLimits = resolveLeaveLimits(currentEmp || userDoc || {})
+  const permissionHoursLimit = resolvePermissionHours(currentEmp || userDoc || {})
 
   // Real-time Firestore sync for leave requests
   useEffect(() => {
@@ -427,6 +621,16 @@ export const LeaveManagement = () => {
   const remainingSickDays = Math.max(0, leaveLimits.sick - usedSickDaysThisMonth)
   const remainingPaidWfhDays = Math.max(0, leaveLimits.wfh - usedPaidWfhDaysThisMonth)
 
+  const usedPermissionHoursThisMonth = countUsedPermissionHours(
+    myLeaveRequests,
+    employeeWfhFilter,
+    currentMonthStr
+  )
+  const remainingPermissionHours = Math.max(
+    0,
+    Math.round((permissionHoursLimit - usedPermissionHoursThisMonth) * 100) / 100
+  )
+
   const wfhReferenceDate = startDate || new Date().toISOString().split('T')[0]
   const usedWfhDays = countUsedWfhDays(myLeaveRequests, employeeWfhFilter, wfhPolicy, wfhReferenceDate)
   const remainingWfhDays =
@@ -480,22 +684,50 @@ export const LeaveManagement = () => {
       leaveType === 'Sick Leave' ||
       leaveType === 'LOP (Loss of Pay)' ||
       leaveType === 'Work From Home' ||
-      leaveType === 'On Duty'
+      leaveType === 'On Duty' ||
+      leaveType === PERMISSION_LEAVE_TYPE
 
     if (!isUrgentLeave && leaveType !== 'Casual Leave' && diffDays < 3) {
       setValidationError(
-        'Standard leave must be requested at least 3 days in advance. For urgent situations, please select "Sick Leave", "LOP (Loss of Pay)", "Work From Home", or "On Duty".'
+        'Standard leave must be requested at least 3 days in advance. For urgent situations, please select "Sick Leave", "LOP (Loss of Pay)", "Work From Home", "On Duty", or "Permission".'
       )
       return
     }
 
-    // WFH / Sick / Casual are always 1 day; LOP / On Duty allow a date range
+    const isPermission = leaveType === PERMISSION_LEAVE_TYPE
+    let permissionHours = 0
+    if (isPermission) {
+      if (!startTime || !endTime) {
+        setValidationError('Please select a start time and end time for Permission.')
+        return
+      }
+      permissionHours = hoursBetween(startTime, endTime)
+      if (permissionHours <= 0) {
+        setValidationError('End time must be after start time.')
+        return
+      }
+      const monthStr = startDate.slice(0, 7)
+      const usedHours = countUsedPermissionHours(myLeaveRequests, employeeWfhFilter, monthStr)
+      const remaining = Math.max(0, resolvePermissionHours(currentEmp || userDoc || {}) - usedHours)
+      if (permissionHours > remaining + 1e-9) {
+        setValidationError(
+          remaining <= 0
+            ? `No Permission hours remaining this month (${permissionHoursLimit} hrs).`
+            : `This request is ${permissionHours} hrs. Only ${Math.round(remaining * 100) / 100} hrs remaining this month.`
+        )
+        return
+      }
+    }
+
+    // WFH / Sick / Casual / Permission are always 1 day; LOP / On Duty allow a date range
     const finalEndDate = singleDayOnly ? startDate : (endDate || startDate)
-    const daysCount = singleDayOnly
-      ? 1
-      : startDate && endDate
-        ? Math.max(1, Math.round((new Date(endDate) - new Date(startDate)) / 86400000) + 1)
-        : 1
+    const daysCount = isPermission
+      ? 0
+      : singleDayOnly
+        ? 1
+        : startDate && endDate
+          ? Math.max(1, Math.round((new Date(endDate) - new Date(startDate)) / 86400000) + 1)
+          : 1
 
     const conversion = applyLopConversion({
       requestedType: leaveType,
@@ -546,6 +778,13 @@ export const LeaveManagement = () => {
       endDate: finalEndDate,
       days: daysCount,
       reason: reason.trim(),
+      ...(isPermission
+        ? {
+            startTime,
+            endTime,
+            hours: permissionHours,
+          }
+        : {}),
       ...(leaveType === 'Work From Home' && !conversion.convertedToLop
         ? {
             status: wfhStatus,
@@ -562,6 +801,8 @@ export const LeaveManagement = () => {
       setLeaveType('Casual Leave')
       setStartDate('')
       setEndDate('')
+      setStartTime('')
+      setEndTime('')
       setReason('')
       setValidationError('')
       setShowAddModal(false)
@@ -716,9 +957,7 @@ export const LeaveManagement = () => {
                 Your leave is granted!
               </h4>
               <p className="text-xs text-emerald-800 dark:text-slate-300 mt-0.5">
-                {approvedRequests[0].leaveType} ({approvedRequests[0].startDate === approvedRequests[0].endDate || Number(approvedRequests[0].days) === 1
-                  ? `${approvedRequests[0].startDate} (1 Day)`
-                  : `${approvedRequests[0].startDate} to ${approvedRequests[0].endDate}`}) for {approvedRequests[0].employeeName} has been approved
+                {approvedRequests[0].leaveType} ({formatLeaveDuration(approvedRequests[0])}) for {approvedRequests[0].employeeName} has been approved
                 {approvedRequests[0].reviewedBy ? ` by ${approvedRequests[0].reviewedBy}` : ' by management'}.
               </p>
             </div>
@@ -759,7 +998,7 @@ export const LeaveManagement = () => {
               Monthly Leave Allowance Policy ({currentMonthName})
             </h4>
             <p className="text-xs text-slate-600 dark:text-slate-300 mt-0.5">
-              This month: <strong className="text-indigo-600 dark:text-indigo-400 font-semibold">{leaveLimits.casual} Casual</strong>, <strong className="text-indigo-600 dark:text-indigo-400 font-semibold">{leaveLimits.sick} Sick</strong>, and <strong className="text-indigo-600 dark:text-indigo-400 font-semibold">{leaveLimits.wfh} WFH</strong>. Additional leave is marked LOP (unpaid) even if approved.
+              This month: <strong className="text-indigo-600 dark:text-indigo-400 font-semibold">{leaveLimits.casual} Casual</strong>, <strong className="text-indigo-600 dark:text-indigo-400 font-semibold">{leaveLimits.sick} Sick</strong>, <strong className="text-indigo-600 dark:text-indigo-400 font-semibold">{leaveLimits.wfh} WFH</strong>, and <strong className="text-indigo-600 dark:text-indigo-400 font-semibold">{permissionHoursLimit} hrs Permission</strong>. Additional day leave is marked LOP (unpaid) even if approved.
             </p>
           </div>
         </div>
@@ -767,7 +1006,7 @@ export const LeaveManagement = () => {
       </div>
 
       {/* Monthly PTO Balance Summary Metrics */}
-      <div className="grid grid-cols-1 sm:grid-cols-4 gap-4">
+      <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-5 gap-4">
         <Card className="p-4 flex items-center justify-between border-slate-200 dark:border-slate-800/80">
           <div>
             <span className="text-[11px] font-medium text-slate-500 dark:text-slate-400 uppercase tracking-wider">
@@ -798,6 +1037,23 @@ export const LeaveManagement = () => {
             </p>
           </div>
           <div className="w-9 h-9 rounded-xl bg-blue-50 dark:bg-blue-500/10 text-blue-600 dark:text-blue-400 flex items-center justify-center shrink-0">
+            <Clock className="w-5 h-5" />
+          </div>
+        </Card>
+
+        <Card className="p-4 flex items-center justify-between border-slate-200 dark:border-slate-800/80">
+          <div>
+            <span className="text-[11px] font-medium text-slate-500 dark:text-slate-400 uppercase tracking-wider">
+              Monthly Permission
+            </span>
+            <p className="text-xl font-bold text-cyan-600 dark:text-cyan-400 mt-1">
+              {remainingPermissionHours} {remainingPermissionHours === 1 ? 'Hr' : 'Hrs'} Remaining
+            </p>
+            <p className="text-[10px] text-slate-500 dark:text-slate-400 mt-0.5">
+              {usedPermissionHoursThisMonth} of {permissionHoursLimit} {permissionHoursLimit === 1 ? 'Hr' : 'Hrs'} Used ({currentMonthName})
+            </p>
+          </div>
+          <div className="w-9 h-9 rounded-xl bg-cyan-50 dark:bg-cyan-500/10 text-cyan-600 dark:text-cyan-400 flex items-center justify-center shrink-0">
             <Clock className="w-5 h-5" />
           </div>
         </Card>
@@ -859,9 +1115,7 @@ export const LeaveManagement = () => {
                       {formatLeaveTypeLabel(req)}
                     </td>
                     <td className="p-4 text-slate-600 dark:text-slate-400">
-                      {req.startDate === req.endDate || Number(req.days) === 1
-                        ? `${req.startDate} (1 Day)`
-                        : `${req.startDate} to ${req.endDate} (${req.days} days)`}
+                      {formatLeaveDuration(req)}
                     </td>
                     <td className="p-4 text-slate-600 dark:text-slate-400 max-w-xs truncate">{req.reason}</td>
                     <td className="p-4">
@@ -1036,6 +1290,7 @@ export const LeaveManagement = () => {
                 >
                   <option value="Casual Leave">Casual Leave ({leaveLimits.casual}/month · 3 days advance)</option>
                   <option value="Sick Leave">Sick Leave ({leaveLimits.sick}/month)</option>
+                  <option value="Permission">Permission ({permissionHoursLimit} hrs/month)</option>
                   {wfhPolicy.leaveFormEnabled && (
                     <option value="Work From Home">
                       Work From Home ({getWfhAllowanceLabel(wfhPolicy)}) — needs approval
@@ -1056,6 +1311,11 @@ export const LeaveManagement = () => {
                       ? `${remainingCasualDays} of ${leaveLimits.casual} Casual`
                       : `${remainingSickDays} of ${leaveLimits.sick} Sick`}
                     . Extra days are marked LOP (unpaid).
+                  </p>
+                )}
+                {leaveType === PERMISSION_LEAVE_TYPE && (
+                  <p className="text-[11px] text-slate-500 dark:text-slate-400 mt-1">
+                    Remaining this month: {remainingPermissionHours} of {permissionHoursLimit} hrs. Requests over the remaining hours cannot be submitted.
                   </p>
                 )}
                 {wfhPolicy.clockInChoice && remainingWfhDays !== null && (
@@ -1083,6 +1343,18 @@ export const LeaveManagement = () => {
                   setValidationError={setValidationError}
                 />
               </div>
+
+              {leaveType === PERMISSION_LEAVE_TYPE && (
+                <div className="grid grid-cols-2 gap-3">
+                  <PermissionTimeSelect label="Start Time" value={startTime} onChange={setStartTime} />
+                  <PermissionTimeSelect label="End Time" value={endTime} onChange={setEndTime} />
+                  {startTime && endTime && hoursBetween(startTime, endTime) > 0 && (
+                    <p className="col-span-2 text-[11px] text-slate-500 dark:text-slate-400">
+                      Duration: {hoursBetween(startTime, endTime)} {hoursBetween(startTime, endTime) === 1 ? 'hr' : 'hrs'}
+                    </p>
+                  )}
+                </div>
+              )}
 
               <div className="space-y-1.5 text-left">
                 <label className="block text-xs font-medium text-slate-700 dark:text-slate-300">Reason for Request</label>

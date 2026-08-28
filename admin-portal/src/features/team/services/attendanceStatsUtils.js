@@ -7,6 +7,8 @@
 export const OFFICE_START_HOUR = 10
 export const OFFICE_START_MINUTE = 30
 export const OFFICE_START_MINUTES = OFFICE_START_HOUR * 60 + OFFICE_START_MINUTE
+export const LATE_GRACE_MINUTES = 10
+export const LATE_CUTOFF_MINUTES = OFFICE_START_MINUTES + LATE_GRACE_MINUTES
 
 export function timeStrToMinutes(timeStr) {
   if (!timeStr || typeof timeStr !== 'string') return null
@@ -24,14 +26,15 @@ export function timeStrToMinutes(timeStr) {
 }
 
 /**
- * Late minutes past office start (10:30 AM). Returns 0 if on time / missing clock-in.
+ * Late minutes past office start (10:30 AM). Returns 0 if on time (before 10:40 AM grace cutoff) or missing clock-in.
  * @param {string|null} clockInTime
  * @returns {number}
  */
 export function getLateMinutes(clockInTime) {
   const mins = timeStrToMinutes(clockInTime)
   if (mins === null) return 0
-  return Math.max(0, mins - OFFICE_START_MINUTES)
+  if (mins < LATE_CUTOFF_MINUTES) return 0
+  return mins - OFFICE_START_MINUTES
 }
 
 /**

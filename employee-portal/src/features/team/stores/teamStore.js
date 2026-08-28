@@ -7,6 +7,7 @@ import { useUserStore } from '../../../stores/userStore'
 // Office hours constants (late-by still uses start time)
 export const OFFICE_START_HOUR = 10
 export const OFFICE_START_MINUTE = 30
+export const LATE_GRACE_MINUTES = 10
 export const OFFICE_END_HOUR = 19
 export const OFFICE_END_MINUTE = 0
 

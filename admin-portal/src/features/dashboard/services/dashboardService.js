@@ -368,12 +368,29 @@ export const getHealthScore = async (dateFilter = {}) => {
   }
 }
 
+const toLocalYmd = (val) => {
+  if (typeof val === 'string' && /^\d{4}-\d{2}-\d{2}/.test(val)) return val.slice(0, 10)
+  const d = val instanceof Date ? val : parseFirestoreDate(val)
+  if (!d || isNaN(d.getTime())) return ''
+  const y = d.getFullYear()
+  const m = String(d.getMonth() + 1).padStart(2, '0')
+  const day = String(d.getDate()).padStart(2, '0')
+  return `${y}-${m}-${day}`
+}
+
+const leaveCoversDay = (data, ymd) => {
+  const startYmd = toLocalYmd(data.startDate || data.fromDate)
+  const endYmd = toLocalYmd(data.endDate || data.toDate || data.startDate || data.fromDate) || startYmd
+  if (!startYmd) return false
+  return ymd >= startYmd && ymd <= endYmd
+}
+
 /**
- * Organization bottom micro-metrics from Firestore filtered by date range
+ * Daily org snapshot (not date-filterable): all-time employees/tickets, today's attendance/leaves
  */
-export const getOrgStats = async (dateFilter = {}) => {
+export const getOrgStats = async () => {
   try {
-    const { startDate, endDate } = dateFilter
+    const todayYmd = toLocalYmd(new Date())
     const [empSnap, attSnap, leaveSnap, ticketSnap] = await Promise.all([
       getDocs(collection(db, 'employees')).catch(() => ({ size: 0, docs: [] })),
       getDocs(collection(db, 'attendanceLogs')).catch(() => ({ size: 0, docs: [] })),
@@ -383,54 +400,36 @@ export const getOrgStats = async (dateFilter = {}) => {
 
     const totalEmployees = empSnap.docs ? empSnap.docs.length : 0
 
-    // Joined within period
-    let joinedThisPeriod = 0
-    empSnap.docs?.forEach((d) => {
-      const created = parseFirestoreDate(d.data().createdAt)
-      if (isWithinDateRange(created, startDate, endDate)) {
-        joinedThisPeriod++
-      }
-    })
-
-    // Present within period
-    let presentCount = 0
+    const presentUids = new Set()
     attSnap.docs?.forEach((d) => {
       const log = d.data()
-      const logDate = parseFirestoreDate(log.date || log.checkIn || log.timestamp)
-      if (isWithinDateRange(logDate, startDate, endDate)) {
-        if (log.status === 'present' || log.clockedIn || log.checkIn) {
-          presentCount++
-        }
-      }
+      const logYmd = toLocalYmd(log.date) || toLocalYmd(log.checkIn || log.timestamp || log.createdAt)
+      if (logYmd !== todayYmd) return
+      const isPresent = log.present === true || log.status === 'present' || log.clockedIn || log.checkIn
+      if (!isPresent) return
+      presentUids.add(String(log.uid || log.employeeId || d.id))
     })
-
+    const presentCount = presentUids.size
     const attendancePercent = totalEmployees > 0 ? ((presentCount / totalEmployees) * 100).toFixed(1) : '0.0'
 
-    // Approved leaves in period
     let approvedLeaves = 0
     leaveSnap.docs?.forEach((d) => {
       const data = d.data()
-      const leaveDate = parseFirestoreDate(data.startDate || data.createdAt)
-      if (isWithinDateRange(leaveDate, startDate, endDate)) {
-        if ((data.status || '').toLowerCase() === 'approved') approvedLeaves++
-      }
+      if (String(data.leaveType || '') === 'On Duty') return
+      if ((data.status || '').toLowerCase() !== 'approved') return
+      if (leaveCoversDay(data, todayYmd)) approvedLeaves++
     })
 
-    // Open support tickets in period
     let openTickets = 0
     ticketSnap.docs?.forEach((d) => {
-      const data = d.data()
-      const ticketDate = parseFirestoreDate(data.createdAt)
-      if (isWithinDateRange(ticketDate, startDate, endDate)) {
-        const st = (data.status || '').toLowerCase()
-        if (st === 'open' || st === 'in_progress' || st === 'pending') openTickets++
-      }
+      const st = (d.data().status || '').toLowerCase()
+      if (st === 'open' || st === 'in_progress' || st === 'pending') openTickets++
     })
 
     return {
       employees: {
         total: totalEmployees,
-        growth: joinedThisPeriod > 0 ? `+${joinedThisPeriod} this period` : 'Active roster',
+        growth: 'All time',
       },
       attendance: {
         present: presentCount,
@@ -447,7 +446,7 @@ export const getOrgStats = async (dateFilter = {}) => {
   } catch (err) {
     console.error('Error fetching org stats from Firestore:', err)
     return {
-      employees: { total: 0, growth: 'Active roster' },
+      employees: { total: 0, growth: 'All time' },
       attendance: { present: 0, total: 0, percent: '0.0' },
       leaves: { approved: 0 },
       tickets: { open: 0 },

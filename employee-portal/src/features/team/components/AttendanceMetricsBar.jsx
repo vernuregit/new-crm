@@ -1,6 +1,6 @@
 import React, { useState, useEffect } from 'react'
 import { Card } from '../../../components/ui/Card'
-import { useTeamStore, OFFICE_START_HOUR, OFFICE_START_MINUTE } from '../stores/teamStore'
+import { useTeamStore, OFFICE_START_HOUR, OFFICE_START_MINUTE, LATE_GRACE_MINUTES } from '../stores/teamStore'
 import { formatTo12HourTime, computeLiveWorkedSeconds } from '../services/attendanceStatsUtils'
 import { UserCheck, LogIn, LogOut, Timer, AlertCircle } from 'lucide-react'
 
@@ -55,7 +55,7 @@ export const AttendanceMetricsBar = () => {
     return `${hrs}h ${mins}m`
   }
 
-  // Late By vs 10:30 AM — use day's first clock-in time (not latest session timestamp)
+  // Late By vs 10:30 AM with 10 min grace (cutoff 10:40) — day's first clock-in
   const getLateByInfo = () => {
     if (!clockInTime && !clockInTimestamp) {
       return { text: 'On time', isLate: false }
@@ -87,15 +87,15 @@ export const AttendanceMetricsBar = () => {
 
     if (!clockInDate) return { text: 'On time', isLate: false }
 
-    const targetDate = new Date(clockInDate)
-    targetDate.setHours(OFFICE_START_HOUR, OFFICE_START_MINUTE, 0, 0)
+    const officeStart = new Date(clockInDate)
+    officeStart.setHours(OFFICE_START_HOUR, OFFICE_START_MINUTE, 0, 0)
+    const graceCutoff = new Date(officeStart.getTime() + LATE_GRACE_MINUTES * 60 * 1000)
 
-    const diffMs = clockInDate.getTime() - targetDate.getTime()
-    if (diffMs <= 0) {
+    if (clockInDate.getTime() < graceCutoff.getTime()) {
       return { text: 'On time', isLate: false }
     }
 
-    const diffMins = Math.floor(diffMs / (1000 * 60))
+    const diffMins = Math.floor((clockInDate.getTime() - officeStart.getTime()) / (1000 * 60))
     if (diffMins <= 0) return { text: 'On time', isLate: false }
 
     const h = Math.floor(diffMins / 60)

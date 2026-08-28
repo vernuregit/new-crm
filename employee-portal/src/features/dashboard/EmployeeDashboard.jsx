@@ -170,6 +170,7 @@ export const EmployeeDashboard = () => {
 
   const visibleTasks = tasks.filter((t) => isTaskVisibleToUser(t, user, userDoc, claims, projects, tasks))
   const displayTasks = visibleTasks
+  const focusTasks = displayTasks.filter((t) => t.status !== 'done' && t.status !== 'completed')
 
   const assignedTaskCount = displayTasks.length
   const totalHoursLogged = displayTasks.reduce((sum, t) => sum + (Number(t.loggedHours) || 0), 0)
@@ -415,25 +416,15 @@ export const EmployeeDashboard = () => {
         )}
 
         <div className="grid grid-cols-1 md:grid-cols-2 gap-3">
-          {displayTasks.slice(0, 6).map((task) => {
-            const isDone = task.status === 'done'
-            return (
+          {focusTasks.slice(0, 6).map((task) => (
               <div
                 key={task.taskId}
                 onClick={() => handleToggleTaskStatus(task)}
-                className={`flex items-center gap-3 p-3 rounded-xl border cursor-pointer transition-all ${
-                  isDone
-                    ? 'border-emerald-500/20 bg-emerald-500/5 hover:bg-emerald-500/10'
-                    : 'border-slate-200 dark:border-slate-800 bg-slate-50 dark:bg-slate-900/40 hover:border-slate-300 dark:hover:border-slate-700'
-                }`}
+                className="flex items-center gap-3 p-3 rounded-xl border cursor-pointer transition-all border-slate-200 dark:border-slate-800 bg-slate-50 dark:bg-slate-900/40 hover:border-slate-300 dark:hover:border-slate-700"
               >
-                <CheckCircle2
-                  className={`w-4 h-4 shrink-0 transition-colors ${
-                    isDone ? 'text-emerald-600 dark:text-emerald-400' : 'text-slate-400 dark:text-slate-600'
-                  }`}
-                />
+                <CheckCircle2 className="w-4 h-4 shrink-0 text-slate-400 dark:text-slate-600" />
                 <div className="flex-1 min-w-0">
-                  <span className={`text-xs block truncate ${isDone ? 'line-through text-slate-400 dark:text-slate-500' : 'text-slate-800 dark:text-slate-200 font-medium'}`}>
+                  <span className="text-xs block truncate text-slate-800 dark:text-slate-200 font-medium">
                     {task.title}
                   </span>
                   <span className="text-[10px] text-slate-500 dark:text-slate-400">{task.projectName}</span>
@@ -445,12 +436,11 @@ export const EmployeeDashboard = () => {
                   {task.priority || 'medium'}
                 </Badge>
               </div>
-            )
-          })}
-          {displayTasks.length === 0 && (
+          ))}
+          {focusTasks.length === 0 && (
             <div className="col-span-2 py-8 text-center text-xs text-slate-400 dark:text-slate-500">
               <CheckCircle2 className="w-8 h-8 mx-auto mb-2 opacity-30" />
-              No tasks assigned yet.
+              No open priority tasks.
             </div>
           )}
         </div>

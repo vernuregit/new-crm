@@ -203,11 +203,11 @@ export const FounderDashboard = () => {
   const [showDateDropdown, setShowDateDropdown] = useState(false)
   const dateDropdownRef = useRef(null)
 
-  // Active Date Filter state (default: this_week)
-  const [activePreset, setActivePreset] = useState('this_week')
+  // Active Date Filter state (default: all_time)
+  const [activePreset, setActivePreset] = useState('all_time')
   const [customStartDate, setCustomStartDate] = useState('')
   const [customEndDate, setCustomEndDate] = useState('')
-  const [currentRange, setCurrentRange] = useState(() => getPresetDateRange('this_week'))
+  const [currentRange, setCurrentRange] = useState(() => getPresetDateRange('all_time'))
 
   // Real Dashboard Data States
   const [revenue, setRevenue] = useState({ mrr: 0, paidCount: 0, changePercent: '0.0' })
@@ -264,14 +264,13 @@ export const FounderDashboard = () => {
         endDate: currentRange.endDate,
       }
 
-      const [revData, pipeData, projData, taskData, healthData, actData, orgData] = await Promise.all([
+      const [revData, pipeData, projData, taskData, healthData, actData] = await Promise.all([
         getMRR(filter),
         getCRMPipeline(filter),
         getProjectStats(filter),
         getTaskStats(filter),
         getHealthScore(filter),
         getRecentActivity(filter),
-        getOrgStats(filter),
       ])
 
       if (revData) setRevenue(revData)
@@ -280,7 +279,6 @@ export const FounderDashboard = () => {
       if (taskData) setTaskStats(taskData)
       if (healthData) setHealth(healthData)
       if (actData) setActivities(actData)
-      if (orgData) setOrgStats(orgData)
     } catch (err) {
       console.error('Failed to load real dashboard metrics:', err)
     } finally {
@@ -288,9 +286,22 @@ export const FounderDashboard = () => {
     }
   }, [currentRange])
 
+  const loadOrgStats = useCallback(async () => {
+    try {
+      const orgData = await getOrgStats()
+      if (orgData) setOrgStats(orgData)
+    } catch (err) {
+      console.error('Failed to load org snapshot:', err)
+    }
+  }, [])
+
   useEffect(() => {
     loadData(currentRange)
   }, [currentRange])
+
+  useEffect(() => {
+    loadOrgStats()
+  }, [loadOrgStats])
 
   // Select Preset Handler
   const handleSelectPreset = (presetKey) => {
@@ -334,13 +345,13 @@ export const FounderDashboard = () => {
   ]
 
   const datePresets = [
-    { key: 'this_week', label: 'This Week' },
+    { key: 'all_time', label: 'All Time' },
     { key: 'today', label: 'Today' },
+    { key: 'this_week', label: 'This Week' },
     { key: 'this_month', label: 'This Month' },
     { key: 'last_30_days', label: 'Last 30 Days' },
     { key: 'this_quarter', label: 'This Quarter' },
     { key: 'this_year', label: 'This Year' },
-    { key: 'all_time', label: 'All Time' },
   ]
 
   return (
@@ -359,7 +370,10 @@ export const FounderDashboard = () => {
         <div className="flex items-center gap-3 relative">
           {/* Refresh Data Button */}
           <button
-            onClick={() => loadData(currentRange)}
+            onClick={() => {
+              loadData(currentRange)
+              loadOrgStats()
+            }}
             disabled={loading}
             title="Refresh dashboard metrics"
             className="p-2 bg-white dark:bg-[#181C27] border border-slate-200 dark:border-slate-800 rounded-xl text-slate-500 dark:text-slate-400 hover:text-slate-900 dark:hover:text-slate-200 shadow-xs hover:border-slate-300 dark:hover:border-slate-700 transition-all cursor-pointer disabled:opacity-50"
@@ -581,6 +595,103 @@ export const FounderDashboard = () => {
           <div className="mt-3 flex items-center gap-1 text-[11px] font-semibold text-emerald-600 dark:text-emerald-400">
             <TrendingUp className="w-3 h-3" />
             <span>Operational efficiency</span>
+          </div>
+        </Card>
+      </div>
+
+      {/* Daily org snapshot — not affected by the date filter */}
+      <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4">
+        <Card className="p-4 bg-white dark:bg-[#181C27] border-slate-200/80 dark:border-slate-800">
+          <div className="flex items-start justify-between">
+            <div>
+              <p className="text-xs font-medium text-slate-500 dark:text-slate-400 flex items-center gap-1.5">
+                <Users className="w-3.5 h-3.5 text-indigo-500" /> Employees
+              </p>
+              <h3 className="text-xl font-extrabold text-slate-900 dark:text-slate-100 mt-1">
+                {orgStats.employees.total}
+              </h3>
+              <p className="text-[11px] text-slate-400 dark:text-slate-500 mt-0.5">
+                Total Employees <span className="text-emerald-600 dark:text-emerald-400 font-semibold ml-1.5">{orgStats.employees.growth}</span>
+              </p>
+            </div>
+            <div className="w-8 h-8 rounded-full bg-purple-50 dark:bg-purple-500/10 text-purple-600 dark:text-purple-400 flex items-center justify-center">
+              <Users className="w-4 h-4" />
+            </div>
+          </div>
+        </Card>
+
+        <Card className="p-4 bg-white dark:bg-[#181C27] border-slate-200/80 dark:border-slate-800">
+          <div className="flex items-start justify-between">
+            <div className="w-full">
+              <p className="text-xs font-medium text-slate-500 dark:text-slate-400 flex items-center gap-1.5">
+                <UserCheck className="w-3.5 h-3.5 text-blue-500" /> Attendance Today
+              </p>
+              <div className="flex items-baseline justify-between mt-1">
+                <h3 className="text-xl font-extrabold text-slate-900 dark:text-slate-100">
+                  {orgStats.attendance.present} / {orgStats.attendance.total}
+                </h3>
+                <span className="text-xs font-bold text-blue-600 dark:text-blue-400">
+                  {orgStats.attendance.percent}%
+                </span>
+              </div>
+              <p className="text-[11px] text-slate-400 dark:text-slate-500 mt-0.5">Present today</p>
+              <div className="w-full bg-slate-100 dark:bg-slate-800 h-1.5 rounded-full overflow-hidden mt-2">
+                <div
+                  className="bg-blue-600 h-full rounded-full transition-all duration-700"
+                  style={{ width: `${Math.min(Number(orgStats.attendance.percent) || 0, 100)}%` }}
+                />
+              </div>
+            </div>
+          </div>
+        </Card>
+
+        <Card className="p-4 bg-white dark:bg-[#181C27] border-slate-200/80 dark:border-slate-800">
+          <div className="flex items-start justify-between">
+            <div>
+              <p className="text-xs font-medium text-slate-500 dark:text-slate-400 flex items-center gap-1.5">
+                <Calendar className="w-3.5 h-3.5 text-amber-500" /> Leaves Today
+              </p>
+              <h3 className="text-xl font-extrabold text-slate-900 dark:text-slate-100 mt-1">
+                {orgStats.leaves.approved}
+              </h3>
+              <p className="text-[11px] text-slate-400 dark:text-slate-500 mt-0.5">Approved today</p>
+            </div>
+            <div className="flex flex-col items-end gap-2">
+              <button
+                onClick={() => navigate('/team/leave')}
+                className="text-[11px] font-semibold text-indigo-600 dark:text-indigo-400 hover:underline cursor-pointer"
+              >
+                View all
+              </button>
+              <div className="w-8 h-8 rounded-full bg-amber-50 dark:bg-amber-500/10 text-amber-600 dark:text-amber-400 flex items-center justify-center">
+                <Calendar className="w-4 h-4" />
+              </div>
+            </div>
+          </div>
+        </Card>
+
+        <Card className="p-4 bg-white dark:bg-[#181C27] border-slate-200/80 dark:border-slate-800">
+          <div className="flex items-start justify-between">
+            <div>
+              <p className="text-xs font-medium text-slate-500 dark:text-slate-400 flex items-center gap-1.5">
+                <Headphones className="w-3.5 h-3.5 text-emerald-500" /> Support Tickets
+              </p>
+              <h3 className="text-xl font-extrabold text-slate-900 dark:text-slate-100 mt-1">
+                {orgStats.tickets.open}
+              </h3>
+              <p className="text-[11px] text-slate-400 dark:text-slate-500 mt-0.5">Open Tickets</p>
+            </div>
+            <div className="flex flex-col items-end gap-2">
+              <button
+                onClick={() => navigate('/team/helpdesk')}
+                className="text-[11px] font-semibold text-indigo-600 dark:text-indigo-400 hover:underline cursor-pointer"
+              >
+                View all
+              </button>
+              <div className="w-8 h-8 rounded-full bg-emerald-50 dark:bg-emerald-500/10 text-emerald-600 dark:text-emerald-400 flex items-center justify-center">
+                <Headphones className="w-4 h-4" />
+              </div>
+            </div>
           </div>
         </Card>
       </div>
@@ -835,107 +946,6 @@ export const FounderDashboard = () => {
               </div>
               <ChevronRight className="w-4 h-4 text-slate-400 group-hover:text-amber-600 dark:group-hover:text-amber-400 transition-colors" />
             </button>
-          </div>
-        </Card>
-      </div>
-
-      {/* ── 5. Bottom Micro-Metrics Row (4 Cards) ─────────────────────────── */}
-      <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4">
-        {/* Card 1: Employees */}
-        <Card className="p-4 bg-white dark:bg-[#181C27] border-slate-200/80 dark:border-slate-800">
-          <div className="flex items-start justify-between">
-            <div>
-              <p className="text-xs font-medium text-slate-500 dark:text-slate-400 flex items-center gap-1.5">
-                <Users className="w-3.5 h-3.5 text-indigo-500" /> Employees
-              </p>
-              <h3 className="text-xl font-extrabold text-slate-900 dark:text-slate-100 mt-1">
-                {orgStats.employees.total}
-              </h3>
-              <p className="text-[11px] text-slate-400 dark:text-slate-500 mt-0.5">
-                Total Employees <span className="text-emerald-600 dark:text-emerald-400 font-semibold ml-1.5">{orgStats.employees.growth}</span>
-              </p>
-            </div>
-            <div className="w-8 h-8 rounded-full bg-purple-50 dark:bg-purple-500/10 text-purple-600 dark:text-purple-400 flex items-center justify-center">
-              <Users className="w-4 h-4" />
-            </div>
-          </div>
-        </Card>
-
-        {/* Card 2: Attendance Today */}
-        <Card className="p-4 bg-white dark:bg-[#181C27] border-slate-200/80 dark:border-slate-800">
-          <div className="flex items-start justify-between">
-            <div className="w-full">
-              <p className="text-xs font-medium text-slate-500 dark:text-slate-400 flex items-center gap-1.5">
-                <UserCheck className="w-3.5 h-3.5 text-blue-500" /> Attendance Today
-              </p>
-              <div className="flex items-baseline justify-between mt-1">
-                <h3 className="text-xl font-extrabold text-slate-900 dark:text-slate-100">
-                  {orgStats.attendance.present} / {orgStats.attendance.total}
-                </h3>
-                <span className="text-xs font-bold text-blue-600 dark:text-blue-400">
-                  {orgStats.attendance.percent}%
-                </span>
-              </div>
-              <p className="text-[11px] text-slate-400 dark:text-slate-500 mt-0.5">Present in period</p>
-              <div className="w-full bg-slate-100 dark:bg-slate-800 h-1.5 rounded-full overflow-hidden mt-2">
-                <div
-                  className="bg-blue-600 h-full rounded-full transition-all duration-700"
-                  style={{ width: `${Math.min(Number(orgStats.attendance.percent) || 0, 100)}%` }}
-                />
-              </div>
-            </div>
-          </div>
-        </Card>
-
-        {/* Card 3: Leaves Today */}
-        <Card className="p-4 bg-white dark:bg-[#181C27] border-slate-200/80 dark:border-slate-800">
-          <div className="flex items-start justify-between">
-            <div>
-              <p className="text-xs font-medium text-slate-500 dark:text-slate-400 flex items-center gap-1.5">
-                <Calendar className="w-3.5 h-3.5 text-amber-500" /> Leaves Today
-              </p>
-              <h3 className="text-xl font-extrabold text-slate-900 dark:text-slate-100 mt-1">
-                {orgStats.leaves.approved}
-              </h3>
-              <p className="text-[11px] text-slate-400 dark:text-slate-500 mt-0.5">Approved in period</p>
-            </div>
-            <div className="flex flex-col items-end gap-2">
-              <button
-                onClick={() => navigate('/team/leave')}
-                className="text-[11px] font-semibold text-indigo-600 dark:text-indigo-400 hover:underline cursor-pointer"
-              >
-                View all
-              </button>
-              <div className="w-8 h-8 rounded-full bg-amber-50 dark:bg-amber-500/10 text-amber-600 dark:text-amber-400 flex items-center justify-center">
-                <Calendar className="w-4 h-4" />
-              </div>
-            </div>
-          </div>
-        </Card>
-
-        {/* Card 4: Support Tickets */}
-        <Card className="p-4 bg-white dark:bg-[#181C27] border-slate-200/80 dark:border-slate-800">
-          <div className="flex items-start justify-between">
-            <div>
-              <p className="text-xs font-medium text-slate-500 dark:text-slate-400 flex items-center gap-1.5">
-                <Headphones className="w-3.5 h-3.5 text-emerald-500" /> Support Tickets
-              </p>
-              <h3 className="text-xl font-extrabold text-slate-900 dark:text-slate-100 mt-1">
-                {orgStats.tickets.open}
-              </h3>
-              <p className="text-[11px] text-slate-400 dark:text-slate-500 mt-0.5">Open Tickets</p>
-            </div>
-            <div className="flex flex-col items-end gap-2">
-              <button
-                onClick={() => navigate('/team/helpdesk')}
-                className="text-[11px] font-semibold text-indigo-600 dark:text-indigo-400 hover:underline cursor-pointer"
-              >
-                View all
-              </button>
-              <div className="w-8 h-8 rounded-full bg-emerald-50 dark:bg-emerald-500/10 text-emerald-600 dark:text-emerald-400 flex items-center justify-center">
-                <Headphones className="w-4 h-4" />
-              </div>
-            </div>
           </div>
         </Card>
       </div>

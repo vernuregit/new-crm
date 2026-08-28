@@ -1,4 +1,6 @@
 export const LOP_LEAVE_TYPE = 'LOP (Loss of Pay)'
+export const PERMISSION_LEAVE_TYPE = 'Permission'
+export const DEFAULT_PERMISSION_HOURS = 4
 
 export const DEFAULT_LEAVE_LIMITS = {
   casual: 1,
@@ -48,6 +50,72 @@ export const resolveLeaveLimits = (employeeDoc) => {
     sick: num(raw.sick, DEFAULT_LEAVE_LIMITS.sick),
     wfh: num(raw.wfh, DEFAULT_LEAVE_LIMITS.wfh),
   }
+}
+
+const parseTimeToMinutes = (time) => {
+  if (!time || typeof time !== 'string') return NaN
+  const [h, m] = time.split(':').map(Number)
+  if (!Number.isFinite(h) || !Number.isFinite(m)) return NaN
+  return h * 60 + m
+}
+
+export const hoursBetween = (startTime, endTime) => {
+  const start = parseTimeToMinutes(startTime)
+  const end = parseTimeToMinutes(endTime)
+  if (!Number.isFinite(start) || !Number.isFinite(end) || end <= start) return 0
+  return Math.round(((end - start) / 60) * 100) / 100
+}
+
+export const resolvePermissionHours = (employeeDoc) => {
+  const n = Number(employeeDoc?.leaveLimits?.permissionHours)
+  if (Number.isFinite(n) && n >= 0) return n
+  return DEFAULT_PERMISSION_HOURS
+}
+
+export const isPermissionLeave = (leave) => {
+  const type = leave?.requestedLeaveType || leave?.leaveType
+  return type === PERMISSION_LEAVE_TYPE
+}
+
+export const getPermissionHours = (leave) => {
+  const stored = Number(leave?.hours)
+  if (Number.isFinite(stored) && stored > 0) return stored
+  return hoursBetween(leave?.startTime, leave?.endTime)
+}
+
+export const countUsedPermissionHours = (
+  leaveRequests,
+  employeeFilter,
+  monthStr,
+  { excludeLeaveId } = {}
+) => {
+  if (!monthStr) return 0
+  const list = Array.isArray(leaveRequests) ? leaveRequests : []
+  const total = list.reduce((sum, leave) => {
+    if (excludeLeaveId && (leave.leaveId === excludeLeaveId || leave.id === excludeLeaveId)) return sum
+    if (leave?.status !== 'approved' && leave?.status !== 'pending') return sum
+    if (!leaveMatchesEmployeeFilter(leave, employeeFilter)) return sum
+    if (!isPermissionLeave(leave)) return sum
+    const date = leave.startDate || leave.endDate || ''
+    if (!date.startsWith(monthStr)) return sum
+    return sum + getPermissionHours(leave)
+  }, 0)
+  return Math.round(total * 100) / 100
+}
+
+export const formatLeaveDuration = (req) => {
+  if (!req) return ''
+  if (isPermissionLeave(req)) {
+    const hours = getPermissionHours(req)
+    const hrsLabel = hours === 1 ? '1 hr' : `${hours} hrs`
+    const date = req.startDate || ''
+    if (req.startTime && req.endTime) return `${date} · ${req.startTime}–${req.endTime} (${hrsLabel})`
+    return `${date} (${hrsLabel})`
+  }
+  if (req.startDate === req.endDate || Number(req.days) === 1) {
+    return `${req.startDate} (1 Day)`
+  }
+  return `${req.startDate} to ${req.endDate} (${req.days} days)`
 }
 
 export const getRequestedLeaveType = (leave) =>
