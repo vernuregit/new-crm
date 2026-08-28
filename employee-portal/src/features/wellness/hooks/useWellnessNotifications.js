@@ -34,7 +34,7 @@ export const useWellnessNotifications = () => {
       // Native browser notification
       if ('Notification' in window && Notification.permission === 'granted') {
         try {
-          const notif = new Notification(`${reminder.emoji} ${reminder.name}`, {
+          const notif = new Notification(reminder.name, {
             body: reminder.message,
             icon: '/favicon.ico',
             tag: `wellness-${reminder.id}`,
@@ -49,7 +49,7 @@ export const useWellnessNotifications = () => {
 
       // In-app notification center
       useNotificationStore.getState().addNotification({
-        title: `${reminder.emoji} ${reminder.name}`,
+        title: reminder.name,
         message: reminder.message,
         type: 'wellness',
         link: '/wellness',

@@ -13,10 +13,8 @@ import { AttendanceMetricsBar } from '../../team/components/AttendanceMetricsBar
 import { collection, onSnapshot } from 'firebase/firestore'
 import { db } from '../../../shared/services/firebaseService'
 import {
-  Clock,
   LogIn,
   LogOut,
-  TrendingUp,
   Coffee,
   CheckCircle2,
   Calendar,
@@ -29,7 +27,7 @@ import {
   MapPin,
 } from 'lucide-react'
 
-export const ClockInOverviewWidget = () => {
+export const ClockInOverviewWidget = ({ children }) => {
   const { user, userDoc } = useUserStore()
   const activeUid = userDoc?.uid || user?.uid
   const displayName = userDoc?.displayName || user?.displayName || 'Employee'
@@ -49,7 +47,6 @@ export const ClockInOverviewWidget = () => {
     accumulatedBreakSeconds,
     accumulatedWorkSeconds,
     todayShiftLogs,
-    attendanceStats,
     isInExtraTime,
     extraTimeStart,
     accumulatedExtraSeconds,
@@ -229,10 +226,10 @@ export const ClockInOverviewWidget = () => {
       <AttendanceMetricsBar />
 
       {/* Main Top Attendance Hub Grid */}
-      <div className="grid grid-cols-1 lg:grid-cols-12 gap-3 items-stretch">
+      <div className={`grid grid-cols-1 gap-3 items-stretch ${children ? 'lg:grid-cols-3' : 'lg:grid-cols-12'}`}>
 
         {/* CARD 1: Today's Overview (Main Clock-In Card) */}
-        <Card className="lg:col-span-5 p-5 sm:p-6 border-slate-200 dark:border-slate-800 flex flex-col relative overflow-hidden bg-gradient-to-br from-white via-slate-50/50 to-emerald-50/20 dark:from-[#181C27] dark:via-[#181C27] dark:to-emerald-950/20 shadow-lg shadow-slate-200/50 dark:shadow-none">
+        <Card className={`${children ? '' : 'lg:col-span-7'} p-5 sm:p-6 border-slate-200 dark:border-slate-800 flex flex-col relative overflow-hidden bg-gradient-to-br from-white via-slate-50/50 to-emerald-50/20 dark:from-[#181C27] dark:via-[#181C27] dark:to-emerald-950/20 shadow-lg shadow-slate-200/50 dark:shadow-none`}>
           {/* Top Row: Title & Badge & Live Clock */}
           <div className="flex items-center justify-between pb-3 border-b border-slate-200/80 dark:border-slate-800 shrink-0">
               <div className="flex items-center gap-2">
@@ -438,73 +435,12 @@ export const ClockInOverviewWidget = () => {
           )}
         </Card>
 
-        {/* CARD 2: Daily Metrics 2x2 Grid */}
-        <div className="lg:col-span-4 grid grid-cols-2 gap-3 items-stretch">
-          {/* Avg Hours / Day */}
-          <Card className="p-3 border-slate-200 dark:border-slate-800 flex flex-col justify-center hover:border-indigo-400/40 transition-colors">
-            <div className="w-8 h-8 rounded-lg bg-sky-50 dark:bg-sky-500/10 text-sky-600 dark:text-sky-400 flex items-center justify-center mb-2">
-              <Clock className="w-4 h-4" />
-            </div>
-            <div>
-              <div className="text-base font-bold text-slate-900 dark:text-slate-100">
-                {attendanceStats?.avgHours || formatWorkdayHours(elapsedSeconds)}
-              </div>
-              <span className="text-[10px] font-medium text-slate-500 dark:text-slate-400 uppercase tracking-wider block mt-0.5">
-                Avg hours / day
-              </span>
-            </div>
-          </Card>
-
-          {/* Avg Check-In */}
-          <Card className="p-3 border-slate-200 dark:border-slate-800 flex flex-col justify-center hover:border-emerald-400/40 transition-colors">
-            <div className="w-8 h-8 rounded-lg bg-emerald-50 dark:bg-emerald-500/10 text-emerald-600 dark:text-emerald-400 flex items-center justify-center mb-2">
-              <LogIn className="w-4 h-4" />
-            </div>
-            <div>
-              <div className="text-base font-bold text-slate-900 dark:text-slate-100">
-                {attendanceStats?.avgCheckIn || clockInTime || '—'}
-              </div>
-              <span className="text-[10px] font-medium text-slate-500 dark:text-slate-400 uppercase tracking-wider block mt-0.5">
-                Avg check-in
-              </span>
-            </div>
-          </Card>
-
-          {/* Earliest Clock-In */}
-          <Card className="p-3 border-slate-200 dark:border-slate-800 flex flex-col justify-center hover:border-teal-400/40 transition-colors">
-            <div className="w-8 h-8 rounded-lg bg-teal-50 dark:bg-teal-500/10 text-teal-600 dark:text-teal-400 flex items-center justify-center mb-2">
-              <TrendingUp className="w-4 h-4" />
-            </div>
-            <div>
-              <div className="text-base font-bold text-emerald-600 dark:text-emerald-400">
-                {attendanceStats?.avgArrival || clockInTime || '—'}
-              </div>
-              <span className="text-[10px] font-medium text-slate-500 dark:text-slate-400 uppercase tracking-wider block mt-0.5">
-                Earliest clock-in
-              </span>
-            </div>
-          </Card>
-
-          {/* Avg Check-Out */}
-          <Card className="p-3 border-slate-200 dark:border-slate-800 flex flex-col justify-center hover:border-purple-400/40 transition-colors">
-            <div className="w-8 h-8 rounded-lg bg-purple-50 dark:bg-purple-500/10 text-purple-600 dark:text-purple-400 flex items-center justify-center mb-2">
-              <LogOut className="w-4 h-4" />
-            </div>
-            <div>
-              <div className="text-base font-bold text-slate-900 dark:text-slate-100">
-                {attendanceStats?.avgCheckOut || clockOutTime || '—'}
-              </div>
-              <span className="text-[10px] font-medium text-slate-500 dark:text-slate-400 uppercase tracking-wider block mt-0.5">
-                Avg check-out
-              </span>
-            </div>
-          </Card>
-        </div>
-
-        {/* CARD 3: Attendance Calendar (compact height so it matches other cards) */}
-        <div className="lg:col-span-3 flex w-full">
+        {/* Attendance Calendar */}
+        <div className={`${children ? '' : 'lg:col-span-5'} flex w-full min-h-0`}>
           <AttendanceCalendarWidget />
         </div>
+
+        {children ? <div className="flex w-full min-h-0">{children}</div> : null}
       </div>
 
       {/* Shift History Log Dropdown Panel */}

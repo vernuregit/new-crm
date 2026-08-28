@@ -13,7 +13,26 @@ import {
   Bell,
   Timer,
   Sparkles,
+  CheckCircle2,
+  Eye,
+  Wind,
+  Apple,
+  Smile,
+  Footprints,
+  AlignVerticalSpaceAround,
+  StretchHorizontal,
 } from 'lucide-react'
+
+const ICON_MAP = {
+  Droplets,
+  StretchHorizontal,
+  Eye,
+  Footprints,
+  Wind,
+  Apple,
+  Smile,
+  AlignVerticalSpaceAround,
+}
 
 export const WellnessWidget = () => {
   const {
@@ -67,6 +86,10 @@ export const WellnessWidget = () => {
   const enabledCount = WELLNESS_REMINDERS.filter(
     (r) => reminderSettings[r.id]?.enabled
   ).length
+
+  const NextReminderIcon = nextReminder
+    ? ICON_MAP[nextReminder.icon] || Bell
+    : Bell
 
   return (
     <Card className="p-0 overflow-hidden border-slate-200 dark:border-slate-800/80">
@@ -165,10 +188,15 @@ export const WellnessWidget = () => {
               />
             </div>
 
-            <p className="text-[10px] text-slate-400 dark:text-slate-500 text-center">
-              {hydrationCount >= hydrationGoal
-                ? '🎉 Goal reached!'
-                : `${hydrationGoal - hydrationCount} glasses to go`}
+            <p className="text-[10px] text-slate-400 dark:text-slate-500 text-center flex items-center justify-center gap-1">
+              {hydrationCount >= hydrationGoal ? (
+                <>
+                  <CheckCircle2 className="w-3 h-3 text-emerald-500" />
+                  Goal reached!
+                </>
+              ) : (
+                `${hydrationGoal - hydrationCount} glasses to go`
+              )}
             </p>
           </div>
 
@@ -183,7 +211,7 @@ export const WellnessWidget = () => {
 
             {nextReminder && globalEnabled && !snoozed ? (
               <div className="flex flex-col items-center gap-1 p-2 rounded-xl bg-indigo-50/50 dark:bg-indigo-500/5 border border-indigo-200/50 dark:border-indigo-500/10">
-                <span className="text-2xl">{nextReminder.emoji}</span>
+                <NextReminderIcon className="w-6 h-6 text-indigo-500 dark:text-indigo-400" />
                 <span className="text-[11px] font-semibold text-slate-700 dark:text-slate-300 text-center truncate w-full">
                   {nextReminder.name}
                 </span>

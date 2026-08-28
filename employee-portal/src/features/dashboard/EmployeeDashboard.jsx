@@ -5,76 +5,80 @@ import { ClockInOverviewWidget } from './components/ClockInOverviewWidget'
 import { WellnessWidget } from '../wellness/WellnessWidget'
 import { Card } from '../../components/ui/Card'
 import { Badge } from '../../components/ui/Badge'
-import { Button } from '../../components/ui/Button'
+import { useTeamStore } from '../team/stores/teamStore'
+import {
+  formatLeaveDuration,
+  getRequestedLeaveType,
+  leaveMatchesEmployeeFilter,
+} from '../team/services/leaveEntitlementUtils'
 import {
   CheckCircle2,
-  Clock,
+  Circle,
   Calendar,
-  TrendingUp,
   Briefcase,
-  Star,
-  ArrowRight,
   Users,
   FolderKanban,
-  Plus,
   Sun,
   Moon,
   CalendarDays,
   Megaphone,
   Target,
-  Receipt,
-  FileText,
-  LifeBuoy,
-  Bell,
-  Umbrella,
   ChevronRight,
   MapPin,
+  Home,
+  Umbrella,
+  HeartPulse,
+  Laptop,
 } from 'lucide-react'
 import { NavLink } from 'react-router-dom'
-import { isTaskVisibleToUser, isUserOnProject } from '../projects/services/projectService'
+import { isTaskVisibleToUser } from '../projects/services/projectService'
 import { db } from '../../shared/services/firebaseService'
 import { collection, query, where, getDocs, orderBy, limit } from 'firebase/firestore'
 
 const quickLinks = [
-  { name: 'Projects', path: '/projects/list', icon: FolderKanban, color: 'indigo', desc: 'Overview of active projects & completion status' },
-  { name: 'Sprint Tasks', path: '/tasks', icon: Briefcase, color: 'indigo', desc: 'View and manage sprint task assignments' },
-  { name: 'Work Timeline', path: '/timeline', icon: CalendarDays, color: 'blue', desc: 'Daily Mon–Sat log of what you worked on' },
-  { name: 'Team Directory', path: '/directory', icon: Users, color: 'purple', desc: 'Browse team directory and skills' },
-  { name: 'Attendance', path: '/attendance', icon: Calendar, color: 'emerald', desc: 'Clock in/out and view presence status' },
-  { name: 'Leave & PTO', path: '/team/leave', icon: Calendar, color: 'emerald', desc: 'Request annual/sick leave & check PTO balance' },
-  { name: 'My Goals', path: '/goals', icon: Target, color: 'purple', desc: 'Track your personal and professional goals' },
+  { name: 'Projects', path: '/projects/list', icon: FolderKanban, tile: 'bg-violet-50 dark:bg-violet-500/10 text-violet-600 dark:text-violet-400' },
+  { name: 'Sprint Tasks', path: '/tasks', icon: Briefcase, tile: 'bg-orange-50 dark:bg-orange-500/10 text-orange-600 dark:text-orange-400' },
+  { name: 'Work Timeline', path: '/timeline', icon: CalendarDays, tile: 'bg-blue-50 dark:bg-blue-500/10 text-blue-600 dark:text-blue-400' },
+  { name: 'Team Directory', path: '/directory', icon: Users, tile: 'bg-teal-50 dark:bg-teal-500/10 text-teal-600 dark:text-teal-400' },
+  { name: 'Attendance', path: '/attendance', icon: Calendar, tile: 'bg-emerald-50 dark:bg-emerald-500/10 text-emerald-600 dark:text-emerald-400' },
+  { name: 'Leave & PTO', path: '/team/leave', icon: Calendar, tile: 'bg-rose-50 dark:bg-rose-500/10 text-rose-600 dark:text-rose-400' },
+  { name: 'My Goals', path: '/goals', icon: Target, tile: 'bg-purple-50 dark:bg-purple-500/10 text-purple-600 dark:text-purple-400' },
 ]
 
-const colorMap = {
-  indigo: 'bg-violet-50 dark:bg-violet-500/10 text-violet-600 dark:text-violet-400 border-violet-200 dark:border-violet-500/20',
-  blue: 'bg-blue-50 dark:bg-blue-500/10 text-blue-600 dark:text-blue-400 border-blue-200 dark:border-blue-500/20',
-  purple: 'bg-purple-50 dark:bg-purple-500/10 text-purple-600 dark:text-purple-400 border-purple-200 dark:border-purple-500/20',
-  emerald: 'bg-emerald-50 dark:bg-emerald-500/10 text-emerald-600 dark:text-emerald-400 border-emerald-200 dark:border-emerald-500/20',
+const requestStyle = (leaveType = '') => {
+  const t = leaveType.toLowerCase()
+  if (t.includes('wfh') || t.includes('work from home')) {
+    return { icon: Home, tile: 'bg-emerald-50 dark:bg-emerald-500/10 text-emerald-600 dark:text-emerald-400' }
+  }
+  if (t.includes('sick')) {
+    return { icon: HeartPulse, tile: 'bg-purple-50 dark:bg-purple-500/10 text-purple-600 dark:text-purple-400' }
+  }
+  if (t.includes('duty') || t.includes('permission')) {
+    return { icon: Laptop, tile: 'bg-blue-50 dark:bg-blue-500/10 text-blue-600 dark:text-blue-400' }
+  }
+  if (t.includes('lop')) {
+    return { icon: Umbrella, tile: 'bg-rose-50 dark:bg-rose-500/10 text-rose-600 dark:text-rose-400' }
+  }
+  return { icon: Umbrella, tile: 'bg-orange-50 dark:bg-orange-500/10 text-orange-600 dark:text-orange-400' }
 }
 
-const QUICK_ACTIONS = [
-  { label: 'Submit Leave', path: '/team/leave', icon: Umbrella, color: 'text-blue-500', bg: 'bg-blue-50 dark:bg-blue-500/10' },
-  { label: 'View Payslip', path: '/payslips', icon: Receipt, color: 'text-emerald-500', bg: 'bg-emerald-50 dark:bg-emerald-500/10' },
-  { label: 'My Documents', path: '/documents', icon: FileText, color: 'text-purple-500', bg: 'bg-purple-50 dark:bg-purple-500/10' },
-  { label: 'New Ticket', path: '/helpdesk', icon: LifeBuoy, color: 'text-amber-500', bg: 'bg-amber-50 dark:bg-amber-500/10' },
-  { label: 'Notifications', path: '/notifications', icon: Bell, color: 'text-indigo-500', bg: 'bg-indigo-50 dark:bg-indigo-500/10' },
-  { label: 'Announcements', path: '/announcements', icon: Megaphone, color: 'text-rose-500', bg: 'bg-rose-50 dark:bg-rose-500/10' },
-]
+const requestStatusVariant = (status) => {
+  if (status === 'approved') return 'success'
+  if (status === 'rejected' || status === 'cancelled') return 'danger'
+  return 'warning'
+}
 
 export const EmployeeDashboard = () => {
   const { user, userDoc, claims } = useUserStore()
-  const { tasks, projects, updateTaskStatus, addTask, fetchProjectsAndTasks } = useProjectStore()
+  const { tasks, projects, updateTaskStatus, fetchProjectsAndTasks } = useProjectStore()
+  const leaveRequests = useTeamStore((s) => s.leaveRequests)
 
   const currentUserId = userDoc?.uid || user?.uid
   const currentUserEmail = userDoc?.email || user?.email
-  const userRole = claims?.role || userDoc?.role || 'employee'
-  const isAdmin = userRole === 'admin' || userRole === 'owner' || userRole === 'superadmin' || claims?.role === 'admin' || claims?.role === 'owner' || claims?.role === 'superadmin'
 
   const displayName = userDoc?.displayName || user?.displayName || 'Team Member'
   const firstName = displayName.split(' ')[0]
 
-  const [newFocusTitle, setNewFocusTitle] = useState('')
-  const [showAddFocus, setShowAddFocus] = useState(false)
   const [currentHour, setCurrentHour] = useState(() => new Date().getHours())
 
   // Dashboard data state
@@ -169,18 +173,36 @@ export const EmployeeDashboard = () => {
   const isBrightSun = currentHour >= 10 && currentHour < 17
 
   const visibleTasks = tasks.filter((t) => isTaskVisibleToUser(t, user, userDoc, claims, projects, tasks))
-  const displayTasks = visibleTasks
-  const focusTasks = displayTasks.filter((t) => t.status !== 'done' && t.status !== 'completed')
+  const focusTasks = visibleTasks.filter((t) => t.status !== 'done' && t.status !== 'completed')
 
-  const assignedTaskCount = displayTasks.length
-  const totalHoursLogged = displayTasks.reduce((sum, t) => sum + (Number(t.loggedHours) || 0), 0)
-  const activeProjectCount = projects.filter((p) => {
-    if (p.status !== 'active') return false
-    if (isAdmin) return true
-    return isUserOnProject(p, user, userDoc, tasks)
-  }).length
+  const todayIso = new Date().toISOString().split('T')[0]
+  const formatTaskDue = (dueDate) => {
+    if (!dueDate) return null
+    const dueStr = String(dueDate).slice(0, 10)
+    if (dueStr === todayIso) return { text: 'Due Today', urgent: true }
+    if (dueStr < todayIso) return { text: 'Overdue', urgent: true }
+    const due = new Date(`${dueStr}T00:00:00`)
+    return {
+      text: `Due ${due.toLocaleDateString('en-US', { month: 'short', day: 'numeric' })}`,
+      urgent: false,
+    }
+  }
 
-  const leaveRemaining = Math.max(0, leaveBalance.annual - leaveBalance.used)
+  const myRecentRequests = (Array.isArray(leaveRequests) ? leaveRequests : [])
+    .filter((l) =>
+      leaveMatchesEmployeeFilter(l, {
+        employeeId: currentUserId,
+        uid: currentUserId,
+        employeeEmail: currentUserEmail,
+        employeeName: displayName,
+      })
+    )
+    .sort((a, b) => {
+      const aDate = a.createdAt?.toDate?.() || new Date(a.startDate || 0)
+      const bDate = b.createdAt?.toDate?.() || new Date(b.startDate || 0)
+      return bDate - aDate
+    })
+    .slice(0, 5)
 
   const today = new Date().toLocaleDateString('en-US', {
     weekday: 'long',
@@ -192,32 +214,6 @@ export const EmployeeDashboard = () => {
   const handleToggleTaskStatus = (t) => {
     const nextStatus = t.status === 'done' ? 'in_progress' : 'done'
     updateTaskStatus(t.taskId, nextStatus)
-  }
-
-  const handleAddQuickFocus = (e) => {
-    e.preventDefault()
-    if (!newFocusTitle.trim()) return
-    const defaultProj = projects[0]?.projectId || 'proj_201'
-    const defaultProjName = projects[0]?.name || 'SaaS Platform Redesign'
-    addTask({
-      title: newFocusTitle,
-      description: 'Quick task created from today focus list',
-      projectId: defaultProj,
-      projectName: defaultProjName,
-      priority: 'high',
-      assigneeId: currentUserId || null,
-      assigneeEmail: currentUserEmail || null,
-      assigneeName: displayName,
-      estimatedHours: 4,
-      dueDate: new Date().toISOString().split('T')[0],
-      createdBy: currentUserId || null,
-      createdByEmail: currentUserEmail || null,
-      createdByName: displayName,
-      createdByRole: userRole || 'employee',
-      isEmployeeCreated: true,
-    })
-    setNewFocusTitle('')
-    setShowAddFocus(false)
   }
 
   const eventTypeColors = {
@@ -280,199 +276,208 @@ export const EmployeeDashboard = () => {
         </div>
       </div>
 
-      {/* Clock-In & Attendance Command Widget */}
-      <ClockInOverviewWidget />
-
-      {/* Middle Row: Announcements + Upcoming Events */}
-      <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
-        {/* Latest Announcements Widget */}
-        <Card className="p-5 border-slate-200 dark:border-slate-800/80 space-y-3">
+      <ClockInOverviewWidget>
+        <Card className="p-5 border-slate-200 dark:border-slate-800/80 space-y-3 w-full h-full flex flex-col">
           <div className="flex items-center justify-between">
-            <div className="flex items-center gap-2">
-              <Megaphone className="w-4 h-4 text-rose-500 dark:text-rose-400" />
-              <h2 className="text-sm font-semibold text-slate-900 dark:text-slate-200">Latest Announcements</h2>
-            </div>
-            <NavLink
-              to="/announcements"
-              className="text-xs text-accent hover:underline font-medium flex items-center gap-1"
-            >
+            <h2 className="text-sm font-semibold text-slate-900 dark:text-slate-200">My Tasks</h2>
+            <NavLink to="/tasks" className="text-xs text-accent hover:underline font-medium flex items-center gap-1">
               View all <ChevronRight className="w-3 h-3" />
             </NavLink>
           </div>
-          {loadingWidgets ? (
-            <div className="space-y-2">
-              {[1, 2].map((i) => (
-                <div key={i} className="h-14 bg-slate-100 dark:bg-slate-800/50 rounded-xl animate-pulse" />
-              ))}
-            </div>
-          ) : announcements.length === 0 ? (
-            <div className="py-6 text-center text-xs text-slate-400 dark:text-slate-500">
-              <Megaphone className="w-6 h-6 mx-auto mb-2 opacity-30" />
-              No announcements yet.
-            </div>
-          ) : (
-            <div className="space-y-2">
-              {announcements.map((ann) => (
-                <div
-                  key={ann.id}
-                  className={`p-3 rounded-xl border ${priorityColors[ann.priority] || priorityColors['info']}`}
-                >
-                  <div className="flex items-start justify-between gap-2">
-                    <span className="text-xs font-semibold text-slate-800 dark:text-slate-200 flex-1">{ann.title}</span>
-                    <Badge variant={ann.priority === 'urgent' ? 'danger' : ann.priority === 'event' ? 'success' : 'neutral'}>
-                      {ann.priority || 'info'}
-                    </Badge>
-                  </div>
-                  {ann.body && (
-                    <p className="text-[11px] text-slate-500 dark:text-slate-400 mt-1 line-clamp-2">{ann.body}</p>
-                  )}
-                  <span className="text-[10px] text-slate-400 dark:text-slate-500 mt-1 block">{ann.author}</span>
-                </div>
-              ))}
-            </div>
-          )}
-        </Card>
 
-        {/* Upcoming Events Widget */}
-        <Card className="p-5 border-slate-200 dark:border-slate-800/80 space-y-3">
-          <div className="flex items-center justify-between">
-            <div className="flex items-center gap-2">
-              <MapPin className="w-4 h-4 text-indigo-500 dark:text-indigo-400" />
-              <h2 className="text-sm font-semibold text-slate-900 dark:text-slate-200">Upcoming Events & Holidays</h2>
-            </div>
-            <NavLink
-              to="/calendar"
-              className="text-xs text-accent hover:underline font-medium flex items-center gap-1"
-            >
-              Calendar <ChevronRight className="w-3 h-3" />
-            </NavLink>
-          </div>
-          {loadingWidgets ? (
-            <div className="space-y-2">
-              {[1, 2, 3].map((i) => (
-                <div key={i} className="h-10 bg-slate-100 dark:bg-slate-800/50 rounded-xl animate-pulse" />
-              ))}
-            </div>
-          ) : upcomingEvents.length === 0 ? (
-            <div className="py-6 text-center text-xs text-slate-400 dark:text-slate-500">
-              <Calendar className="w-6 h-6 mx-auto mb-2 opacity-30" />
-              No upcoming events.
+          {focusTasks.length === 0 ? (
+            <div className="flex-1 py-8 text-center text-xs text-slate-400 dark:text-slate-500 flex flex-col items-center justify-center">
+              <CheckCircle2 className="w-8 h-8 mx-auto mb-2 opacity-30" />
+              No open priority tasks.
             </div>
           ) : (
-            <div className="space-y-2">
-              {upcomingEvents.map((evt) => {
-                const colorClass = eventTypeColors[evt.type] || eventTypeColors['meeting']
+            <div className="space-y-1 flex-1 overflow-auto">
+              {focusTasks.slice(0, 6).map((task) => {
+                const due = formatTaskDue(task.dueDate)
                 return (
-                  <div key={evt.id} className="flex items-center gap-3 p-2.5 rounded-xl bg-slate-50 dark:bg-slate-800/40 border border-slate-200 dark:border-slate-700/50">
-                    <div className={`w-8 h-8 rounded-lg flex items-center justify-center shrink-0 ${colorClass}`}>
-                      <Calendar className="w-4 h-4" />
-                    </div>
+                  <div
+                    key={task.taskId}
+                    onClick={() => handleToggleTaskStatus(task)}
+                    className="flex items-center gap-3 px-2 py-2.5 rounded-xl cursor-pointer hover:bg-slate-50 dark:hover:bg-slate-800/50 transition-colors"
+                  >
+                    <Circle className="w-4 h-4 shrink-0 text-slate-300 dark:text-slate-600" />
                     <div className="flex-1 min-w-0">
-                      <span className="text-xs font-semibold text-slate-800 dark:text-slate-200 block truncate">{evt.title}</span>
-                      <span className="text-[10px] text-slate-500 dark:text-slate-400">
-                        {new Date(evt.date).toLocaleDateString('en-US', { month: 'short', day: 'numeric', year: 'numeric' })}
+                      <span className="text-sm block truncate text-slate-800 dark:text-slate-200 font-medium">
+                        {task.title}
+                      </span>
+                      <span className={`text-[11px] ${due?.urgent ? 'text-rose-500 font-medium' : 'text-slate-400 dark:text-slate-500'}`}>
+                        {due?.text || task.projectName || 'No due date'}
                       </span>
                     </div>
-                    <Badge variant="neutral" className="shrink-0 capitalize">{evt.type}</Badge>
+                    <Badge
+                      variant={task.priority === 'critical' || task.priority === 'high' ? 'danger' : task.priority === 'medium' ? 'warning' : 'success'}
+                      className="shrink-0 capitalize"
+                    >
+                      {task.priority || 'low'}
+                    </Badge>
                   </div>
                 )
               })}
             </div>
           )}
         </Card>
-      </div>
+      </ClockInOverviewWidget>
 
-      {/* Today's Focus */}
-      <Card className="p-6 border-slate-200 dark:border-slate-800/80 space-y-4">
-        <div className="flex items-center justify-between">
-          <div className="flex items-center gap-2">
-            <Calendar className="w-4 h-4 text-accent" />
-            <h2 className="text-sm font-semibold text-slate-900 dark:text-slate-200">Today's Priority Focus</h2>
+      <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
+        <Card className="p-5 border-slate-200 dark:border-slate-800/80 space-y-3">
+          <div className="flex items-center justify-between">
+            <h2 className="text-sm font-semibold text-slate-900 dark:text-slate-200">Recent Activity</h2>
+            <NavLink to="/team/leave" className="text-xs text-accent hover:underline font-medium flex items-center gap-1">
+              View all <ChevronRight className="w-3 h-3" />
+            </NavLink>
           </div>
-          <Button
-            size="sm"
-            variant="secondary"
-            icon={Plus}
-            onClick={() => setShowAddFocus(!showAddFocus)}
-          >
-            Add Focus Task
-          </Button>
-        </div>
-
-        {showAddFocus && (
-          <form onSubmit={handleAddQuickFocus} className="flex items-center gap-2 pt-2 pb-2">
-            <input
-              type="text"
-              placeholder="Enter new task focus title..."
-              value={newFocusTitle}
-              onChange={(e) => setNewFocusTitle(e.target.value)}
-              className="flex-1 bg-slate-100 dark:bg-slate-900 border border-slate-300 dark:border-slate-800 text-xs text-slate-800 dark:text-slate-200 rounded-xl px-3 py-2 focus:outline-none focus:border-indigo-500"
-              autoFocus
-            />
-            <Button type="submit" size="sm" variant="primary">
-              Save
-            </Button>
-          </form>
-        )}
-
-        <div className="grid grid-cols-1 md:grid-cols-2 gap-3">
-          {focusTasks.slice(0, 6).map((task) => (
-              <div
-                key={task.taskId}
-                onClick={() => handleToggleTaskStatus(task)}
-                className="flex items-center gap-3 p-3 rounded-xl border cursor-pointer transition-all border-slate-200 dark:border-slate-800 bg-slate-50 dark:bg-slate-900/40 hover:border-slate-300 dark:hover:border-slate-700"
-              >
-                <CheckCircle2 className="w-4 h-4 shrink-0 text-slate-400 dark:text-slate-600" />
-                <div className="flex-1 min-w-0">
-                  <span className="text-xs block truncate text-slate-800 dark:text-slate-200 font-medium">
-                    {task.title}
-                  </span>
-                  <span className="text-[10px] text-slate-500 dark:text-slate-400">{task.projectName}</span>
-                </div>
-                <Badge
-                  variant={task.priority === 'critical' || task.priority === 'high' ? 'danger' : task.priority === 'medium' ? 'warning' : 'neutral'}
-                  className="shrink-0"
-                >
-                  {task.priority || 'medium'}
-                </Badge>
-              </div>
-          ))}
-          {focusTasks.length === 0 && (
-            <div className="col-span-2 py-8 text-center text-xs text-slate-400 dark:text-slate-500">
-              <CheckCircle2 className="w-8 h-8 mx-auto mb-2 opacity-30" />
-              No open priority tasks.
+          {myRecentRequests.length === 0 ? (
+            <div className="py-8 text-center text-xs text-slate-400 dark:text-slate-500">
+              <Umbrella className="w-8 h-8 mx-auto mb-2 opacity-30" />
+              No recent requests.
+            </div>
+          ) : (
+            <div className="space-y-2">
+              {myRecentRequests.map((req) => {
+                const leaveType = getRequestedLeaveType(req)
+                const style = requestStyle(leaveType)
+                const Icon = style.icon
+                const duration = formatLeaveDuration(req)
+                return (
+                  <div key={req.leaveId || req.id} className="flex items-center gap-3 p-2.5 rounded-xl bg-slate-50 dark:bg-slate-800/40">
+                    <div className={`w-9 h-9 rounded-xl flex items-center justify-center shrink-0 ${style.tile}`}>
+                      <Icon className="w-4 h-4" />
+                    </div>
+                    <div className="flex-1 min-w-0">
+                      <span className="text-xs font-semibold text-slate-800 dark:text-slate-200 block truncate">
+                        {leaveType}
+                      </span>
+                      <span className="text-[10px] text-slate-500 dark:text-slate-400 block truncate">
+                        {duration || req.startDate}
+                      </span>
+                    </div>
+                    <Badge variant={requestStatusVariant(req.status)} className="shrink-0 capitalize">
+                      {req.status || 'pending'}
+                    </Badge>
+                  </div>
+                )
+              })}
             </div>
           )}
-        </div>
-      </Card>
+        </Card>
 
-      {/* Quick Workspaces Grid */}
-      <div>
-        <h2 className="text-sm font-semibold text-slate-700 dark:text-slate-300 uppercase tracking-wider mb-4 flex items-center gap-2">
-          <Star className="w-4 h-4 text-accent" /> Quick Workspaces
-        </h2>
-        <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4">
-          {quickLinks.map((link) => {
-            const Icon = link.icon
-            const colors = colorMap[link.color]
-            return (
-              <NavLink key={link.path} to={link.path}>
-                <Card hover className="p-5 space-y-3 border-slate-200 dark:border-slate-800 group cursor-pointer h-full">
-                  <div className="flex items-center justify-between">
-                    <div className={`w-10 h-10 rounded-xl border flex items-center justify-center ${colors}`}>
-                      <Icon className="w-5 h-5" />
-                    </div>
-                    <ArrowRight className="w-4 h-4 text-muted group-hover:text-accent transition-colors" />
-                  </div>
-                  <div>
-                    <h3 className="font-semibold text-fg text-sm group-hover:text-accent transition-colors">{link.name}</h3>
-                    <p className="text-xs text-slate-500 dark:text-slate-400 mt-1">{link.desc}</p>
-                  </div>
-                </Card>
+        <div className="space-y-6">
+          <Card className="p-5 border-slate-200 dark:border-slate-800/80 space-y-3">
+            <div className="flex items-center justify-between">
+              <h2 className="text-sm font-semibold text-slate-900 dark:text-slate-200">Announcements</h2>
+              <NavLink
+                to="/announcements"
+                className="text-xs text-accent hover:underline font-medium flex items-center gap-1"
+              >
+                View all <ChevronRight className="w-3 h-3" />
               </NavLink>
-            )
-          })}
+            </div>
+            {loadingWidgets ? (
+              <div className="space-y-2">
+                {[1, 2].map((i) => (
+                  <div key={i} className="h-14 bg-slate-100 dark:bg-slate-800/50 rounded-xl animate-pulse" />
+                ))}
+              </div>
+            ) : announcements.length === 0 ? (
+              <div className="py-6 text-center text-xs text-slate-400 dark:text-slate-500">
+                <Megaphone className="w-6 h-6 mx-auto mb-2 opacity-30" />
+                No announcements yet.
+              </div>
+            ) : (
+              <div className="space-y-2">
+                {announcements.map((ann) => (
+                  <div
+                    key={ann.id}
+                    className={`flex items-start gap-3 p-3 rounded-xl ${priorityColors[ann.priority] || priorityColors['info']}`}
+                  >
+                    <div className="w-8 h-8 rounded-lg bg-white/70 dark:bg-slate-900/40 flex items-center justify-center shrink-0">
+                      <Megaphone className="w-4 h-4" />
+                    </div>
+                    <div className="flex-1 min-w-0">
+                      <span className="text-xs font-semibold text-slate-800 dark:text-slate-200 block truncate">{ann.title}</span>
+                      {ann.body && (
+                        <p className="text-[11px] text-slate-500 dark:text-slate-400 mt-0.5 line-clamp-2">{ann.body}</p>
+                      )}
+                      <span className="text-[10px] text-slate-400 dark:text-slate-500 mt-1 block">{ann.author}</span>
+                    </div>
+                  </div>
+                ))}
+              </div>
+            )}
+          </Card>
+
+          <Card className="p-5 border-slate-200 dark:border-slate-800/80 space-y-3">
+            <div className="flex items-center justify-between">
+              <h2 className="text-sm font-semibold text-slate-900 dark:text-slate-200">Upcoming Events</h2>
+              <NavLink
+                to="/calendar"
+                className="text-xs text-accent hover:underline font-medium flex items-center gap-1"
+              >
+                Calendar <ChevronRight className="w-3 h-3" />
+              </NavLink>
+            </div>
+            {loadingWidgets ? (
+              <div className="space-y-2">
+                {[1, 2].map((i) => (
+                  <div key={i} className="h-10 bg-slate-100 dark:bg-slate-800/50 rounded-xl animate-pulse" />
+                ))}
+              </div>
+            ) : upcomingEvents.length === 0 ? (
+              <div className="py-6 text-center text-xs text-slate-400 dark:text-slate-500">
+                <Calendar className="w-6 h-6 mx-auto mb-2 opacity-30" />
+                No upcoming events.
+              </div>
+            ) : (
+              <div className="space-y-2">
+                {upcomingEvents.map((evt) => {
+                  const colorClass = eventTypeColors[evt.type] || eventTypeColors['meeting']
+                  return (
+                    <div key={evt.id} className="flex items-center gap-3 p-2.5 rounded-xl bg-slate-50 dark:bg-slate-800/40">
+                      <div className={`w-8 h-8 rounded-lg flex items-center justify-center shrink-0 ${colorClass}`}>
+                        <MapPin className="w-4 h-4" />
+                      </div>
+                      <div className="flex-1 min-w-0">
+                        <span className="text-xs font-semibold text-slate-800 dark:text-slate-200 block truncate">{evt.title}</span>
+                        <span className="text-[10px] text-slate-500 dark:text-slate-400">
+                          {new Date(evt.date).toLocaleDateString('en-US', { month: 'short', day: 'numeric', year: 'numeric' })}
+                        </span>
+                      </div>
+                      <Badge variant="neutral" className="shrink-0 capitalize">{evt.type}</Badge>
+                    </div>
+                  )
+                })}
+              </div>
+            )}
+          </Card>
         </div>
+
+        <Card className="p-5 border-slate-200 dark:border-slate-800/80 space-y-4">
+          <h2 className="text-sm font-semibold text-slate-900 dark:text-slate-200">Quick Links</h2>
+          <div className="grid grid-cols-3 gap-3">
+            {quickLinks.map((link) => {
+              const Icon = link.icon
+              return (
+                <NavLink
+                  key={link.path}
+                  to={link.path}
+                  className="flex flex-col items-center gap-2 p-2 rounded-2xl hover:bg-slate-50 dark:hover:bg-slate-800/50 transition-colors group"
+                >
+                  <div className={`w-12 h-12 rounded-2xl flex items-center justify-center ${link.tile}`}>
+                    <Icon className="w-5 h-5" />
+                  </div>
+                  <span className="text-[11px] font-medium text-slate-600 dark:text-slate-300 text-center leading-tight group-hover:text-slate-900 dark:group-hover:text-slate-100">
+                    {link.name}
+                  </span>
+                </NavLink>
+              )
+            })}
+          </div>
+        </Card>
       </div>
 
       {/* Wellness Hub Widget */}

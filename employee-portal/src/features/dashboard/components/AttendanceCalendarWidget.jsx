@@ -322,7 +322,7 @@ export const AttendanceCalendarWidget = () => {
   const is6Rows = totalSlotsNeeded > 35
 
   return (
-    <Card className="lg:col-span-3 p-3 w-full border-slate-200 dark:border-slate-800 flex flex-col justify-between  bg-white dark:bg-[#181C27] shadow-sm select-none ">
+    <Card className="p-3 w-full h-full border-slate-200 dark:border-slate-800 flex flex-col justify-between bg-white dark:bg-[#181C27] shadow-sm select-none">
       <div className="flex flex-col  justify-between">
         {/* Top Header & Month Nav */}
         <div>
