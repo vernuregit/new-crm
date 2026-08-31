@@ -42,7 +42,7 @@ export function TeamSubNav({ className = '' }) {
         <Megaphone className="w-3.5 h-3.5" /> Announcements
       </NavLink>
       <NavLink to="/team/helpdesk" className={linkClass}>
-        <LifeBuoy className="w-3.5 h-3.5" /> Help Desk
+        <LifeBuoy className="w-3.5 h-3.5" /> Client Support
       </NavLink>
       <NavLink to="/team/attendance" className={linkClass}>
         <CheckCircle2 className="w-3.5 h-3.5" /> Attendance Tracker

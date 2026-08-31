@@ -102,11 +102,15 @@ export const HelpDeskManager = () => {
 
   // Summary Metrics
   const stats = useMemo(() => {
+    const statusOf = (t) => (t.status || 'open').toLowerCase()
     const total = tickets.length
-    const open = tickets.filter((t) => (t.status || 'open') === 'open').length
-    const inProgress = tickets.filter((t) => t.status === 'in_progress').length
-    const resolved = tickets.filter((t) => t.status === 'resolved' || t.status === 'closed').length
-    const high = tickets.filter((t) => (t.priority || 'medium') === 'high').length
+    const open = tickets.filter((t) => statusOf(t) === 'open').length
+    const inProgress = tickets.filter((t) => statusOf(t) === 'in_progress').length
+    const resolved = tickets.filter((t) => statusOf(t) === 'resolved' || statusOf(t) === 'closed').length
+    const high = tickets.filter((t) => {
+      const p = (t.priority || '').toLowerCase()
+      return p === 'high' || p === 'urgent'
+    }).length
     return { total, open, inProgress, resolved, high }
   }, [tickets])
 
@@ -116,23 +120,29 @@ export const HelpDeskManager = () => {
       const q = searchQuery.toLowerCase().trim()
       const subject = (ticket.subject || '').toLowerCase()
       const desc = (ticket.description || '').toLowerCase()
-      const employee = (ticket.employeeName || ticket.employeeEmail || '').toLowerCase()
+      const client = (ticket.clientName || ticket.clientEmail || '').toLowerCase()
+      const project = (ticket.projectName || '').toLowerCase()
 
-      const matchesSearch = !q || subject.includes(q) || desc.includes(q) || employee.includes(q)
+      const matchesSearch =
+        !q || subject.includes(q) || desc.includes(q) || client.includes(q) || project.includes(q)
 
+      const status = (ticket.status || 'open').toLowerCase()
       let matchesStatus = true
-      if (statusFilter === 'Open') matchesStatus = (ticket.status || 'open') === 'open'
-      else if (statusFilter === 'In Progress') matchesStatus = ticket.status === 'in_progress'
-      else if (statusFilter === 'Resolved') matchesStatus = ticket.status === 'resolved' || ticket.status === 'closed'
+      if (statusFilter === 'Open') matchesStatus = status === 'open'
+      else if (statusFilter === 'In Progress') matchesStatus = status === 'in_progress'
+      else if (statusFilter === 'Resolved') matchesStatus = status === 'resolved' || status === 'closed'
 
       let matchesCategory = true
       if (categoryFilter !== 'All') {
-        matchesCategory = (ticket.category || 'other').toLowerCase() === categoryFilter.toLowerCase()
+        matchesCategory = (ticket.category || '').toLowerCase() === categoryFilter.toLowerCase()
       }
 
       let matchesPriority = true
       if (priorityFilter !== 'All') {
-        matchesPriority = (ticket.priority || 'medium').toLowerCase() === priorityFilter.toLowerCase()
+        const p = (ticket.priority || 'medium').toLowerCase()
+        if (priorityFilter === 'high') matchesPriority = p === 'high' || p === 'urgent'
+        else if (priorityFilter === 'medium') matchesPriority = p === 'medium' || p === 'normal'
+        else matchesPriority = p === priorityFilter.toLowerCase()
       }
 
       return matchesSearch && matchesStatus && matchesCategory && matchesPriority
@@ -232,8 +242,8 @@ export const HelpDeskManager = () => {
     <div className="space-y-6">
       {/* Header */}
       <PageHeader
-        title="Help Desk & Support"
-        description="Monitor, manage, and resolve employee support requests, IT tickets, and inquiries in real time."
+        title="Client Support Tickets"
+        description="Tickets submitted by clients from their portal. Assigned project employees also see these in the employee portal."
       />
 
       {/* Team SubNav */}
@@ -332,11 +342,10 @@ export const HelpDeskManager = () => {
             className="px-2.5 py-1.5 text-xs rounded-xl bg-slate-50 dark:bg-slate-900 border border-slate-200 dark:border-slate-800 text-slate-800 dark:text-slate-200 outline-none"
           >
             <option value="All">All Categories</option>
-            <option value="it">IT & Systems</option>
-            <option value="hr">HR & People</option>
-            <option value="finance">Finance</option>
-            <option value="facilities">Facilities</option>
-            <option value="other">General</option>
+            <option value="Technical Bug">Technical Bug</option>
+            <option value="Deliverable Review">Deliverable Review</option>
+            <option value="Billing & Invoices">Billing & Invoices</option>
+            <option value="General Inquiry">General Inquiry</option>
           </select>
 
           {/* Priority Dropdown */}
@@ -346,8 +355,8 @@ export const HelpDeskManager = () => {
             className="px-2.5 py-1.5 text-xs rounded-xl bg-slate-50 dark:bg-slate-900 border border-slate-200 dark:border-slate-800 text-slate-800 dark:text-slate-200 outline-none"
           >
             <option value="All">All Priorities</option>
-            <option value="high">High</option>
-            <option value="medium">Medium</option>
+            <option value="high">High / Urgent</option>
+            <option value="medium">Normal</option>
             <option value="low">Low</option>
           </select>
 
@@ -358,7 +367,7 @@ export const HelpDeskManager = () => {
               type="text"
               value={searchQuery}
               onChange={(e) => setSearchQuery(e.target.value)}
-              placeholder="Search tickets or employees..."
+              placeholder="Search client, project, or ticket..."
               className="w-full pl-9 pr-8 py-1.5 text-xs rounded-xl bg-slate-50 dark:bg-slate-900 border border-slate-200 dark:border-slate-800 text-slate-900 dark:text-white placeholder-slate-400 focus:outline-none focus:ring-2 focus:ring-indigo-500/20 focus:border-indigo-500"
             />
             {searchQuery && (
@@ -390,17 +399,18 @@ export const HelpDeskManager = () => {
             <LifeBuoy className="w-8 h-8 opacity-60" />
           </div>
           <h3 className="text-base font-bold text-slate-900 dark:text-white">
-            {searchQuery || statusFilter !== 'All' ? 'No matching tickets found' : 'No support tickets submitted yet'}
+            {searchQuery || statusFilter !== 'All' ? 'No matching tickets found' : 'No client support tickets yet'}
           </h3>
           <p className="text-xs text-slate-500 dark:text-slate-400 max-w-md mx-auto mt-1.5">
             {searchQuery || statusFilter !== 'All'
               ? 'Try adjusting your filters or search keywords.'
-              : 'Support requests created by employees in their portal will appear here automatically.'}
+              : 'When a client submits a support ticket, it appears here and for employees on that project.'}
           </p>
         </Card>
       ) : (
         <div className="space-y-3">
           {filteredTickets.map((ticket) => {
+            const catLabel = ticket.category || 'Support'
             const catKey = (ticket.category || 'other').toLowerCase()
             const catConfig = CATEGORY_CONFIG[catKey] || CATEGORY_CONFIG.other
             const CatIcon = catConfig.icon
@@ -408,7 +418,13 @@ export const HelpDeskManager = () => {
             const currentStatus = (ticket.status || 'open').toLowerCase()
             const statusConfig = STATUS_CONFIG[currentStatus] || STATUS_CONFIG.open
 
-            const currentPriority = (ticket.priority || 'medium').toLowerCase()
+            const rawPriority = (ticket.priority || 'medium').toLowerCase()
+            const currentPriority =
+              rawPriority === 'urgent' || rawPriority === 'high'
+                ? 'high'
+                : rawPriority === 'low'
+                  ? 'low'
+                  : 'medium'
             const priorityConfig = PRIORITY_CONFIG[currentPriority] || PRIORITY_CONFIG.medium
 
             const employeeName = ticket.clientName || ticket.employeeName || ticket.clientEmail || ticket.employeeEmail || 'User'
@@ -440,7 +456,7 @@ export const HelpDeskManager = () => {
                           </span>
                         )}
                         <span className="text-xs font-semibold text-slate-500 dark:text-slate-400">
-                          {catConfig.label}
+                          {catLabel}
                         </span>
                         <span className="text-slate-300 dark:text-slate-700">•</span>
                         <Badge className={`text-[10px] font-bold px-2 py-0.2 border ${priorityConfig.color}`}>

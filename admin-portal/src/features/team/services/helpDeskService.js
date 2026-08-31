@@ -14,10 +14,11 @@ import { db } from '../../../shared/services/firebaseService'
 
 const COLLECTION_NAME = 'helpDeskTickets'
 
+export const isClientSupportTicket = (ticket) =>
+  !!(ticket?.clientId || ticket?.clientEmail || ticket?.projectName || ticket?.projectId)
+
 /**
- * Real-time subscription to all employee help desk tickets
- * @param {Function} callback
- * @returns {Function} unsubscribe function
+ * Real-time subscription to client support tickets (not internal employee help-desk).
  */
 export const subscribeToAllTickets = (callback) => {
   try {
@@ -25,11 +26,12 @@ export const subscribeToAllTickets = (callback) => {
     return onSnapshot(
       colRef,
       (snapshot) => {
-        const list = snapshot.docs.map((d) => ({
-          id: d.id,
-          ...d.data(),
-        }))
-        // Sort client-side by createdAt descending safely
+        const list = snapshot.docs
+          .map((d) => ({
+            id: d.id,
+            ...d.data(),
+          }))
+          .filter(isClientSupportTicket)
         list.sort((a, b) => {
           const timeA = a.createdAt?.seconds ? a.createdAt.seconds * 1000 : (a.createdAt ? new Date(a.createdAt).getTime() : 0)
           const timeB = b.createdAt?.seconds ? b.createdAt.seconds * 1000 : (b.createdAt ? new Date(b.createdAt).getTime() : 0)

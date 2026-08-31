@@ -16,6 +16,7 @@ export const AppShell = () => {
 
   // Check Onboarding & Admin Approval Gate
   const isApproved =
+    userDoc?.skipAgreements === true ||
     userDoc?.onboardingStatus === 'approved' ||
     localStorage.getItem(`onboarding_status_${user.uid}`) === 'approved'
 

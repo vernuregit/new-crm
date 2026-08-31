@@ -7,10 +7,13 @@ import { useUserStore } from '../../stores/userStore'
 import { getUserDoc } from '../../shared/services/authService'
 import { useWellnessNotifications } from '../../features/wellness/hooks/useWellnessNotifications'
 import { useAutoClockOutAfterWorkday } from '../../features/team/hooks/useAutoClockOutAfterWorkday'
+import { useAnnouncementBrowserAlerts } from '../../features/announcements/hooks/useAnnouncementBrowserAlerts'
 
 export const AppShell = () => {
   const { sidebarOpen } = useUIStore()
   const { user, claims, setUser } = useUserStore()
+
+  useAnnouncementBrowserAlerts(user?.uid)
 
   useEffect(() => {
     if (!user?.uid) return
@@ -25,12 +28,9 @@ export const AppShell = () => {
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [user?.uid])
 
-  // Mount wellness notification timers app-wide
   useWellnessNotifications()
-  // Auto clock-out after 8h worked (runs on all authenticated pages)
   useAutoClockOutAfterWorkday()
 
-  // Auth Guard: Redirect to login if not authenticated
   if (!user) {
     return <Navigate to="/login" replace />
   }

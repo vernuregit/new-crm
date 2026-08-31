@@ -13,6 +13,7 @@ import {
   rejectClientOnboarding,
   updateClientAgreementText,
   updateClientBillingProfile,
+  setClientAgreementsWaiver,
 } from './services/clientOnboardingService'
 import {
   DEFAULT_AGREEMENTS,
@@ -89,6 +90,7 @@ export const ClientProfileView = () => {
   const [paymentMethod, setPaymentMethod] = useState('ach')
   const [signerPhone, setSignerPhone] = useState('')
   const [signatoryTitle, setSignatoryTitle] = useState('')
+  const [skipAgreements, setSkipAgreements] = useState(false)
 
   // Modals
   const [showRejectModal, setShowRejectModal] = useState(false)
@@ -125,6 +127,7 @@ export const ClientProfileView = () => {
       setPaymentMethod(obData?.billingInfo?.paymentMethod || 'ach')
       setSignerPhone(obData?.billingInfo?.signerPhone || clientDoc.phoneNumber || '')
       setSignatoryTitle(obData?.signatoryTitle || '')
+      setSkipAgreements(Boolean(obData?.skipAgreements || clientDoc.skipAgreements))
       if (obData?.companyName && !clientDoc.companyName) {
         setCompanyName(obData.companyName)
       }
@@ -161,10 +164,14 @@ export const ClientProfileView = () => {
           ...(prev || {}),
           agreements: data.agreements || {},
           onboardingStatus: normalizeOnboardingStatus(data.onboardingStatus),
+          skipAgreements: Boolean(data.skipAgreements),
           rejectionReason: data.rejectionReason ?? prev?.rejectionReason ?? null,
           submittedAt: data.submittedAt ?? prev?.submittedAt,
           updatedAt: data.updatedAt ?? prev?.updatedAt,
         }))
+        if (typeof data.skipAgreements === 'boolean') {
+          setSkipAgreements(Boolean(data.skipAgreements))
+        }
       },
       (err) => {
         console.warn('Live onboarding listener failed:', err.message)
@@ -304,7 +311,24 @@ export const ClientProfileView = () => {
         paymentMethod,
         signerPhone,
       })
-      setSuccess('Client profile and billing details updated.')
+      const previousSkip = Boolean(onboarding?.skipAgreements || client?.skipAgreements)
+      if (skipAgreements !== previousSkip) {
+        const waiver = await setClientAgreementsWaiver(
+          clientId,
+          skipAgreements,
+          auth.currentUser?.uid || 'admin',
+          onboarding?.agreements || {}
+        )
+        setOnboarding((prev) => ({ ...(prev || {}), ...waiver }))
+        if (skipAgreements) {
+          setStatus('active')
+        }
+      }
+      setSuccess(
+        skipAgreements && skipAgreements !== previousSkip
+          ? 'Client can log in with the credentials you created. Agreement signing is not required.'
+          : 'Client profile and billing details updated.'
+      )
       await loadClientData()
     } catch (err) {
       console.error(err)
@@ -367,7 +391,8 @@ export const ClientProfileView = () => {
         <div>
           {obStatus === 'approved' ? (
             <Badge variant="success" className="px-3 py-1.5 text-xs flex items-center gap-1.5">
-              <CheckCircle className="w-4 h-4" /> Approved & Active
+              <CheckCircle className="w-4 h-4" />{' '}
+              {onboarding?.skipAgreements || skipAgreements ? 'Agreements waived · Active' : 'Approved & Active'}
             </Badge>
           ) : obStatus === 'pending_approval' ? (
             <Badge variant="warning" className="px-3 py-1.5 text-xs flex items-center gap-1.5 bg-amber-500/10 text-amber-500 border-amber-500/30">
@@ -444,6 +469,11 @@ export const ClientProfileView = () => {
               <p className="text-xs text-slate-500 dark:text-slate-400 mt-1">
                 Check contracts and billing, then approve workspace access.
               </p>
+              {(onboarding?.skipAgreements || skipAgreements) && (
+                <p className="text-xs text-emerald-600 dark:text-emerald-400 mt-2">
+                  Agreements waived by admin. This client can log in without signing MSA, NDA, or SOW.
+                </p>
+              )}
             </div>
             <div className="flex items-center gap-2 shrink-0">
               {obStatus !== 'approved' ? (
@@ -854,6 +884,25 @@ export const ClientProfileView = () => {
                     rows={4}
                     className="w-full bg-slate-50 dark:bg-[#11141E] border border-slate-200 dark:border-slate-800 text-slate-900 dark:text-slate-100 text-xs rounded-xl p-3 focus:outline-none focus:border-indigo-500 transition-colors"
                   />
+                </div>
+
+                <div className="rounded-xl border border-slate-200 dark:border-slate-800 bg-slate-50 dark:bg-[#11141E] p-4 space-y-2">
+                  <label className="flex items-start gap-3 cursor-pointer">
+                    <input
+                      type="checkbox"
+                      checked={skipAgreements}
+                      onChange={(e) => setSkipAgreements(e.target.checked)}
+                      className="mt-0.5 h-4 w-4 rounded border-slate-300 text-indigo-600 focus:ring-indigo-500"
+                    />
+                    <span>
+                      <span className="block text-xs font-medium text-slate-800 dark:text-slate-200">
+                        This client does not need to sign agreements
+                      </span>
+                      <span className="block text-[11px] text-slate-500 dark:text-slate-400 mt-0.5">
+                        They can log in with the credentials you created. MSA, NDA, and SOW will not be required.
+                      </span>
+                    </span>
+                  </label>
                 </div>
 
                 <div className="pt-4 border-t border-slate-200 dark:border-slate-800 space-y-4">

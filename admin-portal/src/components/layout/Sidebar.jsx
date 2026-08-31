@@ -132,7 +132,7 @@ const ADMIN_GROUPS = [
     items: [
       { name: 'Employees', path: '/team/employees', icon: Users },
       { name: 'Announcements', path: '/team/announcements', icon: Megaphone },
-      { name: 'Help Desk', path: '/team/helpdesk', icon: LifeBuoy },
+      { name: 'Client Support', path: '/team/helpdesk', icon: LifeBuoy },
       { name: 'Attendance', path: '/team/attendance', icon: CheckCircle2 },
       { name: 'Leave Management', path: '/team/leave', icon: Calendar },
       { name: 'Holidays', path: '/team/holidays', icon: Calendar },

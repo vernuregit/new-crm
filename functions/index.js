@@ -1,4 +1,4 @@
-const { onDocumentCreated, onDocumentUpdated } = require('firebase-functions/v2/firestore')
+const { onDocumentCreated, onDocumentUpdated, onDocumentDeleted } = require('firebase-functions/v2/firestore')
 const { onSchedule } = require('firebase-functions/v2/scheduler')
 const { auth } = require('firebase-functions/v1')
 const admin = require('firebase-admin')
@@ -193,27 +193,15 @@ exports.onAnnouncementCreated = onDocumentCreated('announcements/{announcementId
   console.log(`[Announcements] New announcement created (${announcementId}): "${announcement.title}". Dispatching to employees...`)
 
   try {
-    // 1. Fetch active employees
+    const stillExists = await db.collection('announcements').doc(announcementId).get()
+    if (!stillExists.exists) {
+      console.log(`[Announcements] Announcement ${announcementId} was deleted before notify. Skipping.`)
+      return
+    }
+
     const empSnap = await db.collection('employees').get()
-    const employeeIds = new Set()
-
-    empSnap.docs.forEach((d) => {
-      const data = d.data()
-      if (data.status !== 'inactive' && data.status !== 'terminated') {
-        employeeIds.add(d.id)
-        if (data.uid) employeeIds.add(data.uid)
-      }
-    })
-
-    // Also fetch non-admin users from 'users'
     const usersSnap = await db.collection('users').get()
-    usersSnap.docs.forEach((d) => {
-      const data = d.data()
-      if (data.role !== 'admin' && data.status !== 'inactive') {
-        employeeIds.add(d.id)
-        if (data.uid) employeeIds.add(data.uid)
-      }
-    })
+    const employeeIds = collectAnnouncementRecipientIds(empSnap, usersSnap)
 
     if (employeeIds.size === 0) {
       console.log('[Announcements] No active employees found to notify.')
@@ -227,7 +215,6 @@ exports.onAnnouncementCreated = onDocumentCreated('announcements/{announcementId
     const nowIso = new Date().toISOString()
     const idList = Array.from(employeeIds)
 
-    // 2. Batch write notifications in chunks
     const CHUNK_SIZE = 400
     for (let i = 0; i < idList.length; i += CHUNK_SIZE) {
       const chunk = idList.slice(i, i + CHUNK_SIZE)
@@ -253,9 +240,191 @@ exports.onAnnouncementCreated = onDocumentCreated('announcements/{announcementId
       await batch.commit()
     }
 
+    const existsAfterWrite = await db.collection('announcements').doc(announcementId).get()
+    if (!existsAfterWrite.exists) {
+      console.log(`[Announcements] Announcement ${announcementId} deleted during notify. Purging.`)
+      await purgeAnnouncementInbox({ employeeIds, announcementId })
+      return
+    }
+
     console.log(`[Announcements] Successfully notified ${idList.length} employees for announcement "${announcement.title}".`)
+
+    await sendAnnouncementWebPush({
+      usersSnap,
+      employeeIds,
+      announcementId,
+      title: `📢 ${announcement.title || 'New Announcement'}`,
+      body: previewMessage,
+    })
   } catch (err) {
     console.error('[Announcements] Error broadcasting announcement notifications:', err)
   }
 })
+
+exports.onAnnouncementDeleted = onDocumentDeleted('announcements/{announcementId}', async (event) => {
+  const announcementId = event.params.announcementId
+  console.log(`[Announcements] Announcement deleted (${announcementId}). Removing employee notifications...`)
+
+  try {
+    const empSnap = await db.collection('employees').get()
+    const usersSnap = await db.collection('users').get()
+    const employeeIds = collectAnnouncementRecipientIds(empSnap, usersSnap)
+
+    await purgeAnnouncementInbox({ employeeIds, announcementId })
+    await sendAnnouncementDeletedWebPush({ usersSnap, employeeIds, announcementId })
+    console.log(`[Announcements] Cleared notifications for deleted announcement ${announcementId}.`)
+  } catch (err) {
+    console.error('[Announcements] Error clearing notifications for deleted announcement:', err)
+  }
+})
+
+const INVALID_FCM_CODES = new Set([
+  'messaging/registration-token-not-registered',
+  'messaging/invalid-registration-token',
+  'messaging/invalid-argument',
+])
+
+function collectAnnouncementRecipientIds(empSnap, usersSnap) {
+  const employeeIds = new Set()
+
+  empSnap.docs.forEach((d) => {
+    const data = d.data()
+    if (data.status !== 'inactive' && data.status !== 'terminated') {
+      employeeIds.add(d.id)
+      if (data.uid) employeeIds.add(data.uid)
+    }
+  })
+
+  usersSnap.docs.forEach((d) => {
+    const data = d.data()
+    if (data.role !== 'admin' && data.status !== 'inactive') {
+      employeeIds.add(d.id)
+      if (data.uid) employeeIds.add(data.uid)
+    }
+  })
+
+  return employeeIds
+}
+
+async function purgeAnnouncementInbox({ employeeIds, announcementId }) {
+  const idList = Array.from(employeeIds)
+  for (const empId of idList) {
+    const itemsSnap = await db
+      .collection(`notifications/${empId}/items`)
+      .where('announcementId', '==', announcementId)
+      .get()
+    if (itemsSnap.empty) continue
+
+    const batch = db.batch()
+    itemsSnap.docs.forEach((itemDoc) => batch.delete(itemDoc.ref))
+    await batch.commit()
+  }
+}
+
+async function pruneStaleFcmTokens(tokens, responses, tokenToUserIds) {
+  const staleByUser = new Map()
+  responses.forEach((res, idx) => {
+    if (res.success) return
+    const code = res.error?.code
+    if (!INVALID_FCM_CODES.has(code)) {
+      console.warn('[Announcements] FCM send failed:', code, res.error?.message)
+      return
+    }
+    const token = tokens[idx]
+    const userIds = tokenToUserIds.get(token)
+    userIds?.forEach((uid) => {
+      if (!staleByUser.has(uid)) staleByUser.set(uid, [])
+      staleByUser.get(uid).push(token)
+    })
+  })
+
+  await Promise.all(
+    Array.from(staleByUser.entries()).map(([uid, staleTokens]) =>
+      db.collection('users').doc(uid).update({
+        fcmTokens: admin.firestore.FieldValue.arrayRemove(...staleTokens),
+      })
+    )
+  )
+}
+
+function collectFcmTokens(usersSnap, employeeIds) {
+  const tokenToUserIds = new Map()
+
+  usersSnap.docs.forEach((d) => {
+    const data = d.data() || {}
+    const isRecipient = employeeIds.has(d.id) || (data.uid && employeeIds.has(data.uid))
+    if (!isRecipient) return
+
+    const tokens = Array.isArray(data.fcmTokens) ? data.fcmTokens : []
+    tokens.forEach((token) => {
+      if (!token || typeof token !== 'string') return
+      if (!tokenToUserIds.has(token)) tokenToUserIds.set(token, new Set())
+      tokenToUserIds.get(token).add(d.id)
+    })
+  })
+
+  return tokenToUserIds
+}
+
+async function sendAnnouncementWebPush({ usersSnap, employeeIds, announcementId, title, body }) {
+  const tokenToUserIds = collectFcmTokens(usersSnap, employeeIds)
+  const uniqueTokens = Array.from(tokenToUserIds.keys())
+  if (uniqueTokens.length === 0) {
+    console.log('[Announcements] No FCM tokens registered for web push.')
+    return
+  }
+
+  const portalBase = (process.env.EMPLOYEE_PORTAL_URL || 'http://localhost:3002').replace(/\/$/, '')
+  const link = `${portalBase}/announcements`
+  const FCM_CHUNK = 500
+
+  for (let i = 0; i < uniqueTokens.length; i += FCM_CHUNK) {
+    const tokens = uniqueTokens.slice(i, i + FCM_CHUNK)
+    const response = await admin.messaging().sendEachForMulticast({
+      tokens,
+      notification: {
+        title,
+        body,
+      },
+      data: {
+        type: 'announcement',
+        announcementId: String(announcementId),
+        link: '/announcements',
+      },
+      webpush: {
+        notification: {
+          title,
+          body,
+          silent: false,
+          tag: `announcement-${announcementId}`,
+        },
+        fcmOptions: { link },
+      },
+    })
+
+    await pruneStaleFcmTokens(tokens, response.responses, tokenToUserIds)
+    console.log(
+      `[Announcements] FCM web push sent ${response.successCount}/${tokens.length} (chunk ${i / FCM_CHUNK + 1}).`
+    )
+  }
+}
+
+async function sendAnnouncementDeletedWebPush({ usersSnap, employeeIds, announcementId }) {
+  const tokenToUserIds = collectFcmTokens(usersSnap, employeeIds)
+  const uniqueTokens = Array.from(tokenToUserIds.keys())
+  if (uniqueTokens.length === 0) return
+
+  const FCM_CHUNK = 500
+  for (let i = 0; i < uniqueTokens.length; i += FCM_CHUNK) {
+    const tokens = uniqueTokens.slice(i, i + FCM_CHUNK)
+    const response = await admin.messaging().sendEachForMulticast({
+      tokens,
+      data: {
+        type: 'announcement_deleted',
+        announcementId: String(announcementId),
+      },
+    })
+    await pruneStaleFcmTokens(tokens, response.responses, tokenToUserIds)
+  }
+}
 

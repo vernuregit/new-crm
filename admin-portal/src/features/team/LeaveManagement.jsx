@@ -17,6 +17,7 @@ import {
 import {
   applyLopConversion,
   countUsedPermissionHours,
+  formatHoursAsHrsMins,
   formatLeaveDuration,
   formatLeaveTypeLabel,
   hoursBetween,
@@ -229,8 +230,8 @@ export const LeaveManagement = () => {
       if (permissionHours > remaining + 1e-9) {
         setValidationError(
           remaining <= 0
-            ? `No Permission hours remaining this month (${limit} hrs).`
-            : `This request is ${permissionHours} hrs. Only ${Math.round(remaining * 100) / 100} hrs remaining this month.`
+            ? `No Permission hours remaining this month (${formatHoursAsHrsMins(limit)}).`
+            : `This request is ${formatHoursAsHrsMins(permissionHours)}. Only ${formatHoursAsHrsMins(remaining)} remaining this month.`
         )
         return
       }
@@ -313,6 +314,9 @@ export const LeaveManagement = () => {
             startTime,
             endTime,
             hours: permissionHours,
+            status: 'approved',
+            autoApproved: true,
+            reviewedBy: adminName,
           }
         : {}),
       ...wfhExtras,
@@ -824,7 +828,7 @@ export const LeaveManagement = () => {
                   <option value="Sick Leave" className="bg-white dark:bg-[#11141E] text-slate-900 dark:text-slate-100">Sick Leave</option>
                   <option value="Casual Leave" className="bg-white dark:bg-[#11141E] text-slate-900 dark:text-slate-100">Casual Leave</option>
                   <option value="Permission" className="bg-white dark:bg-[#11141E] text-slate-900 dark:text-slate-100">
-                    Permission ({resolvePermissionHours(selectedEmployee || {})} hrs/month)
+                    Permission ({formatHoursAsHrsMins(resolvePermissionHours(selectedEmployee || {}))}/month · no approval)
                   </option>
                   {selectedWfhPolicy.canRequest && (
                     <option value="Work From Home" className="bg-white dark:bg-[#11141E] text-slate-900 dark:text-slate-100">
@@ -845,10 +849,10 @@ export const LeaveManagement = () => {
                 {leaveType === PERMISSION_LEAVE_TYPE && selectedEmployee && (
                   <p className="text-[11px] text-slate-500 dark:text-slate-400 mt-1">
                     Permission remaining this month:{' '}
-                    {Math.max(
-                      0,
-                      Math.round(
-                        (resolvePermissionHours(selectedEmployee) -
+                    {formatHoursAsHrsMins(
+                      Math.max(
+                        0,
+                        resolvePermissionHours(selectedEmployee) -
                           countUsedPermissionHours(
                             leaveRequests,
                             {
@@ -857,11 +861,10 @@ export const LeaveManagement = () => {
                               employeeName,
                             },
                             (startDate || new Date().toISOString()).slice(0, 7)
-                          )) *
-                          100
-                      ) / 100
+                          )
+                      )
                     )}{' '}
-                    of {resolvePermissionHours(selectedEmployee)} hrs
+                    of {formatHoursAsHrsMins(resolvePermissionHours(selectedEmployee))}. Auto-granted within the monthly limit.
                   </p>
                 )}
               </div>
@@ -933,7 +936,7 @@ export const LeaveManagement = () => {
                   />
                   {startTime && endTime && hoursBetween(startTime, endTime) > 0 && (
                     <p className="col-span-2 text-[11px] text-slate-500 dark:text-slate-400">
-                      Duration: {hoursBetween(startTime, endTime)} {hoursBetween(startTime, endTime) === 1 ? 'hr' : 'hrs'}
+                      Duration: {formatHoursAsHrsMins(hoursBetween(startTime, endTime))}
                     </p>
                   )}
                 </div>

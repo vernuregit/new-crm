@@ -80,7 +80,10 @@ export const ClientOnboardingGate = () => {
     try {
       const data = await getClientOnboardingDoc(user.uid)
       if (data) {
-        const status = data.onboardingStatus || ONBOARDING_STATUS.PENDING_SIGNATURE
+        const skipAgreements = Boolean(data.skipAgreements)
+        const status = skipAgreements
+          ? ONBOARDING_STATUS.APPROVED
+          : data.onboardingStatus || ONBOARDING_STATUS.PENDING_SIGNATURE
         setOnboardingStatus(status)
         setRejectionReason(data.rejectionReason || '')
         setCompanyName(data.companyName || userDoc?.companyName || '')
@@ -101,13 +104,13 @@ export const ClientOnboardingGate = () => {
         }
 
         // If approved, update store and localStorage before navigating to prevent AppShell bounce
-        if (status === ONBOARDING_STATUS.APPROVED) {
+        if (skipAgreements || status === ONBOARDING_STATUS.APPROVED) {
           try {
             localStorage.setItem(`onboarding_status_${user.uid}`, ONBOARDING_STATUS.APPROVED)
           } catch {
             // ignore
           }
-          setUser(user, { ...userDoc, onboardingStatus: ONBOARDING_STATUS.APPROVED, ...data })
+          setUser(user, { ...userDoc, ...data, onboardingStatus: ONBOARDING_STATUS.APPROVED, skipAgreements })
           navigate('/portal', { replace: true })
         }
       }

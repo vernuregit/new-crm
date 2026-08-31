@@ -674,7 +674,7 @@ export const FounderDashboard = () => {
           <div className="flex items-start justify-between">
             <div>
               <p className="text-xs font-medium text-slate-500 dark:text-slate-400 flex items-center gap-1.5">
-                <Headphones className="w-3.5 h-3.5 text-emerald-500" /> Support Tickets
+                <Headphones className="w-3.5 h-3.5 text-emerald-500" /> Client Support
               </p>
               <h3 className="text-xl font-extrabold text-slate-900 dark:text-slate-100 mt-1">
                 {orgStats.tickets.open}

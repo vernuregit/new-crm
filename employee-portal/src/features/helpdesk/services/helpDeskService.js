@@ -4,50 +4,84 @@ import {
   addDoc,
   updateDoc,
   onSnapshot,
-  query,
-  where,
   arrayUnion,
-  serverTimestamp,
 } from 'firebase/firestore'
 import { db } from '../../../shared/services/firebaseService'
+import { isUserOnProject } from '../../projects/services/projectService'
+
+const isClientSupportTicket = (ticket) =>
+  !!(ticket?.clientId || ticket?.clientEmail || ticket?.projectName || ticket?.projectId)
+
+const ticketTime = (ticket) => {
+  if (ticket?.createdAt?.seconds) return ticket.createdAt.seconds * 1000
+  return ticket?.createdAt ? new Date(ticket.createdAt).getTime() : 0
+}
 
 /**
- * Subscribe to all tickets relevant to this employee:
- * 1) Tickets created by the employee (internal IT/HR)
- * 2) Client project support tickets assigned to projects this employee works on
+ * Subscribe to tickets relevant to this employee:
+ * 1) Internal tickets they created
+ * 2) Client support tickets for projects they are on (members / employeeId)
+ * 3) Tickets that listed them in assignedEmployeeIds at create time
  */
-export const subscribeEmployeeHelpDesk = (uid, callback) => {
+export const subscribeEmployeeHelpDesk = (user, userDoc, callback) => {
+  const uid = user?.uid
   if (!uid) return () => {}
+
+  let tickets = []
+  let projects = []
+
+  const emit = () => {
+    const relevant = tickets.filter((ticket) => {
+      const isCreator = ticket.createdBy === uid
+      const isAssigned =
+        Array.isArray(ticket.assignedEmployeeIds) &&
+        ticket.assignedEmployeeIds.map(String).includes(String(uid))
+
+      if (isClientSupportTicket(ticket)) {
+        const ticketProjectId = String(ticket.projectId || '')
+        const project = projects.find(
+          (p) => String(p.id || p.projectId || '') === ticketProjectId
+        )
+        const onProject = Boolean(project && isUserOnProject(project, user, userDoc))
+        return isAssigned || onProject
+      }
+
+      return isCreator
+    })
+
+    relevant.sort((a, b) => ticketTime(b) - ticketTime(a))
+    callback(relevant)
+  }
+
   try {
-    const colRef = collection(db, 'helpDeskTickets')
-    return onSnapshot(
-      colRef,
+    const unsubTickets = onSnapshot(
+      collection(db, 'helpDeskTickets'),
       (snapshot) => {
-        const all = snapshot.docs.map((d) => ({ id: d.id, ...d.data() }))
-        // Filter tickets that belong to this employee:
-        // - created by this employee
-        // - or where assignedEmployeeIds contains this employee's uid
-        const relevant = all.filter((ticket) => {
-          const isCreator = ticket.createdBy === uid
-          const isAssigned = Array.isArray(ticket.assignedEmployeeIds) &&
-            ticket.assignedEmployeeIds.map(String).includes(String(uid))
-          return isCreator || isAssigned
-        })
-
-        // Sort by timestamp desc safely
-        relevant.sort((a, b) => {
-          const timeA = a.createdAt?.seconds ? a.createdAt.seconds * 1000 : (a.createdAt ? new Date(a.createdAt).getTime() : 0)
-          const timeB = b.createdAt?.seconds ? b.createdAt.seconds * 1000 : (b.createdAt ? new Date(b.createdAt).getTime() : 0)
-          return timeB - timeA
-        })
-
-        callback(relevant)
+        tickets = snapshot.docs.map((d) => ({ id: d.id, ...d.data() }))
+        emit()
       },
       (error) => {
         console.error('Error subscribing to employee help desk:', error)
         callback([])
       }
     )
+
+    const unsubProjects = onSnapshot(
+      collection(db, 'projects'),
+      (snapshot) => {
+        projects = snapshot.docs.map((d) => ({ id: d.id, projectId: d.id, ...d.data() }))
+        emit()
+      },
+      (error) => {
+        console.warn('Error subscribing to projects for support tickets:', error.message)
+        emit()
+      }
+    )
+
+    return () => {
+      unsubTickets()
+      unsubProjects()
+    }
   } catch (err) {
     console.error('Failed to setup subscribeEmployeeHelpDesk:', err)
     return () => {}

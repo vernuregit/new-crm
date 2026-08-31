@@ -12,6 +12,7 @@ import {
   deleteAnnouncement,
   togglePinAnnouncement,
 } from './services/announcementService'
+import { alertLocalAnnouncement } from '../../shared/services/announcementBrowserAlert'
 import {
   Megaphone,
   Pin,
@@ -196,6 +197,12 @@ export const AnnouncementManager = () => {
           pinned: formData.pinned,
           author: currentAuthorName,
           authorId: user?.uid || null,
+        })
+        const preview = formData.body.length > 120 ? `${formData.body.slice(0, 120)}...` : formData.body
+        await alertLocalAnnouncement({
+          title: formData.title,
+          body: preview,
+          announcementId: `local-${Date.now()}`,
         })
       }
       setIsModalOpen(false)

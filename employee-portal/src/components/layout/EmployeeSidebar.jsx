@@ -14,7 +14,6 @@ import {
   LogOut,
   User,
   Heart,
-  Bell,
   Megaphone,
   FileText,
   Receipt,
@@ -48,6 +47,7 @@ const NAV_GROUPS = [
       { name: 'Work Timeline', path: '/timeline', icon: CalendarDays },
       { name: 'Client Documents', path: '/client-documents', icon: Send },
       { name: 'Notes', path: '/project-notes', icon: StickyNote },
+      { name: 'Client Support', path: '/helpdesk', icon: LifeBuoy },
     ],
   },
 
@@ -89,16 +89,6 @@ const NAV_GROUPS = [
       { name: 'Company Calendar', path: '/calendar', icon: Calendar },
     ],
   },
-  // Hidden for now — can be re-enabled later:
-  // {
-  //   key: 'support',
-  //   label: 'Support',
-  //   icon: LifeBuoy,
-  //   items: [
-  //     { name: 'Notifications', path: '/notifications', icon: Bell },
-  //     { name: 'Help Desk', path: '/helpdesk', icon: LifeBuoy },
-  //   ],
-  // },
 ]
 
 export const EmployeeSidebar = () => {
@@ -108,25 +98,19 @@ export const EmployeeSidebar = () => {
 
   // Determine which group contains the active route (auto-expand it)
   const getInitialExpanded = () => {
-    const expanded = {}
-    NAV_GROUPS.forEach((g) => {
-      if (g.items.some((item) => location.pathname.startsWith(item.path))) {
-        expanded[g.key] = true
-      }
+    const activeGroup = NAV_GROUPS.find((g) => {
+      if (g.items.length <= 1) return false
+      if (g.items.some((item) => location.pathname.startsWith(item.path))) return true
+      return g.key === 'projects' && /^\/projects\/(?!list$|tasks$)[^/]+/.test(location.pathname)
     })
-    if (/^\/projects\/(?!list$|tasks$)[^/]+/.test(location.pathname)) {
-      expanded.projects = true
-    }
-    // Default expand workspace
-    expanded['workspace'] = true
-    return expanded
+    return activeGroup ? { [activeGroup.key]: true } : {}
   }
 
   const [expandedGroups, setExpandedGroups] = useState(getInitialExpanded)
 
   const toggleGroup = (key) => {
-    if (!sidebarOpen) return // In collapsed mode, don't toggle (all hidden)
-    setExpandedGroups((prev) => ({ ...prev, [key]: !prev[key] }))
+    if (!sidebarOpen) return
+    setExpandedGroups((prev) => (prev[key] ? {} : { [key]: true }))
   }
 
   const displayName = userDoc?.displayName || user?.displayName || 'Employee Staff'

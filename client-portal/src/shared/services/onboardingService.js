@@ -137,6 +137,7 @@ export const getClientOnboardingDoc = async (uid) => {
         agreements: uData.agreements || {},
         agreementTexts: uData.agreementTexts || null,
         billingInfo: uData.billingInfo || null,
+        skipAgreements: Boolean(uData.skipAgreements),
       }
     }
   } catch (err) {

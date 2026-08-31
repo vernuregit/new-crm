@@ -27,6 +27,28 @@ import {
   Loader2,
 } from 'lucide-react'
 
+const pushId = (list, value) => {
+  if (value == null || value === '') return
+  if (typeof value === 'string' || typeof value === 'number') {
+    list.push(String(value))
+    return
+  }
+  const id = value.uid || value.id
+  if (id) list.push(String(id))
+}
+
+export const collectProjectEmployeeIds = (project = {}) => {
+  const ids = []
+  pushId(ids, project.employeeId)
+  pushId(ids, project.ownerId)
+  pushId(ids, project.assignedTo)
+  if (Array.isArray(project.members)) project.members.forEach((m) => pushId(ids, m))
+  if (Array.isArray(project.assignedEmployees)) project.assignedEmployees.forEach((m) => pushId(ids, m))
+  if (Array.isArray(project.assignedEmployeeIds)) project.assignedEmployeeIds.forEach((m) => pushId(ids, m))
+  if (Array.isArray(project.teamMembers)) project.teamMembers.forEach((m) => pushId(ids, m))
+  return Array.from(new Set(ids))
+}
+
 export const ClientSupport = () => {
   const { user, userDoc } = useUserStore()
   const { tickets, setTickets, addTicket } = usePortalStore()
@@ -90,31 +112,14 @@ export const ClientSupport = () => {
       (p) => (p.projectId || p.id) === selectedProjectId
     ) || {}
 
-    // Extract all assigned employee IDs from the project document
-    const assignedEmployeeIds = []
-    if (Array.isArray(targetProject.assignedEmployees)) {
-      targetProject.assignedEmployees.forEach((emp) => {
-        if (typeof emp === 'string') assignedEmployeeIds.push(emp)
-        else if (emp?.id || emp?.uid) assignedEmployeeIds.push(emp.id || emp.uid)
-      })
-    }
-    if (Array.isArray(targetProject.assignedEmployeeIds)) {
-      targetProject.assignedEmployeeIds.forEach((id) => assignedEmployeeIds.push(id))
-    }
-    if (Array.isArray(targetProject.teamMembers)) {
-      targetProject.teamMembers.forEach((id) => assignedEmployeeIds.push(id))
-    }
-    if (targetProject.ownerId) assignedEmployeeIds.push(targetProject.ownerId)
-    if (targetProject.assignedTo) assignedEmployeeIds.push(targetProject.assignedTo)
-
-    const uniqueEmployeeIds = Array.from(new Set(assignedEmployeeIds.map(String)))
+    const uniqueEmployeeIds = collectProjectEmployeeIds(targetProject)
 
     const newTicketData = {
       subject,
       category,
       description,
       priority,
-      status: 'Open',
+      status: 'open',
       projectId: selectedProjectId || '',
       projectName: targetProject.name || targetProject.title || 'General Support',
       assignedEmployeeIds: uniqueEmployeeIds,

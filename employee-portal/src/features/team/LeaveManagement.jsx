@@ -18,6 +18,7 @@ import {
   applyLopConversion,
   countUsedPaidDays,
   countUsedPermissionHours,
+  formatHoursAsHrsMins,
   formatLeaveDuration,
   formatLeaveTypeLabel,
   hoursBetween,
@@ -712,8 +713,8 @@ export const LeaveManagement = () => {
       if (permissionHours > remaining + 1e-9) {
         setValidationError(
           remaining <= 0
-            ? `No Permission hours remaining this month (${permissionHoursLimit} hrs).`
-            : `This request is ${permissionHours} hrs. Only ${Math.round(remaining * 100) / 100} hrs remaining this month.`
+            ? `No Permission hours remaining this month (${formatHoursAsHrsMins(permissionHoursLimit)}).`
+            : `This request is ${formatHoursAsHrsMins(permissionHours)}. Only ${formatHoursAsHrsMins(remaining)} remaining this month.`
         )
         return
       }
@@ -783,6 +784,9 @@ export const LeaveManagement = () => {
             startTime,
             endTime,
             hours: permissionHours,
+            status: 'approved',
+            autoApproved: true,
+            reviewedBy: 'Permission Policy',
           }
         : {}),
       ...(leaveType === 'Work From Home' && !conversion.convertedToLop
@@ -998,7 +1002,7 @@ export const LeaveManagement = () => {
               Monthly Leave Allowance Policy ({currentMonthName})
             </h4>
             <p className="text-xs text-slate-600 dark:text-slate-300 mt-0.5">
-              This month: <strong className="text-indigo-600 dark:text-indigo-400 font-semibold">{leaveLimits.casual} Casual</strong>, <strong className="text-indigo-600 dark:text-indigo-400 font-semibold">{leaveLimits.sick} Sick</strong>, <strong className="text-indigo-600 dark:text-indigo-400 font-semibold">{leaveLimits.wfh} WFH</strong>, and <strong className="text-indigo-600 dark:text-indigo-400 font-semibold">{permissionHoursLimit} hrs Permission</strong>. Additional day leave is marked LOP (unpaid) even if approved.
+              This month: <strong className="text-indigo-600 dark:text-indigo-400 font-semibold">{leaveLimits.casual} Casual</strong>, <strong className="text-indigo-600 dark:text-indigo-400 font-semibold">{leaveLimits.sick} Sick</strong>, <strong className="text-indigo-600 dark:text-indigo-400 font-semibold">{leaveLimits.wfh} WFH</strong>, and <strong className="text-indigo-600 dark:text-indigo-400 font-semibold">{formatHoursAsHrsMins(permissionHoursLimit)} Permission</strong> (auto-granted, no admin approval). Additional day leave is marked LOP (unpaid) even if approved.
             </p>
           </div>
         </div>
@@ -1047,10 +1051,10 @@ export const LeaveManagement = () => {
               Monthly Permission
             </span>
             <p className="text-xl font-bold text-cyan-600 dark:text-cyan-400 mt-1">
-              {remainingPermissionHours} {remainingPermissionHours === 1 ? 'Hr' : 'Hrs'} Remaining
+              {formatHoursAsHrsMins(remainingPermissionHours)} Remaining
             </p>
             <p className="text-[10px] text-slate-500 dark:text-slate-400 mt-0.5">
-              {usedPermissionHoursThisMonth} of {permissionHoursLimit} {permissionHoursLimit === 1 ? 'Hr' : 'Hrs'} Used ({currentMonthName})
+              {formatHoursAsHrsMins(usedPermissionHoursThisMonth)} of {formatHoursAsHrsMins(permissionHoursLimit)} Used ({currentMonthName})
             </p>
           </div>
           <div className="w-9 h-9 rounded-xl bg-cyan-50 dark:bg-cyan-500/10 text-cyan-600 dark:text-cyan-400 flex items-center justify-center shrink-0">
@@ -1290,7 +1294,7 @@ export const LeaveManagement = () => {
                 >
                   <option value="Casual Leave">Casual Leave ({leaveLimits.casual}/month · 3 days advance)</option>
                   <option value="Sick Leave">Sick Leave ({leaveLimits.sick}/month)</option>
-                  <option value="Permission">Permission ({permissionHoursLimit} hrs/month)</option>
+                  <option value="Permission">Permission ({formatHoursAsHrsMins(permissionHoursLimit)}/month · no admin approval)</option>
                   {wfhPolicy.leaveFormEnabled && (
                     <option value="Work From Home">
                       Work From Home ({getWfhAllowanceLabel(wfhPolicy)}) — needs approval
@@ -1315,7 +1319,7 @@ export const LeaveManagement = () => {
                 )}
                 {leaveType === PERMISSION_LEAVE_TYPE && (
                   <p className="text-[11px] text-slate-500 dark:text-slate-400 mt-1">
-                    Remaining this month: {remainingPermissionHours} of {permissionHoursLimit} hrs. Requests over the remaining hours cannot be submitted.
+                    Remaining this month: {formatHoursAsHrsMins(remainingPermissionHours)} of {formatHoursAsHrsMins(permissionHoursLimit)}. Granted immediately — no admin approval. Over-limit requests cannot be submitted.
                   </p>
                 )}
                 {wfhPolicy.clockInChoice && remainingWfhDays !== null && (
@@ -1350,7 +1354,7 @@ export const LeaveManagement = () => {
                   <PermissionTimeSelect label="End Time" value={endTime} onChange={setEndTime} />
                   {startTime && endTime && hoursBetween(startTime, endTime) > 0 && (
                     <p className="col-span-2 text-[11px] text-slate-500 dark:text-slate-400">
-                      Duration: {hoursBetween(startTime, endTime)} {hoursBetween(startTime, endTime) === 1 ? 'hr' : 'hrs'}
+                      Duration: {formatHoursAsHrsMins(hoursBetween(startTime, endTime))}
                     </p>
                   )}
                 </div>
@@ -1380,7 +1384,7 @@ export const LeaveManagement = () => {
                   Cancel
                 </Button>
                 <Button type="submit" variant="primary" className="w-2/3" icon={Plus}>
-                  Submit Request
+                  {leaveType === PERMISSION_LEAVE_TYPE ? 'Take Permission' : 'Submit Request'}
                 </Button>
               </div>
             </form>

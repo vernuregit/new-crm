@@ -1,31 +1,21 @@
 import React, { useState, useEffect, useRef } from 'react'
 import {
   LifeBuoy,
-  Plus,
   X,
-  Monitor,
-  Users,
-  DollarSign,
-  Building,
-  HelpCircle,
-  CheckCircle2,
   Folder,
   User,
   MessageSquare,
   Send,
   Building2,
-  Clock,
   Check,
 } from 'lucide-react'
 import { Button } from '../../components/ui/Button'
 import { Card } from '../../components/ui/Card'
-import { Badge } from '../../components/ui/Badge'
 import { Input } from '../../components/ui/Input'
 import { PageHeader } from '../../components/layout/PageHeader'
 import { useUserStore } from '../../stores/userStore'
 import {
   subscribeEmployeeHelpDesk,
-  createTicket,
   addTicketReply,
   updateTicketStatus,
 } from './services/helpDeskService'
@@ -35,18 +25,8 @@ export const HelpDeskPage = () => {
   const [tickets, setTickets] = useState([])
   const [loading, setLoading] = useState(true)
 
-  // View & Filter states
-  const [sectionTab, setSectionTab] = useState('client_tickets') // 'client_tickets' | 'internal_tickets'
   const [statusFilter, setStatusFilter] = useState('All')
-  const [isFormOpen, setIsFormOpen] = useState(false)
   const [selectedTicket, setSelectedTicket] = useState(null)
-
-  // Internal Ticket Form
-  const [subject, setSubject] = useState('')
-  const [description, setDescription] = useState('')
-  const [category, setCategory] = useState('it')
-  const [priority, setPriority] = useState('medium')
-  const [isSubmitting, setIsSubmitting] = useState(false)
 
   // Reply Form State
   const [replyText, setReplyText] = useState('')
@@ -55,7 +35,7 @@ export const HelpDeskPage = () => {
 
   useEffect(() => {
     if (!user?.uid) return
-    const unsubscribe = subscribeEmployeeHelpDesk(user.uid, (data) => {
+    const unsubscribe = subscribeEmployeeHelpDesk(user, userDoc, (data) => {
       setTickets(data)
       setLoading(false)
 
@@ -65,7 +45,7 @@ export const HelpDeskPage = () => {
       }
     })
     return () => unsubscribe()
-  }, [user, selectedTicket?.id])
+  }, [user, userDoc, selectedTicket?.id])
 
   useEffect(() => {
     if (selectedTicket) {
@@ -73,13 +53,8 @@ export const HelpDeskPage = () => {
     }
   }, [selectedTicket?.replies?.length])
 
-  // Split into Client Project tickets vs My Internal requests
   const clientTickets = tickets.filter((t) => !!(t.clientId || t.clientEmail || t.projectName))
-  const internalTickets = tickets.filter(
-    (t) => t.createdBy === user?.uid && !t.clientId && !t.clientEmail
-  )
-
-  const activePool = sectionTab === 'client_tickets' ? clientTickets : internalTickets
+  const activePool = clientTickets
 
   const filteredTickets = activePool.filter((ticket) => {
     const status = (ticket.status || 'open').toLowerCase()
@@ -89,33 +64,6 @@ export const HelpDeskPage = () => {
     if (statusFilter === 'Resolved') return status === 'resolved' || status === 'closed'
     return true
   })
-
-  const handleSubmitInternal = async (e) => {
-    e.preventDefault()
-    if (!subject || !user?.uid) return
-
-    setIsSubmitting(true)
-    try {
-      await createTicket(user.uid, {
-        subject,
-        description,
-        category,
-        priority,
-        status: 'open',
-        employeeName: userDoc?.displayName || user.displayName || 'Employee',
-        employeeEmail: user.email || '',
-      })
-      setIsFormOpen(false)
-      setSubject('')
-      setDescription('')
-      setCategory('it')
-      setPriority('medium')
-    } catch (error) {
-      console.error('Error creating ticket:', error)
-    } finally {
-      setIsSubmitting(false)
-    }
-  }
 
   const handleSendReply = async (e) => {
     e.preventDefault()
@@ -188,45 +136,9 @@ export const HelpDeskPage = () => {
   return (
     <div className="space-y-6 pb-12">
       <PageHeader
-        title="Help Desk & Support"
-        description="Collaborate with clients on project support requests and submit internal company inquiries."
-        actions={
-          <Button
-            onClick={() => setIsFormOpen(true)}
-            className="bg-purple-600 hover:bg-purple-700 text-white text-xs px-4 py-2 flex items-center gap-1.5 cursor-pointer rounded-xl"
-          >
-            <Plus className="w-4 h-4" />
-            <span>New Internal Request</span>
-          </Button>
-        }
+        title="Client Support"
+        description="Support tickets from clients on your projects. Reply and update status from here."
       />
-
-      {/* Primary Section Switcher */}
-      <div className="flex gap-3 border-b border-slate-200 dark:border-slate-800 pb-3">
-        <button
-          onClick={() => setSectionTab('client_tickets')}
-          className={`px-4 py-2 rounded-xl text-xs font-bold transition-all cursor-pointer flex items-center gap-2 ${
-            sectionTab === 'client_tickets'
-              ? 'bg-blue-600 text-white shadow-xs'
-              : 'bg-slate-100 dark:bg-slate-800 text-slate-600 dark:text-slate-400 hover:text-slate-900 dark:hover:text-white'
-          }`}
-        >
-          <Folder className="w-3.5 h-3.5" />
-          <span>Client Project Tickets ({clientTickets.length})</span>
-        </button>
-
-        <button
-          onClick={() => setSectionTab('internal_tickets')}
-          className={`px-4 py-2 rounded-xl text-xs font-bold transition-all cursor-pointer flex items-center gap-2 ${
-            sectionTab === 'internal_tickets'
-              ? 'bg-purple-600 text-white shadow-xs'
-              : 'bg-slate-100 dark:bg-slate-800 text-slate-600 dark:text-slate-400 hover:text-slate-900 dark:hover:text-white'
-          }`}
-        >
-          <LifeBuoy className="w-3.5 h-3.5" />
-          <span>My Internal Requests ({internalTickets.length})</span>
-        </button>
-      </div>
 
       {/* Filter Tabs */}
       <div className="flex space-x-1 bg-slate-100 dark:bg-slate-800/50 p-1 rounded-xl w-fit">
@@ -270,14 +182,10 @@ export const HelpDeskPage = () => {
         <Card className="p-12 text-center text-slate-500 dark:text-slate-400 border-dashed space-y-2">
           <LifeBuoy className="w-10 h-10 mx-auto text-slate-400" />
           <h4 className="text-sm font-bold text-slate-800 dark:text-slate-200">
-            {sectionTab === 'client_tickets'
-              ? 'No Client Tickets Assigned'
-              : 'No Internal Support Requests'}
+            No client tickets yet
           </h4>
           <p className="text-xs text-slate-400 max-w-sm mx-auto">
-            {sectionTab === 'client_tickets'
-              ? 'Support tickets created by clients for your assigned projects will appear here with live reply options.'
-              : 'You do not have any open internal support tickets.'}
+            Support tickets created by clients for your assigned projects will appear here.
           </p>
         </Card>
       ) : (
@@ -515,111 +423,6 @@ export const HelpDeskPage = () => {
               >
                 {sendingReply ? 'Sending...' : 'Reply'}
               </Button>
-            </form>
-          </div>
-        </div>
-      )}
-
-      {/* New Internal Ticket Modal */}
-      {isFormOpen && (
-        <div className="fixed inset-0 bg-black/60 backdrop-blur-sm z-50 flex items-center justify-center p-4">
-          <div className="w-full max-w-md bg-white dark:bg-[#12151E] rounded-2xl shadow-2xl flex flex-col border border-slate-200 dark:border-slate-800 p-6 space-y-5">
-            <div className="flex justify-between items-center pb-3 border-b border-slate-200 dark:border-slate-800">
-              <h2 className="text-sm font-bold text-slate-900 dark:text-white">
-                New Internal Support Request
-              </h2>
-              <button
-                onClick={() => setIsFormOpen(false)}
-                className="text-slate-400 hover:text-slate-600 dark:hover:text-slate-200"
-              >
-                <X className="w-4 h-4" />
-              </button>
-            </div>
-
-            <form onSubmit={handleSubmitInternal} className="space-y-4">
-              <div>
-                <label className="block text-xs font-semibold text-slate-700 dark:text-slate-300 mb-1">
-                  Category
-                </label>
-                <select
-                  className="w-full bg-white dark:bg-[#0F1117] border border-slate-200 dark:border-slate-800 rounded-xl px-3 py-2 text-xs text-slate-900 dark:text-white focus:outline-none focus:ring-2 focus:ring-purple-500"
-                  value={category}
-                  onChange={(e) => setCategory(e.target.value)}
-                >
-                  <option value="it">IT Support</option>
-                  <option value="hr">HR</option>
-                  <option value="finance">Finance</option>
-                  <option value="facilities">Facilities</option>
-                  <option value="other">Other</option>
-                </select>
-              </div>
-
-              <div>
-                <label className="block text-xs font-semibold text-slate-700 dark:text-slate-300 mb-2">
-                  Priority
-                </label>
-                <div className="flex gap-2">
-                  {['low', 'medium', 'high'].map((p) => (
-                    <button
-                      key={p}
-                      type="button"
-                      onClick={() => setPriority(p)}
-                      className={`flex-1 py-1.5 px-3 rounded-xl text-xs font-semibold capitalize border cursor-pointer ${
-                        priority === p
-                          ? 'border-purple-500 bg-purple-50 dark:bg-purple-500/10 text-purple-700 dark:text-purple-400'
-                          : 'border-slate-200 dark:border-slate-800 text-slate-600 dark:text-slate-400 hover:bg-slate-50 dark:hover:bg-slate-800'
-                      }`}
-                    >
-                      {p}
-                    </button>
-                  ))}
-                </div>
-              </div>
-
-              <div>
-                <label className="block text-xs font-semibold text-slate-700 dark:text-slate-300 mb-1">
-                  Subject <span className="text-red-500">*</span>
-                </label>
-                <Input
-                  required
-                  value={subject}
-                  onChange={(e) => setSubject(e.target.value)}
-                  placeholder="Brief summary of the issue"
-                  className="text-xs"
-                />
-              </div>
-
-              <div>
-                <label className="block text-xs font-semibold text-slate-700 dark:text-slate-300 mb-1">
-                  Description
-                </label>
-                <textarea
-                  className="w-full bg-white dark:bg-[#0F1117] border border-slate-200 dark:border-slate-800 rounded-xl px-3 py-2 text-xs text-slate-900 dark:text-white placeholder-slate-400 focus:outline-none focus:ring-2 focus:ring-purple-500 min-h-[100px]"
-                  value={description}
-                  onChange={(e) => setDescription(e.target.value)}
-                  placeholder="Provide details about your request..."
-                />
-              </div>
-
-              <div className="pt-3 flex gap-3">
-                <Button
-                  type="button"
-                  variant="outline"
-                  size="sm"
-                  className="flex-1"
-                  onClick={() => setIsFormOpen(false)}
-                >
-                  Cancel
-                </Button>
-                <Button
-                  type="submit"
-                  size="sm"
-                  className="flex-1 bg-purple-600 hover:bg-purple-700 text-white"
-                  disabled={isSubmitting}
-                >
-                  {isSubmitting ? 'Submitting...' : 'Submit Request'}
-                </Button>
-              </div>
             </form>
           </div>
         </div>

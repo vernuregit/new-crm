@@ -31,6 +31,7 @@ export const getClientOnboardingAdmin = async (clientId) => {
         agreements: uData.agreements || {},
         agreementTexts: uData.agreementTexts || null,
         billingInfo: uData.billingInfo || null,
+        skipAgreements: Boolean(uData.skipAgreements),
       }
     }
   } catch (err) {
@@ -193,6 +194,78 @@ export const rejectClientOnboarding = async (clientId, rejectionReason, adminUid
   }
 
   return true
+}
+
+const ALL_AGREEMENT_IDS = ['msa', 'nda', 'sow']
+
+const hasAllAgreementsSigned = (agreements = {}) =>
+  ALL_AGREEMENT_IDS.every((id) => Boolean(agreements?.[id]?.signed))
+
+const persistOnboardingLocal = (clientId, updates) => {
+  try {
+    if (updates.onboardingStatus) {
+      localStorage.setItem(`onboarding_status_${clientId}`, updates.onboardingStatus)
+    }
+    const localData = localStorage.getItem(`onboarding_${clientId}`)
+    if (localData) {
+      const parsed = JSON.parse(localData)
+      localStorage.setItem(`onboarding_${clientId}`, JSON.stringify({ ...parsed, ...updates }))
+    }
+  } catch {
+    // ignore
+  }
+}
+
+/**
+ * Admin override: skip MSA/NDA/SOW signing and unlock portal access,
+ * or restore the signature requirement if the waiver is turned off.
+ */
+export const setClientAgreementsWaiver = async (clientId, skipAgreements, adminUid = 'admin', existingAgreements = {}) => {
+  if (!clientId) throw new Error('Missing client id.')
+
+  const now = new Date().toISOString()
+  let updates
+
+  if (skipAgreements) {
+    updates = {
+      skipAgreements: true,
+      onboardingStatus: 'approved',
+      status: 'active',
+      agreementsWaivedAt: now,
+      agreementsWaivedBy: adminUid,
+      rejectionReason: null,
+      updatedAt: now,
+    }
+  } else {
+    const keepApproved = hasAllAgreementsSigned(existingAgreements)
+    updates = {
+      skipAgreements: false,
+      onboardingStatus: keepApproved ? 'approved' : 'pending_signature',
+      updatedAt: now,
+    }
+  }
+
+  try {
+    const onboardingRef = doc(db, 'clientOnboarding', clientId)
+    await setDoc(onboardingRef, { uid: clientId, ...updates }, { merge: true })
+
+    const userRef = doc(db, 'users', clientId)
+    await setDoc(
+      userRef,
+      {
+        skipAgreements: updates.skipAgreements,
+        onboardingStatus: updates.onboardingStatus,
+        ...(skipAgreements ? { status: 'active' } : {}),
+        updatedAt: serverTimestamp(),
+      },
+      { merge: true }
+    )
+  } catch (err) {
+    console.warn('Error saving agreements waiver (offline fallback):', err.message)
+  }
+
+  persistOnboardingLocal(clientId, updates)
+  return updates
 }
 
 /**

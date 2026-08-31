@@ -24,7 +24,6 @@ import {
   Megaphone,
   Target,
   ChevronRight,
-  MapPin,
   Home,
   Umbrella,
   HeartPulse,
@@ -83,7 +82,6 @@ export const EmployeeDashboard = () => {
 
   // Dashboard data state
   const [announcements, setAnnouncements] = useState([])
-  const [upcomingEvents, setUpcomingEvents] = useState([])
   const [leaveBalance, setLeaveBalance] = useState({ annual: 12, used: 0 })
   const [loadingWidgets, setLoadingWidgets] = useState(true)
 
@@ -125,19 +123,6 @@ export const EmployeeDashboard = () => {
           const annSnap = await getDocs(annQ)
           if (!cancelled) {
             setAnnouncements(annSnap.docs.map((d) => ({ id: d.id, ...d.data() })))
-          }
-        } catch {
-          // Collection may not exist yet; silently skip
-        }
-
-        // Fetch upcoming calendar events (next 5)
-        try {
-          const today = new Date().toISOString().split('T')[0]
-          const calRef = collection(db, 'companyCalendar')
-          const calQ = query(calRef, where('date', '>=', today), orderBy('date', 'asc'), limit(5))
-          const calSnap = await getDocs(calQ)
-          if (!cancelled) {
-            setUpcomingEvents(calSnap.docs.map((d) => ({ id: d.id, ...d.data() })))
           }
         } catch {
           // Collection may not exist yet; silently skip
@@ -214,14 +199,6 @@ export const EmployeeDashboard = () => {
   const handleToggleTaskStatus = (t) => {
     const nextStatus = t.status === 'done' ? 'in_progress' : 'done'
     updateTaskStatus(t.taskId, nextStatus)
-  }
-
-  const eventTypeColors = {
-    holiday: 'text-red-500 bg-red-50 dark:bg-red-500/10',
-    meeting: 'text-indigo-500 bg-indigo-50 dark:bg-indigo-500/10',
-    sprint: 'text-purple-500 bg-purple-50 dark:bg-purple-500/10',
-    anniversary: 'text-amber-500 bg-amber-50 dark:bg-amber-500/10',
-    leave: 'text-emerald-500 bg-emerald-50 dark:bg-emerald-500/10',
   }
 
   const priorityColors = {
@@ -366,95 +343,49 @@ export const EmployeeDashboard = () => {
           )}
         </Card>
 
-        <div className="space-y-6">
-          <Card className="p-5 border-slate-200 dark:border-slate-800/80 space-y-3">
-            <div className="flex items-center justify-between">
-              <h2 className="text-sm font-semibold text-slate-900 dark:text-slate-200">Announcements</h2>
-              <NavLink
-                to="/announcements"
-                className="text-xs text-accent hover:underline font-medium flex items-center gap-1"
-              >
-                View all <ChevronRight className="w-3 h-3" />
-              </NavLink>
+        <Card className="p-5 border-slate-200 dark:border-slate-800/80 space-y-3">
+          <div className="flex items-center justify-between">
+            <h2 className="text-sm font-semibold text-slate-900 dark:text-slate-200">Announcements</h2>
+            <NavLink
+              to="/announcements"
+              className="text-xs text-accent hover:underline font-medium flex items-center gap-1"
+            >
+              View all <ChevronRight className="w-3 h-3" />
+            </NavLink>
+          </div>
+          {loadingWidgets ? (
+            <div className="space-y-2">
+              {[1, 2].map((i) => (
+                <div key={i} className="h-14 bg-slate-100 dark:bg-slate-800/50 rounded-xl animate-pulse" />
+              ))}
             </div>
-            {loadingWidgets ? (
-              <div className="space-y-2">
-                {[1, 2].map((i) => (
-                  <div key={i} className="h-14 bg-slate-100 dark:bg-slate-800/50 rounded-xl animate-pulse" />
-                ))}
-              </div>
-            ) : announcements.length === 0 ? (
-              <div className="py-6 text-center text-xs text-slate-400 dark:text-slate-500">
-                <Megaphone className="w-6 h-6 mx-auto mb-2 opacity-30" />
-                No announcements yet.
-              </div>
-            ) : (
-              <div className="space-y-2">
-                {announcements.map((ann) => (
-                  <div
-                    key={ann.id}
-                    className={`flex items-start gap-3 p-3 rounded-xl ${priorityColors[ann.priority] || priorityColors['info']}`}
-                  >
-                    <div className="w-8 h-8 rounded-lg bg-white/70 dark:bg-slate-900/40 flex items-center justify-center shrink-0">
-                      <Megaphone className="w-4 h-4" />
-                    </div>
-                    <div className="flex-1 min-w-0">
-                      <span className="text-xs font-semibold text-slate-800 dark:text-slate-200 block truncate">{ann.title}</span>
-                      {ann.body && (
-                        <p className="text-[11px] text-slate-500 dark:text-slate-400 mt-0.5 line-clamp-2">{ann.body}</p>
-                      )}
-                      <span className="text-[10px] text-slate-400 dark:text-slate-500 mt-1 block">{ann.author}</span>
-                    </div>
+          ) : announcements.length === 0 ? (
+            <div className="py-6 text-center text-xs text-slate-400 dark:text-slate-500">
+              <Megaphone className="w-6 h-6 mx-auto mb-2 opacity-30" />
+              No announcements yet.
+            </div>
+          ) : (
+            <div className="space-y-2">
+              {announcements.slice(0, 3).map((ann) => (
+                <div
+                  key={ann.id}
+                  className={`flex items-start gap-3 p-3 rounded-xl ${priorityColors[ann.priority] || priorityColors['info']}`}
+                >
+                  <div className="w-8 h-8 rounded-lg bg-white/70 dark:bg-slate-900/40 flex items-center justify-center shrink-0">
+                    <Megaphone className="w-4 h-4" />
                   </div>
-                ))}
-              </div>
-            )}
-          </Card>
-
-          <Card className="p-5 border-slate-200 dark:border-slate-800/80 space-y-3">
-            <div className="flex items-center justify-between">
-              <h2 className="text-sm font-semibold text-slate-900 dark:text-slate-200">Upcoming Events</h2>
-              <NavLink
-                to="/calendar"
-                className="text-xs text-accent hover:underline font-medium flex items-center gap-1"
-              >
-                Calendar <ChevronRight className="w-3 h-3" />
-              </NavLink>
+                  <div className="flex-1 min-w-0">
+                    <span className="text-xs font-semibold text-slate-800 dark:text-slate-200 block truncate">{ann.title}</span>
+                    {ann.body && (
+                      <p className="text-[11px] text-slate-500 dark:text-slate-400 mt-0.5 line-clamp-2">{ann.body}</p>
+                    )}
+                    <span className="text-[10px] text-slate-400 dark:text-slate-500 mt-1 block">{ann.author}</span>
+                  </div>
+                </div>
+              ))}
             </div>
-            {loadingWidgets ? (
-              <div className="space-y-2">
-                {[1, 2].map((i) => (
-                  <div key={i} className="h-10 bg-slate-100 dark:bg-slate-800/50 rounded-xl animate-pulse" />
-                ))}
-              </div>
-            ) : upcomingEvents.length === 0 ? (
-              <div className="py-6 text-center text-xs text-slate-400 dark:text-slate-500">
-                <Calendar className="w-6 h-6 mx-auto mb-2 opacity-30" />
-                No upcoming events.
-              </div>
-            ) : (
-              <div className="space-y-2">
-                {upcomingEvents.map((evt) => {
-                  const colorClass = eventTypeColors[evt.type] || eventTypeColors['meeting']
-                  return (
-                    <div key={evt.id} className="flex items-center gap-3 p-2.5 rounded-xl bg-slate-50 dark:bg-slate-800/40">
-                      <div className={`w-8 h-8 rounded-lg flex items-center justify-center shrink-0 ${colorClass}`}>
-                        <MapPin className="w-4 h-4" />
-                      </div>
-                      <div className="flex-1 min-w-0">
-                        <span className="text-xs font-semibold text-slate-800 dark:text-slate-200 block truncate">{evt.title}</span>
-                        <span className="text-[10px] text-slate-500 dark:text-slate-400">
-                          {new Date(evt.date).toLocaleDateString('en-US', { month: 'short', day: 'numeric', year: 'numeric' })}
-                        </span>
-                      </div>
-                      <Badge variant="neutral" className="shrink-0 capitalize">{evt.type}</Badge>
-                    </div>
-                  )
-                })}
-              </div>
-            )}
-          </Card>
-        </div>
+          )}
+        </Card>
 
         <Card className="p-5 border-slate-200 dark:border-slate-800/80 space-y-4">
           <h2 className="text-sm font-semibold text-slate-900 dark:text-slate-200">Quick Links</h2>

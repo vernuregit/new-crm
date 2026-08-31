@@ -66,6 +66,17 @@ export const hoursBetween = (startTime, endTime) => {
   return Math.round(((end - start) / 60) * 100) / 100
 }
 
+export const formatHoursAsHrsMins = (hours) => {
+  const totalMinutes = Math.round(Number(hours) * 60)
+  if (!Number.isFinite(totalMinutes) || totalMinutes <= 0) return '0 min'
+  const h = Math.floor(totalMinutes / 60)
+  const m = totalMinutes % 60
+  const hPart = h === 0 ? '' : h === 1 ? '1 hr' : `${h} hrs`
+  const mPart = m === 0 ? '' : `${m} min`
+  if (hPart && mPart) return `${hPart} and ${mPart}`
+  return hPart || mPart
+}
+
 export const resolvePermissionHours = (employeeDoc) => {
   const n = Number(employeeDoc?.leaveLimits?.permissionHours)
   if (Number.isFinite(n) && n >= 0) return n
@@ -107,7 +118,7 @@ export const formatLeaveDuration = (req) => {
   if (!req) return ''
   if (isPermissionLeave(req)) {
     const hours = getPermissionHours(req)
-    const hrsLabel = hours === 1 ? '1 hr' : `${hours} hrs`
+    const hrsLabel = formatHoursAsHrsMins(hours)
     const date = req.startDate || ''
     if (req.startTime && req.endTime) return `${date} · ${req.startTime}–${req.endTime} (${hrsLabel})`
     return `${date} (${hrsLabel})`

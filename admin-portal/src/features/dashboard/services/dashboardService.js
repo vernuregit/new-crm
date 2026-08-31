@@ -422,7 +422,10 @@ export const getOrgStats = async () => {
 
     let openTickets = 0
     ticketSnap.docs?.forEach((d) => {
-      const st = (d.data().status || '').toLowerCase()
+      const data = d.data()
+      const isClient = !!(data.clientId || data.clientEmail || data.projectName || data.projectId)
+      if (!isClient) return
+      const st = (data.status || '').toLowerCase()
       if (st === 'open' || st === 'in_progress' || st === 'pending') openTickets++
     })
 
@@ -557,13 +560,15 @@ export const getRecentActivity = async (dateFilter = {}) => {
 
     ticketSnap.docs?.forEach((d) => {
       const data = d.data()
+      const isClient = !!(data.clientId || data.clientEmail || data.projectName || data.projectId)
+      if (!isClient) return
       const created = parseFirestoreDate(data.createdAt)
       if (!isWithinDateRange(created, startDate, endDate)) return
 
       activities.push({
         id: `ticket_${d.id}`,
-        title: `Ticket "${data.title || 'Support Request'}" submitted`,
-        author: data.createdByName ? `By ${data.createdByName}` : 'By Employee',
+        title: `Client ticket "${data.subject || data.title || 'Support Request'}" submitted`,
+        author: data.clientName ? `By ${data.clientName}` : data.projectName ? `Project: ${data.projectName}` : 'By Client',
         type: 'employee',
         rawDate: created,
         time: formatActivityTime(data.createdAt),

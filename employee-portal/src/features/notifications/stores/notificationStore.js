@@ -4,6 +4,7 @@ import { db } from '../../../shared/services/firebaseService'
 
 export const useNotificationStore = create((set, get) => ({
   notifications: [],
+  notificationsLoaded: false,
   isOpen: false,
   unsubscribe: null,
 
@@ -26,10 +27,10 @@ export const useNotificationStore = create((set, get) => ({
         notificationId: doc.id,
         ...doc.data(),
       }))
-      set({ notifications: fetchedNotifications })
+      set({ notifications: fetchedNotifications, notificationsLoaded: true })
     })
 
-    set({ unsubscribe })
+    set({ unsubscribe, notificationsLoaded: false })
   },
 
   markAsRead: async (uid, notificationId) => {

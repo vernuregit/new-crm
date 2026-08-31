@@ -45,13 +45,16 @@ export const ClientLoginPage = () => {
       const onboardingDoc = await getClientOnboardingDoc(firebaseUser.uid)
 
       const onboardingStatus = normalizeOnboardingStatus(onboardingDoc?.onboardingStatus)
+      const skipAgreements = Boolean(onboardingDoc?.skipAgreements)
+      const portalUnlocked = skipAgreements || onboardingStatus === ONBOARDING_STATUS.APPROVED
 
       const userDocData = {
         uid: firebaseUser.uid,
         email: firebaseUser.email,
         companyName: onboardingDoc?.companyName || '',
         ...onboardingDoc,
-        onboardingStatus,
+        onboardingStatus: portalUnlocked ? ONBOARDING_STATUS.APPROVED : onboardingStatus,
+        skipAgreements,
       }
 
       setUser(
@@ -60,7 +63,12 @@ export const ClientLoginPage = () => {
         { orgId: 'org_real', role: 'client', tier: 'client', ...claims }
       )
 
-      if (onboardingStatus === ONBOARDING_STATUS.APPROVED) {
+      if (portalUnlocked) {
+        try {
+          localStorage.setItem(`onboarding_status_${firebaseUser.uid}`, ONBOARDING_STATUS.APPROVED)
+        } catch {
+          // ignore
+        }
         navigate('/portal')
       } else {
         navigate('/onboarding')
