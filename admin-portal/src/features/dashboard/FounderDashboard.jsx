@@ -1,6 +1,7 @@
 import React, { useState, useEffect, useCallback, useRef } from 'react'
 import { useNavigate } from 'react-router-dom'
 import { Card } from '../../components/ui/Card'
+import { NativePickerInput } from '../../components/ui/Input'
 import {
   TrendingUp,
   IndianRupee,
@@ -429,22 +430,22 @@ export const FounderDashboard = () => {
                     <div className="grid grid-cols-2 gap-2">
                       <div>
                         <label className="text-[10px] text-slate-500 dark:text-slate-400 mb-0.5 block">Start Date</label>
-                        <input
+                        <NativePickerInput
                           type="date"
                           value={customStartDate}
                           onChange={(e) => setCustomStartDate(e.target.value)}
                           required
-                          className="w-full bg-slate-50 dark:bg-[#11141E] border border-slate-200 dark:border-slate-800 text-slate-900 dark:text-slate-100 text-xs rounded-lg p-1.5 focus:outline-none focus:border-indigo-500 [color-scheme:light] dark:[color-scheme:dark]"
+                          className="w-full bg-slate-50 dark:bg-[#11141E] border border-slate-200 dark:border-slate-800 text-slate-900 dark:text-slate-100 text-xs rounded-lg p-1.5 focus:outline-none focus:border-indigo-500"
                         />
                       </div>
                       <div>
                         <label className="text-[10px] text-slate-500 dark:text-slate-400 mb-0.5 block">End Date</label>
-                        <input
+                        <NativePickerInput
                           type="date"
                           value={customEndDate}
                           onChange={(e) => setCustomEndDate(e.target.value)}
                           required
-                          className="w-full bg-slate-50 dark:bg-[#11141E] border border-slate-200 dark:border-slate-800 text-slate-900 dark:text-slate-100 text-xs rounded-lg p-1.5 focus:outline-none focus:border-indigo-500 [color-scheme:light] dark:[color-scheme:dark]"
+                          className="w-full bg-slate-50 dark:bg-[#11141E] border border-slate-200 dark:border-slate-800 text-slate-900 dark:text-slate-100 text-xs rounded-lg p-1.5 focus:outline-none focus:border-indigo-500"
                         />
                       </div>
                     </div>

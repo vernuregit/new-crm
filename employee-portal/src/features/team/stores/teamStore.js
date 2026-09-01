@@ -1,7 +1,7 @@
 import { create } from 'zustand'
 import { persist } from 'zustand/middleware'
 import { upsertAttendanceLog, getTodayAttendanceLog, getUserMonthlyAttendance } from '../services/attendanceService'
-import { computeRealAttendanceStats, formatTo12HourTime, canonicalTimeFromDate, toEpochMs, timestampFromClockInTime, timeStrToMinutes } from '../services/attendanceStatsUtils'
+import { computeRealAttendanceStats, formatTo12HourTime, canonicalTimeFromDate, toEpochMs, timestampFromClockInTime, timeStrToMinutes, resolveEmployeeDisplayName } from '../services/attendanceStatsUtils'
 import { useUserStore } from '../../../stores/userStore'
 
 // Office hours constants (late-by still uses start time)
@@ -135,13 +135,21 @@ function secToHrsStr(totalSec) {
  * Resolves user metadata (uid, displayName, departmentName) from passed argument or useUserStore.
  */
 function resolveUserMeta(userMeta) {
-  if (userMeta && userMeta.uid) return userMeta
   try {
     const { user, userDoc } = useUserStore.getState()
-    const uid = userDoc?.uid || user?.uid
-    const displayName = userDoc?.displayName || user?.displayName || 'Employee'
-    const departmentName = userDoc?.departmentName || ''
-    return { uid, displayName, departmentName }
+    const uid = userMeta?.uid || userDoc?.uid || user?.uid
+    const displayName = resolveEmployeeDisplayName(
+      {
+        displayName: userMeta?.displayName || userDoc?.displayName,
+        name: userMeta?.name || userDoc?.name,
+        fullName: userMeta?.fullName || userDoc?.fullName,
+        email: userMeta?.email || userDoc?.email || user?.email,
+      },
+      { displayName: user?.displayName },
+      user?.email || 'Employee'
+    )
+    const departmentName = userMeta?.departmentName || userDoc?.departmentName || ''
+    return { ...(userMeta || {}), uid, displayName, departmentName }
   } catch (e) {
     return userMeta || {}
   }

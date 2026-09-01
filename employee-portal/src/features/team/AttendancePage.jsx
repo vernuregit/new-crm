@@ -19,7 +19,7 @@ import {
 } from './services/wfhPolicyUtils'
 import { applyLopConversion, resolveLeaveLimits } from './services/leaveEntitlementUtils'
 import { AttendanceMetricsBar } from './components/AttendanceMetricsBar'
-import { formatTo12HourTime } from './services/attendanceStatsUtils'
+import { formatTo12HourTime, resolveEmployeeDisplayName } from './services/attendanceStatsUtils'
 import { collection, onSnapshot } from 'firebase/firestore'
 import { db } from '../../shared/services/firebaseService'
 import {
@@ -58,7 +58,6 @@ export const AttendancePage = () => {
   const { user, userDoc } = useUserStore()
 
   const activeUid = userDoc?.uid || user?.uid
-  const loggedInName = userDoc?.displayName || user?.displayName || user?.email || ''
   const [clockBusy, setClockBusy] = useState(false)
   const [clockError, setClockError] = useState('')
   const [wfhChoiceOpen, setWfhChoiceOpen] = useState(false)
@@ -96,6 +95,12 @@ export const AttendancePage = () => {
         (user?.email && e.email?.toLowerCase() === user.email.toLowerCase())
     ) || userDoc || {}
 
+  const loggedInName = resolveEmployeeDisplayName(
+    currentEmp,
+    { displayName: user?.displayName, email: user?.email || userDoc?.email },
+    user?.email || ''
+  )
+
   const employeeFilter = {
     employeeId: activeUid,
     uid: activeUid,
@@ -107,7 +112,8 @@ export const AttendancePage = () => {
     const meta = {
       uid: activeUid,
       displayName: loggedInName,
-      departmentName: userDoc?.departmentName || '',
+      departmentName: currentEmp?.departmentName || userDoc?.departmentName || '',
+      email: user?.email || userDoc?.email || currentEmp?.email,
     }
 
     const result = toggleClockIn(meta, {
@@ -152,7 +158,8 @@ export const AttendancePage = () => {
     const meta = {
       uid: activeUid,
       displayName: loggedInName,
-      departmentName: userDoc?.departmentName || '',
+      departmentName: currentEmp?.departmentName || userDoc?.departmentName || '',
+      email: user?.email || userDoc?.email || currentEmp?.email,
     }
 
     if (clockedIn) {

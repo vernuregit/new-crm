@@ -300,6 +300,9 @@ export const createEmployeeAccount = async (email, password, displayName, roleNa
   try {
     const userCred = await createUserWithEmailAndPassword(secondaryAuth, email, password)
     const user = userCred.user
+    if (displayName) {
+      await updateProfile(user, { displayName })
+    }
 
     const mockData = {
       uid: user.uid,

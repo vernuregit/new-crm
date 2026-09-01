@@ -27,8 +27,6 @@ import {
   X,
   Trash2,
   TrendingUp,
-  Eye,
-  EyeOff,
   Edit,
   ShieldCheck,
   Tag,
@@ -62,7 +60,6 @@ export const EmployeeList = () => {
   const [isCustomDept, setIsCustomDept] = useState(false)
   const [phone, setPhone] = useState('')
   const [password, setPassword] = useState('')
-  const [showPassword, setShowPassword] = useState(false)
   const [loading, setLoading] = useState(false)
   const [error, setError] = useState('')
   const [success, setSuccess] = useState('')
@@ -576,24 +573,14 @@ export const EmployeeList = () => {
                 required
               />
 
-              {/* Password field */}
-              <div className="relative">
-                <Input
-                  label="Account Password *"
-                  type={showPassword ? 'text' : 'password'}
-                  placeholder="••••••••"
-                  value={password}
-                  onChange={(e) => setPassword(e.target.value)}
-                  required
-                />
-                <button
-                  type="button"
-                  onClick={() => setShowPassword(!showPassword)}
-                  className="absolute right-3 top-[32px] text-slate-400 hover:text-slate-600 dark:hover:text-slate-200"
-                >
-                  {showPassword ? <EyeOff className="w-4 h-4" /> : <Eye className="w-4 h-4" />}
-                </button>
-              </div>
+              <Input
+                label="Account Password *"
+                type="password"
+                placeholder="••••••••"
+                value={password}
+                onChange={(e) => setPassword(e.target.value)}
+                required
+              />
 
               {accountType !== 'admin' && (
                 <>
@@ -761,15 +748,12 @@ export const EmployeeList = () => {
                     value={phone}
                     onChange={(e) => setPhone(e.target.value)}
                   />
-                  <div className="space-y-1.5">
-                    <label className="block text-xs font-medium text-slate-700 dark:text-slate-300">Joining Date</label>
-                    <input
-                      type="date"
-                      value={joiningDate}
-                      onChange={(e) => setJoiningDate(e.target.value)}
-                      className="w-full bg-slate-100/80 dark:bg-[#11141E] border border-slate-300 dark:border-slate-800 text-slate-900 dark:text-slate-100 text-sm rounded-xl py-2.5 px-3.5 focus:outline-none focus:border-indigo-500 focus:ring-1 focus:ring-indigo-500 transition-all"
-                    />
-                  </div>
+                  <Input
+                    label="Joining Date"
+                    type="date"
+                    value={joiningDate}
+                    onChange={(e) => setJoiningDate(e.target.value)}
+                  />
                 </div>
               </div>
 

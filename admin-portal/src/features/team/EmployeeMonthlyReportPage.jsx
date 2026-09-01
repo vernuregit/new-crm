@@ -4,6 +4,7 @@ import { PageHeader } from '../../components/layout/PageHeader'
 import { Card } from '../../components/ui/Card'
 import { Button } from '../../components/ui/Button'
 import { Badge } from '../../components/ui/Badge'
+import { NativePickerInput } from '../../components/ui/Input'
 import { useTeamStore } from './stores/teamStore'
 import { useUserStore } from '../../stores/userStore'
 import { TeamSubNav } from './components/TeamSubNav'
@@ -237,7 +238,7 @@ export function EmployeeMonthlyReportPage() {
       <div className="flex flex-wrap items-center justify-between gap-3">
         <div className="flex flex-wrap items-center gap-2">
           <label className="text-xs text-slate-500 font-medium">Month</label>
-          <input
+          <NativePickerInput
             type="month"
             value={month}
             onChange={(e) => setMonth(e.target.value)}

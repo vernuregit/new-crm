@@ -3,7 +3,7 @@ import { PageHeader } from '../../components/layout/PageHeader'
 import { Card } from '../../components/ui/Card'
 import { Badge } from '../../components/ui/Badge'
 import { Button } from '../../components/ui/Button'
-import { Input } from '../../components/ui/Input'
+import { Input, NativePickerInput } from '../../components/ui/Input'
 import { useTeamStore } from './stores/teamStore'
 import { useUserStore } from '../../stores/userStore'
 import { db } from '../../shared/services/firebaseService'
@@ -15,7 +15,7 @@ import {
 } from './services/teamService'
 import { OfficeLocationPickerMap } from './components/OfficeLocationPickerMap'
 import { TeamSubNav } from './components/TeamSubNav'
-import { computeRealAttendanceStats, timeStrToMinutes } from './services/attendanceStatsUtils'
+import { computeRealAttendanceStats, timeStrToMinutes, resolveEmployeeDisplayName } from './services/attendanceStatsUtils'
 import {
   collection,
   query,
@@ -47,7 +47,6 @@ import {
   ChevronUp,
   Navigation,
   Loader2,
-  Calendar,
 } from 'lucide-react'
 
 // #region agent log
@@ -541,7 +540,7 @@ export const AttendancePage = () => {
       const stats = computeRealAttendanceStats(uLogs)
       return {
         uid: uId,
-        displayName: emp.displayName || emp.name || 'Employee',
+        displayName: resolveEmployeeDisplayName(emp),
         departmentName: emp.departmentName || emp.department || 'General',
         role: emp.role || 'Team Member',
         ...stats,
@@ -640,7 +639,7 @@ export const AttendancePage = () => {
 
       return {
         uid: log.uid,
-        displayName: log.displayName || emp.displayName || '—',
+        displayName: resolveEmployeeDisplayName(emp, log),
         departmentName: log.departmentName || emp.departmentName || '—',
         clockInTime: formatTimeStr(log.clockInTime) || '—',
         clockOutTime: formatTimeStr(resolvedClockOut) || null,
@@ -661,7 +660,7 @@ export const AttendancePage = () => {
 
     const emptyRow = (emp) => ({
       uid: emp.uid,
-      displayName: emp.displayName || '—',
+      displayName: resolveEmployeeDisplayName(emp),
       departmentName: emp.departmentName || '—',
       clockInTime: '—',
       clockOutTime: null,
@@ -879,29 +878,12 @@ export const AttendancePage = () => {
 
         {/* Date picker */}
         <div className="flex items-center gap-2">
-          <div className="relative flex items-center">
-            <button
-              type="button"
-              onClick={(e) => {
-                const input = e.currentTarget.parentElement?.querySelector('input[type="date"]');
-                if (input && typeof input.showPicker === 'function') {
-                  input.showPicker();
-                } else if (input) {
-                  input.focus();
-                }
-              }}
-              className="absolute left-2.5 text-indigo-400 hover:text-indigo-300 transition-colors z-10 p-0.5 rounded-md hover:bg-slate-700/50"
-              title="Open Calendar Picker"
-            >
-              <Calendar className="w-4 h-4" />
-            </button>
-            <input
-              type="date"
-              value={selectedDate}
-              onChange={(e) => setSelectedDate(e.target.value)}
-              className="bg-slate-800 border border-slate-700 text-slate-200 text-xs rounded-xl pl-9 pr-3 py-1.5 focus:outline-none focus:border-indigo-500 focus:ring-1 focus:ring-indigo-500 transition-colors cursor-pointer [color-scheme:dark]"
-            />
-          </div>
+          <NativePickerInput
+            type="date"
+            value={selectedDate}
+            onChange={(e) => setSelectedDate(e.target.value)}
+            className="bg-slate-100 dark:bg-slate-800 border border-slate-300 dark:border-slate-700 text-slate-800 dark:text-slate-200 text-xs rounded-xl px-3 py-1.5 focus:outline-none focus:border-indigo-500 focus:ring-1 focus:ring-indigo-500 transition-colors"
+          />
           <button
             type="button"
             onClick={() => setSelectedDate(todayStr())}

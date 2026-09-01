@@ -75,21 +75,51 @@ export const fetchCustomClaims = async (user, forceRefresh = false) => {
   }
 }
 
+const NAME_PLACEHOLDERS = new Set(['employee', 'employee staff', 'team staff', 'unknown', 'user'])
+
+function isUsableDisplayName(value) {
+  if (typeof value !== 'string') return false
+  const trimmed = value.trim()
+  if (!trimmed || trimmed === '—' || trimmed === '-') return false
+  return !NAME_PLACEHOLDERS.has(trimmed.toLowerCase())
+}
+
+function pickDisplayName(...values) {
+  for (const value of values) {
+    if (isUsableDisplayName(value)) return value.trim()
+  }
+  return ''
+}
+
 /**
- * Fetch a user document from Firestore /users/{uid} or /employees/{uid}
+ * Fetch a user document from Firestore /users/{uid} merged with /employees/{uid}.
+ * /users is checked first for auth fields, but a missing name is filled from the employee profile.
  */
 export const getUserDoc = async (uid) => {
   try {
     const userRef = doc(db, 'users', uid)
-    const snap = await getDoc(userRef)
-    if (snap.exists()) {
-      return snap.data()
-    }
     const empRef = doc(db, 'employees', uid)
-    const empSnap = await getDoc(empRef)
-    if (empSnap.exists()) {
-      return { ...empSnap.data(), role: 'employee' }
+    const [snap, empSnap] = await Promise.all([getDoc(userRef), getDoc(empRef)])
+    const userData = snap.exists() ? snap.data() : null
+    const empData = empSnap.exists() ? empSnap.data() : null
+    if (!userData && !empData) return null
+
+    const merged = { ...(empData || {}), ...(userData || {}), uid: userData?.uid || empData?.uid || uid }
+    const emailLocal = String(merged.email || '').split('@')[0]
+    merged.displayName =
+      pickDisplayName(
+        userData?.displayName,
+        empData?.displayName,
+        empData?.name,
+        empData?.fullName,
+        userData?.name,
+        emailLocal
+      ) || merged.displayName || ''
+    if (!merged.departmentName && empData?.departmentName) {
+      merged.departmentName = empData.departmentName
     }
+    if (!merged.role) merged.role = 'employee'
+    return merged
   } catch (err) {
     console.warn('Error fetching user document:', err.message)
   }

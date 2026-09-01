@@ -1,6 +1,44 @@
 import React, { useState } from 'react'
 import { Eye, EyeOff, Calendar } from 'lucide-react'
 
+const TRAILING_ICON_BTN =
+  'absolute inset-y-0 right-0 z-20 w-10 flex items-center justify-center text-slate-700 hover:text-slate-950 dark:text-slate-200 dark:hover:text-white transition-colors focus:outline-none focus-visible:ring-2 focus-visible:ring-indigo-500/50 rounded-r-xl cursor-pointer'
+
+function openNativePicker(inputEl) {
+  if (!inputEl) return
+  if (typeof inputEl.showPicker === 'function') {
+    try {
+      inputEl.showPicker()
+      return
+    } catch {
+      /* fall through */
+    }
+  }
+  inputEl.focus()
+}
+
+export function NativePickerInput({ type = 'date', className = '', ...props }) {
+  return (
+    <div className="relative">
+      <input
+        type={type}
+        onClick={(e) => openNativePicker(e.currentTarget)}
+        className={`${className} pr-10 [color-scheme:light] dark:[color-scheme:dark] cursor-pointer`}
+        {...props}
+      />
+      <button
+        type="button"
+        onClick={(e) => openNativePicker(e.currentTarget.parentElement?.querySelector('input'))}
+        className={TRAILING_ICON_BTN}
+        tabIndex={-1}
+        aria-label="Open calendar"
+      >
+        <Calendar className="w-4 h-4" strokeWidth={2.25} />
+      </button>
+    </div>
+  )
+}
+
 export const Input = ({
   label,
   error,
@@ -13,7 +51,7 @@ export const Input = ({
   const [showPassword, setShowPassword] = useState(false)
   const inputId = id || props.name || (label ? label.toLowerCase().replace(/\s+/g, '-') : undefined)
   const isPasswordType = type === 'password'
-  const isDateType = type === 'date' || type === 'datetime-local' || type === 'time'
+  const isDateType = type === 'date' || type === 'datetime-local' || type === 'time' || type === 'month'
   const computedType = isPasswordType ? (showPassword ? 'text' : 'password') : type
   const Icon = customIcon
 
@@ -64,22 +102,22 @@ export const Input = ({
           <button
             type="button"
             onClick={() => setShowPassword((prev) => !prev)}
-            className="absolute inset-y-0 right-0 pr-3.5 flex items-center text-muted hover:text-fg focus:outline-none cursor-pointer"
+            className={TRAILING_ICON_BTN}
             tabIndex={-1}
             aria-label={showPassword ? 'Hide password' : 'Show password'}
           >
-            {showPassword ? <EyeOff className="w-4 h-4" /> : <Eye className="w-4 h-4" />}
+            {showPassword ? <EyeOff className="w-4 h-4" strokeWidth={2.25} /> : <Eye className="w-4 h-4" strokeWidth={2.25} />}
           </button>
         )}
         {isDateType && (
           <button
             type="button"
             onClick={handleOpenPicker}
-            className="absolute inset-y-0 right-0 pr-3.5 flex items-center text-accent hover:opacity-80 transition-colors focus:outline-none cursor-pointer"
+            className={TRAILING_ICON_BTN}
             tabIndex={-1}
-            aria-label="Open date calendar"
+            aria-label="Open calendar"
           >
-            <Calendar className="w-4.5 h-4.5" />
+            <Calendar className="w-4 h-4" strokeWidth={2.25} />
           </button>
         )}
       </div>

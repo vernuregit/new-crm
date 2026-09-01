@@ -20,9 +20,7 @@ import {
   X,
   Trash2,
   TrendingUp,
-  Award,
-  Eye,
-  EyeOff
+  Award
 } from 'lucide-react'
 
 export const EmployeeList = () => {
@@ -40,7 +38,6 @@ export const EmployeeList = () => {
   const [phone, setPhone] = useState('')
   const [skillsInput, setSkillsInput] = useState('')
   const [password, setPassword] = useState('')
-  const [showPassword, setShowPassword] = useState(false)
   const [loading, setLoading] = useState(false)
   const [error, setError] = useState('')
   const [success, setSuccess] = useState('')
@@ -345,24 +342,14 @@ export const EmployeeList = () => {
                 required
               />
 
-              {/* Password field */}
-              <div className="relative">
-                <Input
-                  label="Account Password *"
-                  type={showPassword ? 'text' : 'password'}
-                  placeholder="••••••••"
-                  value={password}
-                  onChange={(e) => setPassword(e.target.value)}
-                  required
-                />
-                <button
-                  type="button"
-                  onClick={() => setShowPassword(!showPassword)}
-                  className="absolute right-3 top-[32px] text-slate-400 hover:text-slate-600 dark:hover:text-slate-200"
-                >
-                  {showPassword ? <EyeOff className="w-4 h-4" /> : <Eye className="w-4 h-4" />}
-                </button>
-              </div>
+              <Input
+                label="Account Password *"
+                type="password"
+                placeholder="••••••••"
+                value={password}
+                onChange={(e) => setPassword(e.target.value)}
+                required
+              />
 
               <div className="grid grid-cols-2 gap-3">
                 <Input

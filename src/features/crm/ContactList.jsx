@@ -21,8 +21,6 @@ import {
   ExternalLink,
   Shield,
   Search,
-  Eye,
-  EyeOff,
   FileSignature
 } from 'lucide-react'
 
@@ -45,7 +43,6 @@ export const ContactList = () => {
     signatoryTitle: '',
   }
   const [form, setForm] = useState(EMPTY_FORM)
-  const [showPassword, setShowPassword] = useState(false)
 
   const setField = (key) => (e) => setForm((prev) => ({ ...prev, [key]: e.target.value }))
 
@@ -426,23 +423,14 @@ export const ContactList = () => {
                   />
                 </div>
 
-                <div className="relative">
-                  <Input
+                <Input
                     label="Set Account Password *"
-                    type={showPassword ? 'text' : 'password'}
+                    type="password"
                     placeholder="Minimum 6 characters"
                     value={form.password}
                     onChange={setField('password')}
                     required
                   />
-                  <button
-                    type="button"
-                    onClick={() => setShowPassword(!showPassword)}
-                    className="absolute right-3 top-[32px] text-slate-400 hover:text-slate-600 dark:hover:text-slate-200"
-                  >
-                    {showPassword ? <EyeOff className="w-4 h-4" /> : <Eye className="w-4 h-4" />}
-                  </button>
-                </div>
               </fieldset>
 
               <div className="p-3 text-[11px] bg-indigo-500/10 text-indigo-600 dark:text-indigo-300 rounded-xl border border-indigo-500/20 flex items-start gap-2">

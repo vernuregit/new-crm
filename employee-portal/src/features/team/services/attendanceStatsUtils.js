@@ -218,3 +218,28 @@ export function computeRealAttendanceStats(logs = [], currentLiveState = null) {
     avgCheckOut,
   }
 }
+
+const NAME_PLACEHOLDERS = new Set(['employee', 'employee staff', 'team staff', 'unknown', 'user'])
+
+export function isPlaceholderDisplayName(value) {
+  if (typeof value !== 'string') return true
+  const trimmed = value.trim()
+  if (!trimmed || trimmed === '—' || trimmed === '-') return true
+  return NAME_PLACEHOLDERS.has(trimmed.toLowerCase())
+}
+
+export function resolveEmployeeDisplayName(emp = {}, log = {}, fallback = '—') {
+  const emailLocal = String(emp.email || log.email || '').split('@')[0]
+  const candidates = [
+    emp.displayName,
+    emp.name,
+    emp.fullName,
+    log.displayName,
+    log.name,
+    emailLocal,
+  ]
+  for (const candidate of candidates) {
+    if (!isPlaceholderDisplayName(candidate)) return String(candidate).trim()
+  }
+  return fallback
+}

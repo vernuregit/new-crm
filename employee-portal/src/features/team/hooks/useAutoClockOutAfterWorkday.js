@@ -1,6 +1,7 @@
 import { useEffect } from 'react'
 import { useTeamStore, WORKDAY_SECONDS } from '../stores/teamStore'
 import { useUserStore } from '../../../stores/userStore'
+import { resolveEmployeeDisplayName } from '../services/attendanceStatsUtils'
 
 /** Set true to auto clock-out after 8 hours of work again. */
 export const AUTO_CLOCK_OUT_ENABLED = false
@@ -12,7 +13,11 @@ export const AUTO_CLOCK_OUT_ENABLED = false
 export const useAutoClockOutAfterWorkday = () => {
   const { user, userDoc } = useUserStore()
   const activeUid = userDoc?.uid || user?.uid
-  const displayName = userDoc?.displayName || user?.displayName || 'Employee'
+  const displayName = resolveEmployeeDisplayName(
+    userDoc,
+    { displayName: user?.displayName, email: user?.email || userDoc?.email },
+    user?.email || 'Employee'
+  )
   const departmentName = userDoc?.departmentName || ''
 
   const clockedIn = useTeamStore((s) => s.clockedIn)
