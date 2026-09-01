@@ -2,7 +2,7 @@ import React, { useState } from 'react'
 import { Eye, EyeOff, Calendar } from 'lucide-react'
 
 const TRAILING_ICON_BTN =
-  'absolute inset-y-0 right-0 z-20 w-10 flex items-center justify-center text-slate-700 hover:text-slate-950 dark:text-slate-200 dark:hover:text-white transition-colors focus:outline-none focus-visible:ring-2 focus-visible:ring-indigo-500/50 rounded-r-xl cursor-pointer'
+  'absolute inset-y-0 right-0 z-20 w-10 flex items-center justify-center text-muted hover:text-fg transition-colors focus:outline-none focus-visible:ring-2 focus-visible:ring-accent/50 rounded-r-xl cursor-pointer'
 
 function openNativePicker(inputEl) {
   if (!inputEl) return

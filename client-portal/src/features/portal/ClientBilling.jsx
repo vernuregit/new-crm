@@ -50,9 +50,9 @@ export const ClientBilling = () => {
       ) : (
         <div className="grid grid-cols-1 lg:grid-cols-2 gap-5">
           <Card className="space-y-4">
-            <div className="flex items-center gap-2 pb-2 border-b border-slate-200 dark:border-slate-800">
-              <Building className="w-4 h-4 text-indigo-500" />
-              <h3 className="font-bold text-sm text-slate-900 dark:text-slate-100">Your billing profile</h3>
+            <div className="flex items-center gap-2 pb-2 border-b border-border">
+              <Building className="w-4 h-4 text-accent" />
+              <h3 className="font-bold text-sm text-fg">Your billing profile</h3>
             </div>
             {hasProfile ? (
               <div className="space-y-3 text-sm">
@@ -60,21 +60,21 @@ export const ClientBilling = () => {
                   <Building className="w-4 h-4 text-slate-400 mt-0.5 shrink-0" />
                   <div>
                     <p className="text-[11px] text-slate-500">Company</p>
-                    <p className="font-semibold text-slate-900 dark:text-slate-100">{companyName || '—'}</p>
+                    <p className="font-semibold text-fg">{companyName || '—'}</p>
                   </div>
                 </div>
                 <div className="flex items-start gap-2">
                   <Hash className="w-4 h-4 text-slate-400 mt-0.5 shrink-0" />
                   <div>
                     <p className="text-[11px] text-slate-500">GST / Tax ID</p>
-                    <p className="font-semibold text-slate-900 dark:text-slate-100">{billing.taxId || 'Not on file yet'}</p>
+                    <p className="font-semibold text-fg">{billing.taxId || 'Not on file yet'}</p>
                   </div>
                 </div>
                 <div className="flex items-start gap-2">
                   <MapPin className="w-4 h-4 text-slate-400 mt-0.5 shrink-0" />
                   <div>
                     <p className="text-[11px] text-slate-500">Billing address</p>
-                    <p className="font-medium text-slate-800 dark:text-slate-200 whitespace-pre-line">
+                    <p className="font-medium text-fg whitespace-pre-line">
                       {billing.billingAddress || 'Not on file yet'}
                     </p>
                   </div>
@@ -83,7 +83,7 @@ export const ClientBilling = () => {
                   <Mail className="w-4 h-4 text-slate-400 mt-0.5 shrink-0" />
                   <div>
                     <p className="text-[11px] text-slate-500">Billing email</p>
-                    <p className="font-medium text-slate-800 dark:text-slate-200">
+                    <p className="font-medium text-fg">
                       {billing.billingEmail || user?.email || '—'}
                     </p>
                   </div>
@@ -93,7 +93,7 @@ export const ClientBilling = () => {
                     <CreditCard className="w-4 h-4 text-slate-400 mt-0.5 shrink-0" />
                     <div>
                       <p className="text-[11px] text-slate-500">Preferred method</p>
-                      <p className="font-medium uppercase text-slate-800 dark:text-slate-200">{billing.paymentMethod}</p>
+                      <p className="font-medium uppercase text-fg">{billing.paymentMethod}</p>
                     </div>
                   </div>
                 )}
@@ -102,7 +102,7 @@ export const ClientBilling = () => {
                 </p>
               </div>
             ) : (
-              <p className="text-sm text-slate-500 dark:text-slate-400">
+              <p className="text-sm text-muted">
                 Your billing profile has not been filled in yet. Your account manager can add GST and address on your
                 client profile.
               </p>

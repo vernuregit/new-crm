@@ -52,14 +52,25 @@ export const getClientProjects = async (clientId) => {
 /**
  * Process Steps & Workflow Operations for Client Portal
  */
+export const getClientVisibility = (step) => {
+  if (!step?.clientVisibility) return 'approved'
+  return step.clientVisibility
+}
+
+export const isClientVisible = (step) => getClientVisibility(step) === 'approved'
+
+const sortAndFilterClientSteps = (docs) => {
+  const list = docs.map((d) => ({ id: d.id, ...d.data() }))
+  list.sort((a, b) => (a.stepNumber || 0) - (b.stepNumber || 0))
+  return list.filter(isClientVisible)
+}
+
 export const getProjectProcessSteps = async (projectId) => {
   try {
     if (!projectId) return []
     const processRef = collection(db, 'projects', projectId, 'processSteps')
     const snap = await getDocs(processRef)
-    const list = snap.docs.map((d) => ({ id: d.id, ...d.data() }))
-    list.sort((a, b) => (a.stepNumber || 0) - (b.stepNumber || 0))
-    return list
+    return sortAndFilterClientSteps(snap.docs)
   } catch (err) {
     console.error('Error fetching project process steps:', err)
     return []
@@ -73,9 +84,7 @@ export const subscribeProjectProcessSteps = (projectId, callback) => {
     return onSnapshot(
       processRef,
       (snap) => {
-        const list = snap.docs.map((d) => ({ id: d.id, ...d.data() }))
-        list.sort((a, b) => (a.stepNumber || 0) - (b.stepNumber || 0))
-        callback(list)
+        callback(sortAndFilterClientSteps(snap.docs))
       },
       (err) => {
         console.warn('Error subscribing to process steps:', err)

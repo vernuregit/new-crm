@@ -15,11 +15,11 @@ const getIconForType = (type) => {
     case 'finance':
       return <DollarSign className="w-5 h-5 text-emerald-500" />
     case 'project':
-      return <Briefcase className="w-5 h-5 text-blue-500" />
+      return <Briefcase className="w-5 h-5 text-accent" />
     case 'wellness':
       return <HeartPulse className="w-5 h-5 text-rose-500" />
     case 'crm':
-      return <CheckCircle2 className="w-5 h-5 text-purple-500" />
+      return <CheckCircle2 className="w-5 h-5 text-accent" />
     case 'info':
     default:
       return <Info className="w-5 h-5 text-slate-500" />
@@ -33,11 +33,11 @@ const getBgForType = (type) => {
     case 'finance':
       return 'bg-emerald-50 dark:bg-emerald-500/10'
     case 'project':
-      return 'bg-blue-50 dark:bg-blue-500/10'
+      return 'bg-accent-soft'
     case 'wellness':
       return 'bg-rose-50 dark:bg-rose-500/10'
     case 'crm':
-      return 'bg-purple-50 dark:bg-purple-500/10'
+      return 'bg-accent-soft'
     case 'info':
     default:
       return 'bg-slate-50 dark:bg-slate-500/10'
@@ -139,12 +139,12 @@ export const NotificationsPage = () => {
 
     return (
       <div key={title} className="mb-8">
-        <h3 className="text-sm font-medium text-slate-500 dark:text-slate-400 mb-4 px-1">{title}</h3>
+        <h3 className="text-sm font-medium text-muted mb-4 px-1">{title}</h3>
         <div className="space-y-3">
           {items.map((notif) => (
             <Card 
               key={notif.notificationId}
-              className={`p-4 transition-colors ${!notif.isRead ? 'bg-white dark:bg-[#12151E]' : 'bg-slate-50/50 dark:bg-[#0F1117]/50'} cursor-pointer hover:border-purple-500/50`}
+              className={`p-4 transition-colors ${!notif.isRead ? 'bg-surface' : 'bg-canvas/50'} cursor-pointer hover:border-accent/50`}
               onClick={() => handleNotificationClick(notif)}
             >
               <div className="flex items-start gap-4">
@@ -153,19 +153,19 @@ export const NotificationsPage = () => {
                 </div>
                 <div className="flex-1 min-w-0">
                   <div className="flex items-start justify-between gap-2 mb-1">
-                    <h4 className={`text-base font-semibold truncate ${!notif.isRead ? 'text-slate-900 dark:text-white' : 'text-slate-700 dark:text-slate-300'}`}>
+                    <h4 className={`text-base font-semibold truncate ${!notif.isRead ? 'text-fg' : 'text-fg'}`}>
                       {notif.title}
                     </h4>
-                    <span className="text-xs text-slate-500 dark:text-slate-400 shrink-0 whitespace-nowrap">
+                    <span className="text-xs text-muted shrink-0 whitespace-nowrap">
                       {formatDistanceToNow(notif.createdAt)}
                     </span>
                   </div>
-                  <p className={`text-sm ${!notif.isRead ? 'text-slate-700 dark:text-slate-300' : 'text-slate-500 dark:text-slate-400'}`}>
+                  <p className={`text-sm ${!notif.isRead ? 'text-fg' : 'text-muted'}`}>
                     {notif.message}
                   </p>
                 </div>
                 {!notif.isRead && (
-                  <div className="shrink-0 w-2.5 h-2.5 rounded-full bg-blue-500 mt-2" />
+                  <div className="shrink-0 w-2.5 h-2.5 rounded-full bg-accent mt-2" />
                 )}
               </div>
             </Card>
@@ -195,8 +195,8 @@ export const NotificationsPage = () => {
             onClick={() => setActiveTab(tab.id)}
             className={`px-4 py-2 rounded-full text-sm font-medium transition-colors whitespace-nowrap flex items-center gap-2 ${
               activeTab === tab.id
-                ? 'bg-purple-600 text-white'
-                : 'bg-white dark:bg-[#12151E] text-slate-600 dark:text-slate-300 border border-slate-200 dark:border-slate-800 hover:bg-slate-50 dark:hover:bg-slate-800'
+                ? 'bg-accent text-white'
+                : 'bg-surface text-muted border border-border hover:bg-chrome'
             }`}
           >
             {tab.label}
@@ -211,13 +211,13 @@ export const NotificationsPage = () => {
 
       {filteredNotifications.length === 0 ? (
         <Card className="flex flex-col items-center justify-center p-12 text-center">
-          <div className="w-16 h-16 rounded-full bg-slate-100 dark:bg-slate-800 flex items-center justify-center mb-4">
+          <div className="w-16 h-16 rounded-full bg-chrome flex items-center justify-center mb-4">
             <Bell className="w-8 h-8 text-slate-400 dark:text-slate-500" />
           </div>
-          <h3 className="text-lg font-medium text-slate-900 dark:text-white mb-2">
+          <h3 className="text-lg font-medium text-fg mb-2">
             No notifications found
           </h3>
-          <p className="text-slate-500 dark:text-slate-400 max-w-sm">
+          <p className="text-muted max-w-sm">
             {activeTab === 'all' 
               ? "You're all caught up! Check back later for new updates." 
               : `You don't have any ${activeTab} notifications at the moment.`}

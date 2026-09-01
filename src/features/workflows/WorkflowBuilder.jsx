@@ -39,14 +39,14 @@ export const WorkflowBuilder = () => {
           description="Configure event triggers, boolean logic conditions, and automated actions"
         />
 
-        <div className="flex items-center gap-2 border-b border-slate-800 pb-3">
+        <div className="flex items-center gap-2 border-b border-border pb-3">
           <NavLink
             to="/workflows"
             end
             className={({ isActive }) =>
               `flex items-center gap-2 px-3 py-1.5 rounded-xl text-xs font-semibold transition-colors ${
                 isActive
-                  ? 'bg-indigo-600/20 text-indigo-400 border border-indigo-500/30'
+                  ? 'bg-accent-soft text-accent border border-accent/30'
                   : 'text-slate-400 hover:text-slate-200 hover:bg-slate-800'
               }`
             }
@@ -58,7 +58,7 @@ export const WorkflowBuilder = () => {
             className={({ isActive }) =>
               `flex items-center gap-2 px-3 py-1.5 rounded-xl text-xs font-semibold transition-colors ${
                 isActive
-                  ? 'bg-indigo-600/20 text-indigo-400 border border-indigo-500/30'
+                  ? 'bg-accent-soft text-accent border border-accent/30'
                   : 'text-slate-400 hover:text-slate-200 hover:bg-slate-800'
               }`
             }
@@ -70,7 +70,7 @@ export const WorkflowBuilder = () => {
             className={({ isActive }) =>
               `flex items-center gap-2 px-3 py-1.5 rounded-xl text-xs font-semibold transition-colors ${
                 isActive
-                  ? 'bg-indigo-600/20 text-indigo-400 border border-indigo-500/30'
+                  ? 'bg-accent-soft text-accent border border-accent/30'
                   : 'text-slate-400 hover:text-slate-200 hover:bg-slate-800'
               }`
             }
@@ -80,7 +80,7 @@ export const WorkflowBuilder = () => {
         </div>
       </div>
 
-      <Card className="max-w-xl space-y-4 border-slate-800">
+      <Card className="max-w-xl space-y-4 border-border">
         <form onSubmit={handleSaveWorkflow} className="space-y-4">
           <Input
             label="Rule Name"
@@ -95,7 +95,7 @@ export const WorkflowBuilder = () => {
             <select
               value={triggerEvent}
               onChange={(e) => setTriggerEvent(e.target.value)}
-              className="w-full bg-[#11141E] border border-slate-800 text-slate-100 text-sm rounded-xl py-2.5 px-3.5 focus:outline-none"
+              className="w-full bg-canvas border border-border text-fg text-sm rounded-xl py-2.5 px-3.5 focus:outline-none"
             >
               <option value="crm.lead.won">CRM: Lead Status Changed to Won</option>
               <option value="crm.lead.created">CRM: New Lead Created</option>
@@ -117,7 +117,7 @@ export const WorkflowBuilder = () => {
             <select
               value={actionType}
               onChange={(e) => setActionType(e.target.value)}
-              className="w-full bg-[#11141E] border border-slate-800 text-slate-100 text-sm rounded-xl py-2.5 px-3.5 focus:outline-none"
+              className="w-full bg-canvas border border-border text-fg text-sm rounded-xl py-2.5 px-3.5 focus:outline-none"
             >
               <option value="create_client_portal_user">Create Client Portal User Profile</option>
               <option value="send_email">Send Email Template</option>

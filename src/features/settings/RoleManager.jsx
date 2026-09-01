@@ -48,14 +48,14 @@ export const RoleManager = () => {
           }
         />
 
-        <div className="flex items-center gap-2 border-b border-slate-200 dark:border-slate-800 pb-3">
+        <div className="flex items-center gap-2 border-b border-border pb-3">
           <NavLink
             to="/settings/org"
             className={({ isActive }) =>
               `flex items-center gap-2 px-3 py-1.5 rounded-xl text-xs font-semibold transition-colors ${
                 isActive
-                  ? 'bg-indigo-50 dark:bg-indigo-600/20 text-indigo-600 dark:text-indigo-400 border border-indigo-200 dark:border-indigo-500/30'
-                  : 'text-slate-600 dark:text-slate-400 hover:text-slate-900 dark:hover:text-slate-200 hover:bg-slate-100 dark:hover:bg-slate-800'
+                  ? 'bg-accent-soft text-accent border border-accent/30'
+                  : 'text-muted hover:text-fg hover:bg-slate-100 dark:hover:bg-slate-800'
               }`
             }
           >
@@ -66,8 +66,8 @@ export const RoleManager = () => {
             className={({ isActive }) =>
               `flex items-center gap-2 px-3 py-1.5 rounded-xl text-xs font-semibold transition-colors ${
                 isActive
-                  ? 'bg-indigo-50 dark:bg-indigo-600/20 text-indigo-600 dark:text-indigo-400 border border-indigo-200 dark:border-indigo-500/30'
-                  : 'text-slate-600 dark:text-slate-400 hover:text-slate-900 dark:hover:text-slate-200 hover:bg-slate-100 dark:hover:bg-slate-800'
+                  ? 'bg-accent-soft text-accent border border-accent/30'
+                  : 'text-muted hover:text-fg hover:bg-slate-100 dark:hover:bg-slate-800'
               }`
             }
           >
@@ -78,8 +78,8 @@ export const RoleManager = () => {
             className={({ isActive }) =>
               `flex items-center gap-2 px-3 py-1.5 rounded-xl text-xs font-semibold transition-colors ${
                 isActive
-                  ? 'bg-indigo-50 dark:bg-indigo-600/20 text-indigo-600 dark:text-indigo-400 border border-indigo-200 dark:border-indigo-500/30'
-                  : 'text-slate-600 dark:text-slate-400 hover:text-slate-900 dark:hover:text-slate-200 hover:bg-slate-100 dark:hover:bg-slate-800'
+                  ? 'bg-accent-soft text-accent border border-accent/30'
+                  : 'text-muted hover:text-fg hover:bg-slate-100 dark:hover:bg-slate-800'
               }`
             }
           >
@@ -91,10 +91,10 @@ export const RoleManager = () => {
       {/* Role Permission Matrix Grid */}
       <div className="space-y-6">
         {customRoles.map((role) => (
-          <Card key={role.roleId} hover className="space-y-4 border-slate-800">
-            <div className="flex items-center justify-between pb-3 border-b border-slate-800">
+          <Card key={role.roleId} hover className="space-y-4 border-border">
+            <div className="flex items-center justify-between pb-3 border-b border-border">
               <div className="flex items-center gap-3">
-                <h3 className="font-bold text-slate-100 text-sm">{role.name}</h3>
+                <h3 className="font-bold text-fg text-sm">{role.name}</h3>
                 <Badge variant={role.isSystem ? 'brand' : 'info'}>
                   {role.isSystem ? 'System Core Role' : 'Custom Defined'}
                 </Badge>
@@ -103,7 +103,7 @@ export const RoleManager = () => {
               {!role.isSystem && (
                 <button
                   onClick={() => deleteCustomRole(role.roleId)}
-                  className="p-1.5 text-slate-500 hover:text-rose-400 rounded-lg hover:bg-slate-800 transition-colors"
+                  className="p-1.5 text-muted hover:text-rose-400 rounded-lg hover:bg-slate-800 transition-colors"
                   title="Delete Custom Role"
                 >
                   <Trash2 className="w-4 h-4" />
@@ -120,8 +120,8 @@ export const RoleManager = () => {
                     key={perm.key}
                     className={`flex items-center gap-2 p-2.5 rounded-xl border text-xs cursor-pointer transition-colors ${
                       isChecked
-                        ? 'bg-indigo-600/10 border-indigo-500/30 text-indigo-300 font-medium'
-                        : 'bg-slate-900/60 border-slate-800/80 text-slate-500 hover:text-slate-300'
+                        ? 'bg-accent-soft border-accent/30 text-accent font-medium'
+                        : 'bg-slate-900/60 border-border/80 text-muted hover:text-slate-300'
                     }`}
                   >
                     <input
@@ -129,7 +129,7 @@ export const RoleManager = () => {
                       checked={isChecked}
                       disabled={role.isSystem}
                       onChange={() => toggleRolePermission(role.roleId, perm.value)}
-                      className="rounded bg-slate-800 border-slate-700 text-indigo-600 focus:ring-indigo-500"
+                      className="rounded bg-slate-800 border-slate-700 text-accent focus:ring-accent"
                     />
                     <span className="truncate font-mono text-[11px]">{perm.value}</span>
                   </label>
@@ -143,9 +143,9 @@ export const RoleManager = () => {
       {/* Create Custom Role Modal */}
       {showAddModal && (
         <div className="fixed inset-0 z-50 bg-black/70 backdrop-blur-sm flex items-center justify-center p-4">
-          <Card className="w-full max-w-md p-6 space-y-4 border-slate-800 shadow-2xl relative">
-            <div className="flex items-center justify-between pb-3 border-b border-slate-800">
-              <h3 className="font-bold text-slate-100 text-sm">Create Custom Role</h3>
+          <Card className="w-full max-w-md p-6 space-y-4 border-border shadow-2xl relative">
+            <div className="flex items-center justify-between pb-3 border-b border-border">
+              <h3 className="font-bold text-fg text-sm">Create Custom Role</h3>
               <button
                 onClick={() => setShowAddModal(false)}
                 className="text-slate-400 hover:text-white p-1 rounded-lg hover:bg-slate-800"

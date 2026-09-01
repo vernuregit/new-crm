@@ -246,7 +246,7 @@ export const AnnouncementManager = () => {
         actions={
           <Button
             onClick={handleOpenCreate}
-            className="flex items-center gap-2 bg-indigo-600 hover:bg-indigo-700 text-white shadow-sm"
+            className="flex items-center gap-2 bg-accent hover:bg-accent-hover text-white shadow-sm"
           >
             <Plus className="w-4 h-4" /> New Announcement
           </Button>
@@ -258,22 +258,22 @@ export const AnnouncementManager = () => {
 
       {/* Stats Cards */}
       <div className="grid grid-cols-2 sm:grid-cols-4 gap-4">
-        <Card className="p-4 bg-white dark:bg-[#12151E] border-slate-200 dark:border-slate-800/80">
+        <Card className="p-4 bg-surface border-border">
           <div className="flex items-center justify-between">
             <div>
-              <p className="text-xs font-medium text-slate-500 dark:text-slate-400">Total Broadcasts</p>
+              <p className="text-xs font-medium text-muted">Total Broadcasts</p>
               <h3 className="text-2xl font-bold text-slate-900 dark:text-white mt-1">{stats.total}</h3>
             </div>
-            <div className="w-10 h-10 rounded-xl bg-indigo-50 dark:bg-indigo-500/10 flex items-center justify-center text-indigo-600 dark:text-indigo-400">
+            <div className="w-10 h-10 rounded-xl bg-accent-soft flex items-center justify-center text-accent">
               <Megaphone className="w-5 h-5" />
             </div>
           </div>
         </Card>
 
-        <Card className="p-4 bg-white dark:bg-[#12151E] border-slate-200 dark:border-slate-800/80">
+        <Card className="p-4 bg-surface border-border">
           <div className="flex items-center justify-between">
             <div>
-              <p className="text-xs font-medium text-slate-500 dark:text-slate-400">Pinned to Top</p>
+              <p className="text-xs font-medium text-muted">Pinned to Top</p>
               <h3 className="text-2xl font-bold text-amber-600 dark:text-amber-400 mt-1">{stats.pinned}</h3>
             </div>
             <div className="w-10 h-10 rounded-xl bg-amber-50 dark:bg-amber-500/10 flex items-center justify-center text-amber-600 dark:text-amber-400">
@@ -282,10 +282,10 @@ export const AnnouncementManager = () => {
           </div>
         </Card>
 
-        <Card className="p-4 bg-white dark:bg-[#12151E] border-slate-200 dark:border-slate-800/80">
+        <Card className="p-4 bg-surface border-border">
           <div className="flex items-center justify-between">
             <div>
-              <p className="text-xs font-medium text-slate-500 dark:text-slate-400">Urgent Notices</p>
+              <p className="text-xs font-medium text-muted">Urgent Notices</p>
               <h3 className="text-2xl font-bold text-rose-600 dark:text-rose-400 mt-1">{stats.urgent}</h3>
             </div>
             <div className="w-10 h-10 rounded-xl bg-rose-50 dark:bg-rose-500/10 flex items-center justify-center text-rose-600 dark:text-rose-400">
@@ -294,10 +294,10 @@ export const AnnouncementManager = () => {
           </div>
         </Card>
 
-        <Card className="p-4 bg-white dark:bg-[#12151E] border-slate-200 dark:border-slate-800/80">
+        <Card className="p-4 bg-surface border-border">
           <div className="flex items-center justify-between">
             <div>
-              <p className="text-xs font-medium text-slate-500 dark:text-slate-400">Company Events</p>
+              <p className="text-xs font-medium text-muted">Company Events</p>
               <h3 className="text-2xl font-bold text-emerald-600 dark:text-emerald-400 mt-1">{stats.events}</h3>
             </div>
             <div className="w-10 h-10 rounded-xl bg-emerald-50 dark:bg-emerald-500/10 flex items-center justify-center text-emerald-600 dark:text-emerald-400">
@@ -308,7 +308,7 @@ export const AnnouncementManager = () => {
       </div>
 
       {/* Filter and Search Bar */}
-      <div className="flex flex-col sm:flex-row items-stretch sm:items-center justify-between gap-3 bg-white dark:bg-[#12151E] p-3 rounded-2xl border border-slate-200 dark:border-slate-800/80">
+      <div className="flex flex-col sm:flex-row items-stretch sm:items-center justify-between gap-3 bg-surface p-3 rounded-2xl border border-border">
         {/* Filter Pills */}
         <div className="flex items-center gap-1.5 overflow-x-auto pb-1 sm:pb-0">
           {[
@@ -323,7 +323,7 @@ export const AnnouncementManager = () => {
               onClick={() => setSelectedFilter(tab.key)}
               className={`px-3 py-1.5 rounded-xl text-xs font-semibold transition-colors flex items-center gap-1.5 whitespace-nowrap ${
                 selectedFilter === tab.key
-                  ? 'bg-indigo-600 text-white shadow-sm'
+                  ? 'bg-accent text-white shadow-sm'
                   : 'bg-slate-100 text-slate-600 hover:bg-slate-200 dark:bg-slate-800/60 dark:text-slate-400 dark:hover:bg-slate-800'
               }`}
             >
@@ -350,7 +350,7 @@ export const AnnouncementManager = () => {
               value={searchQuery}
               onChange={(e) => setSearchQuery(e.target.value)}
               placeholder="Search announcements..."
-              className="w-full pl-9 pr-8 py-1.5 text-xs rounded-xl bg-slate-50 dark:bg-slate-900 border border-slate-200 dark:border-slate-800 text-slate-900 dark:text-white placeholder-slate-400 focus:outline-none focus:ring-2 focus:ring-indigo-500/20 focus:border-indigo-500"
+              className="w-full pl-9 pr-8 py-1.5 text-xs rounded-xl bg-canvas border border-border text-slate-900 dark:text-white placeholder-slate-400 focus:outline-none focus:ring-2 focus:ring-accent/20 focus:border-accent"
             />
             {searchQuery && (
               <button
@@ -363,7 +363,7 @@ export const AnnouncementManager = () => {
           </div>
           <Button
             onClick={handleOpenCreate}
-            className="flex items-center gap-1.5 bg-indigo-600 hover:bg-indigo-700 text-white text-xs px-3 py-1.5 rounded-xl whitespace-nowrap shadow-sm"
+            className="flex items-center gap-1.5 bg-accent hover:bg-accent-hover text-white text-xs px-3 py-1.5 rounded-xl whitespace-nowrap shadow-sm"
           >
             <Plus className="w-3.5 h-3.5" /> Add
           </Button>
@@ -374,7 +374,7 @@ export const AnnouncementManager = () => {
       {loading ? (
         <div className="space-y-4">
           {[1, 2, 3].map((i) => (
-            <Card key={i} className="p-6 bg-white dark:bg-[#12151E] border-slate-200 dark:border-slate-800 animate-pulse">
+            <Card key={i} className="p-6 bg-surface border-border animate-pulse">
               <div className="flex items-center gap-3 mb-4">
                 <div className="h-5 bg-slate-200 dark:bg-slate-800 rounded w-16" />
                 <div className="h-4 bg-slate-200 dark:bg-slate-800 rounded w-28" />
@@ -386,14 +386,14 @@ export const AnnouncementManager = () => {
           ))}
         </div>
       ) : displayItems.length === 0 ? (
-        <Card className="p-12 text-center bg-white dark:bg-[#12151E] border-slate-200 dark:border-slate-800">
-          <div className="w-16 h-16 rounded-2xl bg-indigo-50 dark:bg-indigo-500/10 flex items-center justify-center text-indigo-600 dark:text-indigo-400 mx-auto mb-4">
+        <Card className="p-12 text-center bg-surface border-border">
+          <div className="w-16 h-16 rounded-2xl bg-accent-soft flex items-center justify-center text-accent mx-auto mb-4">
             <Megaphone className="w-8 h-8 opacity-60" />
           </div>
           <h3 className="text-base font-bold text-slate-900 dark:text-white">
             {searchQuery || selectedFilter !== 'all' ? 'No matching announcements found' : 'No announcements published yet'}
           </h3>
-          <p className="text-xs text-slate-500 dark:text-slate-400 max-w-md mx-auto mt-1.5">
+          <p className="text-xs text-muted max-w-md mx-auto mt-1.5">
             {searchQuery || selectedFilter !== 'all'
               ? 'Try changing your search term or filter options.'
               : 'Create your first announcement to keep your team informed about company updates, policies, and events.'}
@@ -401,7 +401,7 @@ export const AnnouncementManager = () => {
           {!searchQuery && selectedFilter === 'all' && (
             <Button
               onClick={handleOpenCreate}
-              className="mt-5 bg-indigo-600 hover:bg-indigo-700 text-white text-xs px-4 py-2"
+              className="mt-5 bg-accent hover:bg-accent-hover text-white text-xs px-4 py-2"
             >
               <Plus className="w-4 h-4 mr-1.5" /> Create Announcement
             </Button>
@@ -417,10 +417,10 @@ export const AnnouncementManager = () => {
             return (
               <Card
                 key={item.id}
-                className={`p-6 transition-all duration-200 relative bg-white dark:bg-[#12151E] hover:shadow-md border ${
+                className={`p-6 transition-all duration-200 relative bg-surface hover:shadow-md border ${
                   item.pinned
                     ? 'border-amber-300 dark:border-amber-500/40 bg-gradient-to-r from-amber-500/[0.02] to-transparent'
-                    : 'border-slate-200 dark:border-slate-800/80'
+                    : 'border-border'
                 }`}
               >
                 {/* Pinned Ribbon Badge */}
@@ -437,14 +437,14 @@ export const AnnouncementManager = () => {
                     {config.label.toUpperCase()}
                   </Badge>
 
-                  <span className="text-xs text-slate-400 dark:text-slate-500 flex items-center gap-1">
+                  <span className="text-xs text-muted flex items-center gap-1">
                     <Clock className="w-3.5 h-3.5" />
                     {formatDate(item.createdAt)}
                   </span>
 
                   {item.author && (
-                    <span className="text-xs text-slate-500 dark:text-slate-400 font-medium">
-                      by <span className="text-slate-700 dark:text-slate-300 font-semibold">{item.author}</span>
+                    <span className="text-xs text-muted font-medium">
+                      by <span className="text-fg font-semibold">{item.author}</span>
                     </span>
                   )}
                 </div>
@@ -453,12 +453,12 @@ export const AnnouncementManager = () => {
                 <h3 className="text-lg font-bold text-slate-900 dark:text-white mb-2 leading-snug">
                   {item.title}
                 </h3>
-                <p className="text-sm text-slate-600 dark:text-slate-300 whitespace-pre-wrap leading-relaxed">
+                <p className="text-sm text-muted whitespace-pre-wrap leading-relaxed">
                   {item.body}
                 </p>
 
                 {/* Actions Footer */}
-                <div className="flex items-center justify-between mt-5 pt-4 border-t border-slate-100 dark:border-slate-800/60">
+                <div className="flex items-center justify-between mt-5 pt-4 border-t border-slate-100 dark:border-border/60">
                   <div className="flex items-center gap-2">
                     <button
                       onClick={() => handleTogglePin(item)}
@@ -477,13 +477,13 @@ export const AnnouncementManager = () => {
                   <div className="flex items-center gap-2">
                     <button
                       onClick={() => handleOpenEdit(item)}
-                      className="p-1.5 text-slate-500 hover:text-indigo-600 hover:bg-indigo-50 dark:hover:bg-indigo-950/30 rounded-lg transition-colors text-xs font-semibold flex items-center gap-1"
+                      className="p-1.5 text-muted hover:text-accent hover:bg-accent-soft rounded-lg transition-colors text-xs font-semibold flex items-center gap-1"
                     >
                       <Edit2 className="w-3.5 h-3.5" /> Edit
                     </button>
                     <button
                       onClick={() => setDeleteConfirmItem(item)}
-                      className="p-1.5 text-slate-500 hover:text-rose-600 hover:bg-rose-50 dark:hover:bg-rose-950/30 rounded-lg transition-colors text-xs font-semibold flex items-center gap-1"
+                      className="p-1.5 text-muted hover:text-rose-600 hover:bg-rose-50 dark:hover:bg-rose-950/30 rounded-lg transition-colors text-xs font-semibold flex items-center gap-1"
                     >
                       <Trash2 className="w-3.5 h-3.5" /> Delete
                     </button>
@@ -498,18 +498,18 @@ export const AnnouncementManager = () => {
       {/* ─── Create / Edit Modal ────────────────────────────────────────────── */}
       {isModalOpen && (
         <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-slate-900/60 backdrop-blur-sm animate-fade-in">
-          <div className="bg-white dark:bg-[#12151E] rounded-2xl shadow-2xl border border-slate-200 dark:border-slate-800 w-full max-w-xl max-h-[90vh] overflow-y-auto">
+          <div className="bg-surface rounded-2xl shadow-2xl border border-border w-full max-w-xl max-h-[90vh] overflow-y-auto">
             {/* Modal Header */}
-            <div className="flex items-center justify-between p-5 border-b border-slate-100 dark:border-slate-800">
+            <div className="flex items-center justify-between p-5 border-b border-slate-100 dark:border-border">
               <div className="flex items-center gap-2.5">
-                <div className="w-9 h-9 rounded-xl bg-indigo-50 dark:bg-indigo-500/10 flex items-center justify-center text-indigo-600 dark:text-indigo-400">
+                <div className="w-9 h-9 rounded-xl bg-accent-soft flex items-center justify-center text-accent">
                   <Megaphone className="w-4 h-4" />
                 </div>
                 <div>
                   <h3 className="text-base font-bold text-slate-900 dark:text-white">
                     {editingItem ? 'Edit Announcement' : 'New Announcement'}
                   </h3>
-                  <p className="text-xs text-slate-500 dark:text-slate-400">
+                  <p className="text-xs text-muted">
                     Publish updates visible to all team members in the Employee Portal.
                   </p>
                 </div>
@@ -533,7 +533,7 @@ export const AnnouncementManager = () => {
 
               {/* Title */}
               <div>
-                <label className="block text-xs font-semibold text-slate-700 dark:text-slate-300 mb-1.5">
+                <label className="block text-xs font-semibold text-fg mb-1.5">
                   Announcement Title <span className="text-rose-500">*</span>
                 </label>
                 <input
@@ -542,18 +542,18 @@ export const AnnouncementManager = () => {
                   placeholder="e.g. Q3 Town Hall Meeting on Friday"
                   value={formData.title}
                   onChange={(e) => setFormData({ ...formData, title: e.target.value })}
-                  className="w-full px-3.5 py-2 text-sm rounded-xl bg-slate-50 dark:bg-slate-900 border border-slate-200 dark:border-slate-800 text-slate-900 dark:text-white placeholder-slate-400 focus:outline-none focus:ring-2 focus:ring-indigo-500/20 focus:border-indigo-500"
+                  className="w-full px-3.5 py-2 text-sm rounded-xl bg-canvas border border-border text-slate-900 dark:text-white placeholder-slate-400 focus:outline-none focus:ring-2 focus:ring-accent/20 focus:border-accent"
                 />
               </div>
 
               {/* Priority Selector */}
               <div>
-                <label className="block text-xs font-semibold text-slate-700 dark:text-slate-300 mb-1.5">
+                <label className="block text-xs font-semibold text-fg mb-1.5">
                   Priority Level
                 </label>
                 <div className="grid grid-cols-3 gap-2.5">
                   {[
-                    { key: 'info', label: 'Info', desc: 'General Updates', icon: Info, color: 'text-blue-600 dark:text-blue-400', border: 'border-blue-500' },
+                    { key: 'info', label: 'Info', desc: 'General Updates', icon: Info, color: 'text-info', border: 'border-blue-500' },
                     { key: 'urgent', label: 'Urgent', desc: 'Critical Action', icon: Flame, color: 'text-rose-600 dark:text-rose-400', border: 'border-rose-500' },
                     { key: 'event', label: 'Event', desc: 'Company Events', icon: Calendar, color: 'text-emerald-600 dark:text-emerald-400', border: 'border-emerald-500' },
                   ].map((p) => {
@@ -566,15 +566,15 @@ export const AnnouncementManager = () => {
                         onClick={() => setFormData({ ...formData, priority: p.key })}
                         className={`p-3 rounded-xl border text-left transition-all flex flex-col items-start ${
                           isSelected
-                            ? `bg-indigo-50/50 dark:bg-indigo-950/20 ${p.border} ring-2 ring-indigo-500/20`
-                            : 'bg-slate-50 dark:bg-slate-900/60 border-slate-200 dark:border-slate-800 hover:border-slate-300'
+                            ? `bg-accent-soft ${p.border} ring-2 ring-accent/20`
+                            : 'bg-canvas/60 border-border hover:border-slate-300'
                         }`}
                       >
                         <div className="flex items-center gap-1.5 mb-1">
                           <Icon className={`w-3.5 h-3.5 ${p.color}`} />
                           <span className="text-xs font-bold text-slate-900 dark:text-white">{p.label}</span>
                         </div>
-                        <span className="text-[10px] text-slate-500 dark:text-slate-400">{p.desc}</span>
+                        <span className="text-[10px] text-muted">{p.desc}</span>
                       </button>
                     )
                   })}
@@ -582,25 +582,25 @@ export const AnnouncementManager = () => {
               </div>
 
               {/* Pin Toggle */}
-              <div className="flex items-center justify-between p-3 rounded-xl bg-slate-50 dark:bg-slate-900/50 border border-slate-200 dark:border-slate-800">
+              <div className="flex items-center justify-between p-3 rounded-xl bg-canvas/50 border border-border">
                 <div className="flex items-center gap-2">
                   <Pin className="w-4 h-4 text-amber-500" />
                   <div>
-                    <p className="text-xs font-semibold text-slate-800 dark:text-slate-200">Pin to Top</p>
-                    <p className="text-[10px] text-slate-500 dark:text-slate-400">Keep this announcement highlighted at the top of the employee portal</p>
+                    <p className="text-xs font-semibold text-fg">Pin to Top</p>
+                    <p className="text-[10px] text-muted">Keep this announcement highlighted at the top of the employee portal</p>
                   </div>
                 </div>
                 <input
                   type="checkbox"
                   checked={formData.pinned}
                   onChange={(e) => setFormData({ ...formData, pinned: e.target.checked })}
-                  className="w-4 h-4 text-indigo-600 rounded focus:ring-indigo-500 cursor-pointer"
+                  className="w-4 h-4 text-accent rounded focus:ring-accent cursor-pointer"
                 />
               </div>
 
               {/* Message Body */}
               <div>
-                <label className="block text-xs font-semibold text-slate-700 dark:text-slate-300 mb-1.5">
+                <label className="block text-xs font-semibold text-fg mb-1.5">
                   Message Content <span className="text-rose-500">*</span>
                 </label>
                 <textarea
@@ -609,17 +609,17 @@ export const AnnouncementManager = () => {
                   placeholder="Provide all details about the announcement, timings, guidelines, or links..."
                   value={formData.body}
                   onChange={(e) => setFormData({ ...formData, body: e.target.value })}
-                  className="w-full px-3.5 py-2.5 text-sm rounded-xl bg-slate-50 dark:bg-slate-900 border border-slate-200 dark:border-slate-800 text-slate-900 dark:text-white placeholder-slate-400 focus:outline-none focus:ring-2 focus:ring-indigo-500/20 focus:border-indigo-500 resize-none leading-relaxed"
+                  className="w-full px-3.5 py-2.5 text-sm rounded-xl bg-canvas border border-border text-slate-900 dark:text-white placeholder-slate-400 focus:outline-none focus:ring-2 focus:ring-accent/20 focus:border-accent resize-none leading-relaxed"
                 />
               </div>
 
               {/* Live Preview */}
               {(formData.title || formData.body) && (
-                <div className="p-3.5 rounded-xl bg-slate-100/70 dark:bg-slate-900/80 border border-slate-200 dark:border-slate-800 space-y-2">
-                  <div className="flex items-center gap-1.5 text-[11px] font-bold text-slate-500 uppercase tracking-wider">
+                <div className="p-3.5 rounded-xl bg-slate-100/70 dark:bg-slate-900/80 border border-border space-y-2">
+                  <div className="flex items-center gap-1.5 text-[11px] font-bold text-muted uppercase tracking-wider">
                     <Eye className="w-3.5 h-3.5" /> Employee Preview
                   </div>
-                  <div className="p-3 rounded-lg bg-white dark:bg-[#12151E] border border-slate-200 dark:border-slate-800 shadow-sm">
+                  <div className="p-3 rounded-lg bg-surface border border-border shadow-sm">
                     <div className="flex items-center gap-2 mb-1.5">
                       <Badge className={`text-[10px] font-bold px-2 py-0.2 border ${PRIORITY_CONFIG[formData.priority]?.badgeClass}`}>
                         {formData.priority.toUpperCase()}
@@ -632,21 +632,21 @@ export const AnnouncementManager = () => {
                       <span className="text-[10px] text-slate-400 ml-auto">Today • by {currentAuthorName}</span>
                     </div>
                     <h4 className="text-xs font-bold text-slate-900 dark:text-white mb-1">{formData.title || 'Untitled'}</h4>
-                    <p className="text-[11px] text-slate-600 dark:text-slate-300 line-clamp-3 whitespace-pre-wrap">{formData.body}</p>
+                    <p className="text-[11px] text-muted line-clamp-3 whitespace-pre-wrap">{formData.body}</p>
                   </div>
                 </div>
               )}
 
               {/* Notification Notice */}
               {!editingItem && (
-                <div className="flex items-center gap-2 p-3 rounded-xl bg-indigo-50 dark:bg-indigo-950/40 border border-indigo-100 dark:border-indigo-900/50 text-[11px] text-indigo-700 dark:text-indigo-300">
-                  <Bell className="w-4 h-4 shrink-0 text-indigo-600 dark:text-indigo-400" />
+                <div className="flex items-center gap-2 p-3 rounded-xl bg-accent-soft border border-accent/30 text-[11px] text-accent">
+                  <Bell className="w-4 h-4 shrink-0 text-accent" />
                   <span>Publishing this announcement will instantly send a notification to all active employees.</span>
                 </div>
               )}
 
               {/* Modal Footer */}
-              <div className="flex items-center justify-end gap-2.5 pt-3 border-t border-slate-100 dark:border-slate-800">
+              <div className="flex items-center justify-end gap-2.5 pt-3 border-t border-slate-100 dark:border-border">
                 <Button
                   type="button"
                   variant="outline"
@@ -659,7 +659,7 @@ export const AnnouncementManager = () => {
                 <Button
                   type="submit"
                   disabled={saving}
-                  className="bg-indigo-600 hover:bg-indigo-700 text-white text-xs px-5 py-2 flex items-center gap-1.5"
+                  className="bg-accent hover:bg-accent-hover text-white text-xs px-5 py-2 flex items-center gap-1.5"
                 >
                   {saving ? (
                     'Saving...'
@@ -679,15 +679,15 @@ export const AnnouncementManager = () => {
       {/* ─── Delete Confirmation Modal ──────────────────────────────────────── */}
       {deleteConfirmItem && (
         <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-slate-900/60 backdrop-blur-sm animate-fade-in">
-          <div className="bg-white dark:bg-[#12151E] rounded-2xl shadow-2xl border border-slate-200 dark:border-slate-800 w-full max-w-md p-5 space-y-4">
+          <div className="bg-surface rounded-2xl shadow-2xl border border-border w-full max-w-md p-5 space-y-4">
             <div className="w-12 h-12 rounded-2xl bg-rose-50 dark:bg-rose-500/10 flex items-center justify-center text-rose-600 dark:text-rose-400 mx-auto">
               <Trash2 className="w-6 h-6" />
             </div>
 
             <div className="text-center space-y-1.5">
               <h3 className="text-base font-bold text-slate-900 dark:text-white">Delete Announcement?</h3>
-              <p className="text-xs text-slate-500 dark:text-slate-400">
-                Are you sure you want to delete <span className="font-semibold text-slate-700 dark:text-slate-300">"{deleteConfirmItem.title}"</span>? This will immediately remove it from all employee portals.
+              <p className="text-xs text-muted">
+                Are you sure you want to delete <span className="font-semibold text-fg">"{deleteConfirmItem.title}"</span>? This will immediately remove it from all employee portals.
               </p>
             </div>
 

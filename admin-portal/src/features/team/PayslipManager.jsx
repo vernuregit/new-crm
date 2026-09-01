@@ -195,15 +195,15 @@ export const PayslipManager = () => {
       <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
         <div className="lg:col-span-1 space-y-6">
           <Card className="p-5 space-y-4">
-            <h3 className="font-semibold text-slate-900 dark:text-slate-100 text-base">Select Employee</h3>
+            <h3 className="font-semibold text-fg text-base">Select Employee</h3>
             <div>
               {loading ? (
-                <div className="h-10 bg-slate-100 dark:bg-slate-800 animate-pulse rounded-md"></div>
+                <div className="h-10 bg-canvas animate-pulse rounded-md"></div>
               ) : (
                 <select
                   value={selectedEmployeeUid}
                   onChange={(e) => setSelectedEmployeeUid(e.target.value)}
-                  className="w-full flex h-10 w-full rounded-md border border-slate-200 dark:border-slate-800/80 bg-white dark:bg-[#12151E] px-3 py-2 text-sm text-slate-900 dark:text-slate-100 focus:outline-none focus:ring-2 focus:ring-indigo-500"
+                  className="w-full flex h-10 w-full rounded-md border border-border bg-surface px-3 py-2 text-sm text-fg focus:outline-none focus:ring-2 focus:ring-accent"
                 >
                   <option value="">-- Choose Employee --</option>
                   {employees.map(emp => (
@@ -217,14 +217,14 @@ export const PayslipManager = () => {
               {selectedEmployee && (
                 <div className="mt-6 p-4 bg-slate-50 dark:bg-slate-800/50 rounded-xl border border-slate-100 dark:border-slate-700/50">
                   <div className="flex items-center space-x-3 mb-2">
-                    <div className="w-10 h-10 rounded-full bg-indigo-100 dark:bg-indigo-900/50 flex items-center justify-center text-indigo-600 dark:text-indigo-400 font-semibold">
+                    <div className="w-10 h-10 rounded-full bg-accent-soft flex items-center justify-center text-accent font-semibold">
                       {selectedEmployee.displayName?.charAt(0) || '?'}
                     </div>
                     <div>
-                      <div className="font-medium text-slate-900 dark:text-slate-100">
+                      <div className="font-medium text-fg">
                         {selectedEmployee.displayName}
                       </div>
-                      <div className="text-sm text-slate-500">
+                      <div className="text-sm text-muted">
                         {selectedEmployee.email}
                       </div>
                     </div>
@@ -242,14 +242,14 @@ export const PayslipManager = () => {
 
         <div className="lg:col-span-2 space-y-6">
           {!selectedEmployeeUid ? (
-            <Card className="flex flex-col items-center justify-center h-64 text-slate-500">
+            <Card className="flex flex-col items-center justify-center h-64 text-muted">
               <FileText className="w-12 h-12 mb-4 text-slate-300 dark:text-slate-700" />
               <p>Select an employee to manage payslips</p>
             </Card>
           ) : (
             <>
               <Card className="p-5 space-y-4">
-                <h3 className="font-semibold text-slate-900 dark:text-slate-100 text-base">Add New Payslip</h3>
+                <h3 className="font-semibold text-fg text-base">Add New Payslip</h3>
                 <div>
                   <form onSubmit={handleSubmit} className="space-y-4">
                     {successMsg && (
@@ -261,11 +261,11 @@ export const PayslipManager = () => {
                     
                     <div className="grid grid-cols-2 gap-4">
                       <div className="space-y-2">
-                        <label className="text-sm font-medium text-slate-700 dark:text-slate-300">Month</label>
+                        <label className="text-sm font-medium text-fg">Month</label>
                         <select
                           value={month}
                           onChange={(e) => setMonth(Number(e.target.value))}
-                          className="w-full flex h-10 rounded-md border border-slate-200 dark:border-slate-800/80 bg-white dark:bg-[#12151E] px-3 py-2 text-sm text-slate-900 dark:text-slate-100 focus:outline-none focus:ring-2 focus:ring-indigo-500"
+                          className="w-full flex h-10 rounded-md border border-border bg-surface px-3 py-2 text-sm text-fg focus:outline-none focus:ring-2 focus:ring-accent"
                         >
                           {MONTHS.map((m, idx) => (
                             <option key={m} value={idx + 1}>{m}</option>
@@ -273,11 +273,11 @@ export const PayslipManager = () => {
                         </select>
                       </div>
                       <div className="space-y-2">
-                        <label className="text-sm font-medium text-slate-700 dark:text-slate-300">Year</label>
+                        <label className="text-sm font-medium text-fg">Year</label>
                         <select
                           value={year}
                           onChange={(e) => setYear(Number(e.target.value))}
-                          className="w-full flex h-10 rounded-md border border-slate-200 dark:border-slate-800/80 bg-white dark:bg-[#12151E] px-3 py-2 text-sm text-slate-900 dark:text-slate-100 focus:outline-none focus:ring-2 focus:ring-indigo-500"
+                          className="w-full flex h-10 rounded-md border border-border bg-surface px-3 py-2 text-sm text-fg focus:outline-none focus:ring-2 focus:ring-accent"
                         >
                           {YEARS.map(y => (
                             <option key={y} value={y}>{y}</option>
@@ -288,7 +288,7 @@ export const PayslipManager = () => {
 
                     <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
                       <div className="space-y-2">
-                        <label className="text-sm font-medium text-slate-700 dark:text-slate-300">Gross Salary (₹)</label>
+                        <label className="text-sm font-medium text-fg">Gross Salary (₹)</label>
                         <div className="relative">
                           <IndianRupee className="absolute left-3 top-2.5 h-4 w-4 text-slate-400" />
                           <Input 
@@ -303,7 +303,7 @@ export const PayslipManager = () => {
                         </div>
                       </div>
                       <div className="space-y-2">
-                        <label className="text-sm font-medium text-slate-700 dark:text-slate-300">Deductions (₹)</label>
+                        <label className="text-sm font-medium text-fg">Deductions (₹)</label>
                         <div className="relative">
                           <IndianRupee className="absolute left-3 top-2.5 h-4 w-4 text-slate-400" />
                           <Input 
@@ -318,7 +318,7 @@ export const PayslipManager = () => {
                         </div>
                       </div>
                       <div className="space-y-2">
-                        <label className="text-sm font-medium text-slate-700 dark:text-slate-300">Net Salary (₹)</label>
+                        <label className="text-sm font-medium text-fg">Net Salary (₹)</label>
                         <div className="relative">
                           <IndianRupee className="absolute left-3 top-2.5 h-4 w-4 text-emerald-500" />
                           <Input 
@@ -336,14 +336,14 @@ export const PayslipManager = () => {
                     </div>
 
                     <div className="space-y-2">
-                      <label className="text-sm font-medium text-slate-700 dark:text-slate-300">Payslip PDF (Optional)</label>
+                      <label className="text-sm font-medium text-fg">Payslip PDF (Optional)</label>
                       <div className="flex items-center space-x-4">
                         <Input 
                           id="pdf-upload"
                           type="file" 
                           accept="application/pdf"
                           onChange={handleFileChange}
-                          className="file:mr-4 file:py-2 file:px-4 file:rounded-full file:border-0 file:text-sm file:font-semibold file:bg-indigo-50 file:text-indigo-700 hover:file:bg-indigo-100 cursor-pointer"
+                          className="file:mr-4 file:py-2 file:px-4 file:rounded-full file:border-0 file:text-sm file:font-semibold file:bg-accent-soft file:text-accent cursor-pointer"
                         />
                       </div>
                     </div>
@@ -358,22 +358,22 @@ export const PayslipManager = () => {
               </Card>
 
               <Card className="p-5 space-y-4">
-                <h3 className="font-semibold text-slate-900 dark:text-slate-100 text-base">Payslip History</h3>
+                <h3 className="font-semibold text-fg text-base">Payslip History</h3>
                 <div>
                   {loadingPayslips ? (
                     <div className="space-y-3">
                       {[1, 2, 3].map(i => (
-                        <div key={i} className="h-12 bg-slate-100 dark:bg-slate-800 animate-pulse rounded-md" />
+                        <div key={i} className="h-12 bg-canvas animate-pulse rounded-md" />
                       ))}
                     </div>
                   ) : payslips.length === 0 ? (
-                    <div className="text-center py-8 text-slate-500 text-sm">
+                    <div className="text-center py-8 text-muted text-sm">
                       No payslips sent yet for this employee.
                     </div>
                   ) : (
                     <div className="overflow-x-auto">
                       <table className="w-full text-sm text-left">
-                        <thead className="text-xs text-slate-500 uppercase bg-slate-50 dark:bg-slate-800/50">
+                        <thead className="text-xs text-muted uppercase bg-slate-50 dark:bg-slate-800/50">
                           <tr>
                             <th className="px-4 py-3 rounded-tl-lg">Period</th>
                             <th className="px-4 py-3">Gross</th>
@@ -387,14 +387,14 @@ export const PayslipManager = () => {
                         </thead>
                         <tbody>
                           {payslips.map(payslip => (
-                            <tr key={payslip.id} className="border-b border-slate-100 dark:border-slate-800/50 hover:bg-slate-50 dark:hover:bg-slate-800/20">
-                              <td className="px-4 py-3 font-medium text-slate-900 dark:text-slate-100">
+                            <tr key={payslip.id} className="border-b border-slate-100 dark:border-border/50 hover:bg-slate-50 dark:hover:bg-slate-800/20">
+                              <td className="px-4 py-3 font-medium text-fg">
                                 {MONTHS[payslip.month - 1]} {payslip.year}
                               </td>
-                              <td className="px-4 py-3 text-slate-600 dark:text-slate-400">
+                              <td className="px-4 py-3 text-muted">
                                 ₹{payslip.grossSalary?.toLocaleString()}
                               </td>
-                              <td className="px-4 py-3 text-slate-600 dark:text-slate-400">
+                              <td className="px-4 py-3 text-muted">
                                 ₹{payslip.deductions?.toLocaleString()}
                               </td>
                               <td className="px-4 py-3 font-semibold text-emerald-600 dark:text-emerald-400">
@@ -405,7 +405,7 @@ export const PayslipManager = () => {
                               </td>
                               <td className="px-4 py-3">
                                 {payslip.pdfURL ? (
-                                  <a href={payslip.pdfURL} target="_blank" rel="noopener noreferrer" className="text-indigo-600 hover:text-indigo-700 dark:text-indigo-400 flex items-center space-x-1">
+                                  <a href={payslip.pdfURL} target="_blank" rel="noopener noreferrer" className="text-accent hover:text-accent flex items-center space-x-1">
                                     <Download className="w-4 h-4" />
                                     <span>View</span>
                                   </a>
@@ -413,7 +413,7 @@ export const PayslipManager = () => {
                                   <span className="text-slate-400">N/A</span>
                                 )}
                               </td>
-                              <td className="px-4 py-3 text-slate-500 text-xs">
+                              <td className="px-4 py-3 text-muted text-xs">
                                 {payslip.createdBy}
                               </td>
                               <td className="px-4 py-3 text-right">

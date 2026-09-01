@@ -52,8 +52,8 @@ export const ProjectSessionPage = () => {
 
   if ((!fetched || loading) && !project) {
     return (
-      <div className="py-20 text-center text-slate-500 dark:text-slate-400">
-        <Loader2 className="w-6 h-6 animate-spin mx-auto mb-2 text-indigo-500" />
+      <div className="py-20 text-center text-muted">
+        <Loader2 className="w-6 h-6 animate-spin mx-auto mb-2 text-accent" />
         <p className="text-sm">Loading project session...</p>
       </div>
     )
@@ -63,13 +63,13 @@ export const ProjectSessionPage = () => {
     return (
       <Card className="p-12 text-center space-y-3">
         <FolderKanban className="w-10 h-10 mx-auto text-slate-400" />
-        <h2 className="text-lg font-bold text-slate-900 dark:text-slate-100">Project not found</h2>
-        <p className="text-sm text-slate-500 dark:text-slate-400">
+        <h2 className="text-lg font-bold text-fg">Project not found</h2>
+        <p className="text-sm text-muted">
           This project session does not exist or is no longer available.
         </p>
         <Link
           to="/projects/list"
-          className="inline-flex items-center gap-2 text-sm font-semibold text-indigo-600 dark:text-indigo-400 hover:underline"
+          className="inline-flex items-center gap-2 text-sm font-semibold text-accent hover:underline"
         >
           <ArrowLeft className="w-4 h-4" /> Back to All Projects
         </Link>
@@ -81,13 +81,13 @@ export const ProjectSessionPage = () => {
     return (
       <Card className="p-12 text-center space-y-3">
         <ShieldAlert className="w-10 h-10 mx-auto text-rose-400" />
-        <h2 className="text-lg font-bold text-slate-900 dark:text-slate-100">Access denied</h2>
-        <p className="text-sm text-slate-500 dark:text-slate-400">
+        <h2 className="text-lg font-bold text-fg">Access denied</h2>
+        <p className="text-sm text-muted">
           You are not a member of this project session.
         </p>
         <Link
           to="/projects/list"
-          className="inline-flex items-center gap-2 text-sm font-semibold text-indigo-600 dark:text-indigo-400 hover:underline"
+          className="inline-flex items-center gap-2 text-sm font-semibold text-accent hover:underline"
         >
           <ArrowLeft className="w-4 h-4" /> Back to All Projects
         </Link>
@@ -109,7 +109,7 @@ export const ProjectSessionPage = () => {
             <Badge variant="brand">{project.status || 'active'}</Badge>
             <Link
               to="/projects/list"
-              className="inline-flex items-center gap-2 text-xs font-semibold text-slate-600 dark:text-slate-400 hover:text-indigo-500 dark:hover:text-indigo-400"
+              className="inline-flex items-center gap-2 text-xs font-semibold text-muted hover:text-accent"
             >
               <ArrowLeft className="w-3.5 h-3.5" /> All Projects
             </Link>

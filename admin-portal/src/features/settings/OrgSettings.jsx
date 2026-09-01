@@ -66,9 +66,9 @@ export const OrgSettings = () => {
         description="Configure company profile and workspace preferences"
       />
 
-      <Card className="max-w-2xl space-y-4 border-slate-200 dark:border-slate-800 bg-white dark:bg-[#181C27]">
-        <div className="flex items-center justify-between pb-3 border-b border-slate-200 dark:border-slate-800">
-          <h3 className="font-bold text-slate-900 dark:text-slate-100 text-sm">General Profile Settings</h3>
+      <Card className="max-w-2xl space-y-4 border-border bg-surface">
+        <div className="flex items-center justify-between pb-3 border-b border-border">
+          <h3 className="font-bold text-fg text-sm">General Profile Settings</h3>
           <Badge variant="brand">{orgDetails.plan}</Badge>
         </div>
 
@@ -109,12 +109,12 @@ export const OrgSettings = () => {
         </form>
       </Card>
 
-      <Card className="max-w-2xl space-y-4 border-slate-200 dark:border-slate-800 bg-white dark:bg-[#181C27]">
-        <div className="flex items-center gap-2 pb-3 border-b border-slate-200 dark:border-slate-800">
-          <Landmark className="w-4 h-4 text-indigo-500" />
-          <h3 className="font-bold text-slate-900 dark:text-slate-100 text-sm">Bank Transfer Details</h3>
+      <Card className="max-w-2xl space-y-4 border-border bg-surface">
+        <div className="flex items-center gap-2 pb-3 border-b border-border">
+          <Landmark className="w-4 h-4 text-accent" />
+          <h3 className="font-bold text-fg text-sm">Bank Transfer Details</h3>
         </div>
-        <p className="text-xs text-slate-500 dark:text-slate-400">
+        <p className="text-xs text-muted">
           Clients see these account details on their Billing page so they can send payment to your company.
         </p>
 
@@ -137,12 +137,12 @@ export const OrgSettings = () => {
           </div>
           <Input label="Branch (optional)" value={bank.branch} onChange={setBankField('branch')} />
           <div className="space-y-1.5">
-            <label className="block text-xs font-medium text-slate-700 dark:text-slate-300">Payment notes</label>
+            <label className="block text-xs font-medium text-fg">Payment notes</label>
             <textarea
               rows={2}
               value={bank.notes}
               onChange={setBankField('notes')}
-              className="w-full bg-slate-50 dark:bg-[#11141E] border border-slate-200 dark:border-slate-800 text-slate-900 dark:text-slate-100 text-sm rounded-xl p-3 focus:outline-none focus:border-indigo-500"
+              className="w-full bg-canvas border border-border text-fg text-sm rounded-xl p-3 focus:outline-none focus:border-accent"
             />
           </div>
           <div className="pt-2 flex items-center justify-between">

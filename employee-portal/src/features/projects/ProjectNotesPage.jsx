@@ -15,7 +15,7 @@ const PRIORITY_STYLES = {
 const PRIORITY_OPTION_STYLE = { backgroundColor: '#ffffff', color: '#0f172a' }
 
 const cellInput =
-  'w-full bg-transparent border-0 text-xs text-slate-900 dark:text-slate-100 placeholder-slate-400 dark:placeholder-slate-500 focus:outline-none focus:ring-0 py-1'
+  'w-full bg-transparent border-0 text-xs text-fg placeholder-slate-400 dark:placeholder-slate-500 focus:outline-none focus:ring-0 py-1'
 
 const STATUS_META = {
   green: {
@@ -53,7 +53,7 @@ const StatusButton = ({ status, onClick }) => {
 const ROW_TINT = {
   green: 'bg-emerald-50/80 dark:bg-emerald-500/10',
   yellow: 'bg-amber-50/70 dark:bg-amber-500/5',
-  red: 'bg-white dark:bg-[#181C27]',
+  red: 'bg-surface',
 }
 
 export const ProjectNotesPage = ({
@@ -111,13 +111,13 @@ export const ProjectNotesPage = ({
       <div className="flex flex-wrap items-center justify-between gap-3">
         {!hideTitle ? (
           <div>
-            <h2 className="text-base font-bold text-slate-900 dark:text-slate-100">Employee Task List</h2>
-            <p className="text-xs text-slate-500 dark:text-slate-400 mt-0.5">
+            <h2 className="text-base font-bold text-fg">Employee Task List</h2>
+            <p className="text-xs text-muted mt-0.5">
               Click status: red, yellow, or green
             </p>
           </div>
         ) : (
-          <div className="text-xs font-semibold text-slate-500 dark:text-slate-400">
+          <div className="text-xs font-semibold text-muted">
             {progress.done}/{progress.total} complete · {progress.percent}%
           </div>
         )}
@@ -129,7 +129,7 @@ export const ProjectNotesPage = ({
       {!hideTitle && notes.length > 0 && (
         <div>
           <div className="flex items-center justify-between text-[11px] font-semibold mb-1.5">
-            <span className="text-slate-500 dark:text-slate-400">Done (green)</span>
+            <span className="text-muted">Done (green)</span>
             <span className="text-slate-700 dark:text-slate-200">
               {progress.done}/{progress.total} · {progress.percent}%
             </span>
@@ -137,7 +137,7 @@ export const ProjectNotesPage = ({
           <div className="h-1.5 rounded-full bg-slate-200 dark:bg-slate-800 overflow-hidden">
             <div
               className={`h-full rounded-full transition-all ${
-                progress.percent === 100 ? 'bg-emerald-500' : 'bg-indigo-500'
+                progress.percent === 100 ? 'bg-emerald-500' : 'bg-accent'
               }`}
               style={{ width: `${progress.percent}%` }}
             />
@@ -147,7 +147,7 @@ export const ProjectNotesPage = ({
 
       {loading ? (
         <div className="py-16 text-center text-slate-500">
-          <Loader2 className="w-6 h-6 animate-spin mx-auto text-indigo-500 mb-2" />
+          <Loader2 className="w-6 h-6 animate-spin mx-auto text-accent mb-2" />
           <span className="text-xs">Loading notes...</span>
         </div>
       ) : (
@@ -155,11 +155,11 @@ export const ProjectNotesPage = ({
           <div className="overflow-x-auto">
             <table className="w-full min-w-[640px] border-collapse">
               <thead>
-                <tr className="bg-sky-100 dark:bg-indigo-950/70">
+                <tr className="bg-accent-soft">
                   {['Task', 'Status', 'Priority', 'Notes', ''].map((label) => (
                     <th
                       key={label || 'actions'}
-                      className="text-left text-[11px] font-bold uppercase tracking-wide text-slate-700 dark:text-indigo-200 px-3 py-2.5 border-b border-slate-200 dark:border-slate-700/80 whitespace-nowrap"
+                      className="text-left text-[11px] font-bold uppercase tracking-wide text-muted px-3 py-2.5 border-b border-border/80 whitespace-nowrap"
                     >
                       {label}
                     </th>
@@ -171,7 +171,7 @@ export const ProjectNotesPage = ({
                   <tr>
                     <td colSpan={5} className="px-4 py-14 text-center">
                       <StickyNote className="w-8 h-8 mx-auto text-slate-400 mb-2" />
-                      <p className="text-sm font-semibold text-slate-800 dark:text-slate-200">
+                      <p className="text-sm font-semibold text-fg">
                         No tasks yet
                       </p>
                       <p className="text-xs text-slate-400 mt-1">
@@ -185,7 +185,7 @@ export const ProjectNotesPage = ({
                     return (
                       <tr
                         key={note.noteId}
-                        className={`border-b border-slate-200 dark:border-slate-800 ${ROW_TINT[status]}`}
+                        className={`border-b border-border ${ROW_TINT[status]}`}
                       >
                         <td className="px-3 py-2 min-w-[180px] border-r border-slate-100 dark:border-slate-800/80">
                           <input

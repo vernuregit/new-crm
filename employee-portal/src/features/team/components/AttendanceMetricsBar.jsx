@@ -127,13 +127,13 @@ export const AttendanceMetricsBar = () => {
   return (
     <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-5 gap-3">
       {/* 1. Status Card */}
-      <Card className="p-4 bg-white dark:bg-[#181C27] border-slate-200/80 dark:border-slate-800 rounded-2xl shadow-sm hover:shadow-md transition-all flex items-center justify-between">
+      <Card className="p-4 bg-surface border-border rounded-2xl shadow-sm hover:shadow-md transition-all flex items-center justify-between">
         <div className="flex items-center gap-3">
           <div className={`w-10 h-10 rounded-2xl ${statusBg} flex items-center justify-center shrink-0`}>
             <UserCheck className="w-5 h-5" />
           </div>
           <div>
-            <span className="text-xs font-semibold text-slate-500 dark:text-slate-400 block">Status</span>
+            <span className="text-xs font-semibold text-muted block">Status</span>
             <span className={`text-base font-extrabold ${statusColor} block mt-0.5`}>
               {statusText}
             </span>
@@ -142,14 +142,14 @@ export const AttendanceMetricsBar = () => {
       </Card>
 
       {/* 2. Clock In Card */}
-      <Card className="p-4 bg-white dark:bg-[#181C27] border-slate-200/80 dark:border-slate-800 rounded-2xl shadow-sm hover:shadow-md transition-all flex items-center justify-between">
+      <Card className="p-4 bg-surface border-border rounded-2xl shadow-sm hover:shadow-md transition-all flex items-center justify-between">
         <div className="flex items-center gap-3">
-          <div className="w-10 h-10 rounded-2xl bg-blue-50 dark:bg-blue-500/10 text-blue-600 dark:text-blue-400 border border-blue-200/50 dark:border-blue-500/20 flex items-center justify-center shrink-0">
+          <div className="w-10 h-10 rounded-2xl bg-accent-soft text-accent border border-accent/20 dark:border-accent/20 flex items-center justify-center shrink-0">
             <LogIn className="w-5 h-5" />
           </div>
           <div>
-            <span className="text-xs font-semibold text-slate-500 dark:text-slate-400 block">Clock In</span>
-            <span className="text-base font-extrabold text-slate-900 dark:text-slate-100 block mt-0.5">
+            <span className="text-xs font-semibold text-muted block">Clock In</span>
+            <span className="text-base font-extrabold text-fg block mt-0.5">
               {formatTo12HourTime(clockInTime) || '—'}
             </span>
           </div>
@@ -157,14 +157,14 @@ export const AttendanceMetricsBar = () => {
       </Card>
 
       {/* 3. Clock Out Card */}
-      <Card className="p-4 bg-white dark:bg-[#181C27] border-slate-200/80 dark:border-slate-800 rounded-2xl shadow-sm hover:shadow-md transition-all flex items-center justify-between">
+      <Card className="p-4 bg-surface border-border rounded-2xl shadow-sm hover:shadow-md transition-all flex items-center justify-between">
         <div className="flex items-center gap-3">
-          <div className="w-10 h-10 rounded-2xl bg-purple-50 dark:bg-purple-500/10 text-purple-600 dark:text-purple-400 border border-purple-200/50 dark:border-purple-500/20 flex items-center justify-center shrink-0">
+          <div className="w-10 h-10 rounded-2xl bg-accent-soft text-accent border border-accent/20 flex items-center justify-center shrink-0">
             <LogOut className="w-5 h-5" />
           </div>
           <div>
-            <span className="text-xs font-semibold text-slate-500 dark:text-slate-400 block">Clock Out</span>
-            <span className="text-base font-extrabold text-slate-900 dark:text-slate-100 block mt-0.5">
+            <span className="text-xs font-semibold text-muted block">Clock Out</span>
+            <span className="text-base font-extrabold text-fg block mt-0.5">
               {formatTo12HourTime(clockOutTime) || '—'}
             </span>
           </div>
@@ -172,13 +172,13 @@ export const AttendanceMetricsBar = () => {
       </Card>
 
       {/* 4. Worked Hours Card */}
-      <Card className="p-4 bg-white dark:bg-[#181C27] border-slate-200/80 dark:border-slate-800 rounded-2xl shadow-sm hover:shadow-md transition-all flex items-center justify-between">
+      <Card className="p-4 bg-surface border-border rounded-2xl shadow-sm hover:shadow-md transition-all flex items-center justify-between">
         <div className="flex items-center gap-3">
           <div className="w-10 h-10 rounded-2xl bg-amber-50 dark:bg-amber-500/10 text-amber-600 dark:text-amber-400 border border-amber-200/50 dark:border-amber-500/20 flex items-center justify-center shrink-0">
             <Timer className="w-5 h-5" />
           </div>
           <div>
-            <span className="text-xs font-semibold text-slate-500 dark:text-slate-400 block">Worked Hours</span>
+            <span className="text-xs font-semibold text-muted block">Worked Hours</span>
             <span className="text-base font-extrabold text-teal-600 dark:text-teal-400 block mt-0.5">
               {formatHoursStr(elapsedSeconds)}
             </span>
@@ -187,13 +187,13 @@ export const AttendanceMetricsBar = () => {
       </Card>
 
       {/* 5. Late By Card */}
-      <Card className="p-4 bg-white dark:bg-[#181C27] border-slate-200/80 dark:border-slate-800 rounded-2xl shadow-sm hover:shadow-md transition-all flex items-center justify-between">
+      <Card className="p-4 bg-surface border-border rounded-2xl shadow-sm hover:shadow-md transition-all flex items-center justify-between">
         <div className="flex items-center gap-3">
-          <div className="w-10 h-10 rounded-2xl bg-slate-100 dark:bg-slate-800 text-slate-400 dark:text-slate-500 border border-slate-200/80 dark:border-slate-700/60 flex items-center justify-center shrink-0">
+          <div className="w-10 h-10 rounded-2xl bg-chrome text-slate-400 dark:text-slate-500 border border-slate-200/80 dark:border-slate-700/60 flex items-center justify-center shrink-0">
             <AlertCircle className="w-5 h-5" />
           </div>
           <div>
-            <span className="text-xs font-semibold text-slate-500 dark:text-slate-400 block">Late By</span>
+            <span className="text-xs font-semibold text-muted block">Late By</span>
             <span className={`text-base font-extrabold block mt-0.5 ${lateInfo.isLate ? 'text-amber-600 dark:text-amber-400' : 'text-emerald-600 dark:text-emerald-400'}`}>
               {lateInfo.text}
             </span>

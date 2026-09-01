@@ -44,9 +44,9 @@ const MODE_OPTIONS = [
 
 const badgeClassForMode = (mode) => {
   if (mode === 'full') return 'bg-emerald-50 dark:bg-emerald-500/15 text-emerald-700 dark:text-emerald-300 border-emerald-200 dark:border-emerald-500/30'
-  if (mode === 'weekly') return 'bg-indigo-50 dark:bg-indigo-500/15 text-indigo-700 dark:text-indigo-300 border-indigo-200 dark:border-indigo-500/30'
+  if (mode === 'weekly') return 'bg-accent-soft text-accent border-accent/30'
   if (mode === 'monthly') return 'bg-amber-50 dark:bg-amber-500/15 text-amber-700 dark:text-amber-300 border-amber-200 dark:border-amber-500/30'
-  return 'bg-slate-100 dark:bg-slate-800 text-slate-600 dark:text-slate-400 border-slate-200 dark:border-slate-700'
+  return 'bg-canvas text-muted border-slate-200 dark:border-slate-700'
 }
 
 export const WfhPolicyPage = () => {
@@ -144,15 +144,15 @@ export const WfhPolicyPage = () => {
             value={search}
             onChange={(e) => setSearch(e.target.value)}
             placeholder="Search employees..."
-            className="w-full bg-slate-100 dark:bg-[#181C27] border border-slate-300 dark:border-slate-800 text-sm text-slate-800 dark:text-slate-200 rounded-xl pl-9 pr-3 py-2 focus:outline-none focus:border-indigo-500"
+            className="w-full bg-canvas border border-border text-sm text-fg rounded-xl pl-9 pr-3 py-2 focus:outline-none focus:border-accent"
           />
         </div>
       </div>
 
-      <Card className="overflow-x-auto p-0 border-slate-200 dark:border-slate-800">
+      <Card className="overflow-x-auto p-0 border-border">
         <table className="w-full text-left border-collapse text-xs">
           <thead>
-            <tr className="bg-slate-100 dark:bg-slate-900/80 border-b border-slate-200 dark:border-slate-800 text-slate-700 dark:text-slate-400 font-semibold">
+            <tr className="bg-canvas/80 border-b border-border text-slate-700 dark:text-slate-400 font-semibold">
               <th className="p-4 font-semibold">Employee</th>
               <th className="p-4 font-semibold">Department / Role</th>
               <th className="p-4 font-semibold">Monthly limits</th>
@@ -163,7 +163,7 @@ export const WfhPolicyPage = () => {
           <tbody className="divide-y divide-slate-200 dark:divide-slate-800/60">
             {filtered.length === 0 && (
               <tr>
-                <td colSpan={5} className="p-8 text-center text-slate-500">
+                <td colSpan={5} className="p-8 text-center text-muted">
                   No employees found.
                 </td>
               </tr>
@@ -186,19 +186,19 @@ export const WfhPolicyPage = () => {
                 >
                   <td className="p-4">
                     <div className="flex items-center gap-3">
-                      <div className="w-8 h-8 rounded-lg bg-indigo-100 dark:bg-indigo-500/20 text-indigo-600 dark:text-indigo-400 flex items-center justify-center text-[10px] font-bold shrink-0">
+                      <div className="w-8 h-8 rounded-lg bg-accent-soft text-accent flex items-center justify-center text-[10px] font-bold shrink-0">
                         {initials || 'E'}
                       </div>
                       <div className="min-w-0">
-                        <p className="font-semibold text-slate-900 dark:text-slate-100 truncate">{name}</p>
-                        <p className="text-[11px] text-slate-500 truncate">{emp.email || '—'}</p>
+                        <p className="font-semibold text-fg truncate">{name}</p>
+                        <p className="text-[11px] text-muted truncate">{emp.email || '—'}</p>
                       </div>
                     </div>
                   </td>
-                  <td className="p-4 text-slate-600 dark:text-slate-300">
+                  <td className="p-4 text-muted">
                     {emp.department || emp.role || emp.designation || '—'}
                   </td>
-                  <td className="p-4 text-slate-600 dark:text-slate-300 text-[11px]">
+                  <td className="p-4 text-muted text-[11px]">
                     CL {limits.casual} · SL {limits.sick} · WFH {limits.wfh}
                   </td>
                   <td className="p-4">
@@ -230,13 +230,13 @@ export const WfhPolicyPage = () => {
 
       {selected && (
         <div className="fixed inset-0 z-50 bg-black/70 backdrop-blur-sm flex items-center justify-center p-4 overflow-y-auto">
-          <Card className="w-full max-w-lg max-h-[90vh] overflow-y-auto p-6 space-y-4 border-slate-200 dark:border-slate-800 shadow-2xl relative rounded-2xl bg-white dark:bg-[#181C27]">
-            <div className="flex items-center justify-between pb-3 border-b border-slate-200 dark:border-slate-800">
+          <Card className="w-full max-w-lg max-h-[90vh] overflow-y-auto p-6 space-y-4 border-border shadow-2xl relative rounded-2xl bg-surface">
+            <div className="flex items-center justify-between pb-3 border-b border-border">
               <div>
-                <h3 className="font-bold text-slate-900 dark:text-slate-100 text-sm">
+                <h3 className="font-bold text-fg text-sm">
                   Set leave & WFH policy
                 </h3>
-                <p className="text-[11px] text-slate-500 mt-0.5">
+                <p className="text-[11px] text-muted mt-0.5">
                   {selected.displayName || selected.name}
                   {selected.email ? ` · ${selected.email}` : ''}
                 </p>
@@ -257,8 +257,8 @@ export const WfhPolicyPage = () => {
                     key={opt.value}
                     className={`flex items-start gap-3 p-3 rounded-xl border cursor-pointer transition-colors ${
                       mode === opt.value
-                        ? 'border-indigo-300 dark:border-indigo-500/40 bg-indigo-50/60 dark:bg-indigo-500/10'
-                        : 'border-slate-200 dark:border-slate-800 hover:bg-slate-50 dark:hover:bg-slate-800/40'
+                        ? 'border-accent/40 bg-accent-soft'
+                        : 'border-border hover:bg-slate-50 dark:hover:bg-slate-800/40'
                     }`}
                   >
                     <input
@@ -267,13 +267,13 @@ export const WfhPolicyPage = () => {
                       value={opt.value}
                       checked={mode === opt.value}
                       onChange={() => setMode(opt.value)}
-                      className="mt-1 w-4 h-4 border-slate-300 text-indigo-600 focus:ring-indigo-500"
+                      className="mt-1 w-4 h-4 border-slate-300 text-accent focus:ring-accent"
                     />
                     <span>
-                      <span className="block text-sm font-semibold text-slate-900 dark:text-slate-100">
+                      <span className="block text-sm font-semibold text-fg">
                         {opt.title}
                       </span>
-                      <span className="block text-xs text-slate-500 dark:text-slate-400 mt-0.5">
+                      <span className="block text-xs text-muted mt-0.5">
                         {opt.description}
                       </span>
                     </span>
@@ -322,7 +322,7 @@ export const WfhPolicyPage = () => {
                   required
                 />
               </div>
-              <p className="text-[11px] text-slate-500">
+              <p className="text-[11px] text-muted">
                 Extra Casual, Sick, or WFH days beyond these monthly caps are marked LOP (unpaid), even if approved.
               </p>
 

@@ -84,7 +84,7 @@ export const WorkflowBuilder = () => {
   }
 
   const selectClass =
-    'w-full bg-slate-100/80 dark:bg-[#11141E] border border-slate-300 dark:border-slate-800 text-slate-900 dark:text-slate-100 text-sm rounded-xl py-2.5 px-3.5 focus:outline-none focus:border-indigo-500 focus:ring-1 focus:ring-indigo-500 transition-all cursor-pointer'
+    'w-full bg-canvas border border-border text-fg text-sm rounded-xl py-2.5 px-3.5 focus:outline-none focus:border-accent focus:ring-1 focus:ring-accent transition-all cursor-pointer'
 
   return (
     <div className="space-y-6">
@@ -95,15 +95,15 @@ export const WorkflowBuilder = () => {
           description="Configure event triggers, boolean logic conditions, and automated Nodemailer email actions"
         />
 
-        <div className="flex items-center gap-2 border-b border-slate-200 dark:border-slate-800 pb-3">
+        <div className="flex items-center gap-2 border-b border-border pb-3">
           <NavLink
             to="/workflows"
             end
             className={({ isActive }) =>
               `flex items-center gap-2 px-3 py-1.5 rounded-xl text-xs font-semibold transition-colors ${
                 isActive
-                  ? 'bg-indigo-50 dark:bg-indigo-600/20 text-indigo-600 dark:text-indigo-400 border border-indigo-200 dark:border-indigo-500/30'
-                  : 'text-slate-600 dark:text-slate-400 hover:text-slate-900 dark:hover:text-slate-200 hover:bg-slate-100 dark:hover:bg-slate-800'
+                  ? 'bg-accent-soft text-accent border border-accent/30'
+                  : 'text-muted hover:text-fg hover:bg-slate-100 dark:hover:bg-slate-800'
               }`
             }
           >
@@ -114,8 +114,8 @@ export const WorkflowBuilder = () => {
             className={({ isActive }) =>
               `flex items-center gap-2 px-3 py-1.5 rounded-xl text-xs font-semibold transition-colors ${
                 isActive
-                  ? 'bg-indigo-50 dark:bg-indigo-600/20 text-indigo-600 dark:text-indigo-400 border border-indigo-200 dark:border-indigo-500/30'
-                  : 'text-slate-600 dark:text-slate-400 hover:text-slate-900 dark:hover:text-slate-200 hover:bg-slate-100 dark:hover:bg-slate-800'
+                  ? 'bg-accent-soft text-accent border border-accent/30'
+                  : 'text-muted hover:text-fg hover:bg-slate-100 dark:hover:bg-slate-800'
               }`
             }
           >
@@ -126,8 +126,8 @@ export const WorkflowBuilder = () => {
             className={({ isActive }) =>
               `flex items-center gap-2 px-3 py-1.5 rounded-xl text-xs font-semibold transition-colors ${
                 isActive
-                  ? 'bg-indigo-50 dark:bg-indigo-600/20 text-indigo-600 dark:text-indigo-400 border border-indigo-200 dark:border-indigo-500/30'
-                  : 'text-slate-600 dark:text-slate-400 hover:text-slate-900 dark:hover:text-slate-200 hover:bg-slate-100 dark:hover:bg-slate-800'
+                  ? 'bg-accent-soft text-accent border border-accent/30'
+                  : 'text-muted hover:text-fg hover:bg-slate-100 dark:hover:bg-slate-800'
               }`
             }
           >
@@ -136,7 +136,7 @@ export const WorkflowBuilder = () => {
         </div>
       </div>
 
-      <Card className="max-w-xl space-y-4 border-slate-200 dark:border-slate-800 bg-white dark:bg-[#181C27]">
+      <Card className="max-w-xl space-y-4 border-border bg-surface">
         <form onSubmit={handleSaveWorkflow} className="space-y-4">
           <Input
             label="Rule Name"
@@ -149,7 +149,7 @@ export const WorkflowBuilder = () => {
           {error && <p className="text-xs text-rose-500 dark:text-rose-400 font-medium">{error}</p>}
 
           <div className="space-y-1.5 text-left">
-            <label className="block text-xs font-medium text-slate-700 dark:text-slate-300">
+            <label className="block text-xs font-medium text-fg">
               1. Trigger Event (WHEN)
             </label>
             <select
@@ -157,11 +157,11 @@ export const WorkflowBuilder = () => {
               onChange={(e) => setTriggerEvent(e.target.value)}
               className={selectClass}
             >
-              <option value="crm.lead.won" className="bg-white dark:bg-[#11141E] text-slate-900 dark:text-slate-100">CRM: Lead Status Changed to Won</option>
-              <option value="crm.lead.created" className="bg-white dark:bg-[#11141E] text-slate-900 dark:text-slate-100">CRM: New Lead Created</option>
-              <option value="finance.invoice.overdue" className="bg-white dark:bg-[#11141E] text-slate-900 dark:text-slate-100">Finance: Invoice Overdue</option>
-              <option value="finance.invoice.paid" className="bg-white dark:bg-[#11141E] text-slate-900 dark:text-slate-100">Finance: Invoice Payment Received</option>
-              <option value="project.task.logged_hours" className="bg-white dark:bg-[#11141E] text-slate-900 dark:text-slate-100">Projects: Work Hours Logged</option>
+              <option value="crm.lead.won" className="bg-surface text-fg">CRM: Lead Status Changed to Won</option>
+              <option value="crm.lead.created" className="bg-surface text-fg">CRM: New Lead Created</option>
+              <option value="finance.invoice.overdue" className="bg-surface text-fg">Finance: Invoice Overdue</option>
+              <option value="finance.invoice.paid" className="bg-surface text-fg">Finance: Invoice Payment Received</option>
+              <option value="project.task.logged_hours" className="bg-surface text-fg">Projects: Work Hours Logged</option>
             </select>
           </div>
 
@@ -173,7 +173,7 @@ export const WorkflowBuilder = () => {
           />
 
           <div className="space-y-1.5 text-left">
-            <label className="block text-xs font-medium text-slate-700 dark:text-slate-300">
+            <label className="block text-xs font-medium text-fg">
               3. Action Executed (THEN)
             </label>
             <select
@@ -181,17 +181,17 @@ export const WorkflowBuilder = () => {
               onChange={(e) => setActionType(e.target.value)}
               className={selectClass}
             >
-              <option value="send_email" className="bg-white dark:bg-[#11141E] text-slate-900 dark:text-slate-100">Send Email Template (via Nodemailer)</option>
-              <option value="create_client_portal_user" disabled className="bg-white dark:bg-[#11141E] text-slate-400">Create Client Portal User Profile (Coming Soon)</option>
-              <option value="send_in_app_notification" disabled className="bg-white dark:bg-[#11141E] text-slate-400">Send In-App Notification (Coming Soon)</option>
-              <option value="send_slack_alert" disabled className="bg-white dark:bg-[#11141E] text-slate-400">Post Slack Alert (Coming Soon)</option>
+              <option value="send_email" className="bg-surface text-fg">Send Email Template (via Nodemailer)</option>
+              <option value="create_client_portal_user" disabled className="bg-surface text-slate-400">Create Client Portal User Profile (Coming Soon)</option>
+              <option value="send_in_app_notification" disabled className="bg-surface text-slate-400">Send In-App Notification (Coming Soon)</option>
+              <option value="send_slack_alert" disabled className="bg-surface text-slate-400">Post Slack Alert (Coming Soon)</option>
             </select>
           </div>
 
           {/* Dynamic Nodemailer Email Configuration Fields */}
           {actionType === 'send_email' && (
-            <div className="p-4 rounded-xl bg-indigo-50 dark:bg-indigo-500/10 border border-indigo-200 dark:border-indigo-500/20 space-y-3">
-              <div className="flex items-center gap-2 text-indigo-600 dark:text-indigo-400 text-xs font-bold uppercase tracking-wider">
+            <div className="p-4 rounded-xl bg-accent-soft border border-accent/20 space-y-3">
+              <div className="flex items-center gap-2 text-accent text-xs font-bold uppercase tracking-wider">
                 <Mail className="w-4 h-4" />
                 <span>Nodemailer Email Parameters</span>
               </div>
@@ -214,12 +214,12 @@ export const WorkflowBuilder = () => {
               />
 
               <div className="space-y-1.5 text-left">
-                <label className="block text-xs font-medium text-slate-700 dark:text-slate-300">Email Content / Body</label>
+                <label className="block text-xs font-medium text-fg">Email Content / Body</label>
                 <textarea
                   rows={3}
                   value={emailBody}
                   onChange={(e) => setEmailBody(e.target.value)}
-                  className="w-full bg-slate-100/80 dark:bg-[#11141E] border border-slate-300 dark:border-slate-800 text-slate-900 dark:text-slate-100 placeholder-slate-400 dark:placeholder-slate-500 text-sm rounded-xl py-2.5 px-3.5 focus:outline-none focus:border-indigo-500 focus:ring-1 focus:ring-indigo-500 transition-all"
+                  className="w-full bg-canvas border border-border text-fg placeholder:text-muted text-sm rounded-xl py-2.5 px-3.5 focus:outline-none focus:border-accent focus:ring-1 focus:ring-accent transition-all"
                   placeholder="Type email body message..."
                   required
                 />

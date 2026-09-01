@@ -58,19 +58,19 @@ export const ClientInvoices = () => {
   return (
     <div className="space-y-7 max-w-7xl mx-auto pb-10">
       <div>
-        <h2 className="text-2xl font-bold text-slate-900 dark:text-white tracking-tight">
+        <h2 className="text-2xl font-bold text-fg tracking-tight">
           Invoices & Payments
         </h2>
-        <p className="text-sm text-slate-500 dark:text-slate-400 mt-1">
+        <p className="text-sm text-muted mt-1">
           View client billing statements, settlement history, and download PDF receipts.{' '}
-          <Link to="/portal/billing" className="text-indigo-600 dark:text-indigo-400 font-semibold hover:underline">
+          <Link to="/portal/billing" className="text-accent font-semibold hover:underline">
             How to pay
           </Link>
         </p>
       </div>
 
       {/* Invoices Table */}
-      <Card className="p-6 bg-white dark:bg-[#111827] border-slate-200/80 dark:border-slate-800 rounded-2xl shadow-2xs">
+      <Card className="p-6 bg-surface border-border rounded-2xl shadow-2xs">
         <div className="overflow-x-auto">
           <table className="w-full text-left text-xs border-collapse">
             <thead>
@@ -87,14 +87,14 @@ export const ClientInvoices = () => {
             <tbody className="divide-y divide-slate-100 dark:divide-slate-800/60">
               {isLoading ? (
                 <tr>
-                  <td colSpan={7} className="py-12 text-center text-slate-500 dark:text-slate-400">
-                    <Loader2 className="w-5 h-5 animate-spin mx-auto text-blue-600 dark:text-blue-400 mb-2" />
+                  <td colSpan={7} className="py-12 text-center text-muted">
+                    <Loader2 className="w-5 h-5 animate-spin mx-auto text-accent mb-2" />
                     <span className="text-xs">Loading client invoices...</span>
                   </td>
                 </tr>
               ) : invoices.length === 0 ? (
                 <tr>
-                  <td colSpan={7} className="py-8 text-center text-slate-500 dark:text-slate-400">
+                  <td colSpan={7} className="py-8 text-center text-muted">
                     No client invoices available.
                   </td>
                 </tr>
@@ -102,22 +102,22 @@ export const ClientInvoices = () => {
                 invoices.map((inv) => (
                   <tr
                     key={inv.invoiceId}
-                    className="hover:bg-slate-50/60 dark:hover:bg-slate-800/40 transition-colors cursor-pointer"
+                    className="hover:bg-slate-50/60 dark:hover:bg-chrome/40 transition-colors cursor-pointer"
                     onClick={() => setSelectedInvoice(inv)}
                   >
-                    <td className="py-4 font-semibold text-slate-900 dark:text-slate-100">
+                    <td className="py-4 font-semibold text-fg">
                       {inv.invoiceNumber}
                     </td>
-                    <td className="py-4 text-slate-700 dark:text-slate-300">
+                    <td className="py-4 text-fg">
                       {inv.projectName || 'General Consulting'}
                     </td>
-                    <td className="py-4 text-slate-500 dark:text-slate-400">
+                    <td className="py-4 text-muted">
                       {inv.issueDate}
                     </td>
-                    <td className="py-4 text-slate-500 dark:text-slate-400">
+                    <td className="py-4 text-muted">
                       {inv.dueDate}
                     </td>
-                    <td className="py-4 font-semibold text-slate-900 dark:text-slate-100">
+                    <td className="py-4 font-semibold text-fg">
                       ${(inv.total || 0).toLocaleString('en-US', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}
                     </td>
                     <td className="py-4">
@@ -134,9 +134,9 @@ export const ClientInvoices = () => {
                     <td className="py-4 text-right space-x-2" onClick={(e) => e.stopPropagation()}>
                       <button
                         onClick={() => setSelectedInvoice(inv)}
-                        className="inline-flex items-center gap-1 px-3 py-1 bg-slate-50 dark:bg-slate-800 hover:bg-slate-100 dark:hover:bg-slate-700 text-slate-700 dark:text-slate-200 rounded-lg border border-slate-200/80 dark:border-slate-700 text-xs font-semibold cursor-pointer"
+                        className="inline-flex items-center gap-1 px-3 py-1 bg-chrome hover:bg-slate-100 dark:hover:bg-slate-700 text-slate-700 dark:text-slate-200 rounded-lg border border-slate-200/80 dark:border-slate-700 text-xs font-semibold cursor-pointer"
                       >
-                        <FileText className="w-3.5 h-3.5 text-blue-600 dark:text-blue-400" />
+                        <FileText className="w-3.5 h-3.5 text-accent" />
                         <span>Receipt</span>
                       </button>
                       {inv.status?.toLowerCase() !== 'paid' && (
@@ -145,7 +145,7 @@ export const ClientInvoices = () => {
                           variant="primary"
                           icon={CreditCard}
                           onClick={() => handlePayNow(inv.invoiceId)}
-                          className="bg-blue-600 hover:bg-blue-700 text-white"
+                          className="bg-accent hover:bg-accent-hover text-white"
                         >
                           Pay Now
                         </Button>
@@ -162,35 +162,35 @@ export const ClientInvoices = () => {
       {/* Invoice Detail / Receipt Modal */}
       {selectedInvoice && (
         <div className="fixed inset-0 bg-black/60 backdrop-blur-sm z-50 flex items-center justify-center p-4">
-          <div className="bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800 rounded-2xl max-w-lg w-full p-6 space-y-5 shadow-2xl text-slate-900 dark:text-slate-100 transition-colors">
+          <div className="bg-surface border border-border rounded-2xl max-w-lg w-full p-6 space-y-5 shadow-2xl text-fg transition-colors">
             <div className="flex items-center justify-between pb-3 border-b border-slate-100 dark:border-slate-800">
               <div>
-                <h3 className="font-bold text-base text-slate-900 dark:text-white">
+                <h3 className="font-bold text-base text-fg">
                   Invoice: {selectedInvoice.invoiceNumber}
                 </h3>
-                <p className="text-xs text-slate-500 dark:text-slate-400">
+                <p className="text-xs text-muted">
                   {selectedInvoice.projectName || 'General Deliverables'}
                 </p>
               </div>
               <button
                 onClick={() => setSelectedInvoice(null)}
-                className="p-1.5 rounded-lg text-slate-400 hover:text-slate-600 dark:hover:text-slate-200 hover:bg-slate-100 dark:hover:bg-slate-800 cursor-pointer transition-colors"
+                className="p-1.5 rounded-lg text-slate-400 hover:text-slate-600 dark:hover:text-slate-200 hover:bg-chrome cursor-pointer transition-colors"
               >
                 <X className="w-5 h-5" />
               </button>
             </div>
 
-            <div className="bg-slate-50 dark:bg-slate-950/60 p-4 rounded-xl border border-slate-200/80 dark:border-slate-800 space-y-3 text-xs">
+            <div className="bg-slate-50 dark:bg-slate-950/60 p-4 rounded-xl border border-border space-y-3 text-xs">
               <div className="flex justify-between">
-                <span className="text-slate-500 dark:text-slate-400 font-medium">Issue Date:</span>
-                <span className="font-semibold text-slate-800 dark:text-slate-200">{selectedInvoice.issueDate}</span>
+                <span className="text-muted font-medium">Issue Date:</span>
+                <span className="font-semibold text-fg">{selectedInvoice.issueDate}</span>
               </div>
               <div className="flex justify-between">
-                <span className="text-slate-500 dark:text-slate-400 font-medium">Due Date:</span>
-                <span className="font-semibold text-slate-800 dark:text-slate-200">{selectedInvoice.dueDate}</span>
+                <span className="text-muted font-medium">Due Date:</span>
+                <span className="font-semibold text-fg">{selectedInvoice.dueDate}</span>
               </div>
               <div className="flex justify-between">
-                <span className="text-slate-500 dark:text-slate-400 font-medium">Status:</span>
+                <span className="text-muted font-medium">Status:</span>
                 <span
                   className={`inline-flex items-center px-2.5 py-0.5 rounded-full text-[11px] font-medium ${
                     selectedInvoice.status?.toLowerCase() === 'paid'
@@ -201,9 +201,9 @@ export const ClientInvoices = () => {
                   {selectedInvoice.status}
                 </span>
               </div>
-              <div className="flex justify-between pt-2 border-t border-slate-200 dark:border-slate-800 text-sm">
-                <span className="font-bold text-slate-800 dark:text-slate-200">Total Settlement:</span>
-                <span className="font-bold text-blue-600 dark:text-blue-400">
+              <div className="flex justify-between pt-2 border-t border-border text-sm">
+                <span className="font-bold text-fg">Total Settlement:</span>
+                <span className="font-bold text-accent">
                   ${(selectedInvoice.total || 0).toLocaleString('en-US', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}
                 </span>
               </div>
@@ -227,7 +227,7 @@ export const ClientInvoices = () => {
                     setSelectedInvoice(null)
                   }}
                   icon={CreditCard}
-                  className="bg-blue-600 hover:bg-blue-700 text-white"
+                  className="bg-accent hover:bg-accent-hover text-white"
                 >
                   Pay Now
                 </Button>

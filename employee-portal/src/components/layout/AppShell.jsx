@@ -19,7 +19,23 @@ export const AppShell = () => {
     if (!user?.uid) return
     let cancelled = false
     getUserDoc(user.uid).then((docData) => {
-      if (!cancelled && docData) setUser(user, docData, claims)
+      if (cancelled || !docData) return
+      const { user: currentUser, userDoc: currentDoc, claims: currentClaims } = useUserStore.getState()
+      const incomingTs = Date.parse(docData.quoteUpdatedAt || '') || 0
+      const localTs = Date.parse(currentDoc?.quoteUpdatedAt || '') || 0
+      const quoteLock =
+        localTs > incomingTs
+          ? {
+              quote: currentDoc.quote,
+              proverb: currentDoc.proverb,
+              quoteUpdatedAt: currentDoc.quoteUpdatedAt,
+            }
+          : {
+              quote: docData.quote ?? docData.proverb ?? currentDoc?.quote ?? '',
+              proverb: docData.quote ?? docData.proverb ?? currentDoc?.proverb ?? '',
+              quoteUpdatedAt: docData.quoteUpdatedAt || currentDoc?.quoteUpdatedAt,
+            }
+      setUser(currentUser || user, { ...currentDoc, ...docData, ...quoteLock }, currentClaims || claims)
     })
     return () => {
       cancelled = true

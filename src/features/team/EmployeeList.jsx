@@ -124,13 +124,13 @@ export const EmployeeList = () => {
           }
         />
 
-        <div className="flex items-center justify-between border-b border-slate-800 pb-3">
+        <div className="flex items-center justify-between border-b border-border pb-3">
           <div className="flex items-center gap-2">
             <NavLink
               to="/team/employees"
               className={({ isActive }) =>
                 `flex items-center gap-2 px-3 py-1.5 rounded-xl text-xs font-semibold transition-colors ${isActive
-                  ? 'bg-indigo-600/20 text-indigo-400 border border-indigo-500/30'
+                  ? 'bg-accent-soft text-accent border border-accent/30'
                   : 'text-slate-400 hover:text-slate-200 hover:bg-slate-800'
                 }`
               }
@@ -141,7 +141,7 @@ export const EmployeeList = () => {
               to="/team/attendance"
               className={({ isActive }) =>
                 `flex items-center gap-2 px-3 py-1.5 rounded-xl text-xs font-semibold transition-colors ${isActive
-                  ? 'bg-indigo-600/20 text-indigo-400 border border-indigo-500/30'
+                  ? 'bg-accent-soft text-accent border border-accent/30'
                   : 'text-slate-400 hover:text-slate-200 hover:bg-slate-800'
                 }`
               }
@@ -152,7 +152,7 @@ export const EmployeeList = () => {
               to="/team/leave"
               className={({ isActive }) =>
                 `flex items-center gap-2 px-3 py-1.5 rounded-xl text-xs font-semibold transition-colors ${isActive
-                  ? 'bg-indigo-600/20 text-indigo-400 border border-indigo-500/30'
+                  ? 'bg-accent-soft text-accent border border-accent/30'
                   : 'text-slate-400 hover:text-slate-200 hover:bg-slate-800'
                 }`
               }
@@ -165,7 +165,7 @@ export const EmployeeList = () => {
             <select
               value={selectedDept}
               onChange={(e) => setSelectedDept(e.target.value)}
-              className="bg-slate-100 dark:bg-[#181C27] border border-slate-300 dark:border-slate-800 text-xs text-slate-800 dark:text-slate-200 rounded-xl px-3 py-1.5 focus:outline-none"
+              className="bg-canvas border border-border text-xs text-fg rounded-xl px-3 py-1.5 focus:outline-none"
             >
               <option value="all">All Departments</option>
               {departments.map((d) => (
@@ -176,13 +176,13 @@ export const EmployeeList = () => {
             </select>
 
             <div className="relative w-64">
-              <Search className="w-3.5 h-3.5 absolute left-3 top-1/2 -translate-y-1/2 text-slate-400 dark:text-slate-500" />
+              <Search className="w-3.5 h-3.5 absolute left-3 top-1/2 -translate-y-1/2 text-muted" />
               <input
                 type="text"
                 placeholder="Search member, role..."
                 value={searchQuery}
                 onChange={(e) => setSearchQuery(e.target.value)}
-                className="w-full bg-slate-100 dark:bg-[#181C27] border border-slate-300 dark:border-slate-800 text-xs text-slate-800 dark:text-slate-200 placeholder-slate-400 dark:placeholder-slate-500 rounded-xl pl-8 pr-3 py-1.5 focus:outline-none transition-colors"
+                className="w-full bg-canvas border border-border text-xs text-fg placeholder:text-muted rounded-xl pl-8 pr-3 py-1.5 focus:outline-none transition-colors"
               />
             </div>
           </div>
@@ -191,21 +191,21 @@ export const EmployeeList = () => {
 
       {/* Summary Metrics */}
       <div className="grid grid-cols-1 sm:grid-cols-3 gap-4">
-        <Card className="p-4 flex items-center justify-between border-slate-200 dark:border-slate-800/80">
+        <Card className="p-4 flex items-center justify-between border-border">
           <div>
-            <span className="text-[11px] font-medium text-slate-500 dark:text-slate-400 uppercase tracking-wider">
+            <span className="text-[11px] font-medium text-muted uppercase tracking-wider">
               Total Headcount
             </span>
-            <p className="text-xl font-bold text-slate-900 dark:text-slate-100 mt-1">{totalHeadcount} Members</p>
+            <p className="text-xl font-bold text-fg mt-1">{totalHeadcount} Members</p>
           </div>
-          <div className="w-9 h-9 rounded-xl bg-indigo-50 dark:bg-indigo-500/10 text-indigo-600 dark:text-indigo-400 flex items-center justify-center">
+          <div className="w-9 h-9 rounded-xl bg-accent-soft text-accent flex items-center justify-center">
             <Users className="w-5 h-5" />
           </div>
         </Card>
 
-        <Card className="p-4 flex items-center justify-between border-slate-200 dark:border-slate-800/80">
+        <Card className="p-4 flex items-center justify-between border-border">
           <div>
-            <span className="text-[11px] font-medium text-slate-500 dark:text-slate-400 uppercase tracking-wider">
+            <span className="text-[11px] font-medium text-muted uppercase tracking-wider">
               Active Presence
             </span>
             <p className="text-xl font-bold text-emerald-600 dark:text-emerald-400 mt-1">{activeCount} / {totalHeadcount}</p>
@@ -215,9 +215,9 @@ export const EmployeeList = () => {
           </div>
         </Card>
 
-        <Card className="p-4 flex items-center justify-between border-slate-200 dark:border-slate-800/80">
+        <Card className="p-4 flex items-center justify-between border-border">
           <div>
-            <span className="text-[11px] font-medium text-slate-500 dark:text-slate-400 uppercase tracking-wider">
+            <span className="text-[11px] font-medium text-muted uppercase tracking-wider">
               Avg Utilization Rate
             </span>
             <p className="text-xl font-bold text-purple-600 dark:text-purple-400 mt-1">{avgUtilization}%</p>
@@ -231,17 +231,17 @@ export const EmployeeList = () => {
       {/* Employee Cards Grid */}
       <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-5">
         {filtered.map((emp) => (
-          <Card key={emp.uid} hover className="space-y-3.5 border-slate-200 dark:border-slate-800 relative group">
+          <Card key={emp.uid} hover className="space-y-3.5 border-border relative group">
             <div className="flex items-start justify-between">
               <div className="flex items-center gap-3">
-                <div className="w-10 h-10 rounded-xl bg-gradient-to-tr from-indigo-600 to-indigo-400 text-white font-bold flex items-center justify-center text-sm shadow-md shadow-indigo-600/20">
+                <div className="w-10 h-10 rounded-xl bg-gradient-to-tr from-accent to-accent-hover text-white font-bold flex items-center justify-center text-sm shadow-md shadow-accent/20">
                   {emp.displayName.charAt(0)}
                 </div>
                 <div>
-                  <h4 className="font-bold text-slate-900 dark:text-slate-100 text-sm group-hover:text-indigo-600 dark:group-hover:text-indigo-400 transition-colors">
+                  <h4 className="font-bold text-fg text-sm group-hover:text-accent dark:group-hover:text-accent transition-colors">
                     {emp.displayName}
                   </h4>
-                  <p className="text-xs text-slate-500 dark:text-slate-400">{emp.roleName}</p>
+                  <p className="text-xs text-muted">{emp.roleName}</p>
                 </div>
               </div>
               <Badge variant={emp.status === 'active' ? 'success' : 'warning'}>
@@ -249,14 +249,14 @@ export const EmployeeList = () => {
               </Badge>
             </div>
 
-            <div className="space-y-1 text-xs text-slate-500 dark:text-slate-400 pt-1">
+            <div className="space-y-1 text-xs text-muted pt-1">
               <div className="flex items-center gap-2">
-                <Building className="w-3.5 h-3.5 text-slate-400 dark:text-slate-500" />
-                <span className="text-slate-700 dark:text-slate-300">{emp.departmentName}</span>
+                <Building className="w-3.5 h-3.5 text-muted" />
+                <span className="text-fg">{emp.departmentName}</span>
               </div>
               <div className="flex items-center gap-2">
-                <Mail className="w-3.5 h-3.5 text-slate-400 dark:text-slate-500" />
-                <span className="truncate text-slate-600 dark:text-slate-400">{emp.email}</span>
+                <Mail className="w-3.5 h-3.5 text-muted" />
+                <span className="truncate text-muted">{emp.email}</span>
               </div>
             </div>
 
@@ -265,7 +265,7 @@ export const EmployeeList = () => {
               {emp.skills?.map((skill, idx) => (
                 <span
                   key={idx}
-                  className="px-2 py-0.5 rounded-md bg-slate-100 dark:bg-slate-900 border border-slate-200 dark:border-slate-800 text-[10px] text-slate-700 dark:text-slate-300 font-medium"
+                  className="px-2 py-0.5 rounded-md bg-canvas border border-border text-[10px] text-fg font-medium"
                 >
                   {skill}
                 </span>
@@ -273,13 +273,13 @@ export const EmployeeList = () => {
             </div>
 
             {/* Utilization Bar & Delete Action */}
-            <div className="pt-3 border-t border-slate-200 dark:border-slate-800/60 flex items-center justify-between">
+            <div className="pt-3 border-t border-border/60 flex items-center justify-between">
               <div className="flex-1 mr-4 space-y-1">
-                <div className="flex justify-between text-[10px] text-slate-500 dark:text-slate-400">
+                <div className="flex justify-between text-[10px] text-muted">
                   <span>Utilization</span>
-                  <span className="font-bold text-slate-800 dark:text-slate-200">{emp.utilizationRate}%</span>
+                  <span className="font-bold text-fg">{emp.utilizationRate}%</span>
                 </div>
-                <div className="w-full bg-slate-100 dark:bg-slate-900 h-1.5 rounded-full overflow-hidden border border-slate-200/60 dark:border-none">
+                <div className="w-full bg-canvas h-1.5 rounded-full overflow-hidden border border-slate-200/60 dark:border-none">
                   <div
                     className="bg-purple-600 dark:bg-purple-500 h-full"
                     style={{ width: `${emp.utilizationRate}%` }}
@@ -288,7 +288,7 @@ export const EmployeeList = () => {
               </div>
               <button
                 onClick={() => deleteEmployee(emp.uid)}
-                className="p-1.5 text-slate-400 dark:text-slate-500 hover:text-rose-600 dark:hover:text-rose-400 rounded-lg hover:bg-slate-100 dark:hover:bg-slate-800 transition-colors"
+                className="p-1.5 text-muted hover:text-rose-600 dark:hover:text-rose-400 rounded-lg hover:bg-slate-100 dark:hover:bg-slate-800 transition-colors"
                 title="Remove Member"
               >
                 <Trash2 className="w-4 h-4" />
@@ -301,9 +301,9 @@ export const EmployeeList = () => {
       {/* Invite Member Modal */}
       {showAddModal && (
         <div className="fixed inset-0 z-50 bg-black/70 backdrop-blur-sm flex items-center justify-center p-4">
-          <Card className="w-full max-w-lg p-6 space-y-4 border-slate-800 shadow-2xl relative">
-            <div className="flex items-center justify-between pb-3 border-b border-slate-800">
-              <h3 className="font-bold text-slate-100 text-sm">Invite Team Member</h3>
+          <Card className="w-full max-w-lg p-6 space-y-4 border-border shadow-2xl relative">
+            <div className="flex items-center justify-between pb-3 border-b border-border">
+              <h3 className="font-bold text-fg text-sm">Invite Team Member</h3>
               <button
                 onClick={() => setShowAddModal(false)}
                 className="text-slate-400 hover:text-white p-1 rounded-lg hover:bg-slate-800"
@@ -363,7 +363,7 @@ export const EmployeeList = () => {
                   <select
                     value={departmentName}
                     onChange={(e) => setDepartmentName(e.target.value)}
-                    className="w-full bg-[#11141E] border border-slate-800 text-slate-100 text-sm rounded-xl py-2.5 px-3.5 focus:outline-none"
+                    className="w-full bg-canvas border border-border text-fg text-sm rounded-xl py-2.5 px-3.5 focus:outline-none"
                   >
                     {departments.map((d) => (
                       <option key={d.deptId} value={d.name}>

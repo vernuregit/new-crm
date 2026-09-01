@@ -249,7 +249,7 @@ export const Sidebar = () => {
       return { label: 'Employee Portal', color: 'text-purple-400 bg-purple-500/10 border-purple-500/20' }
     return {
       label: 'Admin Executive Suite',
-      color: 'text-indigo-600 dark:text-indigo-400 bg-indigo-50 dark:bg-indigo-500/10 border-indigo-200 dark:border-indigo-500/20',
+      color: 'text-accent bg-accent-soft border-accent/20',
     }
   }
 
@@ -260,14 +260,14 @@ export const Sidebar = () => {
 
   return (
     <aside
-      className={`fixed top-0 left-0 bottom-0 z-40 bg-white dark:bg-[#12151E] border-r border-slate-200 dark:border-slate-800/80 transition-all duration-300 flex flex-col ${
+      className={`fixed top-0 left-0 bottom-0 z-40 bg-chrome border-r border-border transition-all duration-300 flex flex-col ${
         sidebarOpen ? 'w-64' : 'w-20'
       }`}
     >
       {/* Brand Header */}
-      <div className="h-16 flex items-center justify-between px-3 border-b border-slate-200 dark:border-slate-800/80">
+      <div className="h-16 flex items-center justify-between px-3 border-b border-border">
         <div className="flex items-center gap-2 overflow-hidden">
-          <div className="w-11 h-11 bg-white p-1 rounded-full border border-slate-200 dark:border-slate-700/60 shadow-sm flex items-center justify-center shrink-0">
+          <div className="w-11 h-11 bg-surface p-1 rounded-full border border-border shadow-sm flex items-center justify-center shrink-0">
             <img
               src={haloLogo}
               alt="The Halo Effect Consulting"
@@ -276,10 +276,10 @@ export const Sidebar = () => {
           </div>
           {sidebarOpen && (
             <div className="flex flex-col leading-tight overflow-hidden">
-              <span className="font-bold text-slate-900 dark:text-slate-100 text-xs tracking-wide whitespace-nowrap">
+              <span className="font-bold text-fg text-xs tracking-wide whitespace-nowrap">
                 BUSINESS OS
               </span>
-              <span className="text-[10px] text-indigo-600 dark:text-indigo-400 font-semibold tracking-wider mt-1 uppercase whitespace-nowrap">
+              <span className="text-[10px] text-accent font-semibold tracking-wider mt-1 uppercase whitespace-nowrap">
                 {displayRole} MODE
               </span>
             </div>
@@ -288,7 +288,7 @@ export const Sidebar = () => {
 
         <button
           onClick={toggleSidebar}
-          className="w-8 h-8 rounded-lg bg-slate-100 dark:bg-slate-800/60 hover:bg-slate-200 dark:hover:bg-slate-800 text-slate-500 dark:text-slate-400 hover:text-slate-900 dark:hover:text-white flex items-center justify-center transition-colors cursor-pointer shrink-0"
+          className="w-8 h-8 rounded-lg bg-surface hover:bg-border text-muted hover:text-fg flex items-center justify-center transition-colors cursor-pointer shrink-0 border border-border"
         >
           {sidebarOpen ? <ChevronLeft className="w-4 h-4" /> : <ChevronRight className="w-4 h-4" />}
         </button>
@@ -313,8 +313,8 @@ export const Sidebar = () => {
                 className={({ isActive }) =>
                   `flex items-center gap-3 px-3 py-2.5 rounded-xl text-sm font-medium transition-all mx-1 ${
                     isActive
-                      ? 'bg-indigo-50 dark:bg-indigo-600/15 text-indigo-600 dark:text-indigo-400 border border-indigo-200 dark:border-indigo-500/30 shadow-sm'
-                      : 'text-slate-600 dark:text-slate-400 hover:text-slate-900 dark:hover:text-slate-200 hover:bg-slate-100 dark:hover:bg-slate-800/50'
+                      ? 'bg-accent-soft text-accent border border-accent/20 shadow-sm'
+                      : 'text-muted hover:text-fg hover:bg-surface'
                   }`
                 }
               >
@@ -331,10 +331,10 @@ export const Sidebar = () => {
                 title={!sidebarOpen ? group.label : undefined}
                 className={`w-full flex items-center gap-3 px-3 py-2.5 rounded-xl text-sm font-medium transition-all cursor-pointer ${
                   groupActive && !isExpanded
-                    ? 'bg-indigo-50 dark:bg-indigo-600/15 text-indigo-600 dark:text-indigo-400 border border-indigo-200 dark:border-indigo-500/30 shadow-sm'
+                    ? 'bg-accent-soft text-accent border border-accent/20 shadow-sm'
                     : groupActive && isExpanded
-                    ? 'text-indigo-600 dark:text-indigo-400'
-                    : 'text-slate-600 dark:text-slate-400 hover:text-slate-900 dark:hover:text-slate-200 hover:bg-slate-100 dark:hover:bg-slate-800/50'
+                    ? 'text-accent'
+                    : 'text-muted hover:text-fg hover:bg-surface'
                 }`}
               >
                 <GroupIcon className="w-5 h-5 shrink-0" />
@@ -357,7 +357,7 @@ export const Sidebar = () => {
                   }`}
                 >
                   <div className="overflow-hidden">
-                    <div className="ml-3 mt-0.5 pl-3 border-l border-slate-200 dark:border-slate-700/60 space-y-0.5 pb-1">
+                    <div className="ml-3 mt-0.5 pl-3 border-l border-border space-y-0.5 pb-1">
                       {group.items.map((item) => {
                         const Icon = item.icon
                         return (
@@ -368,8 +368,8 @@ export const Sidebar = () => {
                             className={({ isActive }) =>
                               `flex items-center gap-2.5 px-2.5 py-2 rounded-lg text-xs font-medium transition-all ${
                                 isActive
-                                  ? 'bg-indigo-50 dark:bg-indigo-600/15 text-indigo-600 dark:text-indigo-400 border border-indigo-200 dark:border-indigo-500/30 shadow-sm'
-                                  : 'text-slate-500 dark:text-slate-400 hover:text-slate-900 dark:hover:text-slate-200 hover:bg-slate-100 dark:hover:bg-slate-800/50'
+                                  ? 'bg-accent-soft text-accent border border-accent/20 shadow-sm'
+                                  : 'text-muted hover:text-fg hover:bg-surface'
                               }`
                             }
                           >
@@ -388,18 +388,18 @@ export const Sidebar = () => {
       </nav>
 
       {/* Footer / Role Indicator */}
-      <div className="p-3 border-t border-slate-200 dark:border-slate-800/80">
+      <div className="p-3 border-t border-border">
         <div
-          className={`flex items-center gap-3 p-2 rounded-xl bg-slate-50 dark:bg-slate-800/40 border border-slate-200 dark:border-slate-800 ${
+          className={`flex items-center gap-3 p-2 rounded-xl bg-surface border border-border ${
             !sidebarOpen && 'justify-center'
           }`}
         >
-          <div className="w-8 h-8 rounded-lg bg-indigo-100 dark:bg-indigo-500/20 text-indigo-600 dark:text-indigo-400 flex items-center justify-center font-bold text-xs shrink-0">
+          <div className="w-8 h-8 rounded-lg bg-accent-soft text-accent flex items-center justify-center font-bold text-xs shrink-0">
             {(userDoc?.displayName || user?.displayName || userRole).charAt(0).toUpperCase()}
           </div>
           {sidebarOpen && (
             <div className="flex flex-col min-w-0">
-              <span className="text-xs font-semibold text-slate-800 dark:text-slate-200 truncate">
+              <span className="text-xs font-semibold text-fg truncate">
                 {userDoc?.displayName || user?.displayName || 'Acme Executive'}
               </span>
               <span className={`text-[10px] font-bold px-1.5 py-0.5 rounded-md border mt-0.5 ${roleMeta.color} truncate`}>

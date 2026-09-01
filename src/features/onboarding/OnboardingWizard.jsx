@@ -36,23 +36,23 @@ export const OnboardingWizard = () => {
   }
 
   return (
-    <div className="min-h-screen bg-[#0F1117] flex items-center justify-center p-4 relative overflow-hidden">
-      <div className="absolute top-1/4 left-1/2 -translate-x-1/2 w-96 h-96 bg-indigo-600/15 blur-[120px] rounded-full pointer-events-none" />
+    <div className="min-h-screen bg-canvas text-fg flex items-center justify-center p-4 relative overflow-hidden">
+      <div className="absolute top-1/4 left-1/2 -translate-x-1/2 w-96 h-96 bg-accent/15 blur-[120px] rounded-full pointer-events-none" />
 
-      <Card className="w-full max-w-lg p-8 relative z-10 border-slate-800 shadow-2xl">
-        <div className="flex items-center justify-between mb-8 pb-4 border-b border-slate-800">
+      <Card className="w-full max-w-lg p-8 relative z-10 border-border shadow-2xl">
+        <div className="flex items-center justify-between mb-8 pb-4 border-b border-border">
           <div className="flex items-center gap-3">
-            <div className="w-10 h-10 rounded-xl bg-indigo-600/20 text-indigo-400 flex items-center justify-center border border-indigo-500/30">
+            <div className="w-10 h-10 rounded-xl bg-accent-soft text-accent flex items-center justify-center border border-accent/20">
               <Building className="w-5 h-5" />
             </div>
             <div>
-              <h2 className="font-bold text-slate-100 text-base">Setup Your Organization</h2>
+              <h2 className="font-bold text-fg text-base">Setup Your Organization</h2>
               <p className="text-xs text-slate-400">Step {step} of 2 — Business Profile</p>
             </div>
           </div>
           <div className="flex gap-1">
-            <div className={`w-6 h-1.5 rounded-full ${step >= 1 ? 'bg-indigo-500' : 'bg-slate-800'}`} />
-            <div className={`w-6 h-1.5 rounded-full ${step >= 2 ? 'bg-indigo-500' : 'bg-slate-800'}`} />
+            <div className={`w-6 h-1.5 rounded-full ${step >= 1 ? 'bg-accent' : 'bg-canvas'}`} />
+            <div className={`w-6 h-1.5 rounded-full ${step >= 2 ? 'bg-accent' : 'bg-canvas'}`} />
           </div>
         </div>
 
@@ -71,7 +71,7 @@ export const OnboardingWizard = () => {
               <select
                 value={industry}
                 onChange={(e) => setIndustry(e.target.value)}
-                className="w-full bg-[#11141E] border border-slate-800 text-slate-100 text-sm rounded-xl py-2.5 px-3.5 focus:outline-none focus:border-indigo-500"
+                className="w-full bg-canvas border border-border text-fg text-sm rounded-xl py-2.5 px-3.5 focus:outline-none focus:border-accent"
               >
                 <option value="agency">Agency / Creative Services</option>
                 <option value="software">Software / IT Consulting</option>
@@ -99,7 +99,7 @@ export const OnboardingWizard = () => {
               <select
                 value={teamSize}
                 onChange={(e) => setTeamSize(e.target.value)}
-                className="w-full bg-[#11141E] border border-slate-800 text-slate-100 text-sm rounded-xl py-2.5 px-3.5 focus:outline-none focus:border-indigo-500"
+                className="w-full bg-canvas border border-border text-fg text-sm rounded-xl py-2.5 px-3.5 focus:outline-none focus:border-accent"
               >
                 <option value="1-10">1 - 10 members</option>
                 <option value="11-50">11 - 50 members</option>
@@ -108,8 +108,8 @@ export const OnboardingWizard = () => {
               </select>
             </div>
 
-            <div className="p-4 rounded-xl bg-slate-900/60 border border-slate-800/80 text-xs space-y-2">
-              <div className="flex items-center gap-2 text-indigo-400 font-medium">
+            <div className="p-4 rounded-xl bg-slate-900/60 border border-border/80 text-xs space-y-2">
+              <div className="flex items-center gap-2 text-accent font-medium">
                 <CheckCircle2 className="w-4 h-4" /> Ready to Provision Tenant Subtree
               </div>
               <p className="text-slate-400">

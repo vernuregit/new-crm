@@ -95,7 +95,7 @@ export const KnowledgeBase = () => {
   )
 
   const selectClass =
-    'w-full bg-slate-100/80 dark:bg-[#11141E] border border-slate-300 dark:border-slate-800 text-slate-900 dark:text-slate-100 text-sm rounded-xl py-2.5 px-3.5 focus:outline-none focus:border-indigo-500 focus:ring-1 focus:ring-indigo-500 transition-all cursor-pointer'
+    'w-full bg-canvas border border-border text-fg text-sm rounded-xl py-2.5 px-3.5 focus:outline-none focus:border-accent focus:ring-1 focus:ring-accent transition-all cursor-pointer'
 
   return (
     <div className="space-y-6">
@@ -111,15 +111,15 @@ export const KnowledgeBase = () => {
       />
 
       {/* Filter and Search Bar */}
-      <div className="flex flex-wrap items-center justify-between gap-4 border-b border-slate-200 dark:border-slate-800 pb-4">
+      <div className="flex flex-wrap items-center justify-between gap-4 border-b border-border pb-4">
         <div className="relative w-full sm:w-80">
-          <Search className="w-4 h-4 absolute left-3 top-1/2 -translate-y-1/2 text-slate-400 dark:text-slate-500" />
+          <Search className="w-4 h-4 absolute left-3 top-1/2 -translate-y-1/2 text-muted" />
           <input
             type="text"
             placeholder="Search SOPs, guides, policies..."
             value={searchQuery}
             onChange={(e) => setSearchQuery(e.target.value)}
-            className="w-full bg-slate-100 dark:bg-[#181C27] border border-slate-300 dark:border-slate-800 text-xs text-slate-800 dark:text-slate-200 placeholder-slate-400 dark:placeholder-slate-500 rounded-xl pl-9 pr-3 py-2 focus:outline-none focus:border-indigo-500 transition-colors"
+            className="w-full bg-canvas border border-border text-xs text-fg placeholder:text-muted rounded-xl pl-9 pr-3 py-2 focus:outline-none focus:border-accent transition-colors"
           />
         </div>
       </div>
@@ -127,20 +127,20 @@ export const KnowledgeBase = () => {
       {/* Loading */}
       {isLoading && (
         <div className="flex items-center justify-center py-20">
-          <Loader2 className="w-7 h-7 text-indigo-600 dark:text-indigo-400 animate-spin" />
-          <span className="ml-3 text-slate-500 dark:text-slate-400 text-xs">Loading documentation...</span>
+          <Loader2 className="w-7 h-7 text-accent animate-spin" />
+          <span className="ml-3 text-muted text-xs">Loading documentation...</span>
         </div>
       )}
 
       {/* Empty State */}
       {!isLoading && filteredArticles.length === 0 && (
-        <Card className="py-16 text-center space-y-4 border-slate-200 dark:border-slate-800 bg-white dark:bg-[#181C27]">
-          <div className="w-14 h-14 rounded-2xl bg-indigo-50 dark:bg-indigo-500/10 text-indigo-600 dark:text-indigo-400 flex items-center justify-center mx-auto">
+        <Card className="py-16 text-center space-y-4 border-border bg-surface">
+          <div className="w-14 h-14 rounded-2xl bg-accent-soft text-accent flex items-center justify-center mx-auto">
             <BookOpen className="w-7 h-7" />
           </div>
           <div className="space-y-1">
             <p className="text-slate-900 dark:text-slate-200 font-semibold text-sm">No articles found</p>
-            <p className="text-slate-500 text-xs">
+            <p className="text-muted text-xs">
               {searchQuery
                 ? 'No documents matched your search query.'
                 : 'Click "New Article" to create your first SOP or guide.'}
@@ -162,11 +162,11 @@ export const KnowledgeBase = () => {
               key={art.articleId || art.id}
               hover
               onClick={() => setSelectedArticle(art)}
-              className="space-y-3 cursor-pointer border-slate-200 dark:border-slate-800 relative group flex flex-col justify-between bg-white dark:bg-[#181C27]"
+              className="space-y-3 cursor-pointer border-border relative group flex flex-col justify-between bg-surface"
             >
               <div className="space-y-3">
                 <div className="flex items-center justify-between">
-                  <div className="w-9 h-9 rounded-xl bg-indigo-50 dark:bg-indigo-500/10 text-indigo-600 dark:text-indigo-400 flex items-center justify-center border border-indigo-200 dark:border-indigo-500/20">
+                  <div className="w-9 h-9 rounded-xl bg-accent-soft text-accent flex items-center justify-center border border-accent/20">
                     <BookOpen className="w-4 h-4" />
                   </div>
                   <button
@@ -186,27 +186,27 @@ export const KnowledgeBase = () => {
                         Employee Post
                       </span>
                     ) : (
-                      <span className="px-2 py-0.5 rounded-md text-[10px] font-semibold bg-indigo-500/10 text-indigo-600 dark:text-indigo-400 border border-indigo-500/20">
+                      <span className="px-2 py-0.5 rounded-md text-[10px] font-semibold bg-accent-soft text-accent border border-accent/20">
                         Admin Post
                       </span>
                     )}
                   </div>
-                  <h4 className="font-bold text-slate-900 dark:text-slate-100 text-sm group-hover:text-indigo-600 dark:group-hover:text-indigo-400 transition-colors line-clamp-2">
+                  <h4 className="font-bold text-fg text-sm group-hover:text-accent dark:group-hover:text-accent transition-colors line-clamp-2">
                     {art.title}
                   </h4>
                 </div>
 
-                <p className="text-xs text-slate-600 dark:text-slate-400 line-clamp-3 leading-relaxed">
+                <p className="text-xs text-muted line-clamp-3 leading-relaxed">
                   {art.summary || art.content}
                 </p>
               </div>
 
-              <div className="pt-3 border-t border-slate-200 dark:border-slate-800/60 flex items-center justify-between text-[11px] text-slate-500 dark:text-slate-400">
+              <div className="pt-3 border-t border-border/60 flex items-center justify-between text-[11px] text-muted">
                 <span className="flex items-center gap-1">
-                  <User className="w-3 h-3 text-slate-400 dark:text-slate-500" /> {art.author || 'Admin'}
+                  <User className="w-3 h-3 text-muted" /> {art.author || 'Admin'}
                 </span>
                 <span className="flex items-center gap-1">
-                  <Clock className="w-3 h-3 text-slate-400 dark:text-slate-500" />
+                  <Clock className="w-3 h-3 text-muted" />
                   {art.updatedAt ? new Date(art.updatedAt).toLocaleDateString() : 'Recently'}
                 </span>
               </div>
@@ -218,13 +218,13 @@ export const KnowledgeBase = () => {
       {/* ─── CREATE ARTICLE MODAL ────────────────────────────────────────────── */}
       {isCreateOpen && (
         <div className="fixed inset-0 z-50 bg-black/70 backdrop-blur-sm flex items-center justify-center p-4">
-          <div className="bg-white dark:bg-[#151924] border border-slate-200 dark:border-slate-800 rounded-2xl w-full max-w-xl p-6 space-y-4 shadow-2xl animate-in fade-in zoom-in duration-150">
-            <div className="flex items-center justify-between pb-3 border-b border-slate-200 dark:border-slate-800">
+          <div className="bg-surface border border-border rounded-2xl w-full max-w-xl p-6 space-y-4 shadow-2xl animate-in fade-in zoom-in duration-150">
+            <div className="flex items-center justify-between pb-3 border-b border-border">
               <div className="flex items-center gap-2">
-                <div className="w-8 h-8 rounded-lg bg-indigo-50 dark:bg-indigo-500/10 text-indigo-600 dark:text-indigo-400 flex items-center justify-center">
+                <div className="w-8 h-8 rounded-lg bg-accent-soft text-accent flex items-center justify-center">
                   <FileText className="w-4 h-4" />
                 </div>
-                <h3 className="font-bold text-slate-900 dark:text-slate-100 text-base">Publish Knowledge Article</h3>
+                <h3 className="font-bold text-fg text-base">Publish Knowledge Article</h3>
               </div>
               <button
                 onClick={() => setIsCreateOpen(false)}
@@ -244,17 +244,17 @@ export const KnowledgeBase = () => {
               />
 
               <div className="space-y-1.5 text-left">
-                <label className="block text-xs font-medium text-slate-700 dark:text-slate-300">Category</label>
+                <label className="block text-xs font-medium text-fg">Category</label>
                 <select
                   value={category}
                   onChange={(e) => setCategory(e.target.value)}
                   className={selectClass}
                 >
-                  <option value="Client Onboarding SOP" className="bg-white dark:bg-[#11141E] text-slate-900 dark:text-slate-100">Client Onboarding SOP</option>
-                  <option value="Finance & Billing" className="bg-white dark:bg-[#11141E] text-slate-900 dark:text-slate-100">Finance & Billing</option>
-                  <option value="Engineering & Code Guidelines" className="bg-white dark:bg-[#11141E] text-slate-900 dark:text-slate-100">Engineering & Code Guidelines</option>
-                  <option value="Sales & CRM Process" className="bg-white dark:bg-[#11141E] text-slate-900 dark:text-slate-100">Sales & CRM Process</option>
-                  <option value="HR & Team Policies" className="bg-white dark:bg-[#11141E] text-slate-900 dark:text-slate-100">HR & Team Policies</option>
+                  <option value="Client Onboarding SOP" className="bg-surface text-fg">Client Onboarding SOP</option>
+                  <option value="Finance & Billing" className="bg-surface text-fg">Finance & Billing</option>
+                  <option value="Engineering & Code Guidelines" className="bg-surface text-fg">Engineering & Code Guidelines</option>
+                  <option value="Sales & CRM Process" className="bg-surface text-fg">Sales & CRM Process</option>
+                  <option value="HR & Team Policies" className="bg-surface text-fg">HR & Team Policies</option>
                 </select>
               </div>
 
@@ -266,7 +266,7 @@ export const KnowledgeBase = () => {
               />
 
               <div className="space-y-1.5 text-left">
-                <label className="block text-xs font-medium text-slate-700 dark:text-slate-300">
+                <label className="block text-xs font-medium text-fg">
                   Article Content / Guide Body
                 </label>
                 <textarea
@@ -274,7 +274,7 @@ export const KnowledgeBase = () => {
                   value={content}
                   onChange={(e) => setContent(e.target.value)}
                   placeholder="Write step-by-step procedures, documentation, guidelines..."
-                  className="w-full bg-slate-100/80 dark:bg-[#11141E] border border-slate-300 dark:border-slate-800 text-slate-900 dark:text-slate-100 placeholder-slate-400 dark:placeholder-slate-500 text-sm rounded-xl py-2.5 px-3.5 focus:outline-none focus:border-indigo-500 focus:ring-1 focus:ring-indigo-500 transition-all"
+                  className="w-full bg-canvas border border-border text-fg placeholder:text-muted text-sm rounded-xl py-2.5 px-3.5 focus:outline-none focus:border-accent focus:ring-1 focus:ring-accent transition-all"
                   required
                 />
               </div>
@@ -307,12 +307,12 @@ export const KnowledgeBase = () => {
       {/* ─── READ ARTICLE MODAL ──────────────────────────────────────────────── */}
       {selectedArticle && (
         <div className="fixed inset-0 z-50 bg-black/70 backdrop-blur-sm flex items-center justify-center p-4">
-          <div className="bg-white dark:bg-[#151924] border border-slate-200 dark:border-slate-800 rounded-2xl w-full max-w-2xl p-6 space-y-4 shadow-2xl animate-in fade-in zoom-in duration-150 max-h-[85vh] overflow-y-auto">
-            <div className="flex items-start justify-between pb-3 border-b border-slate-200 dark:border-slate-800">
+          <div className="bg-surface border border-border rounded-2xl w-full max-w-2xl p-6 space-y-4 shadow-2xl animate-in fade-in zoom-in duration-150 max-h-[85vh] overflow-y-auto">
+            <div className="flex items-start justify-between pb-3 border-b border-border">
               <div className="space-y-1">
                 <Badge variant="brand">{selectedArticle.category || 'General SOP'}</Badge>
-                <h2 className="font-bold text-slate-900 dark:text-slate-100 text-lg">{selectedArticle.title}</h2>
-                <p className="text-xs text-slate-500 dark:text-slate-400 flex items-center gap-3">
+                <h2 className="font-bold text-fg text-lg">{selectedArticle.title}</h2>
+                <p className="text-xs text-muted flex items-center gap-3">
                   <span>Author: {selectedArticle.author || 'Admin'}</span>
                   <span>•</span>
                   <span>
@@ -331,7 +331,7 @@ export const KnowledgeBase = () => {
               </button>
             </div>
 
-            <div className="p-4 rounded-xl bg-slate-50 dark:bg-slate-900 border border-slate-200 dark:border-slate-800 text-slate-800 dark:text-slate-200 text-sm leading-relaxed whitespace-pre-wrap font-sans">
+            <div className="p-4 rounded-xl bg-canvas border border-border text-fg text-sm leading-relaxed whitespace-pre-wrap font-sans">
               {selectedArticle.content}
             </div>
 

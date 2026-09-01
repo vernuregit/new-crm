@@ -61,13 +61,13 @@ export const TimeTracker = () => {
           description="Log billable hours, monitor task time estimates, and track team productivity"
         />
 
-        <div className="flex items-center gap-2 border-b border-slate-800 pb-3">
+        <div className="flex items-center gap-2 border-b border-border pb-3">
           <NavLink
             to="/projects/list"
             className={({ isActive }) =>
               `flex items-center gap-2 px-3 py-1.5 rounded-xl text-xs font-semibold transition-colors ${
                 isActive
-                  ? 'bg-indigo-600/20 text-indigo-400 border border-indigo-500/30'
+                  ? 'bg-accent-soft text-accent border border-accent/30'
                   : 'text-slate-400 hover:text-slate-200 hover:bg-slate-800'
               }`
             }
@@ -79,7 +79,7 @@ export const TimeTracker = () => {
             className={({ isActive }) =>
               `flex items-center gap-2 px-3 py-1.5 rounded-xl text-xs font-semibold transition-colors ${
                 isActive
-                  ? 'bg-indigo-600/20 text-indigo-400 border border-indigo-500/30'
+                  ? 'bg-accent-soft text-accent border border-accent/30'
                   : 'text-slate-400 hover:text-slate-200 hover:bg-slate-800'
               }`
             }
@@ -91,7 +91,7 @@ export const TimeTracker = () => {
             className={({ isActive }) =>
               `flex items-center gap-2 px-3 py-1.5 rounded-xl text-xs font-semibold transition-colors ${
                 isActive
-                  ? 'bg-indigo-600/20 text-indigo-400 border border-indigo-500/30'
+                  ? 'bg-accent-soft text-accent border border-accent/30'
                   : 'text-slate-400 hover:text-slate-200 hover:bg-slate-800'
               }`
             }
@@ -102,10 +102,10 @@ export const TimeTracker = () => {
       </div>
 
       {/* Time Tracking Log Table */}
-      <Card className="overflow-x-auto p-0 border-slate-800">
+      <Card className="overflow-x-auto p-0 border-border">
         <table className="w-full text-left border-collapse text-xs">
           <thead>
-            <tr className="bg-slate-900/80 border-b border-slate-800 text-slate-400">
+            <tr className="bg-slate-900/80 border-b border-border text-slate-400">
               <th className="p-4 font-semibold">Task Name</th>
               <th className="p-4 font-semibold">Project</th>
               <th className="p-4 font-semibold">Assignee</th>

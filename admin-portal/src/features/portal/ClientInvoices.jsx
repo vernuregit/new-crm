@@ -19,7 +19,7 @@ export const ClientInvoices = () => {
           description="View client invoices, payment status, receipts, and download PDF copies"
         />
 
-        <div className="flex items-center gap-2 border-b border-slate-200 dark:border-slate-800/80 pb-3 overflow-x-auto">
+        <div className="flex items-center gap-2 border-b border-border pb-3 overflow-x-auto">
           <NavLink
             to="/portal"
             end
@@ -27,7 +27,7 @@ export const ClientInvoices = () => {
               `flex items-center gap-2 px-3.5 py-1.5 rounded-xl text-xs font-semibold transition-all whitespace-nowrap ${
                 isActive
                   ? 'bg-emerald-50 text-emerald-700 border border-emerald-300 shadow-xs dark:bg-emerald-500/20 dark:text-emerald-300 dark:border-emerald-500/30'
-                  : 'text-slate-600 dark:text-slate-400 hover:text-slate-900 dark:hover:text-slate-100 hover:bg-slate-100 dark:hover:bg-slate-800/60 border border-transparent'
+                  : 'text-muted hover:text-slate-900 dark:hover:text-fg hover:bg-slate-100 dark:hover:bg-slate-800/60 border border-transparent'
               }`
             }
           >
@@ -39,7 +39,7 @@ export const ClientInvoices = () => {
               `flex items-center gap-2 px-3.5 py-1.5 rounded-xl text-xs font-semibold transition-all whitespace-nowrap ${
                 isActive
                   ? 'bg-emerald-50 text-emerald-700 border border-emerald-300 shadow-xs dark:bg-emerald-500/20 dark:text-emerald-300 dark:border-emerald-500/30'
-                  : 'text-slate-600 dark:text-slate-400 hover:text-slate-900 dark:hover:text-slate-100 hover:bg-slate-100 dark:hover:bg-slate-800/60 border border-transparent'
+                  : 'text-muted hover:text-slate-900 dark:hover:text-fg hover:bg-slate-100 dark:hover:bg-slate-800/60 border border-transparent'
               }`
             }
           >
@@ -51,7 +51,7 @@ export const ClientInvoices = () => {
               `flex items-center gap-2 px-3.5 py-1.5 rounded-xl text-xs font-semibold transition-all whitespace-nowrap ${
                 isActive
                   ? 'bg-emerald-50 text-emerald-700 border border-emerald-300 shadow-xs dark:bg-emerald-500/20 dark:text-emerald-300 dark:border-emerald-500/30'
-                  : 'text-slate-600 dark:text-slate-400 hover:text-slate-900 dark:hover:text-slate-100 hover:bg-slate-100 dark:hover:bg-slate-800/60 border border-transparent'
+                  : 'text-muted hover:text-slate-900 dark:hover:text-fg hover:bg-slate-100 dark:hover:bg-slate-800/60 border border-transparent'
               }`
             }
           >
@@ -63,7 +63,7 @@ export const ClientInvoices = () => {
               `flex items-center gap-2 px-3.5 py-1.5 rounded-xl text-xs font-semibold transition-all whitespace-nowrap ${
                 isActive
                   ? 'bg-emerald-50 text-emerald-700 border border-emerald-300 shadow-xs dark:bg-emerald-500/20 dark:text-emerald-300 dark:border-emerald-500/30'
-                  : 'text-slate-600 dark:text-slate-400 hover:text-slate-900 dark:hover:text-slate-100 hover:bg-slate-100 dark:hover:bg-slate-800/60 border border-transparent'
+                  : 'text-muted hover:text-slate-900 dark:hover:text-fg hover:bg-slate-100 dark:hover:bg-slate-800/60 border border-transparent'
               }`
             }
           >
@@ -73,10 +73,10 @@ export const ClientInvoices = () => {
       </div>
 
       {/* Invoices Table */}
-      <Card className="overflow-x-auto p-0 border-slate-200 dark:border-slate-800 shadow-xs">
+      <Card className="overflow-x-auto p-0 border-border shadow-xs">
         <table className="w-full text-left border-collapse text-xs">
           <thead>
-            <tr className="bg-slate-50 dark:bg-slate-900/80 border-b border-slate-200 dark:border-slate-800 text-slate-700 dark:text-slate-400 font-semibold">
+            <tr className="bg-canvas/80 border-b border-border text-slate-700 dark:text-slate-400 font-semibold">
               <th className="p-4 font-semibold">Invoice #</th>
               <th className="p-4 font-semibold">Issue Date</th>
               <th className="p-4 font-semibold">Due Date</th>
@@ -87,16 +87,16 @@ export const ClientInvoices = () => {
           </thead>
           <tbody className="divide-y divide-slate-200 dark:divide-slate-800/60">
             {invoices.map((inv) => (
-              <tr key={inv.invoiceId} className="hover:bg-slate-50 dark:hover:bg-slate-800/30 transition-colors text-slate-700 dark:text-slate-300">
+              <tr key={inv.invoiceId} className="hover:bg-slate-50 dark:hover:bg-slate-800/30 transition-colors text-fg">
                 <td className="p-4 font-bold text-slate-900 dark:text-slate-200">{inv.invoiceNumber}</td>
-                <td className="p-4 text-slate-600 dark:text-slate-400">{inv.issueDate}</td>
-                <td className="p-4 text-slate-600 dark:text-slate-400">{inv.dueDate}</td>
-                <td className="p-4 font-bold text-slate-900 dark:text-slate-100">${inv.total.toLocaleString()}</td>
+                <td className="p-4 text-muted">{inv.issueDate}</td>
+                <td className="p-4 text-muted">{inv.dueDate}</td>
+                <td className="p-4 font-bold text-fg">${inv.total.toLocaleString()}</td>
                 <td className="p-4">
                   <Badge variant={inv.status === 'paid' ? 'success' : 'warning'}>{inv.status}</Badge>
                 </td>
                 <td className="p-4 text-right space-x-2">
-                  <button className="p-1.5 hover:bg-slate-100 dark:hover:bg-slate-800 text-slate-500 dark:text-slate-400 hover:text-slate-800 dark:hover:text-white rounded-lg transition-colors cursor-pointer" title="Download PDF">
+                  <button className="p-1.5 hover:bg-slate-100 dark:hover:bg-slate-800 text-muted hover:text-slate-800 dark:hover:text-white rounded-lg transition-colors cursor-pointer" title="Download PDF">
                     <Download className="w-4 h-4" />
                   </button>
                   {inv.status !== 'paid' && (

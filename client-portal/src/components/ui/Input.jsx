@@ -2,7 +2,7 @@ import React, { useState } from 'react'
 import { Eye, EyeOff, Calendar } from 'lucide-react'
 
 const TRAILING_ICON_BTN =
-  'absolute inset-y-0 right-0 z-20 w-10 flex items-center justify-center text-slate-700 hover:text-slate-950 dark:text-slate-200 dark:hover:text-white transition-colors focus:outline-none focus-visible:ring-2 focus-visible:ring-indigo-500/50 rounded-r-xl cursor-pointer'
+  'absolute inset-y-0 right-0 z-20 w-10 flex items-center justify-center text-muted hover:text-fg transition-colors focus:outline-none focus-visible:ring-2 focus-visible:ring-accent/50 rounded-r-xl cursor-pointer'
 
 function openNativePicker(inputEl) {
   if (!inputEl) return
@@ -72,13 +72,13 @@ export const Input = ({
   return (
     <div className="w-full space-y-1.5 text-left">
       {label && (
-        <label htmlFor={inputId} className="block text-xs font-medium text-slate-700 dark:text-slate-300 flex items-center gap-1.5">
+        <label htmlFor={inputId} className="block text-xs font-medium text-fg flex items-center gap-1.5">
           {label}
         </label>
       )}
       <div className="relative rounded-xl">
         {Icon && (
-          <div className="absolute inset-y-0 left-0 pl-3.5 flex items-center pointer-events-none text-slate-400 dark:text-slate-500 z-10">
+          <div className="absolute inset-y-0 left-0 pl-3.5 flex items-center pointer-events-none text-muted z-10">
             <Icon className="w-4 h-4" />
           </div>
         )}
@@ -91,9 +91,9 @@ export const Input = ({
             }
             props.onClick?.(e)
           }}
-          className={`w-full bg-slate-100/80 dark:bg-[#11141E] border ${
-            error ? 'border-rose-500/80 focus:ring-rose-500' : 'border-slate-300 dark:border-slate-800 focus:border-indigo-500 focus:ring-indigo-500/20'
-          } text-slate-900 dark:text-slate-100 placeholder-slate-400 dark:placeholder-slate-500 text-sm rounded-xl py-2.5 ${
+          className={`w-full bg-surface border ${
+            error ? 'border-rose-500/80 focus:ring-rose-500' : 'border-border focus:border-accent focus:ring-accent/20'
+          } text-fg placeholder-muted text-sm rounded-xl py-2.5 ${
             Icon ? 'pl-10' : 'pl-3.5'
           } ${isPasswordType || isDateType ? 'pr-10' : 'pr-3.5'} [color-scheme:light] dark:[color-scheme:dark] [&::-webkit-calendar-picker-indicator]:opacity-0 [&::-webkit-calendar-picker-indicator]:cursor-pointer transition-all focus:outline-none focus:ring-2 ${className}`}
           {...props}

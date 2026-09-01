@@ -282,7 +282,7 @@ const GoogleMapsPicker = ({ lat, lng, radiusMeters, onPick }) => {
           ref={searchInputRef}
           type="text"
           placeholder="Search office building, address, or landmark with Google Places..."
-          className="w-full bg-slate-900/90 border border-slate-700 text-slate-100 text-xs rounded-xl pl-9 pr-4 py-2.5 focus:outline-none focus:border-indigo-500 placeholder:text-slate-500 shadow-inner"
+          className="w-full bg-slate-900/90 border border-slate-700 text-fg text-xs rounded-xl pl-9 pr-4 py-2.5 focus:outline-none focus:border-accent placeholder:text-muted shadow-inner"
         />
       </div>
 

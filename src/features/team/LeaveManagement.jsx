@@ -85,13 +85,13 @@ export const LeaveManagement = () => {
           }
         />
 
-        <div className="flex items-center gap-2 border-b border-slate-800 pb-3">
+        <div className="flex items-center gap-2 border-b border-border pb-3">
           <NavLink
             to="/team/employees"
             className={({ isActive }) =>
               `flex items-center gap-2 px-3 py-1.5 rounded-xl text-xs font-semibold transition-colors ${
                 isActive
-                  ? 'bg-indigo-600/20 text-indigo-400 border border-indigo-500/30'
+                  ? 'bg-accent-soft text-accent border border-accent/30'
                   : 'text-slate-400 hover:text-slate-200 hover:bg-slate-800'
               }`
             }
@@ -103,7 +103,7 @@ export const LeaveManagement = () => {
             className={({ isActive }) =>
               `flex items-center gap-2 px-3 py-1.5 rounded-xl text-xs font-semibold transition-colors ${
                 isActive
-                  ? 'bg-indigo-600/20 text-indigo-400 border border-indigo-500/30'
+                  ? 'bg-accent-soft text-accent border border-accent/30'
                   : 'text-slate-400 hover:text-slate-200 hover:bg-slate-800'
               }`
             }
@@ -115,7 +115,7 @@ export const LeaveManagement = () => {
             className={({ isActive }) =>
               `flex items-center gap-2 px-3 py-1.5 rounded-xl text-xs font-semibold transition-colors ${
                 isActive
-                  ? 'bg-indigo-600/20 text-indigo-400 border border-indigo-500/30'
+                  ? 'bg-accent-soft text-accent border border-accent/30'
                   : 'text-slate-400 hover:text-slate-200 hover:bg-slate-800'
               }`
             }
@@ -126,10 +126,10 @@ export const LeaveManagement = () => {
       </div>
 
       {/* Leave Requests Table */}
-      <Card className="overflow-x-auto p-0 border-slate-800">
+      <Card className="overflow-x-auto p-0 border-border">
         <table className="w-full text-left border-collapse text-xs">
           <thead>
-            <tr className="bg-slate-900/80 border-b border-slate-800 text-slate-400">
+            <tr className="bg-slate-900/80 border-b border-border text-slate-400">
               <th className="p-4 font-semibold">Employee</th>
               <th className="p-4 font-semibold">Leave Type</th>
               <th className="p-4 font-semibold">Duration</th>
@@ -153,7 +153,7 @@ export const LeaveManagement = () => {
                             className="w-8 h-8 rounded-full object-cover border border-slate-700 shrink-0"
                           />
                         ) : (
-                          <div className="w-8 h-8 rounded-full bg-indigo-500/20 text-indigo-400 border border-indigo-500/30 flex items-center justify-center font-bold text-xs shrink-0 shadow-sm">
+                          <div className="w-8 h-8 rounded-full bg-accent-soft text-accent border border-accent/30 flex items-center justify-center font-bold text-xs shrink-0 shadow-sm">
                             {info.initials}
                           </div>
                         )}
@@ -222,9 +222,9 @@ export const LeaveManagement = () => {
       {/* Request Leave Modal */}
       {showAddModal && (
         <div className="fixed inset-0 z-50 bg-black/70 backdrop-blur-sm flex items-center justify-center p-4">
-          <Card className="w-full max-w-lg p-6 space-y-4 border-slate-800 shadow-2xl relative">
-            <div className="flex items-center justify-between pb-3 border-b border-slate-800">
-              <h3 className="font-bold text-slate-100 text-sm">Submit Leave Request</h3>
+          <Card className="w-full max-w-lg p-6 space-y-4 border-border shadow-2xl relative">
+            <div className="flex items-center justify-between pb-3 border-b border-border">
+              <h3 className="font-bold text-fg text-sm">Submit Leave Request</h3>
               <button
                 onClick={() => setShowAddModal(false)}
                 className="text-slate-400 hover:text-white p-1 rounded-lg hover:bg-slate-800"
@@ -239,7 +239,7 @@ export const LeaveManagement = () => {
                 <select
                   value={employeeName}
                   onChange={(e) => setEmployeeName(e.target.value)}
-                  className="w-full bg-[#11141E] border border-slate-800 text-slate-100 text-sm rounded-xl py-2.5 px-3.5 focus:outline-none"
+                  className="w-full bg-canvas border border-border text-fg text-sm rounded-xl py-2.5 px-3.5 focus:outline-none"
                 >
                   <option value="Sarah Jenkins">Sarah Jenkins</option>
                   <option value="Alex Rivera">Alex Rivera</option>
@@ -252,7 +252,7 @@ export const LeaveManagement = () => {
                 <select
                   value={leaveType}
                   onChange={(e) => setLeaveType(e.target.value)}
-                  className="w-full bg-[#11141E] border border-slate-800 text-slate-100 text-sm rounded-xl py-2.5 px-3.5 focus:outline-none"
+                  className="w-full bg-canvas border border-border text-fg text-sm rounded-xl py-2.5 px-3.5 focus:outline-none"
                 >
                   <option value="Annual Leave">Annual Leave</option>
                   <option value="Sick Leave">Sick Leave</option>

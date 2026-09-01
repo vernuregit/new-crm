@@ -1,13 +1,16 @@
 import {
   collection,
   doc,
+  getDoc,
   getDocs,
+  addDoc,
   setDoc,
   updateDoc,
   deleteDoc,
   query,
   where,
   serverTimestamp,
+  onSnapshot,
 } from 'firebase/firestore'
 import { db } from '../../../shared/services/firebaseService'
 
@@ -340,6 +343,177 @@ export const deleteProjectFromDb = async (projectId) => {
     await deleteDoc(doc(db, 'projects', projectId))
   } catch (err) {
     console.error('Error deleting project from Firestore:', err)
+  }
+}
+
+export const getProjectById = async (projectId) => {
+  try {
+    if (!projectId) return null
+    const docSnap = await getDoc(doc(db, 'projects', projectId))
+    if (docSnap.exists()) {
+      return { projectId: docSnap.id, id: docSnap.id, ...docSnap.data() }
+    }
+    return null
+  } catch (err) {
+    console.error('Error fetching project by ID:', err)
+    return null
+  }
+}
+
+export const getClientVisibility = (step) => {
+  if (!step?.clientVisibility) return 'approved'
+  return step.clientVisibility
+}
+
+export const isClientVisible = (step) => getClientVisibility(step) === 'approved'
+
+export const getProjectProcessSteps = async (projectId) => {
+  try {
+    if (!projectId) return []
+    const processRef = collection(db, 'projects', projectId, 'processSteps')
+    const snap = await getDocs(processRef)
+    const list = snap.docs.map((d) => ({ id: d.id, ...d.data() }))
+    list.sort((a, b) => (a.stepNumber || 0) - (b.stepNumber || 0))
+    return list
+  } catch (err) {
+    console.error('Error fetching project process steps:', err)
+    return []
+  }
+}
+
+export const subscribeProjectProcessSteps = (projectId, callback) => {
+  if (!projectId) return () => {}
+  try {
+    const processRef = collection(db, 'projects', projectId, 'processSteps')
+    return onSnapshot(
+      processRef,
+      (snap) => {
+        const list = snap.docs.map((d) => ({ id: d.id, ...d.data() }))
+        list.sort((a, b) => (a.stepNumber || 0) - (b.stepNumber || 0))
+        callback(list)
+      },
+      (err) => {
+        console.warn('Error subscribing to process steps:', err)
+      }
+    )
+  } catch (err) {
+    console.error('Error setting up process steps subscription:', err)
+    return () => {}
+  }
+}
+
+export const syncProjectProcessProgress = async (projectId) => {
+  try {
+    if (!projectId) return
+    const steps = await getProjectProcessSteps(projectId)
+    if (steps.length === 0) return
+
+    const completedCount = steps.filter((s) => s.status === 'completed').length
+    const completionPercent = Math.round((completedCount / steps.length) * 100)
+    const activeStep = steps.find((s) => s.status === 'in_progress') || steps.find((s) => s.status === 'pending')
+
+    await updateDoc(doc(db, 'projects', projectId), {
+      completionPercent,
+      nextMilestone: activeStep ? activeStep.title : 'All Stages Completed',
+      updatedAt: new Date().toISOString(),
+    })
+  } catch (err) {
+    console.warn('Error syncing project progress from steps:', err)
+  }
+}
+
+export const addProcessStep = async (projectId, stepData) => {
+  try {
+    if (!projectId) throw new Error('Missing projectId')
+    const existing = await getProjectProcessSteps(projectId)
+    const nextStepNum = existing.length > 0 ? Math.max(...existing.map((s) => s.stepNumber || 0)) + 1 : 1
+    const now = new Date().toISOString()
+    const createdByRole = stepData.createdByRole || 'employee'
+    const clientVisibility =
+      stepData.clientVisibility || (createdByRole === 'admin' ? 'approved' : 'pending')
+
+    const payload = {
+      projectId,
+      stepNumber: stepData.stepNumber || nextStepNum,
+      title: stepData.title || 'Process Stage',
+      message: stepData.message || stepData.description || '',
+      status: stepData.status || 'pending',
+      type: stepData.type || 'message',
+      author: stepData.author || 'From Team',
+      meta: stepData.meta || '',
+      clientVisibility,
+      createdByRole,
+      createdByUid: stepData.createdByUid || null,
+      createdByName: stepData.createdByName || '',
+      clientApprovedAt: clientVisibility === 'approved' ? now : null,
+      clientApprovedBy: clientVisibility === 'approved' ? stepData.createdByUid || stepData.createdByName || null : null,
+      completedAt: stepData.status === 'completed' ? now : null,
+      createdAt: now,
+      updatedAt: now,
+    }
+
+    const docRef = await addDoc(collection(db, 'projects', projectId, 'processSteps'), payload)
+    await syncProjectProcessProgress(projectId)
+    return { id: docRef.id, ...payload }
+  } catch (err) {
+    console.error('Error adding process step:', err)
+    throw err
+  }
+}
+
+export const updateProcessStep = async (projectId, stepId, updates) => {
+  try {
+    if (!projectId || !stepId) return
+    const payload = {
+      ...updates,
+      updatedAt: new Date().toISOString(),
+    }
+    if (updates.status === 'completed' && !updates.completedAt) {
+      payload.completedAt = new Date().toISOString()
+    } else if (updates.status && updates.status !== 'completed') {
+      payload.completedAt = null
+    }
+
+    await updateDoc(doc(db, 'projects', projectId, 'processSteps', stepId), payload)
+    await syncProjectProcessProgress(projectId)
+  } catch (err) {
+    console.error('Error updating process step:', err)
+    throw err
+  }
+}
+
+export const toggleProcessStepStatus = async (projectId, stepId, currentStatus) => {
+  try {
+    if (!projectId || !stepId) return
+    let nextStatus = 'in_progress'
+    if (currentStatus === 'in_progress') nextStatus = 'completed'
+    else if (currentStatus === 'completed') nextStatus = 'pending'
+    else if (currentStatus === 'pending') nextStatus = 'in_progress'
+
+    const payload = {
+      status: nextStatus,
+      completedAt: nextStatus === 'completed' ? new Date().toISOString() : null,
+      updatedAt: new Date().toISOString(),
+    }
+
+    await updateDoc(doc(db, 'projects', projectId, 'processSteps', stepId), payload)
+    await syncProjectProcessProgress(projectId)
+    return nextStatus
+  } catch (err) {
+    console.error('Error toggling process step status:', err)
+    throw err
+  }
+}
+
+export const deleteProcessStep = async (projectId, stepId) => {
+  try {
+    if (!projectId || !stepId) return
+    try {
+      await deleteDoc(doc(db, 'projects', projectId, 'processSteps', stepId))
+    } catch (_) {}
+    await syncProjectProcessProgress(projectId)
+  } catch (err) {
+    console.error('Error deleting process step:', err)
   }
 }
 

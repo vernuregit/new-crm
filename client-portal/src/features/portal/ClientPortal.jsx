@@ -72,10 +72,10 @@ export const ClientPortal = () => {
     <div className="space-y-7 max-w-7xl mx-auto pb-10">
       {/* 1. Greeting Section */}
       <div>
-        <h2 className="text-2xl font-bold text-slate-900 dark:text-white tracking-tight flex items-center gap-2">
+        <h2 className="text-2xl font-bold text-fg tracking-tight flex items-center gap-2">
           <span>Welcome, {firstName}!</span>
         </h2>
-        <p className="text-sm text-slate-500 dark:text-slate-400 mt-1">
+        <p className="text-sm text-muted mt-1">
           Here&apos;s what&apos;s happening with your account.
         </p>
       </div>
@@ -83,16 +83,16 @@ export const ClientPortal = () => {
       {/* 2. Top 4 Stat Metric Cards */}
       <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-5">
         {/* Card 1: Active Projects */}
-        <Card className="p-6 bg-white dark:bg-[#111827] border-slate-200/80 dark:border-slate-800 rounded-2xl shadow-2xs hover:shadow-xs transition-shadow">
+        <Card className="p-6 bg-surface border-border rounded-2xl shadow-2xs hover:shadow-xs transition-shadow">
           <div className="flex items-start gap-4">
-            <div className="w-11 h-11 rounded-xl bg-blue-50 dark:bg-blue-500/15 text-blue-600 dark:text-blue-400 flex items-center justify-center shrink-0">
+            <div className="w-11 h-11 rounded-xl bg-accent-soft text-accent flex items-center justify-center shrink-0">
               <Folder className="w-5 h-5" />
             </div>
             <div>
-              <div className="text-2xl font-bold text-slate-900 dark:text-white leading-tight">
+              <div className="text-2xl font-bold text-fg leading-tight">
                 {activeProjectsCount}
               </div>
-              <div className="text-xs text-slate-500 dark:text-slate-400 font-medium mt-0.5">
+              <div className="text-xs text-muted font-medium mt-0.5">
                 Active Projects
               </div>
             </div>
@@ -100,7 +100,7 @@ export const ClientPortal = () => {
           <div className="mt-5 pt-1">
             <Link
               to="/portal/projects"
-              className="text-xs font-semibold text-blue-600 dark:text-blue-400 hover:text-blue-700 dark:hover:text-blue-300 inline-flex items-center gap-1 group"
+              className="text-xs font-semibold text-accent hover:text-accent-hover inline-flex items-center gap-1 group"
             >
               <span>View all</span>
               <span className="group-hover:translate-x-0.5 transition-transform">→</span>
@@ -109,16 +109,16 @@ export const ClientPortal = () => {
         </Card>
 
         {/* Card 2: Pending Invoice */}
-        <Card className="p-6 bg-white dark:bg-[#111827] border-slate-200/80 dark:border-slate-800 rounded-2xl shadow-2xs hover:shadow-xs transition-shadow">
+        <Card className="p-6 bg-surface border-border rounded-2xl shadow-2xs hover:shadow-xs transition-shadow">
           <div className="flex items-start gap-4">
             <div className="w-11 h-11 rounded-xl bg-emerald-50 dark:bg-emerald-500/15 text-emerald-600 dark:text-emerald-400 flex items-center justify-center shrink-0">
               <CheckCircle2 className="w-5 h-5" />
             </div>
             <div>
-              <div className="text-2xl font-bold text-slate-900 dark:text-white leading-tight">
+              <div className="text-2xl font-bold text-fg leading-tight">
                 {pendingInvoicesCount}
               </div>
-              <div className="text-xs text-slate-500 dark:text-slate-400 font-medium mt-0.5">
+              <div className="text-xs text-muted font-medium mt-0.5">
                 Pending Invoice
               </div>
             </div>
@@ -126,7 +126,7 @@ export const ClientPortal = () => {
           <div className="mt-5 pt-1">
             <Link
               to="/portal/invoices"
-              className="text-xs font-semibold text-blue-600 dark:text-blue-400 hover:text-blue-700 dark:hover:text-blue-300 inline-flex items-center gap-1 group"
+              className="text-xs font-semibold text-accent hover:text-accent-hover inline-flex items-center gap-1 group"
             >
               <span>View all</span>
               <span className="group-hover:translate-x-0.5 transition-transform">→</span>
@@ -135,16 +135,16 @@ export const ClientPortal = () => {
         </Card>
 
         {/* Card 3: Documents */}
-        <Card className="p-6 bg-white dark:bg-[#111827] border-slate-200/80 dark:border-slate-800 rounded-2xl shadow-2xs hover:shadow-xs transition-shadow">
+        <Card className="p-6 bg-surface border-border rounded-2xl shadow-2xs hover:shadow-xs transition-shadow">
           <div className="flex items-start gap-4">
-            <div className="w-11 h-11 rounded-xl bg-purple-50 dark:bg-purple-500/15 text-purple-600 dark:text-purple-400 flex items-center justify-center shrink-0">
+            <div className="w-11 h-11 rounded-xl bg-accent-soft text-accent flex items-center justify-center shrink-0">
               <FileText className="w-5 h-5" />
             </div>
             <div>
-              <div className="text-2xl font-bold text-slate-900 dark:text-white leading-tight">
+              <div className="text-2xl font-bold text-fg leading-tight">
                 {documentsCount}
               </div>
-              <div className="text-xs text-slate-500 dark:text-slate-400 font-medium mt-0.5">
+              <div className="text-xs text-muted font-medium mt-0.5">
                 Documents
               </div>
             </div>
@@ -152,7 +152,7 @@ export const ClientPortal = () => {
           <div className="mt-5 pt-1">
             <Link
               to="/portal/files"
-              className="text-xs font-semibold text-blue-600 dark:text-blue-400 hover:text-blue-700 dark:hover:text-blue-300 inline-flex items-center gap-1 group"
+              className="text-xs font-semibold text-accent hover:text-accent-hover inline-flex items-center gap-1 group"
             >
               <span>View all</span>
               <span className="group-hover:translate-x-0.5 transition-transform">→</span>
@@ -161,16 +161,16 @@ export const ClientPortal = () => {
         </Card>
 
         {/* Card 4: Open Tickets */}
-        <Card className="p-6 bg-white dark:bg-[#111827] border-slate-200/80 dark:border-slate-800 rounded-2xl shadow-2xs hover:shadow-xs transition-shadow">
+        <Card className="p-6 bg-surface border-border rounded-2xl shadow-2xs hover:shadow-xs transition-shadow">
           <div className="flex items-start gap-4">
             <div className="w-11 h-11 rounded-xl bg-amber-50 dark:bg-amber-500/15 text-amber-600 dark:text-amber-400 flex items-center justify-center shrink-0">
               <Headphones className="w-5 h-5" />
             </div>
             <div>
-              <div className="text-2xl font-bold text-slate-900 dark:text-white leading-tight">
+              <div className="text-2xl font-bold text-fg leading-tight">
                 {openTicketsCount}
               </div>
-              <div className="text-xs text-slate-500 dark:text-slate-400 font-medium mt-0.5">
+              <div className="text-xs text-muted font-medium mt-0.5">
                 Open Tickets
               </div>
             </div>
@@ -178,7 +178,7 @@ export const ClientPortal = () => {
           <div className="mt-5 pt-1">
             <Link
               to="/portal/support"
-              className="text-xs font-semibold text-blue-600 dark:text-blue-400 hover:text-blue-700 dark:hover:text-blue-300 inline-flex items-center gap-1 group"
+              className="text-xs font-semibold text-accent hover:text-accent-hover inline-flex items-center gap-1 group"
             >
               <span>View all</span>
               <span className="group-hover:translate-x-0.5 transition-transform">→</span>
@@ -190,21 +190,21 @@ export const ClientPortal = () => {
       {/* 3. Middle Section: My Projects & Recent Activity */}
       <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
         {/* Left Card: My Projects */}
-        <Card className="p-6 bg-white dark:bg-[#111827] border-slate-200/80 dark:border-slate-800 rounded-2xl shadow-2xs">
+        <Card className="p-6 bg-surface border-border rounded-2xl shadow-2xs">
           <div className="flex items-center justify-between pb-5 border-b border-slate-100 dark:border-slate-800/80">
-            <h3 className="font-bold text-slate-900 dark:text-white text-sm">
+            <h3 className="font-bold text-fg text-sm">
               My Projects
             </h3>
             <Link
               to="/portal/projects"
-              className="text-xs font-semibold text-blue-600 dark:text-blue-400 hover:text-blue-700 dark:hover:text-blue-300"
+              className="text-xs font-semibold text-accent hover:text-accent-hover"
             >
               View all projects
             </Link>
           </div>
 
           {projects.length === 0 ? (
-            <div className="py-8 text-center text-xs text-slate-500 dark:text-slate-400">
+            <div className="py-8 text-center text-xs text-muted">
               No active projects assigned yet.
             </div>
           ) : (
@@ -213,19 +213,19 @@ export const ClientPortal = () => {
                 <div key={p.projectId || p.name} className="py-5 first:pt-4 last:pb-1 space-y-3">
                   <div className="flex items-center justify-between">
                     <div className="flex items-center gap-2.5">
-                      <span className="font-bold text-slate-900 dark:text-white text-xs">
+                      <span className="font-bold text-fg text-xs">
                         {p.name}
                       </span>
                       <span className="inline-flex items-center px-2 py-0.5 rounded-full text-[11px] font-medium bg-emerald-50 dark:bg-emerald-500/15 text-emerald-600 dark:text-emerald-400">
                         {p.status || 'In Progress'}
                       </span>
                     </div>
-                    <span className="font-bold text-slate-900 dark:text-white text-xs">
+                    <span className="font-bold text-fg text-xs">
                       {p.completionPercent || 0}%
                     </span>
                   </div>
 
-                  <div className="flex items-center justify-between text-xs text-slate-500 dark:text-slate-400">
+                  <div className="flex items-center justify-between text-xs text-muted">
                     <div className="flex items-center gap-1.5">
                       <span>Next Milestone: {p.nextMilestone || 'Under Review'}</span>
                     </div>
@@ -238,9 +238,9 @@ export const ClientPortal = () => {
                   </div>
 
                   {/* Progress bar */}
-                  <div className="w-full bg-slate-100 dark:bg-slate-800 h-1.5 rounded-full overflow-hidden">
+                  <div className="w-full bg-chrome h-1.5 rounded-full overflow-hidden">
                     <div
-                      className="bg-blue-600 dark:bg-blue-500 h-full rounded-full transition-all duration-500"
+                      className="bg-accent h-full rounded-full transition-all duration-500"
                       style={{ width: `${p.completionPercent || 0}%` }}
                     />
                   </div>
@@ -251,28 +251,28 @@ export const ClientPortal = () => {
         </Card>
 
         {/* Right Card: Recent Activity */}
-        <Card className="p-6 bg-white dark:bg-[#111827] border-slate-200/80 dark:border-slate-800 rounded-2xl shadow-2xs">
+        <Card className="p-6 bg-surface border-border rounded-2xl shadow-2xs">
           <div className="flex items-center justify-between pb-5 border-b border-slate-100 dark:border-slate-800/80">
-            <h3 className="font-bold text-slate-900 dark:text-white text-sm">
+            <h3 className="font-bold text-fg text-sm">
               Recent Activity
             </h3>
             <Link
               to="/portal/projects"
-              className="text-xs font-semibold text-blue-600 dark:text-blue-400 hover:text-blue-700 dark:hover:text-blue-300"
+              className="text-xs font-semibold text-accent hover:text-accent-hover"
             >
               View all
             </Link>
           </div>
 
           {activities.length === 0 ? (
-            <div className="py-8 text-center text-xs text-slate-500 dark:text-slate-400">
+            <div className="py-8 text-center text-xs text-muted">
               No recent activity recorded yet.
             </div>
           ) : (
             <div className="space-y-4 pt-4">
               {activities.map((act) => {
                 let Icon = FileText
-                let iconStyle = 'bg-purple-50 dark:bg-purple-500/15 text-purple-600 dark:text-purple-400'
+                let iconStyle = 'bg-accent-soft text-accent'
                 if (act.type === 'milestone') {
                   Icon = CheckCircle2
                   iconStyle = 'bg-emerald-50 dark:bg-emerald-500/15 text-emerald-600 dark:text-emerald-400'
@@ -281,7 +281,7 @@ export const ClientPortal = () => {
                   iconStyle = 'bg-amber-50 dark:bg-amber-500/15 text-amber-600 dark:text-amber-400'
                 } else if (act.type === 'comment') {
                   Icon = MessageSquare
-                  iconStyle = 'bg-blue-50 dark:bg-blue-500/15 text-blue-600 dark:text-blue-400'
+                  iconStyle = 'bg-accent-soft text-accent'
                 }
 
                 return (
@@ -291,7 +291,7 @@ export const ClientPortal = () => {
                         <Icon className="w-4 h-4" />
                       </div>
                       <div className="min-w-0">
-                        <p className="text-xs font-semibold text-slate-900 dark:text-slate-100 truncate">
+                        <p className="text-xs font-semibold text-fg truncate">
                           {act.title}
                         </p>
                         <p className="text-[11px] text-slate-400 dark:text-slate-400 truncate mt-0.5">
@@ -311,21 +311,21 @@ export const ClientPortal = () => {
       </div>
 
       {/* 4. Bottom Section: Recent Invoices Table */}
-      <Card className="p-6 bg-white dark:bg-[#111827] border-slate-200/80 dark:border-slate-800 rounded-2xl shadow-2xs">
+      <Card className="p-6 bg-surface border-border rounded-2xl shadow-2xs">
         <div className="flex items-center justify-between pb-5 border-b border-slate-100 dark:border-slate-800/80">
-          <h3 className="font-bold text-slate-900 dark:text-white text-sm">
+          <h3 className="font-bold text-fg text-sm">
             Recent Invoices
           </h3>
           <Link
             to="/portal/invoices"
-            className="text-xs font-semibold text-blue-600 dark:text-blue-400 hover:text-blue-700 dark:hover:text-blue-300"
+            className="text-xs font-semibold text-accent hover:text-accent-hover"
           >
             View all invoices
           </Link>
         </div>
 
         {invoices.length === 0 ? (
-          <div className="py-8 text-center text-xs text-slate-500 dark:text-slate-400">
+          <div className="py-8 text-center text-xs text-muted">
             No recent invoices found.
           </div>
         ) : (
@@ -342,14 +342,14 @@ export const ClientPortal = () => {
               </thead>
               <tbody className="divide-y divide-slate-100 dark:divide-slate-800/60">
                 {invoices.slice(0, 3).map((inv) => (
-                  <tr key={inv.invoiceId} className="hover:bg-slate-50/60 dark:hover:bg-slate-800/40 transition-colors">
-                    <td className="py-4 font-semibold text-slate-900 dark:text-slate-100">
+                  <tr key={inv.invoiceId} className="hover:bg-slate-50/60 dark:hover:bg-chrome/40 transition-colors">
+                    <td className="py-4 font-semibold text-fg">
                       {inv.invoiceNumber || inv.invoiceId}
                     </td>
-                    <td className="py-4 text-slate-700 dark:text-slate-300">
+                    <td className="py-4 text-fg">
                       {inv.projectName || 'General Consulting'}
                     </td>
-                    <td className="py-4 font-semibold text-slate-900 dark:text-slate-100">
+                    <td className="py-4 font-semibold text-fg">
                       ${Number(inv.total || 0).toLocaleString('en-US', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}
                     </td>
                     <td className="py-4">
@@ -363,7 +363,7 @@ export const ClientPortal = () => {
                         {inv.status || 'Due'}
                       </span>
                     </td>
-                    <td className="py-4 text-slate-700 dark:text-slate-300">
+                    <td className="py-4 text-fg">
                       {inv.dueDate || '—'}
                     </td>
                   </tr>

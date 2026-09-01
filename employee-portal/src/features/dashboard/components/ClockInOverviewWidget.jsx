@@ -229,17 +229,17 @@ export const ClockInOverviewWidget = ({ children }) => {
       <div className={`grid grid-cols-1 gap-3 items-stretch ${children ? 'lg:grid-cols-3' : 'lg:grid-cols-12'}`}>
 
         {/* CARD 1: Today's Overview (Main Clock-In Card) */}
-        <Card className={`${children ? '' : 'lg:col-span-7'} p-5 sm:p-6 border-slate-200 dark:border-slate-800 flex flex-col relative overflow-hidden bg-gradient-to-br from-white via-slate-50/50 to-emerald-50/20 dark:from-[#181C27] dark:via-[#181C27] dark:to-emerald-950/20 shadow-lg shadow-slate-200/50 dark:shadow-none`}>
+        <Card className={`${children ? '' : 'lg:col-span-7'} p-5 sm:p-6 border-border flex flex-col relative overflow-hidden bg-gradient-to-br from-white via-slate-50/50 to-emerald-50/20 dark:from-surface dark:via-surface dark:to-emerald-950/20 shadow-lg shadow-slate-200/50 dark:shadow-none`}>
           {/* Top Row: Title & Badge & Live Clock */}
-          <div className="flex items-center justify-between pb-3 border-b border-slate-200/80 dark:border-slate-800 shrink-0">
+          <div className="flex items-center justify-between pb-3 border-b border-border shrink-0">
               <div className="flex items-center gap-2">
-                <h3 className="font-extrabold text-slate-900 dark:text-slate-100 text-base tracking-tight">
+                <h3 className="font-extrabold text-fg text-base tracking-tight">
                   Today's Overview
                 </h3>
               </div>
 
               <div className="flex items-center gap-2.5">
-                <span className="text-xs font-mono text-slate-600 dark:text-slate-300 bg-slate-100 dark:bg-slate-800/90 px-2.5 py-1 rounded-lg border border-slate-200 dark:border-slate-700/80 shadow-xs font-medium">
+                <span className="text-xs font-mono text-muted bg-chrome/90 px-2.5 py-1 rounded-lg border border-border/80 shadow-xs font-medium">
                   {currentTimeStr}
                 </span>
 
@@ -291,10 +291,10 @@ export const ClockInOverviewWidget = ({ children }) => {
                   </svg>
 
                   <div className="absolute inset-0 flex flex-col items-center justify-center text-center">
-                    <span className="text-xl sm:text-2xl font-black text-slate-900 dark:text-white leading-none tracking-tight">
+                    <span className="text-xl sm:text-2xl font-black text-fg leading-none tracking-tight">
                       {progressPercentage}%
                     </span>
-                    <span className="text-[11px] font-semibold text-slate-500 dark:text-slate-400 mt-1">
+                    <span className="text-[11px] font-semibold text-muted mt-1">
                       in office
                     </span>
                   </div>
@@ -304,7 +304,7 @@ export const ClockInOverviewWidget = ({ children }) => {
               {/* Progress Text Information */}
               <div className="col-span-7 sm:col-span-8 space-y-2 pl-2">
                 <div>
-                  <span className="text-xs font-semibold text-slate-500 dark:text-slate-400 uppercase tracking-wider block">
+                  <span className="text-xs font-semibold text-muted uppercase tracking-wider block">
                     Workday Progress
                   </span>
                   <div className="text-2xl sm:text-3xl font-black text-emerald-600 dark:text-emerald-400 tracking-tight mt-0.5">
@@ -320,9 +320,9 @@ export const ClockInOverviewWidget = ({ children }) => {
                   />
                 </div>
 
-                <p className="text-xs sm:text-sm text-slate-500 dark:text-slate-400 font-medium pt-0.5">
+                <p className="text-xs sm:text-sm text-muted font-medium pt-0.5">
                   {!clockedIn ? (
-                    <span className="text-slate-500 dark:text-slate-400 italic">
+                    <span className="text-muted italic">
                       You haven't clocked in today
                     </span>
                   ) : isOnBreak ? (
@@ -330,7 +330,7 @@ export const ClockInOverviewWidget = ({ children }) => {
                       Paused for break
                     </span>
                   ) : (
-                    <span className="text-slate-700 dark:text-slate-300">
+                    <span className="text-fg">
                       Clocked in at <strong className="text-emerald-600 dark:text-emerald-400 font-bold">{formatTo12HourTime(clockInTime)}</strong>
                     </span>
                   )}
@@ -393,7 +393,7 @@ export const ClockInOverviewWidget = ({ children }) => {
               variant="outline"
               onClick={() => setShowLogs(!showLogs)}
               title="Today's Shift Logs"
-              className="py-2.5 px-3.5 text-slate-500 dark:text-slate-400 rounded-xl"
+              className="py-2.5 px-3.5 text-muted rounded-xl"
             >
               <History className="w-4 h-4 sm:w-5 sm:h-5" />
             </Button>
@@ -402,16 +402,16 @@ export const ClockInOverviewWidget = ({ children }) => {
 
           {/* Extra Work Hours / Overtime — kept for later; UI hidden for now */}
           {false && (
-            <div className="mt-3 pt-3 border-t border-slate-200/80 dark:border-slate-800 flex items-center justify-between gap-2">
+            <div className="mt-3 pt-3 border-t border-border flex items-center justify-between gap-2">
               <div className="flex items-center gap-2">
-                <div className={`p-1.5 rounded-lg ${isInExtraTime ? 'bg-amber-500/20 text-amber-500 animate-pulse' : isWorkDone ? 'bg-indigo-500/10 text-indigo-500' : 'bg-slate-100 dark:bg-slate-800 text-slate-400'}`}>
+                <div className={`p-1.5 rounded-lg ${isInExtraTime ? 'bg-amber-500/20 text-amber-500 animate-pulse' : isWorkDone ? 'bg-accent-soft text-accent' : 'bg-chrome text-slate-400'}`}>
                   <Zap className="w-4 h-4" />
                 </div>
                 <div className="flex flex-col">
-                  <span className="text-xs font-bold text-slate-800 dark:text-slate-200">
+                  <span className="text-xs font-bold text-fg">
                     Extra Work Hours
                   </span>
-                  <span className="text-[10px] text-slate-500 dark:text-slate-400">
+                  <span className="text-[10px] text-muted">
                     {isInExtraTime
                       ? `Logging overtime: ${formatWorkdayHours(elapsedExtraSec)}`
                       : isWorkDone
@@ -445,9 +445,9 @@ export const ClockInOverviewWidget = ({ children }) => {
 
       {/* Shift History Log Dropdown Panel */}
       {showLogs && (
-        <Card className="p-4 border-slate-200 dark:border-slate-800 bg-slate-50/50 dark:bg-slate-900/40 space-y-3 transition-all animate-fadeIn">
-          <div className="flex items-center justify-between pb-2 border-b border-slate-200 dark:border-slate-800 text-xs">
-            <div className="flex items-center gap-2 text-slate-700 dark:text-slate-300 font-semibold">
+        <Card className="p-4 border-border bg-slate-50/50 dark:bg-slate-900/40 space-y-3 transition-all animate-fadeIn">
+          <div className="flex items-center justify-between pb-2 border-b border-border text-xs">
+            <div className="flex items-center gap-2 text-fg font-semibold">
               <History className="w-4 h-4 text-emerald-600 dark:text-emerald-400" />
               <span>Today's Shift Activity Log</span>
             </div>
@@ -457,7 +457,7 @@ export const ClockInOverviewWidget = ({ children }) => {
           </div>
 
           {todayShiftLogs.length === 0 ? (
-            <p className="text-xs text-slate-500 dark:text-slate-400 italic text-center py-3">
+            <p className="text-xs text-muted italic text-center py-3">
               No clock events recorded for today yet. Click "Check In" to log your shift arrival.
             </p>
           ) : (
@@ -465,7 +465,7 @@ export const ClockInOverviewWidget = ({ children }) => {
               {todayShiftLogs.map((log) => (
                 <div
                   key={log.id}
-                  className="flex items-center justify-between p-2.5 rounded-xl bg-white dark:bg-[#181C27] border border-slate-200 dark:border-slate-800 text-xs"
+                  className="flex items-center justify-between p-2.5 rounded-xl bg-surface border border-border text-xs"
                 >
                   <div className="flex items-center gap-2">
                     <span
@@ -477,11 +477,11 @@ export const ClockInOverviewWidget = ({ children }) => {
                           : 'bg-amber-500'
                       }`}
                     />
-                    <span className="font-medium text-slate-800 dark:text-slate-200">
+                    <span className="font-medium text-fg">
                       {log.label}
                     </span>
                   </div>
-                  <span className="font-mono text-[11px] text-slate-500 dark:text-slate-400">
+                  <span className="font-mono text-[11px] text-muted">
                     {formatTo12HourTime(log.time)}
                   </span>
                 </div>

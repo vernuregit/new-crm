@@ -99,8 +99,8 @@ const STATUS_DOT_COLORS = {
   todo: 'bg-sky-500 dark:bg-sky-400',
   blue: 'bg-sky-500 dark:bg-sky-400',
   sky: 'bg-sky-500 dark:bg-sky-400',
-  in_progress: 'bg-indigo-500 dark:bg-indigo-400',
-  indigo: 'bg-indigo-500 dark:bg-indigo-400',
+  in_progress: 'bg-accent',
+  indigo: 'bg-accent',
   in_review: 'bg-amber-500 dark:bg-amber-400',
   amber: 'bg-amber-500 dark:bg-amber-400',
   done: 'bg-emerald-500 dark:bg-emerald-400',
@@ -335,15 +335,15 @@ export const TaskBoard = () => {
           }
         />
 
-        <div className="flex flex-wrap items-center justify-between gap-3 border-b border-slate-200 dark:border-slate-800 pb-3">
+        <div className="flex flex-wrap items-center justify-between gap-3 border-b border-border pb-3">
           <div className="flex items-center gap-2">
             <NavLink
               to="/projects/list"
               className={({ isActive }) =>
                 `flex items-center gap-2 px-3 py-1.5 rounded-xl text-xs font-semibold transition-colors ${
                   isActive
-                    ? 'bg-indigo-50 dark:bg-indigo-600/20 text-indigo-600 dark:text-indigo-400 border border-indigo-200 dark:border-indigo-500/30'
-                    : 'text-slate-600 dark:text-slate-400 hover:text-slate-900 dark:hover:text-slate-200 hover:bg-slate-100 dark:hover:bg-slate-800'
+                    ? 'bg-accent-soft text-accent border border-accent/30'
+                    : 'text-muted hover:text-fg hover:bg-slate-100 dark:hover:bg-slate-800'
                 }`
               }
             >
@@ -354,8 +354,8 @@ export const TaskBoard = () => {
               className={({ isActive }) =>
                 `flex items-center gap-2 px-3 py-1.5 rounded-xl text-xs font-semibold transition-colors ${
                   isActive
-                    ? 'bg-indigo-50 dark:bg-indigo-600/20 text-indigo-600 dark:text-indigo-400 border border-indigo-200 dark:border-indigo-500/30'
-                    : 'text-slate-600 dark:text-slate-400 hover:text-slate-900 dark:hover:text-slate-200 hover:bg-slate-100 dark:hover:bg-slate-800'
+                    ? 'bg-accent-soft text-accent border border-accent/30'
+                    : 'text-muted hover:text-fg hover:bg-slate-100 dark:hover:bg-slate-800'
                 }`
               }
             >
@@ -366,8 +366,8 @@ export const TaskBoard = () => {
               className={({ isActive }) =>
                 `flex items-center gap-2 px-3 py-1.5 rounded-xl text-xs font-semibold transition-colors ${
                   isActive
-                    ? 'bg-indigo-50 dark:bg-indigo-600/20 text-indigo-600 dark:text-indigo-400 border border-indigo-200 dark:border-indigo-500/30'
-                    : 'text-slate-600 dark:text-slate-400 hover:text-slate-900 dark:hover:text-slate-200 hover:bg-slate-100 dark:hover:bg-slate-800'
+                    ? 'bg-accent-soft text-accent border border-accent/30'
+                    : 'text-muted hover:text-fg hover:bg-slate-100 dark:hover:bg-slate-800'
                 }`
               }
             >
@@ -378,13 +378,13 @@ export const TaskBoard = () => {
           {/* Project & Employee Filters */}
           <div className="flex flex-wrap items-center gap-3">
             <div className="flex items-center gap-2">
-              <span className="text-xs font-medium text-slate-500 dark:text-slate-400 flex items-center gap-1">
-                <Filter className="w-3.5 h-3.5 text-indigo-500" /> Filter Project:
+              <span className="text-xs font-medium text-muted flex items-center gap-1">
+                <Filter className="w-3.5 h-3.5 text-accent" /> Filter Project:
               </span>
               <select
                 value={selectedProjectId || 'all'}
                 onChange={(e) => handleProjectFilterChange(e.target.value)}
-                className="bg-slate-100 dark:bg-[#181C27] border border-slate-300 dark:border-slate-800 text-xs text-slate-900 dark:text-slate-100 font-semibold rounded-xl px-3 py-1.5 focus:outline-none focus:border-indigo-500 cursor-pointer transition-colors"
+                className="bg-canvas border border-border text-xs text-fg font-semibold rounded-xl px-3 py-1.5 focus:outline-none focus:border-accent cursor-pointer transition-colors"
               >
                 <option value="all">All Projects ({projects.length})</option>
                 {projects.map((p) => (
@@ -396,13 +396,13 @@ export const TaskBoard = () => {
             </div>
 
             <div className="flex items-center gap-2">
-              <span className="text-xs font-medium text-slate-500 dark:text-slate-400 flex items-center gap-1">
-                <User className="w-3.5 h-3.5 text-indigo-500" /> Filter Employee:
+              <span className="text-xs font-medium text-muted flex items-center gap-1">
+                <User className="w-3.5 h-3.5 text-accent" /> Filter Employee:
               </span>
               <select
                 value={selectedEmployeeId}
                 onChange={(e) => setSelectedEmployeeId(e.target.value)}
-                className="bg-slate-100 dark:bg-[#181C27] border border-slate-300 dark:border-slate-800 text-xs text-slate-900 dark:text-slate-100 font-semibold rounded-xl px-3 py-1.5 focus:outline-none focus:border-indigo-500 cursor-pointer transition-colors max-w-[200px]"
+                className="bg-canvas border border-border text-xs text-fg font-semibold rounded-xl px-3 py-1.5 focus:outline-none focus:border-accent cursor-pointer transition-colors max-w-[200px]"
               >
                 <option value="all">All Employees ({employees.length})</option>
                 {employees.map((emp) => {
@@ -416,7 +416,7 @@ export const TaskBoard = () => {
               </select>
             </div>
 
-            <div className="flex items-center gap-1 bg-slate-100 dark:bg-[#181C27] border border-slate-300 dark:border-slate-800 rounded-xl p-0.5">
+            <div className="flex items-center gap-1 bg-canvas border border-border rounded-xl p-0.5">
               {[
                 { id: 'board', label: 'Board', icon: Kanban },
                 { id: 'list', label: 'List', icon: List },
@@ -428,8 +428,8 @@ export const TaskBoard = () => {
                   onClick={() => setViewMode(id)}
                   className={`flex items-center gap-1.5 px-2.5 py-1.5 rounded-lg text-[11px] font-semibold transition-colors ${
                     viewMode === id
-                      ? 'bg-indigo-600 text-white shadow-sm'
-                      : 'text-slate-600 dark:text-slate-400 hover:text-slate-900 dark:hover:text-slate-200'
+                      ? 'bg-accent text-white shadow-sm'
+                      : 'text-muted hover:text-fg'
                   }`}
                 >
                   <Icon className="w-3.5 h-3.5" />
@@ -444,11 +444,11 @@ export const TaskBoard = () => {
       {/* Active Filter Alert Banner */}
       {((selectedProjectId && selectedProjectId !== 'all') ||
         (selectedEmployeeId && selectedEmployeeId !== 'all')) && (
-        <div className="flex items-center justify-between bg-indigo-50 dark:bg-indigo-950/40 border border-indigo-200 dark:border-indigo-800/60 rounded-xl px-4 py-2.5 text-xs text-indigo-900 dark:text-indigo-200">
+        <div className="flex items-center justify-between bg-accent-soft border border-accent/30 rounded-xl px-4 py-2.5 text-xs text-accent ">
           <div className="flex flex-wrap items-center gap-2">
-            <span className="font-medium text-slate-600 dark:text-slate-300">Showing tasks for:</span>
+            <span className="font-medium text-muted">Showing tasks for:</span>
             {selectedProjectId && selectedProjectId !== 'all' && (
-              <span className="bg-indigo-600 text-white px-2.5 py-0.5 rounded-lg font-bold">
+              <span className="bg-accent text-white px-2.5 py-0.5 rounded-lg font-bold">
                 {activeProject ? activeProject.name : selectedProjectId}
               </span>
             )}
@@ -457,7 +457,7 @@ export const TaskBoard = () => {
                 {getEmployeeLabel(activeEmployee)}
               </span>
             )}
-            <span className="text-slate-500 dark:text-slate-400">
+            <span className="text-muted">
               ({filteredTasks.length} {filteredTasks.length === 1 ? 'task' : 'tasks'} found)
             </span>
           </div>
@@ -466,7 +466,7 @@ export const TaskBoard = () => {
               handleProjectFilterChange('all')
               setSelectedEmployeeId('all')
             }}
-            className="flex items-center gap-1 text-xs font-semibold text-indigo-600 dark:text-indigo-400 hover:underline"
+            className="flex items-center gap-1 text-xs font-semibold text-accent hover:underline"
           >
             <X className="w-3.5 h-3.5" /> Clear Filters
           </button>
@@ -507,12 +507,12 @@ export const TaskBoard = () => {
                 onDrop={(e) => handleDrop(e, status.id)}
                 className={`w-72 shrink-0 border rounded-2xl p-3 flex flex-col space-y-3 transition-all ${
                   draggedOverCol === status.id
-                    ? 'bg-indigo-50/80 dark:bg-indigo-950/40 border-indigo-500/80 ring-2 ring-indigo-500/40 shadow-lg'
-                    : 'bg-slate-100/90 dark:bg-[#12151E] border-slate-200 dark:border-slate-800/80'
+                    ? 'bg-accent-soft border-accent/30 ring-2 ring-accent/40 shadow-lg'
+                    : 'bg-canvas border-border'
                 }`}
               >
-                <div className="flex items-center justify-between px-1 pb-2 border-b border-slate-200 dark:border-slate-800/80">
-                  <span className="font-semibold text-slate-800 dark:text-slate-200 text-xs flex items-center gap-2">
+                <div className="flex items-center justify-between px-1 pb-2 border-b border-border">
+                  <span className="font-semibold text-fg text-xs flex items-center gap-2">
                     <span className={`w-2.5 h-2.5 rounded-full inline-block ${getStatusDotBg(status)}`} />
                     {status.name}
                   </span>
@@ -521,7 +521,7 @@ export const TaskBoard = () => {
 
                 <div className="space-y-3 flex-1 overflow-y-auto max-h-[600px]">
                   {colTasks.length === 0 ? (
-                    <div className="p-4 text-center border border-dashed border-slate-300 dark:border-slate-800 rounded-xl text-[11px] text-slate-400 dark:text-slate-600">
+                    <div className="p-4 text-center border border-dashed border-border rounded-xl text-[11px] text-slate-400 dark:text-slate-600">
                       No tasks in {status.name}
                     </div>
                   ) : (
@@ -537,11 +537,11 @@ export const TaskBoard = () => {
                       >
                         <Card
                           hover
-                          className="p-3.5 space-y-2.5 bg-white dark:bg-[#181C27] border-slate-200 dark:border-slate-800 hover:border-indigo-500/40 relative group shadow-sm"
+                          className="p-3.5 space-y-2.5 bg-surface border-border hover:border-accent/40 relative group shadow-sm"
                           onClick={() => setSelectedTask(t)}
                         >
                           <div className="flex items-start justify-between">
-                            <span className="text-xs font-bold text-slate-900 dark:text-slate-100 group-hover:text-indigo-600 dark:group-hover:text-indigo-400 transition-colors">
+                            <span className="text-xs font-bold text-fg group-hover:text-accent dark:group-hover:text-accent transition-colors">
                               {t.title}
                             </span>
                             <Badge
@@ -555,26 +555,26 @@ export const TaskBoard = () => {
                             </Badge>
                           </div>
 
-                          <p className="text-[11px] text-indigo-600 dark:text-indigo-400 font-medium truncate">{t.projectName}</p>
+                          <p className="text-[11px] text-accent font-medium truncate">{t.projectName}</p>
 
-                          <div className="flex items-center justify-between text-xs pt-2 border-t border-slate-200 dark:border-slate-800/60">
-                            <span className="flex items-center gap-1 text-[11px] text-slate-500 dark:text-slate-400">
-                              <Clock className="w-3 h-3 text-indigo-600 dark:text-indigo-400" /> {t.loggedHours} / {t.estimatedHours}h
+                          <div className="flex items-center justify-between text-xs pt-2 border-t border-border/60">
+                            <span className="flex items-center gap-1 text-[11px] text-muted">
+                              <Clock className="w-3 h-3 text-accent" /> {t.loggedHours} / {t.estimatedHours}h
                             </span>
-                            <span className="flex items-center gap-1 text-[10px] text-slate-500 dark:text-slate-400">
-                              <User className="w-3 h-3 text-slate-400 dark:text-slate-500" /> {resolveTaskLeadName(t, employees)}
+                            <span className="flex items-center gap-1 text-[10px] text-muted">
+                              <User className="w-3 h-3 text-muted" /> {resolveTaskLeadName(t, employees)}
                             </span>
                           </div>
 
                           <div
-                            className="pt-2 flex items-center justify-between text-[10px] text-slate-500 dark:text-slate-400"
+                            className="pt-2 flex items-center justify-between text-[10px] text-muted"
                             onClick={(e) => e.stopPropagation()}
                           >
                             <span>Status:</span>
                             <select
                               value={t.status}
                               onChange={(e) => handleStatusChange(t.taskId, e.target.value)}
-                              className="bg-slate-100 dark:bg-slate-900 border border-slate-300 dark:border-slate-800 text-[10px] text-slate-800 dark:text-slate-300 rounded px-1.5 py-0.5 focus:outline-none cursor-pointer"
+                              className="bg-canvas border border-border text-[10px] text-slate-800 dark:text-slate-300 rounded px-1.5 py-0.5 focus:outline-none cursor-pointer"
                             >
                               {statuses.map((s) => (
                                 <option key={s.id} value={s.id}>
@@ -597,9 +597,9 @@ export const TaskBoard = () => {
       {/* New Task Modal */}
       {showAddModal && (
         <div className="fixed inset-0 z-50 bg-black/70 backdrop-blur-sm flex items-center justify-center p-4">
-          <Card className="w-full max-w-lg p-6 space-y-4 border-slate-200 dark:border-slate-800 shadow-2xl relative bg-white dark:bg-[#181C27]">
-            <div className="flex items-center justify-between pb-3 border-b border-slate-200 dark:border-slate-800">
-              <h3 className="font-bold text-slate-900 dark:text-slate-100 text-sm">Create Task</h3>
+          <Card className="w-full max-w-lg p-6 space-y-4 border-border shadow-2xl relative bg-surface">
+            <div className="flex items-center justify-between pb-3 border-b border-border">
+              <h3 className="font-bold text-fg text-sm">Create Task</h3>
               <button
                 onClick={() => setShowAddModal(false)}
                 className="text-slate-400 hover:text-slate-600 dark:hover:text-white p-1 rounded-lg hover:bg-slate-100 dark:hover:bg-slate-800 transition-colors"
@@ -618,14 +618,14 @@ export const TaskBoard = () => {
               />
 
               <div className="space-y-1.5 text-left">
-                <label className="block text-xs font-medium text-slate-700 dark:text-slate-300">Target Project</label>
+                <label className="block text-xs font-medium text-fg">Target Project</label>
                 <select
                   value={projectId}
                   onChange={(e) => setProjectId(e.target.value)}
-                  className="w-full bg-slate-100/80 dark:bg-[#11141E] border border-slate-300 dark:border-slate-800 text-slate-900 dark:text-slate-100 text-sm rounded-xl py-2.5 px-3.5 focus:outline-none focus:border-indigo-500 focus:ring-1 focus:ring-indigo-500 transition-all cursor-pointer"
+                  className="w-full bg-canvas border border-border text-fg text-sm rounded-xl py-2.5 px-3.5 focus:outline-none focus:border-accent focus:ring-1 focus:ring-accent transition-all cursor-pointer"
                 >
                   {projects.map((p) => (
-                    <option key={p.projectId || p.id} value={p.projectId || p.id} className="bg-white dark:bg-[#11141E] text-slate-900 dark:text-slate-100">
+                    <option key={p.projectId || p.id} value={p.projectId || p.id} className="bg-surface text-fg">
                       {p.name}
                     </option>
                   ))}
@@ -634,28 +634,28 @@ export const TaskBoard = () => {
 
               <div className="grid grid-cols-2 gap-3">
                 <div className="space-y-1.5 text-left">
-                  <label className="block text-xs font-medium text-slate-700 dark:text-slate-300">Priority</label>
+                  <label className="block text-xs font-medium text-fg">Priority</label>
                   <select
                     value={priority}
                     onChange={(e) => setPriority(e.target.value)}
-                    className="w-full bg-slate-100/80 dark:bg-[#11141E] border border-slate-300 dark:border-slate-800 text-slate-900 dark:text-slate-100 text-sm rounded-xl py-2.5 px-3.5 focus:outline-none focus:border-indigo-500 focus:ring-1 focus:ring-indigo-500 transition-all cursor-pointer"
+                    className="w-full bg-canvas border border-border text-fg text-sm rounded-xl py-2.5 px-3.5 focus:outline-none focus:border-accent focus:ring-1 focus:ring-accent transition-all cursor-pointer"
                   >
-                    <option value="low" className="bg-white dark:bg-[#11141E] text-slate-900 dark:text-slate-100">Low</option>
-                    <option value="medium" className="bg-white dark:bg-[#11141E] text-slate-900 dark:text-slate-100">Medium</option>
-                    <option value="high" className="bg-white dark:bg-[#11141E] text-slate-900 dark:text-slate-100">High</option>
-                    <option value="critical" className="bg-white dark:bg-[#11141E] text-slate-900 dark:text-slate-100">Critical</option>
+                    <option value="low" className="bg-surface text-fg">Low</option>
+                    <option value="medium" className="bg-surface text-fg">Medium</option>
+                    <option value="high" className="bg-surface text-fg">High</option>
+                    <option value="critical" className="bg-surface text-fg">Critical</option>
                   </select>
                 </div>
 
                 <div className="space-y-1.5 text-left">
-                  <label className="block text-xs font-medium text-slate-700 dark:text-slate-300">Assignee</label>
+                  <label className="block text-xs font-medium text-fg">Assignee</label>
                   <select
                     value={assigneeId}
                     onChange={(e) => setAssigneeId(e.target.value)}
-                    className="w-full bg-slate-100/80 dark:bg-[#11141E] border border-slate-300 dark:border-slate-800 text-slate-900 dark:text-slate-100 text-sm rounded-xl py-2.5 px-3.5 focus:outline-none focus:border-indigo-500 focus:ring-1 focus:ring-indigo-500 transition-all cursor-pointer"
+                    className="w-full bg-canvas border border-border text-fg text-sm rounded-xl py-2.5 px-3.5 focus:outline-none focus:border-accent focus:ring-1 focus:ring-accent transition-all cursor-pointer"
                   >
                     {employees.length === 0 ? (
-                      <option value="" className="bg-white dark:bg-[#11141E] text-slate-900 dark:text-slate-100">
+                      <option value="" className="bg-surface text-fg">
                         No employees found
                       </option>
                     ) : (
@@ -665,7 +665,7 @@ export const TaskBoard = () => {
                           <option
                             key={id}
                             value={id}
-                            className="bg-white dark:bg-[#11141E] text-slate-900 dark:text-slate-100"
+                            className="bg-surface text-fg"
                           >
                             {getEmployeeLabel(emp)}
                           </option>
@@ -699,11 +699,11 @@ export const TaskBoard = () => {
       {/* Task Detail Modal */}
       {selectedTask && (
         <div className="fixed inset-0 z-50 bg-black/70 backdrop-blur-sm flex items-center justify-center p-4">
-          <Card className="w-full max-w-md p-6 space-y-4 border-slate-200 dark:border-slate-800 shadow-2xl relative bg-white dark:bg-[#181C27]">
-            <div className="flex items-center justify-between pb-3 border-b border-slate-200 dark:border-slate-800">
+          <Card className="w-full max-w-md p-6 space-y-4 border-border shadow-2xl relative bg-surface">
+            <div className="flex items-center justify-between pb-3 border-b border-border">
               <div>
-                <h3 className="font-bold text-slate-900 dark:text-slate-100 text-sm">{selectedTask.title}</h3>
-                <p className="text-xs text-indigo-600 dark:text-indigo-400">{selectedTask.projectName}</p>
+                <h3 className="font-bold text-fg text-sm">{selectedTask.title}</h3>
+                <p className="text-xs text-accent">{selectedTask.projectName}</p>
               </div>
               <button
                 onClick={() => setSelectedTask(null)}
@@ -713,12 +713,12 @@ export const TaskBoard = () => {
               </button>
             </div>
 
-            <div className="space-y-2 text-xs text-slate-600 dark:text-slate-400">
-              <div className="flex justify-between py-1 border-b border-slate-200 dark:border-slate-800">
+            <div className="space-y-2 text-xs text-muted">
+              <div className="flex justify-between py-1 border-b border-border">
                 <span>Creator / Assignee:</span>
                 <span className="text-slate-900 dark:text-slate-200 font-medium">{resolveTaskLeadName(selectedTask, employees)}</span>
               </div>
-              <div className="flex justify-between py-1 border-b border-slate-200 dark:border-slate-800">
+              <div className="flex justify-between py-1 border-b border-border">
                 <span>Logged Work:</span>
                 <span className="text-emerald-600 dark:text-emerald-400 font-bold">{selectedTask.loggedHours} / {selectedTask.estimatedHours} hrs</span>
               </div>
@@ -745,9 +745,9 @@ export const TaskBoard = () => {
       {/* Confirm Delete Task Modal */}
       {deleteConfirmTask && (
         <div className="fixed inset-0 z-50 bg-black/70 backdrop-blur-sm flex items-center justify-center p-4">
-          <Card className="w-full max-w-md p-6 space-y-4 border-slate-200 dark:border-slate-800 shadow-2xl relative bg-white dark:bg-[#181C27]">
-            <div className="flex items-center justify-between pb-3 border-b border-slate-200 dark:border-slate-800">
-              <h3 className="font-bold text-slate-900 dark:text-slate-100 text-sm flex items-center gap-2">
+          <Card className="w-full max-w-md p-6 space-y-4 border-border shadow-2xl relative bg-surface">
+            <div className="flex items-center justify-between pb-3 border-b border-border">
+              <h3 className="font-bold text-fg text-sm flex items-center gap-2">
                 <Trash2 className="w-4 h-4 text-rose-500" /> Confirm Delete Task
               </h3>
               <button
@@ -758,11 +758,11 @@ export const TaskBoard = () => {
               </button>
             </div>
 
-            <p className="text-xs text-slate-600 dark:text-slate-300 leading-relaxed">
+            <p className="text-xs text-muted leading-relaxed">
               Are you sure you want to delete task <strong className="text-slate-900 dark:text-white">{deleteConfirmTask.title}</strong>? This action cannot be undone.
             </p>
 
-            <div className="flex items-center justify-end gap-3 pt-3 border-t border-slate-200 dark:border-slate-800">
+            <div className="flex items-center justify-end gap-3 pt-3 border-t border-border">
               <Button variant="secondary" onClick={() => setDeleteConfirmTask(null)}>
                 Cancel
               </Button>

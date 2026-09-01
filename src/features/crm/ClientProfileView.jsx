@@ -55,7 +55,7 @@ import {
 
 const LocalSpinner = () => (
   <div className="flex items-center justify-center p-8">
-    <div className="w-8 h-8 border-4 border-indigo-600 border-t-transparent rounded-full animate-spin"></div>
+    <div className="w-8 h-8 border-4 border-accent border-t-transparent rounded-full animate-spin"></div>
   </div>
 )
 
@@ -347,13 +347,13 @@ export const ClientProfileView = () => {
   const signedContractCount = contractList.filter((ag) => onboarding?.agreements?.[ag.id]?.signed).length
 
   return (
-    <div className="space-y-6 w-full text-slate-900 dark:text-slate-100">
+    <div className="space-y-6 w-full text-fg">
       {/* Header with Back button */}
       <div className="flex items-center justify-between">
         <div className="flex items-center gap-3">
           <Link
             to="/crm/contacts"
-            className="p-2 bg-slate-100 hover:bg-slate-200 dark:bg-slate-800 dark:hover:bg-slate-700 text-slate-700 dark:text-slate-200 rounded-xl transition-colors cursor-pointer"
+            className="p-2 bg-canvas hover:bg-surface text-fg rounded-xl transition-colors cursor-pointer"
           >
             <ArrowLeft className="w-4 h-4" />
           </Link>
@@ -400,13 +400,13 @@ export const ClientProfileView = () => {
       )}
 
       {/* Tabs */}
-      <div className="flex items-center gap-2 border-b border-slate-200 dark:border-slate-800 pb-3">
+      <div className="flex items-center gap-2 border-b border-border pb-3">
         <button
           onClick={() => setActiveTab('compliance')}
           className={`flex items-center gap-2 px-4 py-2 rounded-xl text-xs font-semibold transition-all ${
             activeTab === 'compliance'
-              ? 'bg-indigo-600/15 text-indigo-500 border border-indigo-500/30'
-              : 'text-slate-500 hover:text-slate-800 dark:hover:text-slate-200'
+              ? 'bg-accent/15 text-accent border border-accent/30'
+              : 'text-muted hover:text-slate-800 dark:hover:text-slate-200'
           }`}
         >
           <ShieldCheck className="w-4 h-4" /> Compliance & Signed Agreements
@@ -415,8 +415,8 @@ export const ClientProfileView = () => {
           onClick={() => setActiveTab('contracts')}
           className={`flex items-center gap-2 px-4 py-2 rounded-xl text-xs font-semibold transition-all ${
             activeTab === 'contracts'
-              ? 'bg-indigo-600/15 text-indigo-500 border border-indigo-500/30'
-              : 'text-slate-500 hover:text-slate-800 dark:hover:text-slate-200'
+              ? 'bg-accent/15 text-accent border border-accent/30'
+              : 'text-muted hover:text-slate-800 dark:hover:text-slate-200'
           }`}
         >
           <FileSignature className="w-4 h-4" /> Legal Contracts
@@ -425,8 +425,8 @@ export const ClientProfileView = () => {
           onClick={() => setActiveTab('details')}
           className={`flex items-center gap-2 px-4 py-2 rounded-xl text-xs font-semibold transition-all ${
             activeTab === 'details'
-              ? 'bg-indigo-600/15 text-indigo-500 border border-indigo-500/30'
-              : 'text-slate-500 hover:text-slate-800 dark:hover:text-slate-200'
+              ? 'bg-accent/15 text-accent border border-accent/30'
+              : 'text-muted hover:text-slate-800 dark:hover:text-slate-200'
           }`}
         >
           <User className="w-4 h-4" /> Profile & Account Settings
@@ -438,10 +438,10 @@ export const ClientProfileView = () => {
         <div className="space-y-6">
           <Card className="p-5 flex flex-col sm:flex-row sm:items-center justify-between gap-4">
             <div>
-              <h3 className="font-semibold text-sm text-slate-900 dark:text-slate-100 flex items-center gap-2">
-                <ShieldCheck className="w-4 h-4 text-indigo-500" /> Onboarding review
+              <h3 className="font-semibold text-sm text-fg flex items-center gap-2">
+                <ShieldCheck className="w-4 h-4 text-accent" /> Onboarding review
               </h3>
-              <p className="text-xs text-slate-500 dark:text-slate-400 mt-1">
+              <p className="text-xs text-muted mt-1">
                 Check contracts and billing, then approve workspace access.
               </p>
             </div>
@@ -478,11 +478,11 @@ export const ClientProfileView = () => {
 
           <div className="grid grid-cols-1 xl:grid-cols-5 gap-6">
             <Card className="p-0 xl:col-span-3 overflow-hidden">
-              <div className="flex items-center justify-between gap-3 px-5 py-4 border-b border-slate-200 dark:border-slate-800">
-                <h4 className="text-sm font-semibold text-slate-900 dark:text-slate-100 flex items-center gap-2">
-                  <FileCheck2 className="w-4 h-4 text-indigo-500" /> Contracts
+              <div className="flex items-center justify-between gap-3 px-5 py-4 border-b border-border">
+                <h4 className="text-sm font-semibold text-fg flex items-center gap-2">
+                  <FileCheck2 className="w-4 h-4 text-accent" /> Contracts
                 </h4>
-                <span className="text-[11px] font-medium text-slate-500 dark:text-slate-400">
+                <span className="text-[11px] font-medium text-muted">
                   {signedContractCount} of {contractList.length} signed
                 </span>
               </div>
@@ -494,12 +494,12 @@ export const ClientProfileView = () => {
                     <div
                       key={ag.id}
                       className={`px-5 py-4 flex flex-col gap-3 sm:flex-row sm:items-center ${
-                        idx < contractList.length - 1 ? 'border-b border-slate-100 dark:border-slate-800/80' : ''
+                        idx < contractList.length - 1 ? 'border-b border-slate-100 dark:border-border/80' : ''
                       }`}
                     >
                       <div className="min-w-0 flex-1">
                         <div className="flex items-center gap-2">
-                          <p className="text-sm font-semibold text-slate-900 dark:text-slate-100">{ag.name}</p>
+                          <p className="text-sm font-semibold text-fg">{ag.name}</p>
                           <span className="text-[10px] font-semibold uppercase tracking-wide text-slate-400">
                             {ag.short}
                           </span>
@@ -510,7 +510,7 @@ export const ClientProfileView = () => {
                           )}
                         </div>
                         {signed ? (
-                          <p className="text-[11px] text-slate-500 dark:text-slate-400 mt-1 truncate">
+                          <p className="text-[11px] text-muted mt-1 truncate">
                             {sig.signatoryName}
                             {sig.signatoryTitle ? ` · ${sig.signatoryTitle}` : ''}
                             {' · '}
@@ -554,8 +554,8 @@ export const ClientProfileView = () => {
             </Card>
 
             <Card className="p-0 xl:col-span-2 overflow-hidden">
-              <div className="px-5 py-4 border-b border-slate-200 dark:border-slate-800">
-                <h4 className="text-sm font-semibold text-slate-900 dark:text-slate-100 flex items-center gap-2">
+              <div className="px-5 py-4 border-b border-border">
+                <h4 className="text-sm font-semibold text-fg flex items-center gap-2">
                   <CreditCard className="w-4 h-4 text-emerald-500" /> Billing
                 </h4>
               </div>
@@ -572,18 +572,18 @@ export const ClientProfileView = () => {
                     <div
                       key={row.label}
                       className={`px-5 py-3 grid grid-cols-[7.5rem_1fr] gap-3 ${
-                        idx < arr.length - 1 ? 'border-b border-slate-100 dark:border-slate-800/80' : ''
+                        idx < arr.length - 1 ? 'border-b border-slate-100 dark:border-border/80' : ''
                       }`}
                     >
-                      <dt className="text-[11px] text-slate-500 dark:text-slate-400 pt-0.5">{row.label}</dt>
-                      <dd className="text-xs font-medium text-slate-900 dark:text-slate-100 break-words">
+                      <dt className="text-[11px] text-muted pt-0.5">{row.label}</dt>
+                      <dd className="text-xs font-medium text-fg break-words">
                         {row.value || <span className="text-slate-400 font-normal">—</span>}
                       </dd>
                     </div>
                   ))}
                 </dl>
               ) : (
-                <p className="px-5 py-8 text-xs text-slate-500 dark:text-slate-400">
+                <p className="px-5 py-8 text-xs text-muted">
                   No billing profile yet. Add details on Profile &amp; Account Settings.
                 </p>
               )}
@@ -595,9 +595,9 @@ export const ClientProfileView = () => {
       {/* TAB 2: PER-CLIENT LEGAL CONTRACT WORDING */}
       {activeTab === 'contracts' && (
         <div className="space-y-6">
-          <Card className="p-5 border-slate-200 dark:border-slate-800 bg-slate-900/50">
-            <h3 className="font-bold text-sm text-slate-100 flex items-center gap-2">
-              <FileSignature className="w-4 h-4 text-indigo-400" /> Tailor the Agreements for This Client
+          <Card className="p-5 border-border bg-slate-900/50">
+            <h3 className="font-bold text-sm text-fg flex items-center gap-2">
+              <FileSignature className="w-4 h-4 text-accent" /> Tailor the Agreements for This Client
             </h3>
             <p className="text-xs text-slate-400 mt-1">
               Each client starts from our standard wording. Edit any agreement here to match the work this client
@@ -619,12 +619,12 @@ export const ClientProfileView = () => {
                     onClick={() => setContractId(ag.id)}
                     className={`w-full p-4 rounded-xl border text-left transition-all cursor-pointer ${
                       isSelected
-                        ? 'bg-indigo-600/15 border-indigo-500 shadow-sm'
-                        : 'bg-white dark:bg-slate-900/40 border-slate-200 dark:border-slate-800 hover:border-slate-300 dark:hover:border-slate-700'
+                        ? 'bg-accent/15 border-accent shadow-sm'
+                        : 'bg-surface/40 border-border hover:border-border'
                     }`}
                   >
                     <div className="flex items-center justify-between gap-2 mb-1.5">
-                      <span className="font-bold text-xs text-slate-900 dark:text-slate-100">{ag.shortName}</span>
+                      <span className="font-bold text-xs text-fg">{ag.shortName}</span>
                       {isSigned ? (
                         <Badge variant="success" className="text-[10px] flex items-center gap-1">
                           <Lock className="w-3 h-3" /> Signed
@@ -637,19 +637,19 @@ export const ClientProfileView = () => {
                         <Badge variant="neutral" className="text-[10px]">Standard</Badge>
                       )}
                     </div>
-                    <p className="text-[11px] text-slate-500 dark:text-slate-400 leading-snug">{ag.title}</p>
+                    <p className="text-[11px] text-muted leading-snug">{ag.title}</p>
                   </button>
                 )
               })}
 
-              <div className="p-3 rounded-xl bg-indigo-500/10 border border-indigo-500/20 text-[11px] text-indigo-600 dark:text-indigo-300 flex items-start gap-2">
+              <div className="p-3 rounded-xl bg-accent-soft border border-accent/20 text-[11px] text-accent flex items-start gap-2">
                 <AlertCircle className="w-3.5 h-3.5 shrink-0 mt-0.5" />
                 <span>Edits apply to this client only. Other clients keep the standard wording.</span>
               </div>
             </div>
 
             {/* Editor */}
-            <Card className="lg:col-span-3 p-6 border-slate-200 dark:border-slate-800 space-y-4">
+            <Card className="lg:col-span-3 p-6 border-border space-y-4">
               {activeContractSigned ? (
                 <div className="p-4 rounded-xl bg-emerald-500/10 border border-emerald-500/30 text-xs text-emerald-600 dark:text-emerald-300 flex items-start gap-2.5">
                   <Lock className="w-4 h-4 shrink-0 mt-0.5" />
@@ -663,9 +663,9 @@ export const ClientProfileView = () => {
                   </div>
                 </div>
               ) : (
-                <div className="flex items-center justify-between pb-3 border-b border-slate-200 dark:border-slate-800">
-                  <h4 className="font-bold text-xs uppercase tracking-wider text-slate-500 dark:text-slate-400 flex items-center gap-2">
-                    <PencilLine className="w-4 h-4 text-indigo-500" /> Editing {activeContract?.shortName}
+                <div className="flex items-center justify-between pb-3 border-b border-border">
+                  <h4 className="font-bold text-xs uppercase tracking-wider text-muted flex items-center gap-2">
+                    <PencilLine className="w-4 h-4 text-accent" /> Editing {activeContract?.shortName}
                   </h4>
                   {contractDirty && (
                     <Badge variant="warning" className="text-[10px] bg-amber-500/10 text-amber-500 border-amber-500/30">
@@ -696,7 +696,7 @@ export const ClientProfileView = () => {
               />
 
               <div className="space-y-1.5">
-                <label className="block text-xs font-medium text-slate-700 dark:text-slate-300">
+                <label className="block text-xs font-medium text-fg">
                   Full Contract Text
                 </label>
                 <textarea
@@ -711,12 +711,12 @@ export const ClientProfileView = () => {
                     setContractDirty(true)
                   }}
                   disabled={activeContractSigned}
-                  className="w-full bg-slate-100/80 dark:bg-[#11141E] border border-slate-300 dark:border-slate-800 text-slate-900 dark:text-slate-100 text-xs leading-relaxed font-mono rounded-xl p-4 focus:outline-none focus:border-indigo-500 focus:ring-2 focus:ring-indigo-500/20 transition-all resize-y disabled:opacity-70 disabled:cursor-not-allowed"
+                  className="w-full bg-canvas border border-border text-fg text-xs leading-relaxed font-mono rounded-xl p-4 focus:outline-none focus:border-accent focus:ring-2 focus:ring-accent/20 transition-all resize-y disabled:opacity-70 disabled:cursor-not-allowed"
                 />
               </div>
 
               {!activeContractSigned && (
-                <div className="flex flex-col sm:flex-row items-center justify-between gap-3 pt-2 border-t border-slate-200 dark:border-slate-800">
+                <div className="flex flex-col sm:flex-row items-center justify-between gap-3 pt-2 border-t border-border">
                   <Button
                     type="button"
                     variant="secondary"
@@ -734,7 +734,7 @@ export const ClientProfileView = () => {
                     size="sm"
                     onClick={handleSaveContract}
                     disabled={saving || !contractDirty}
-                    className="bg-indigo-600 hover:bg-indigo-500"
+                    className="bg-accent hover:bg-accent-hover"
                     icon={Save}
                   >
                     {saving ? 'Saving...' : `Save ${activeContract?.shortName} for This Client`}
@@ -750,24 +750,24 @@ export const ClientProfileView = () => {
       {activeTab === 'details' && (
         <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
           <div className="lg:col-span-1 space-y-6">
-            <Card className="p-6 space-y-4 border-slate-200 dark:border-slate-800 text-center">
+            <Card className="p-6 space-y-4 border-border text-center">
               <div className="w-20 h-20 rounded-2xl bg-emerald-100 dark:bg-emerald-600/20 text-emerald-600 dark:text-emerald-400 font-bold text-3xl flex items-center justify-center border border-emerald-200 dark:border-emerald-500/30 mx-auto">
                 {client?.displayName?.charAt(0) || client?.companyName?.charAt(0) || 'C'}
               </div>
               <div>
-                <h3 className="font-bold text-lg text-slate-900 dark:text-slate-100">{client?.displayName}</h3>
-                <p className="text-xs text-slate-500 dark:text-slate-400 flex items-center justify-center gap-1 mt-1">
+                <h3 className="font-bold text-lg text-fg">{client?.displayName}</h3>
+                <p className="text-xs text-muted flex items-center justify-center gap-1 mt-1">
                   <Building className="w-3.5 h-3.5" /> {client?.companyName}
                 </p>
               </div>
 
-              <div className="pt-3 border-t border-slate-200 dark:border-slate-800 flex justify-center">
+              <div className="pt-3 border-t border-border flex justify-center">
                 <Badge variant={status === 'active' ? 'success' : 'danger'}>
                   {status === 'active' ? 'Active Portal Access' : 'Access Suspended'}
                 </Badge>
               </div>
 
-              <div className="space-y-3 pt-4 text-left text-xs text-slate-600 dark:text-slate-400 border-t border-slate-200 dark:border-slate-800">
+              <div className="space-y-3 pt-4 text-left text-xs text-muted border-t border-border">
                 <div className="flex items-center gap-2">
                   <Mail className="w-4 h-4 text-slate-400" />
                   <span className="truncate">{client?.email}</span>
@@ -785,9 +785,9 @@ export const ClientProfileView = () => {
               </div>
             </Card>
 
-            <Card className="p-6 space-y-4 border-slate-200 dark:border-slate-800">
-              <h4 className="font-bold text-xs uppercase tracking-wider text-slate-500">Security & Credentials</h4>
-              <p className="text-xs text-slate-600 dark:text-slate-400">
+            <Card className="p-6 space-y-4 border-border">
+              <h4 className="font-bold text-xs uppercase tracking-wider text-muted">Security & Credentials</h4>
+              <p className="text-xs text-muted">
                 Trigger a password reset email for this client representative.
               </p>
               <Button
@@ -795,7 +795,7 @@ export const ClientProfileView = () => {
                 variant="outline"
                 onClick={handleSendResetEmail}
                 disabled={saving}
-                className="w-full text-xs text-indigo-600 dark:text-indigo-400 border-indigo-200 dark:border-indigo-500/20"
+                className="w-full text-xs text-accent border-accent/20"
                 icon={Lock}
               >
                 Send Password Reset Email
@@ -804,8 +804,8 @@ export const ClientProfileView = () => {
           </div>
 
           <div className="lg:col-span-2 space-y-6">
-            <Card className="p-6 border-slate-200 dark:border-slate-800 space-y-4">
-              <h3 className="font-bold text-slate-900 dark:text-slate-100 text-sm">Account Details & Configurations</h3>
+            <Card className="p-6 border-border space-y-4">
+              <h3 className="font-bold text-fg text-sm">Account Details & Configurations</h3>
 
               <form onSubmit={handleUpdateProfile} className="space-y-4">
                 <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
@@ -833,11 +833,11 @@ export const ClientProfileView = () => {
                     icon={Phone}
                   />
                   <div className="space-y-1.5 text-left">
-                    <label className="block text-xs font-medium text-slate-700 dark:text-slate-300">Account Access State</label>
+                    <label className="block text-xs font-medium text-fg">Account Access State</label>
                     <select
                       value={status}
                       onChange={(e) => setStatus(e.target.value)}
-                      className="w-full bg-slate-50 dark:bg-[#11141E] border border-slate-200 dark:border-slate-800 text-slate-900 dark:text-slate-100 text-sm rounded-xl py-2.5 px-3.5 focus:outline-none focus:border-indigo-500 transition-colors cursor-pointer"
+                      className="w-full bg-canvas border border-border text-fg text-sm rounded-xl py-2.5 px-3.5 focus:outline-none focus:border-accent transition-colors cursor-pointer"
                     >
                       <option value="active">Active Access Granted</option>
                       <option value="suspended">Suspended / Deactivated</option>
@@ -846,19 +846,19 @@ export const ClientProfileView = () => {
                 </div>
 
                 <div className="space-y-1.5 text-left">
-                  <label className="block text-xs font-medium text-slate-700 dark:text-slate-300">Internal CRM Account Notes</label>
+                  <label className="block text-xs font-medium text-fg">Internal CRM Account Notes</label>
                   <textarea
                     value={notes}
                     onChange={(e) => setNotes(e.target.value)}
                     placeholder="Internal notes about the client..."
                     rows={4}
-                    className="w-full bg-slate-50 dark:bg-[#11141E] border border-slate-200 dark:border-slate-800 text-slate-900 dark:text-slate-100 text-xs rounded-xl p-3 focus:outline-none focus:border-indigo-500 transition-colors"
+                    className="w-full bg-canvas border border-border text-fg text-xs rounded-xl p-3 focus:outline-none focus:border-accent transition-colors"
                   />
                 </div>
 
-                <div className="pt-4 border-t border-slate-200 dark:border-slate-800 space-y-4">
-                  <h4 className="font-bold text-xs uppercase tracking-wider text-slate-500">Billing, GST &amp; Address</h4>
-                  <p className="text-[11px] text-slate-500 dark:text-slate-400">
+                <div className="pt-4 border-t border-border space-y-4">
+                  <h4 className="font-bold text-xs uppercase tracking-wider text-muted">Billing, GST &amp; Address</h4>
+                  <p className="text-[11px] text-muted">
                     Update these anytime. Clients see them on their Billing page.
                   </p>
 
@@ -870,13 +870,13 @@ export const ClientProfileView = () => {
                   />
 
                   <div className="space-y-1.5 text-left">
-                    <label className="block text-xs font-medium text-slate-700 dark:text-slate-300">Registered Billing Address</label>
+                    <label className="block text-xs font-medium text-fg">Registered Billing Address</label>
                     <textarea
                       value={billingAddress}
                       onChange={(e) => setBillingAddress(e.target.value)}
                       placeholder="Street, city, state, PIN"
                       rows={3}
-                      className="w-full bg-slate-50 dark:bg-[#11141E] border border-slate-200 dark:border-slate-800 text-slate-900 dark:text-slate-100 text-xs rounded-xl p-3 focus:outline-none focus:border-indigo-500 transition-colors"
+                      className="w-full bg-canvas border border-border text-fg text-xs rounded-xl p-3 focus:outline-none focus:border-accent transition-colors"
                     />
                   </div>
 
@@ -903,11 +903,11 @@ export const ClientProfileView = () => {
                       onChange={(e) => setSignatoryTitle(e.target.value)}
                     />
                     <div className="space-y-1.5 text-left">
-                      <label className="block text-xs font-medium text-slate-700 dark:text-slate-300">Preferred Payment Method</label>
+                      <label className="block text-xs font-medium text-fg">Preferred Payment Method</label>
                       <select
                         value={paymentMethod}
                         onChange={(e) => setPaymentMethod(e.target.value)}
-                        className="w-full bg-slate-50 dark:bg-[#11141E] border border-slate-200 dark:border-slate-800 text-slate-900 dark:text-slate-100 text-sm rounded-xl py-2.5 px-3.5 focus:outline-none focus:border-indigo-500 transition-colors cursor-pointer"
+                        className="w-full bg-canvas border border-border text-fg text-sm rounded-xl py-2.5 px-3.5 focus:outline-none focus:border-accent transition-colors cursor-pointer"
                       >
                         <option value="ach">Bank transfer / ACH</option>
                         <option value="wire">International wire</option>
@@ -921,7 +921,7 @@ export const ClientProfileView = () => {
                   <Button
                     type="submit"
                     variant="primary"
-                    className="bg-indigo-600 hover:bg-indigo-500 px-6"
+                    className="bg-accent hover:bg-accent-hover px-6"
                     icon={Save}
                     disabled={saving}
                   >
@@ -932,21 +932,21 @@ export const ClientProfileView = () => {
             </Card>
 
             <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
-              <Card className="p-5 border-slate-200 dark:border-slate-800 space-y-3">
+              <Card className="p-5 border-border space-y-3">
                 <div className="flex items-center justify-between">
-                  <h4 className="font-bold text-xs uppercase tracking-wider text-slate-500 flex items-center gap-1.5">
+                  <h4 className="font-bold text-xs uppercase tracking-wider text-muted flex items-center gap-1.5">
                     <Briefcase className="w-3.5 h-3.5" /> Associated Projects
                   </h4>
                   <Badge variant="neutral">{projects.length}</Badge>
                 </div>
 
                 {projects.length === 0 ? (
-                  <p className="text-xs text-slate-500 py-4 text-center">No active projects linked to this client.</p>
+                  <p className="text-xs text-muted py-4 text-center">No active projects linked to this client.</p>
                 ) : (
                   <div className="space-y-2 max-h-40 overflow-y-auto">
                     {projects.map((p) => (
-                      <div key={p.projectId} className="p-2 bg-slate-50 dark:bg-slate-900/50 border border-slate-100 dark:border-slate-850 rounded-lg flex items-center justify-between text-xs">
-                        <span className="font-semibold text-slate-800 dark:text-slate-200 truncate pr-2">{p.name}</span>
+                      <div key={p.projectId} className="p-2 bg-canvas/50 border border-slate-100 dark:border-border rounded-lg flex items-center justify-between text-xs">
+                        <span className="font-semibold text-fg truncate pr-2">{p.name}</span>
                         <Badge variant="brand">{p.completionPercent || 0}%</Badge>
                       </div>
                     ))}
@@ -954,21 +954,21 @@ export const ClientProfileView = () => {
                 )}
               </Card>
 
-              <Card className="p-5 border-slate-200 dark:border-slate-800 space-y-3">
+              <Card className="p-5 border-border space-y-3">
                 <div className="flex items-center justify-between">
-                  <h4 className="font-bold text-xs uppercase tracking-wider text-slate-500 flex items-center gap-1.5">
+                  <h4 className="font-bold text-xs uppercase tracking-wider text-muted flex items-center gap-1.5">
                     <FileText className="w-3.5 h-3.5" /> Billing & Invoices
                   </h4>
                   <Badge variant="neutral">{invoices.length}</Badge>
                 </div>
 
                 {invoices.length === 0 ? (
-                  <p className="text-xs text-slate-500 py-4 text-center">No billing details or invoices found.</p>
+                  <p className="text-xs text-muted py-4 text-center">No billing details or invoices found.</p>
                 ) : (
                   <div className="space-y-2 max-h-40 overflow-y-auto">
                     {invoices.map((i) => (
-                      <div key={i.invoiceId} className="p-2 bg-slate-50 dark:bg-slate-900/50 border border-slate-100 dark:border-slate-850 rounded-lg flex items-center justify-between text-xs">
-                        <span className="font-semibold text-slate-850 font-mono">{i.invoiceNumber || 'INV-001'}</span>
+                      <div key={i.invoiceId} className="p-2 bg-canvas/50 border border-slate-100 dark:border-border rounded-lg flex items-center justify-between text-xs">
+                        <span className="font-semibold text-slate-800 font-mono">{i.invoiceNumber || 'INV-001'}</span>
                         <span className="font-bold">${(i.total || 0).toLocaleString()}</span>
                         <Badge variant={i.status === 'paid' ? 'success' : 'warning'}>{i.status}</Badge>
                       </div>
@@ -984,18 +984,18 @@ export const ClientProfileView = () => {
       {/* SIGNED CONTRACT & LEGAL CERTIFICATE MODAL */}
       {previewAgreement && (
         <div className="fixed inset-0 bg-black/75 backdrop-blur-sm z-50 flex items-center justify-center p-4">
-          <div className="bg-slate-900 border border-slate-800 rounded-2xl max-w-3xl w-full p-6 space-y-4 shadow-2xl text-slate-100 max-h-[90vh] flex flex-col">
-            <div className="flex items-center justify-between pb-3 border-b border-slate-800 shrink-0">
+          <div className="bg-slate-900 border border-border rounded-2xl max-w-3xl w-full p-6 space-y-4 shadow-2xl text-fg max-h-[90vh] flex flex-col">
+            <div className="flex items-center justify-between pb-3 border-b border-border shrink-0">
               <div className="flex items-center gap-2">
-                <Shield className="w-5 h-5 text-indigo-400" />
+                <Shield className="w-5 h-5 text-accent" />
                 <div>
-                  <h3 className="font-bold text-slate-100 text-sm">{previewAgreement.title}</h3>
+                  <h3 className="font-bold text-fg text-sm">{previewAgreement.title}</h3>
                   <p className="text-[11px] text-emerald-400 font-medium">Legally Executed E-Signature Certificate</p>
                 </div>
               </div>
               <button
                 onClick={() => setPreviewAgreement(null)}
-                className="p-1 rounded-lg text-slate-400 hover:text-slate-100 hover:bg-slate-800 transition-colors"
+                className="p-1 rounded-lg text-slate-400 hover:text-fg hover:bg-slate-800 transition-colors"
               >
                 <X className="w-5 h-5" />
               </button>
@@ -1003,7 +1003,7 @@ export const ClientProfileView = () => {
 
             {/* Scrollable Agreement Content */}
             <div className="flex-1 overflow-y-auto space-y-4 pr-1">
-              <div className="bg-slate-950 p-4 rounded-xl border border-slate-800 text-xs font-mono text-slate-300 whitespace-pre-wrap leading-relaxed">
+              <div className="bg-slate-950 p-4 rounded-xl border border-border text-xs font-mono text-slate-300 whitespace-pre-wrap leading-relaxed">
                 {previewAgreement.sigRecord?.signedContent ||
                   resolvedAgreements.find((a) => a.id === previewAgreement.id)?.content ||
                   'Agreement text content...'}
@@ -1016,7 +1016,7 @@ export const ClientProfileView = () => {
                     <CheckCircle className="w-4 h-4" /> Digital E-Signature Validated
                   </div>
                   <p className="text-slate-300">
-                    Signatory: <strong className="text-slate-100">{previewAgreement.sigRecord?.signatoryName}</strong> ({previewAgreement.sigRecord?.signatoryTitle || 'Representative'})
+                    Signatory: <strong className="text-fg">{previewAgreement.sigRecord?.signatoryName}</strong> ({previewAgreement.sigRecord?.signatoryTitle || 'Representative'})
                   </p>
                   <p className="text-[11px] text-slate-400">
                     Execution Timestamp: {previewAgreement.sigRecord?.timestampFormatted || previewAgreement.sigRecord?.signedAt}
@@ -1030,13 +1030,13 @@ export const ClientProfileView = () => {
                       alt="Signature Seal"
                       className="h-12 px-3 py-1 bg-slate-900 rounded-lg border border-slate-700 object-contain mx-auto"
                     />
-                    <span className="text-[10px] text-slate-500">Signatory Seal</span>
+                    <span className="text-[10px] text-muted">Signatory Seal</span>
                   </div>
                 )}
               </div>
             </div>
 
-            <div className="flex items-center justify-between pt-3 border-t border-slate-800 shrink-0">
+            <div className="flex items-center justify-between pt-3 border-t border-border shrink-0">
               <Button variant="secondary" size="sm" onClick={() => setPreviewAgreement(null)}>
                 Close
               </Button>
@@ -1050,7 +1050,7 @@ export const ClientProfileView = () => {
                     previewAgreement.sigRecord
                   )
                 }
-                className="bg-indigo-600 hover:bg-indigo-500"
+                className="bg-accent hover:bg-accent-hover"
                 icon={Download}
               >
                 Download PDF
@@ -1063,10 +1063,10 @@ export const ClientProfileView = () => {
       {/* RE-SUBMISSION FEEDBACK MODAL */}
       {showRejectModal && (
         <div className="fixed inset-0 bg-black/70 backdrop-blur-sm z-50 flex items-center justify-center p-4">
-          <div className="bg-slate-900 border border-slate-800 rounded-2xl max-w-md w-full p-6 space-y-4 shadow-2xl">
+          <div className="bg-slate-900 border border-border rounded-2xl max-w-md w-full p-6 space-y-4 shadow-2xl">
             <div className="flex items-center gap-3 text-rose-400">
               <AlertTriangle className="w-6 h-6" />
-              <h3 className="font-bold text-slate-100 text-base">Request Re-signature</h3>
+              <h3 className="font-bold text-fg text-base">Request Re-signature</h3>
             </div>
             <p className="text-xs text-slate-400">
               Specify what needs correction (e.g. signed by someone without authority, wrong designation recorded). The client will see this feedback when logging in and can sign again.
@@ -1077,7 +1077,7 @@ export const ClientProfileView = () => {
               value={rejectReason}
               onChange={(e) => setRejectReason(e.target.value)}
               placeholder="e.g. The SOW was signed under the wrong designation. Please re-sign as an authorized signatory."
-              className="w-full bg-slate-950 border border-slate-800 text-slate-100 text-xs rounded-xl p-3 focus:outline-none focus:border-rose-500 resize-none"
+              className="w-full bg-slate-950 border border-border text-fg text-xs rounded-xl p-3 focus:outline-none focus:border-rose-500 resize-none"
             />
 
             <div className="flex justify-end gap-3 pt-2">

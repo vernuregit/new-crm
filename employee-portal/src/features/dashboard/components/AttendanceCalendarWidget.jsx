@@ -322,13 +322,13 @@ export const AttendanceCalendarWidget = () => {
   const is6Rows = totalSlotsNeeded > 35
 
   return (
-    <Card className="p-3 w-full h-full border-slate-200 dark:border-slate-800 flex flex-col justify-between bg-white dark:bg-[#181C27] shadow-sm select-none">
+    <Card className="p-3 w-full h-full border-border flex flex-col justify-between bg-surface shadow-sm select-none">
       <div className="flex flex-col  justify-between">
         {/* Top Header & Month Nav */}
         <div>
           {/* Header Title */}
           <div className="flex items-center justify-between pb-1.5 border-b border-slate-100 dark:border-slate-800/80">
-            <h3 className="font-bold text-slate-900 dark:text-slate-100 text-xs sm:text-sm tracking-tight">
+            <h3 className="font-bold text-fg text-xs sm:text-sm tracking-tight">
               Attendance Calendar
             </h3>
           </div>
@@ -337,17 +337,17 @@ export const AttendanceCalendarWidget = () => {
           <div className="flex items-center justify-center gap-2 py-1.5">
             <button
               onClick={handlePrevMonth}
-              className="p-0.5 rounded hover:bg-slate-100 dark:hover:bg-slate-800 text-indigo-600 dark:text-indigo-400 transition-colors"
+              className="p-0.5 rounded hover:bg-chrome text-accent transition-colors"
               title="Previous Month"
             >
               <ChevronLeft className="w-3.5 h-3.5 stroke-[2.5]" />
             </button>
-            <span className="font-bold text-slate-900 dark:text-slate-100 text-xs tracking-tight min-w-[80px] text-center">
+            <span className="font-bold text-fg text-xs tracking-tight min-w-[80px] text-center">
               {monthName}
             </span>
             <button
               onClick={handleNextMonth}
-              className="p-0.5 rounded hover:bg-slate-100 dark:hover:bg-slate-800 text-indigo-600 dark:text-indigo-400 transition-colors"
+              className="p-0.5 rounded hover:bg-chrome text-accent transition-colors"
               title="Next Month"
             >
               <ChevronRight className="w-3.5 h-3.5 stroke-[2.5]" />
@@ -383,7 +383,7 @@ export const AttendanceCalendarWidget = () => {
                   key={cell.key}
                   onClick={() => handleCellClick(cell)}
                   className={`flex flex-col items-center justify-center w-full cursor-pointer rounded transition-all ${
-                    cell.isCurrentMonth ? 'hover:bg-indigo-50/60 dark:hover:bg-indigo-950/40' : 'cursor-default'
+                    cell.isCurrentMonth ? 'hover:bg-accent-soft/60' : 'cursor-default'
                   }`}
                 >
                   {/* Day Number */}
@@ -394,7 +394,7 @@ export const AttendanceCalendarWidget = () => {
                       isSelected
                         ? 'bg-accent text-white font-bold'
                         : cell.isCurrentMonth
-                        ? 'text-slate-900 dark:text-white'
+                        ? 'text-fg'
                         : 'text-slate-300 dark:text-slate-600 font-normal'
                     }`}
                   >
@@ -433,7 +433,7 @@ export const AttendanceCalendarWidget = () => {
         </div>
 
         {/* Legend Footer */}
-        <div className="pt-1.5 mt-1 border-t border-slate-100 dark:border-slate-800/80 flex items-center justify-center gap-3 text-[10px] font-medium text-slate-600 dark:text-slate-400 flex-wrap">
+        <div className="pt-1.5 mt-1 border-t border-slate-100 dark:border-slate-800/80 flex items-center justify-center gap-3 text-[10px] font-medium text-muted flex-wrap">
           <div className="flex items-center gap-1.5">
             <span className="w-1.5 h-1.5 rounded-full bg-[#22C55E]" />
             <span>Present</span>

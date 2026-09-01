@@ -29,13 +29,13 @@ export const FinanceReport = () => {
           description="Gross revenue, operating expenses, net margins (%), and liquidity status"
         />
 
-        <div className="flex items-center gap-2 border-b border-slate-800 pb-3">
+        <div className="flex items-center gap-2 border-b border-border pb-3">
           <NavLink
             to="/reports/sales"
             className={({ isActive }) =>
               `flex items-center gap-2 px-3 py-1.5 rounded-xl text-xs font-semibold transition-colors ${
                 isActive
-                  ? 'bg-indigo-600/20 text-indigo-400 border border-indigo-500/30'
+                  ? 'bg-accent-soft text-accent border border-accent/30'
                   : 'text-slate-400 hover:text-slate-200 hover:bg-slate-800'
               }`
             }
@@ -47,7 +47,7 @@ export const FinanceReport = () => {
             className={({ isActive }) =>
               `flex items-center gap-2 px-3 py-1.5 rounded-xl text-xs font-semibold transition-colors ${
                 isActive
-                  ? 'bg-indigo-600/20 text-indigo-400 border border-indigo-500/30'
+                  ? 'bg-accent-soft text-accent border border-accent/30'
                   : 'text-slate-400 hover:text-slate-200 hover:bg-slate-800'
               }`
             }
@@ -59,7 +59,7 @@ export const FinanceReport = () => {
             className={({ isActive }) =>
               `flex items-center gap-2 px-3 py-1.5 rounded-xl text-xs font-semibold transition-colors ${
                 isActive
-                  ? 'bg-indigo-600/20 text-indigo-400 border border-indigo-500/30'
+                  ? 'bg-accent-soft text-accent border border-accent/30'
                   : 'text-slate-400 hover:text-slate-200 hover:bg-slate-800'
               }`
             }
@@ -71,28 +71,28 @@ export const FinanceReport = () => {
 
       {isLoading && (
         <div className="flex items-center justify-center py-16">
-          <Loader2 className="w-8 h-8 text-indigo-400 animate-spin" />
+          <Loader2 className="w-8 h-8 text-accent animate-spin" />
           <span className="ml-3 text-slate-400 text-sm">Loading finance metrics...</span>
         </div>
       )}
 
       {!isLoading && finance && (
         <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4">
-          <Card className="p-4 flex items-center justify-between border-slate-800/80">
+          <Card className="p-4 flex items-center justify-between border-border/80">
             <div>
               <span className="text-[11px] font-medium text-slate-400 uppercase tracking-wider">
                 Gross Invoiced Revenue
               </span>
-              <p className="text-xl font-bold text-slate-100 mt-1">
+              <p className="text-xl font-bold text-fg mt-1">
                 ₹{finance.grossRevenue.toLocaleString('en-IN')}
               </p>
             </div>
-            <div className="w-9 h-9 rounded-xl bg-indigo-500/10 text-indigo-400 flex items-center justify-center">
+            <div className="w-9 h-9 rounded-xl bg-accent-soft text-accent flex items-center justify-center">
               <IndianRupee className="w-5 h-5" />
             </div>
           </Card>
 
-          <Card className="p-4 flex items-center justify-between border-slate-800/80">
+          <Card className="p-4 flex items-center justify-between border-border/80">
             <div>
               <span className="text-[11px] font-medium text-slate-400 uppercase tracking-wider">
                 Net Profit
@@ -106,7 +106,7 @@ export const FinanceReport = () => {
             </div>
           </Card>
 
-          <Card className="p-4 flex items-center justify-between border-slate-800/80">
+          <Card className="p-4 flex items-center justify-between border-border/80">
             <div>
               <span className="text-[11px] font-medium text-slate-400 uppercase tracking-wider">
                 Net Profit Margin
@@ -118,7 +118,7 @@ export const FinanceReport = () => {
             </div>
           </Card>
 
-          <Card className="p-4 flex items-center justify-between border-slate-800/80">
+          <Card className="p-4 flex items-center justify-between border-border/80">
             <div>
               <span className="text-[11px] font-medium text-slate-400 uppercase tracking-wider">
                 Total Expenses

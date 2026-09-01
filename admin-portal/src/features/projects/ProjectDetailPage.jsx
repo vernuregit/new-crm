@@ -6,15 +6,17 @@ import { Card } from '../../components/ui/Card'
 import { Badge } from '../../components/ui/Badge'
 import { Button } from '../../components/ui/Button'
 import { Input } from '../../components/ui/Input'
+import { useUserStore } from '../../stores/userStore'
 import {
   getProjectById,
   updateProjectInDb,
-  getProjectProcessSteps,
   subscribeProjectProcessSteps,
   addProcessStep,
   updateProcessStep,
   toggleProcessStepStatus,
   deleteProcessStep,
+  setProcessStepClientVisibility,
+  getClientVisibility,
 } from './services/projectService'
 import {
   ArrowLeft,
@@ -49,6 +51,8 @@ import {
   CheckCircle,
   CircleDot,
   Radio,
+  Eye,
+  EyeOff,
 } from 'lucide-react'
 
 // Helper to format timestamps to 'DD MMM, YYYY • hh:mm A'
@@ -88,7 +92,7 @@ const getProcessIconConfig = (type, status) => {
   switch (type?.toLowerCase()) {
     case 'message':
       return {
-        bg: status === 'in_progress' ? 'bg-blue-600 ring-4 ring-blue-500/30' : 'bg-blue-600/80',
+        bg: status === 'in_progress' ? 'bg-info ring-4 ring-blue-500/30' : 'bg-blue-600/80',
         textColor: 'text-blue-400',
         icon: MessageSquare,
       }
@@ -121,7 +125,7 @@ const getProcessIconConfig = (type, status) => {
     case 'milestone':
     default:
       return {
-        bg: status === 'in_progress' ? 'bg-indigo-600 ring-4 ring-indigo-500/30' : 'bg-emerald-600',
+        bg: status === 'in_progress' ? 'bg-accent ring-4 ring-accent/30' : 'bg-emerald-600',
         textColor: 'text-emerald-400',
         icon: FolderKanban,
       }
@@ -131,6 +135,9 @@ const getProcessIconConfig = (type, status) => {
 export const ProjectDetailPage = () => {
   const { projectId } = useParams()
   const navigate = useNavigate()
+  const { user, userDoc } = useUserStore()
+  const adminUid = userDoc?.uid || user?.uid || null
+  const adminName = userDoc?.displayName || user?.displayName || userDoc?.name || 'Admin'
 
   const [project, setProject] = useState(null)
   const [loading, setLoading] = useState(true)
@@ -139,6 +146,7 @@ export const ProjectDetailPage = () => {
   // Process steps state
   const [steps, setSteps] = useState([])
   const [statusFilter, setStatusFilter] = useState('all') // 'all' | 'completed' | 'in_progress' | 'pending'
+  const [visibilityFilter, setVisibilityFilter] = useState('all') // 'all' | 'pending' | 'approved' | 'hidden'
   const [showFilterMenu, setShowFilterMenu] = useState(false)
 
   // Project Edit Modal State
@@ -233,31 +241,8 @@ export const ProjectDetailPage = () => {
     fetchDropdowns()
   }, [])
 
-  // Auto preset fields when stepType changes
   const handleStepTypeChange = (newType) => {
     setStepType(newType)
-    const projTitle = project?.name || 'Website Redesign'
-    if (newType === 'message') {
-      if (!stepTitle) setStepTitle(`Update in "${projTitle}"`)
-      if (!stepMessage) setStepMessage('Video is almost ready for client review.')
-      setStepAuthor('From Admin')
-    } else if (newType === 'invoice') {
-      if (!stepTitle) setStepTitle('Invoice INV-2024-017 paid')
-      setStepMeta('Amount: ₹45,000')
-      setStepAuthor('')
-    } else if (newType === 'document') {
-      if (!stepTitle) setStepTitle('Document "SRS_v1.2.docx" uploaded')
-      setStepAuthor('By Project Manager')
-    } else if (newType === 'approval') {
-      if (!stepTitle) setStepTitle('Approved "Homepage_Mockup.pdf"')
-      setStepAuthor('By You')
-    } else if (newType === 'ticket') {
-      if (!stepTitle) setStepTitle('Support ticket #TK-1002 closed')
-      setStepMeta('Category: Bug')
-    } else if (newType === 'project_created') {
-      if (!stepTitle) setStepTitle(`Project "${projTitle}" created`)
-      setStepAuthor('By Admin')
-    }
   }
 
   // Open Add Process Step Modal
@@ -304,7 +289,13 @@ export const ProjectDetailPage = () => {
       if (editingStep) {
         await updateProcessStep(projectId, editingStep.id, payload)
       } else {
-        await addProcessStep(projectId, payload)
+        await addProcessStep(projectId, {
+          ...payload,
+          createdByRole: 'admin',
+          createdByUid: adminUid,
+          createdByName: adminName,
+          clientVisibility: 'approved',
+        })
       }
 
       setShowStepModal(false)
@@ -330,6 +321,17 @@ export const ProjectDetailPage = () => {
       await updateProcessStep(projectId, stepId, { status: targetStatus })
     } catch (err) {
       console.error('Failed to update step status:', err)
+    }
+  }
+
+  const handleSetClientVisibility = async (stepId, visibility) => {
+    try {
+      await setProcessStepClientVisibility(projectId, stepId, visibility, {
+        uid: adminUid,
+        name: adminName,
+      })
+    } catch (err) {
+      console.error('Failed to update client visibility:', err)
     }
   }
 
@@ -381,15 +383,18 @@ export const ProjectDetailPage = () => {
   const calculatedPercent = totalSteps > 0 ? Math.round((completedSteps / totalSteps) * 100) : 0
   const activeStep = steps.find((s) => s.status === 'in_progress') || steps.find((s) => s.status === 'pending')
 
+  const pendingClientCount = steps.filter((s) => getClientVisibility(s) === 'pending').length
+
   const filteredSteps = steps.filter((s) => {
-    if (statusFilter === 'all') return true
-    return s.status === statusFilter
+    if (statusFilter !== 'all' && s.status !== statusFilter) return false
+    if (visibilityFilter !== 'all' && getClientVisibility(s) !== visibilityFilter) return false
+    return true
   })
 
   if (loading) {
     return (
-      <div className="flex flex-col items-center justify-center py-24 text-slate-500 space-y-3">
-        <Loader2 className="w-8 h-8 animate-spin text-indigo-600 dark:text-indigo-400" />
+      <div className="flex flex-col items-center justify-center py-24 text-muted space-y-3">
+        <Loader2 className="w-8 h-8 animate-spin text-accent" />
         <p className="text-sm font-medium">Loading project process...</p>
       </div>
     )
@@ -398,8 +403,8 @@ export const ProjectDetailPage = () => {
   if (!project) {
     return (
       <div className="max-w-2xl mx-auto py-16 text-center space-y-4">
-        <h3 className="text-lg font-bold text-slate-900 dark:text-slate-100">Project Not Found</h3>
-        <p className="text-xs text-slate-500">The requested project ID does not exist or was removed.</p>
+        <h3 className="text-lg font-bold text-fg">Project Not Found</h3>
+        <p className="text-xs text-muted">The requested project ID does not exist or was removed.</p>
         <Button variant="primary" icon={ArrowLeft} onClick={() => navigate('/projects/list')}>
           Back to Projects
         </Button>
@@ -415,12 +420,12 @@ export const ProjectDetailPage = () => {
           <div className="flex items-center gap-2">
             <Link
               to="/projects/list"
-              className="text-xs font-semibold text-slate-500 hover:text-indigo-600 dark:hover:text-indigo-400 flex items-center gap-1 transition-colors"
+              className="text-xs font-semibold text-muted hover:text-accent dark:hover:text-accent flex items-center gap-1 transition-colors"
             >
               <ArrowLeft className="w-3.5 h-3.5" /> All Projects
             </Link>
             <span className="text-slate-400 text-xs">/</span>
-            <span className="text-xs font-medium text-slate-700 dark:text-slate-300 truncate max-w-[200px]">
+            <span className="text-xs font-medium text-fg truncate max-w-[200px]">
               {project.name}
             </span>
           </div>
@@ -467,13 +472,13 @@ export const ProjectDetailPage = () => {
       </div>
 
       {/* Project Overview Card with Live Process Tracker Summary */}
-      <Card className="p-6 bg-white dark:bg-[#111827] border-slate-200 dark:border-slate-800 rounded-2xl shadow-sm space-y-5">
+      <Card className="p-6 bg-surface border-border rounded-2xl shadow-sm space-y-5">
         <div className="grid grid-cols-1 md:grid-cols-4 gap-4">
           <div className="space-y-1 md:col-span-2">
             <span className="text-[11px] font-bold text-slate-400 uppercase tracking-wider">
               Project Description
             </span>
-            <p className="text-xs text-slate-700 dark:text-slate-300 line-clamp-3">
+            <p className="text-xs text-fg line-clamp-3">
               {project.description || 'No description provided for this project.'}
             </p>
           </div>
@@ -482,11 +487,11 @@ export const ProjectDetailPage = () => {
             <span className="text-[11px] font-bold text-slate-400 uppercase tracking-wider">
               Client & Lead
             </span>
-            <div className="text-xs text-slate-800 dark:text-slate-200 space-y-0.5">
+            <div className="text-xs text-fg space-y-0.5">
               <p className="flex items-center gap-1 font-semibold">
-                <Building className="w-3 h-3 text-indigo-500" /> {project.clientName || 'Independent'}
+                <Building className="w-3 h-3 text-accent" /> {project.clientName || 'Independent'}
               </p>
-              <p className="flex items-center gap-1 text-slate-500">
+              <p className="flex items-center gap-1 text-muted">
                 <User className="w-3 h-3 text-slate-400" /> Lead: {project.ownerName || 'Unassigned'}
               </p>
             </div>
@@ -496,7 +501,7 @@ export const ProjectDetailPage = () => {
             <span className="text-[11px] font-bold text-slate-400 uppercase tracking-wider">
               Budget & Target Date
             </span>
-            <div className="text-xs text-slate-800 dark:text-slate-200 space-y-0.5">
+            <div className="text-xs text-fg space-y-0.5">
               <p className="font-semibold text-emerald-600 dark:text-emerald-400">
                 {project.budget ? `₹${Number(project.budget).toLocaleString()}` : 'Not Specified'}
               </p>
@@ -510,22 +515,22 @@ export const ProjectDetailPage = () => {
         </div>
 
         {/* Dynamic Process Progress Bar */}
-        <div className="pt-4 border-t border-slate-100 dark:border-slate-800 space-y-2">
-          <div className="flex justify-between text-xs font-medium text-slate-600 dark:text-slate-400">
+        <div className="pt-4 border-t border-slate-100 dark:border-border space-y-2">
+          <div className="flex justify-between text-xs font-medium text-muted">
             <span className="flex items-center gap-1.5">
-              <CheckCircle2 className="w-3.5 h-3.5 text-indigo-600 dark:text-indigo-400" />
+              <CheckCircle2 className="w-3.5 h-3.5 text-accent" />
               Current Process Stage:{' '}
-              <strong className="text-slate-800 dark:text-slate-200">
+              <strong className="text-fg">
                 {activeStep ? activeStep.title : 'All Stages Completed'}
               </strong>
             </span>
-            <span className="font-semibold text-slate-700 dark:text-slate-300">
+            <span className="font-semibold text-fg">
               {completedSteps} of {totalSteps} Completed ({calculatedPercent}%)
             </span>
           </div>
-          <div className="w-full bg-slate-100 dark:bg-slate-800 h-2 rounded-full overflow-hidden">
+          <div className="w-full bg-canvas h-2 rounded-full overflow-hidden">
             <div
-              className="bg-indigo-600 dark:bg-indigo-500 h-full rounded-full transition-all duration-500"
+              className="bg-accent dark:bg-accent h-full rounded-full transition-all duration-500"
               style={{ width: `${Math.min(100, Math.max(0, calculatedPercent))}%` }}
             />
           </div>
@@ -534,14 +539,14 @@ export const ProjectDetailPage = () => {
 
       {/* Quick Add Stage Starters Strip */}
       <div className="flex items-center gap-2 overflow-x-auto pb-1">
-        <span className="text-xs font-bold text-slate-500 dark:text-slate-400 flex items-center gap-1 shrink-0">
-          <Sparkles className="w-3.5 h-3.5 text-indigo-500" /> Quick Add Stage:
+        <span className="text-xs font-bold text-muted flex items-center gap-1 shrink-0">
+          <Sparkles className="w-3.5 h-3.5 text-accent" /> Quick Add Stage:
         </span>
         <button
           onClick={() => handleOpenAddStepModal('message')}
-          className="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-xl bg-blue-50 dark:bg-blue-500/15 text-blue-600 dark:text-blue-400 text-xs font-semibold hover:bg-blue-100 transition-colors shrink-0"
+          className="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-xl bg-blue-50 dark:bg-blue-500/15 text-info text-xs font-semibold hover:bg-blue-100 transition-colors shrink-0"
         >
-          <MessageSquare className="w-3.5 h-3.5" /> + Process Message (e.g. Video Ready)
+          <MessageSquare className="w-3.5 h-3.5" /> + Process Message
         </button>
         <button
           onClick={() => handleOpenAddStepModal('document')}
@@ -570,9 +575,9 @@ export const ProjectDetailPage = () => {
       </div>
 
       {/* Main Project Process Stepper Card (Matches the visual design in the user screenshot) */}
-      <div className="bg-[#0B111E] dark:bg-[#080D1A] border border-slate-800/90 rounded-2xl p-6 text-slate-100 shadow-xl relative">
+      <div className="bg-[#0B111E] dark:bg-[#080D1A] border border-slate-800/90 rounded-2xl p-6 text-white shadow-xl relative">
         {/* Header */}
-        <div className="flex items-center justify-between pb-6 border-b border-slate-800/80">
+        <div className="flex items-center justify-between pb-6 border-b border-border/80">
           <div className="flex items-center gap-3">
             <h3 className="text-base sm:text-lg font-bold text-white tracking-tight flex items-center gap-2">
               Project Process & Workflow
@@ -580,6 +585,11 @@ export const ProjectDetailPage = () => {
             <span className="text-xs bg-slate-800 text-slate-300 px-2.5 py-0.5 rounded-full font-medium">
               {completedSteps}/{totalSteps} stages completed
             </span>
+            {pendingClientCount > 0 && (
+              <span className="text-xs bg-amber-500/15 text-amber-400 border border-amber-500/30 px-2.5 py-0.5 rounded-full font-semibold">
+                {pendingClientCount} awaiting client approval
+              </span>
+            )}
           </div>
 
           {/* Right Filter & Add Stage Buttons */}
@@ -601,13 +611,14 @@ export const ProjectDetailPage = () => {
                     className="fixed inset-0 z-20"
                     onClick={() => setShowFilterMenu(false)}
                   />
-                  <div className="absolute right-0 mt-2 w-48 bg-[#111827] border border-slate-700 rounded-xl shadow-2xl z-30 py-1.5 overflow-hidden">
-                    <div className="px-3 py-1.5 text-[10px] font-bold uppercase tracking-wider text-slate-400 border-b border-slate-800 flex items-center justify-between">
+                  <div className="absolute right-0 mt-2 w-56 bg-surface border border-border rounded-xl shadow-2xl z-30 py-1.5 overflow-hidden">
+                    <div className="px-3 py-1.5 text-[10px] font-bold uppercase tracking-wider text-slate-400 border-b border-border flex items-center justify-between">
                       <span>Filter By Status</span>
-                      {statusFilter !== 'all' && (
+                      {(statusFilter !== 'all' || visibilityFilter !== 'all') && (
                         <button
                           onClick={() => {
                             setStatusFilter('all')
+                            setVisibilityFilter('all')
                             setShowFilterMenu(false)
                           }}
                           className="text-blue-400 hover:underline text-[10px]"
@@ -639,6 +650,32 @@ export const ProjectDetailPage = () => {
                         {statusFilter === opt.key && <Check className="w-3.5 h-3.5 text-blue-400" />}
                       </button>
                     ))}
+                    <div className="px-3 py-1.5 text-[10px] font-bold uppercase tracking-wider text-slate-400 border-y border-border mt-1">
+                      Client View
+                    </div>
+                    {[
+                      { key: 'all', label: 'All visibility' },
+                      { key: 'pending', label: 'Awaiting approval' },
+                      { key: 'approved', label: 'Visible to client' },
+                      { key: 'hidden', label: 'Hidden from client' },
+                    ].map((opt) => (
+                      <button
+                        key={`vis-${opt.key}`}
+                        type="button"
+                        onClick={() => {
+                          setVisibilityFilter(opt.key)
+                          setShowFilterMenu(false)
+                        }}
+                        className={`w-full text-left px-3 py-2 text-xs transition-colors flex items-center justify-between ${
+                          visibilityFilter === opt.key
+                            ? 'bg-blue-600/20 text-blue-400 font-semibold'
+                            : 'text-slate-300 hover:bg-slate-800/80 hover:text-white'
+                        }`}
+                      >
+                        <span>{opt.label}</span>
+                        {visibilityFilter === opt.key && <Check className="w-3.5 h-3.5 text-blue-400" />}
+                      </button>
+                    ))}
                   </div>
                 </>
               )}
@@ -658,12 +695,12 @@ export const ProjectDetailPage = () => {
         {/* Process Steps Feed */}
         <div className="mt-6">
           {steps.length === 0 ? (
-            <div className="py-16 text-center text-slate-400 text-xs border border-dashed border-slate-800 rounded-xl space-y-3">
+            <div className="py-16 text-center text-slate-400 text-xs border border-dashed border-border rounded-xl space-y-3">
               <Clock className="w-8 h-8 mx-auto text-slate-600 opacity-60" />
               <div>
                 <p className="font-semibold text-slate-300 text-sm">No process stages created yet</p>
-                <p className="text-slate-500 mt-1 max-w-sm mx-auto">
-                  Create the steps of your project process (e.g. "Video is almost ready", "SRS Signoff", "Mockup Approval") so the client can follow along.
+                <p className="text-muted mt-1 max-w-sm mx-auto">
+                  Create the steps of your project process so the client can follow along.
                 </p>
               </div>
               <Button
@@ -676,7 +713,7 @@ export const ProjectDetailPage = () => {
               </Button>
             </div>
           ) : filteredSteps.length === 0 ? (
-            <div className="py-12 text-center text-slate-400 text-xs border border-dashed border-slate-800 rounded-xl">
+            <div className="py-12 text-center text-slate-400 text-xs border border-dashed border-border rounded-xl">
               <span>No stages match the selected status filter.</span>
             </div>
           ) : (
@@ -685,6 +722,7 @@ export const ProjectDetailPage = () => {
                 const isCompleted = step.status === 'completed'
                 const isInProgress = step.status === 'in_progress'
                 const isPending = step.status === 'pending'
+                const clientVis = getClientVisibility(step)
 
                 const iconConfig = getProcessIconConfig(step.type, step.status)
                 const IconComp = iconConfig.icon
@@ -704,8 +742,8 @@ export const ProjectDetailPage = () => {
                       isInProgress
                         ? 'bg-blue-950/20 border-blue-800/60 ring-1 ring-blue-500/20'
                         : isCompleted
-                        ? 'bg-slate-900/30 border-slate-800/60'
-                        : 'bg-slate-900/10 border-slate-800/40 opacity-75'
+                        ? 'bg-slate-900/30 border-border/60'
+                        : 'bg-slate-900/10 border-border/40 opacity-75'
                     }`}
                   >
                     <div className="flex items-start gap-4 min-w-0 flex-1">
@@ -721,7 +759,7 @@ export const ProjectDetailPage = () => {
                       {/* Step Content */}
                       <div className="pt-0.5 flex-1 min-w-0">
                         <div className="flex items-center gap-2 flex-wrap">
-                          <h4 className="text-sm font-semibold text-slate-100 dark:text-white leading-snug break-words">
+                          <h4 className="text-sm font-semibold text-fg dark:text-white leading-snug break-words">
                             {step.title}
                           </h4>
 
@@ -741,6 +779,21 @@ export const ProjectDetailPage = () => {
                               Pending
                             </span>
                           )}
+                          {clientVis === 'pending' && (
+                            <span className="inline-flex items-center gap-1 text-[10px] font-bold px-2 py-0.5 rounded-full bg-amber-500/15 text-amber-400 border border-amber-500/30">
+                              Awaiting approval
+                            </span>
+                          )}
+                          {clientVis === 'approved' && (
+                            <span className="inline-flex items-center gap-1 text-[10px] font-medium px-2 py-0.5 rounded-full bg-emerald-500/10 text-emerald-400 border border-emerald-500/25">
+                              <Eye className="w-3 h-3" /> Visible to client
+                            </span>
+                          )}
+                          {clientVis === 'hidden' && (
+                            <span className="inline-flex items-center gap-1 text-[10px] font-medium px-2 py-0.5 rounded-full bg-slate-800 text-slate-400 border border-slate-700">
+                              <EyeOff className="w-3 h-3" /> Hidden from client
+                            </span>
+                          )}
                         </div>
 
                         {subtitle && (
@@ -750,8 +803,8 @@ export const ProjectDetailPage = () => {
                         )}
 
                         {step.message && (
-                          <div className="mt-2 text-xs text-slate-200 bg-slate-900/80 p-2.5 rounded-lg border border-slate-800/90 font-medium">
-                            💬 {step.message}
+                          <div className="mt-2 text-xs text-slate-200 bg-slate-900/80 p-2.5 rounded-lg border border-border/90 font-medium">
+                            {step.message}
                           </div>
                         )}
                       </div>
@@ -760,7 +813,7 @@ export const ProjectDetailPage = () => {
                     {/* Admin Status Toggles & Actions */}
                     <div className="flex flex-col sm:flex-row items-end sm:items-center gap-2 shrink-0 pt-0.5">
                       {/* One-Click Status Buttons */}
-                      <div className="flex items-center gap-1 bg-slate-900/80 p-1 rounded-lg border border-slate-800">
+                      <div className="flex items-center gap-1 bg-slate-900/80 p-1 rounded-lg border border-border">
                         <button
                           type="button"
                           onClick={() => handleSetStepStatus(step.id, 'completed')}
@@ -779,7 +832,7 @@ export const ProjectDetailPage = () => {
                           title="Mark this process message as In Progress"
                           className={`px-2.5 py-1 rounded-md text-[11px] font-semibold transition-all flex items-center gap-1 ${
                             isInProgress
-                              ? 'bg-blue-600 text-white shadow-sm'
+                              ? 'bg-info text-white shadow-sm'
                               : 'text-slate-400 hover:text-blue-400 hover:bg-blue-950/40'
                           }`}
                         >
@@ -799,12 +852,35 @@ export const ProjectDetailPage = () => {
                         </button>
                       </div>
 
+                      <div className="flex items-center gap-1 bg-slate-900/80 p-1 rounded-lg border border-border">
+                        {clientVis !== 'approved' && (
+                          <button
+                            type="button"
+                            onClick={() => handleSetClientVisibility(step.id, 'approved')}
+                            title="Approve this stage for client view"
+                            className="px-2.5 py-1 rounded-md text-[11px] font-semibold text-emerald-400 hover:bg-emerald-950/40 transition-all flex items-center gap-1"
+                          >
+                            <Eye className="w-3 h-3" /> Approve
+                          </button>
+                        )}
+                        {clientVis !== 'hidden' && (
+                          <button
+                            type="button"
+                            onClick={() => handleSetClientVisibility(step.id, 'hidden')}
+                            title="Hide this stage from the client"
+                            className="px-2.5 py-1 rounded-md text-[11px] font-semibold text-slate-400 hover:text-white hover:bg-slate-800 transition-all flex items-center gap-1"
+                          >
+                            <EyeOff className="w-3 h-3" /> Hide
+                          </button>
+                        )}
+                      </div>
+
                       {/* Edit / Delete Buttons */}
                       <div className="flex items-center gap-1">
                         <button
                           onClick={() => handleOpenEditStepModal(step)}
                           title="Edit stage message"
-                          className="text-slate-400 hover:text-indigo-400 p-1.5 rounded-lg hover:bg-slate-800 transition-colors"
+                          className="text-slate-400 hover:text-accent p-1.5 rounded-lg hover:bg-slate-800 transition-colors"
                         >
                           <Pencil className="w-3.5 h-3.5" />
                         </button>
@@ -828,10 +904,9 @@ export const ProjectDetailPage = () => {
       {/* Modal: Add / Edit Process Stage / Message */}
       {showStepModal && (
         <div className="fixed inset-0 z-50 bg-black/70 backdrop-blur-sm flex items-center justify-center p-4">
-          <Card className="w-full max-w-lg p-6 space-y-4 border-slate-200 dark:border-slate-800 shadow-2xl relative bg-white dark:bg-[#181C27] max-h-[90vh] overflow-y-auto">
-            <div className="flex items-center justify-between pb-3 border-b border-slate-200 dark:border-slate-800">
-              <h3 className="font-bold text-slate-900 dark:text-slate-100 text-sm flex items-center gap-2">
-                <Sparkles className="w-4 h-4 text-indigo-500" />
+          <Card className="w-full max-w-lg p-6 space-y-4 border-border shadow-2xl relative bg-surface max-h-[90vh] overflow-y-auto">
+            <div className="flex items-center justify-between pb-3 border-b border-border">
+              <h3 className="font-bold text-fg text-sm">
                 {editingStep ? 'Edit Process Stage / Message' : 'Create Process Stage / Message'}
               </h3>
               <button
@@ -845,27 +920,27 @@ export const ProjectDetailPage = () => {
             <form onSubmit={handleSaveProcessStep} className="space-y-4 text-left">
               {/* Category selector */}
               <div className="space-y-1.5">
-                <label className="block text-xs font-medium text-slate-700 dark:text-slate-300">
+                <label className="block text-xs font-medium text-fg">
                   Process Stage Category
                 </label>
                 <select
                   value={stepType}
                   onChange={(e) => handleStepTypeChange(e.target.value)}
-                  className="w-full bg-slate-100 dark:bg-[#11141E] border border-slate-300 dark:border-slate-800 text-slate-900 dark:text-slate-100 text-sm rounded-xl py-2 px-3 focus:outline-none focus:border-indigo-500 cursor-pointer"
+                  className="w-full bg-canvas border border-border text-fg text-sm rounded-xl py-2 px-3 focus:outline-none focus:border-border cursor-pointer"
                 >
-                  <option value="message">💬 Process Message (e.g. "Video is almost ready")</option>
-                  <option value="document">📄 Document Stage (e.g. SRS, Design Doc Uploaded)</option>
-                  <option value="approval">🛡️ Approval Stage (e.g. Approved Mockup)</option>
-                  <option value="invoice">💳 Invoice & Payment Stage</option>
-                  <option value="ticket">🎫 Support & QA Stage</option>
-                  <option value="project_created">🚀 Project Kickoff / Creation</option>
+                  <option value="message">Process Message</option>
+                  <option value="document">Document Stage</option>
+                  <option value="approval">Approval Stage</option>
+                  <option value="invoice">Invoice & Payment Stage</option>
+                  <option value="ticket">Support & QA Stage</option>
+                  <option value="project_created">Project Kickoff / Creation</option>
                 </select>
               </div>
 
               {/* Step Title */}
               <Input
                 label="Process Title / Headline *"
-                placeholder='e.g. Video Production, UI Mockups, Final Review'
+                placeholder="Process title"
                 value={stepTitle}
                 onChange={(e) => setStepTitle(e.target.value)}
                 required
@@ -873,31 +948,31 @@ export const ProjectDetailPage = () => {
 
               {/* Process Message / Details */}
               <div className="space-y-1.5">
-                <label className="block text-xs font-medium text-slate-700 dark:text-slate-300">
-                  Detailed Process Message for Client (What is happening in this stage?)
+                <label className="block text-xs font-medium text-fg">
+                  Detailed Process Message for Client
                 </label>
                 <textarea
                   rows={3}
                   value={stepMessage}
                   onChange={(e) => setStepMessage(e.target.value)}
-                  placeholder='e.g. "video is almost ready, rendering 4K sample for final client signoff."'
-                  className="w-full bg-slate-100 dark:bg-[#11141E] border border-slate-300 dark:border-slate-800 text-slate-900 dark:text-slate-100 text-xs rounded-xl p-3 focus:outline-none focus:border-indigo-500"
+                  placeholder="Message for the client"
+                  className="w-full bg-canvas border border-border text-fg text-xs rounded-xl p-3 focus:outline-none focus:border-border"
                 />
               </div>
 
               {/* Status Selector */}
               <div className="space-y-1.5">
-                <label className="block text-xs font-medium text-slate-700 dark:text-slate-300">
+                <label className="block text-xs font-medium text-fg">
                   Initial Status
                 </label>
                 <div className="grid grid-cols-3 gap-2">
                   <button
                     type="button"
                     onClick={() => setStepStatus('pending')}
-                    className={`py-2 rounded-xl text-xs font-semibold border text-center transition-all ${
+                    className={`py-2 rounded-xl text-xs font-semibold border text-center transition-colors ${
                       stepStatus === 'pending'
-                        ? 'bg-slate-700 text-white border-slate-600 ring-2 ring-slate-500'
-                        : 'bg-slate-100 dark:bg-slate-800 text-slate-600 dark:text-slate-400 border-slate-200 dark:border-slate-700'
+                        ? 'bg-chrome text-fg border-border'
+                        : 'bg-canvas text-muted border-border'
                     }`}
                   >
                     Pending (Upcoming)
@@ -905,10 +980,10 @@ export const ProjectDetailPage = () => {
                   <button
                     type="button"
                     onClick={() => setStepStatus('in_progress')}
-                    className={`py-2 rounded-xl text-xs font-semibold border text-center transition-all ${
+                    className={`py-2 rounded-xl text-xs font-semibold border text-center transition-colors ${
                       stepStatus === 'in_progress'
-                        ? 'bg-blue-600 text-white border-blue-500 ring-2 ring-blue-400'
-                        : 'bg-slate-100 dark:bg-slate-800 text-slate-600 dark:text-slate-400 border-slate-200 dark:border-slate-700'
+                        ? 'bg-chrome text-fg border-border'
+                        : 'bg-canvas text-muted border-border'
                     }`}
                   >
                     In Progress (Current)
@@ -916,13 +991,13 @@ export const ProjectDetailPage = () => {
                   <button
                     type="button"
                     onClick={() => setStepStatus('completed')}
-                    className={`py-2 rounded-xl text-xs font-semibold border text-center transition-all ${
+                    className={`py-2 rounded-xl text-xs font-semibold border text-center transition-colors ${
                       stepStatus === 'completed'
-                        ? 'bg-emerald-600 text-white border-emerald-500 ring-2 ring-emerald-400'
-                        : 'bg-slate-100 dark:bg-slate-800 text-slate-600 dark:text-slate-400 border-slate-200 dark:border-slate-700'
+                        ? 'bg-chrome text-fg border-border'
+                        : 'bg-canvas text-muted border-border'
                     }`}
                   >
-                    ✓ Completed
+                    Completed
                   </button>
                 </div>
               </div>
@@ -931,19 +1006,19 @@ export const ProjectDetailPage = () => {
               <div className="grid grid-cols-2 gap-3">
                 <Input
                   label="Author / Actor"
-                  placeholder="e.g. From Admin, By PM"
+                  placeholder="Author"
                   value={stepAuthor}
                   onChange={(e) => setStepAuthor(e.target.value)}
                 />
                 <Input
-                  label="Meta Info (Amount, Cat, etc.)"
-                  placeholder="e.g. Amount: ₹45,000"
+                  label="Meta Info"
+                  placeholder="Optional"
                   value={stepMeta}
                   onChange={(e) => setStepMeta(e.target.value)}
                 />
               </div>
 
-              <div className="flex gap-3 pt-3 border-t border-slate-200 dark:border-slate-800">
+              <div className="flex gap-3 pt-3 border-t border-border">
                 <Button
                   type="button"
                   variant="secondary"
@@ -974,10 +1049,10 @@ export const ProjectDetailPage = () => {
       {/* Modal: Edit Project Details */}
       {showEditProjectModal && (
         <div className="fixed inset-0 z-50 bg-black/70 backdrop-blur-sm flex items-center justify-center p-4">
-          <Card className="w-full max-w-lg p-6 space-y-4 border-slate-200 dark:border-slate-800 shadow-2xl relative bg-white dark:bg-[#181C27] max-h-[90vh] overflow-y-auto">
-            <div className="flex items-center justify-between pb-3 border-b border-slate-200 dark:border-slate-800">
-              <h3 className="font-bold text-slate-900 dark:text-slate-100 text-sm flex items-center gap-2">
-                <Pencil className="w-4 h-4 text-indigo-500" /> Edit Project Details
+          <Card className="w-full max-w-lg p-6 space-y-4 border-border shadow-2xl relative bg-surface max-h-[90vh] overflow-y-auto">
+            <div className="flex items-center justify-between pb-3 border-b border-border">
+              <h3 className="font-bold text-fg text-sm flex items-center gap-2">
+                <Pencil className="w-4 h-4 text-accent" /> Edit Project Details
               </h3>
               <button
                 onClick={() => setShowEditProjectModal(false)}
@@ -998,7 +1073,7 @@ export const ProjectDetailPage = () => {
               <div className="grid grid-cols-2 gap-3">
                 {/* Client Select */}
                 <div className="space-y-1.5">
-                  <label className="block text-xs font-medium text-slate-700 dark:text-slate-300">
+                  <label className="block text-xs font-medium text-fg">
                     Client Name
                   </label>
                   <select
@@ -1008,7 +1083,7 @@ export const ProjectDetailPage = () => {
                       const cl = clients.find((c) => c.id === e.target.value)
                       if (cl) setEditClientName(cl.name)
                     }}
-                    className="w-full bg-slate-100 dark:bg-[#11141E] border border-slate-300 dark:border-slate-800 text-slate-900 dark:text-slate-100 text-sm rounded-xl py-2 px-3 focus:outline-none focus:border-indigo-500 cursor-pointer"
+                    className="w-full bg-canvas border border-border text-fg text-sm rounded-xl py-2 px-3 focus:outline-none focus:border-accent cursor-pointer"
                   >
                     <option value="">Independent</option>
                     {clients.map((c) => (
@@ -1021,13 +1096,13 @@ export const ProjectDetailPage = () => {
 
                 {/* Lead Select */}
                 <div className="space-y-1.5">
-                  <label className="block text-xs font-medium text-slate-700 dark:text-slate-300">
+                  <label className="block text-xs font-medium text-fg">
                     Project Lead
                   </label>
                   <select
                     value={editLeadName}
                     onChange={(e) => setEditLeadName(e.target.value)}
-                    className="w-full bg-slate-100 dark:bg-[#11141E] border border-slate-300 dark:border-slate-800 text-slate-900 dark:text-slate-100 text-sm rounded-xl py-2 px-3 focus:outline-none focus:border-indigo-500 cursor-pointer"
+                    className="w-full bg-canvas border border-border text-fg text-sm rounded-xl py-2 px-3 focus:outline-none focus:border-accent cursor-pointer"
                   >
                     <option value="">Unassigned</option>
                     {employees.map((emp) => (
@@ -1047,13 +1122,13 @@ export const ProjectDetailPage = () => {
                   onChange={(e) => setEditBudget(e.target.value)}
                 />
                 <div className="space-y-1.5">
-                  <label className="block text-xs font-medium text-slate-700 dark:text-slate-300">
+                  <label className="block text-xs font-medium text-fg">
                     Status
                   </label>
                   <select
                     value={editStatus}
                     onChange={(e) => setEditStatus(e.target.value)}
-                    className="w-full bg-slate-100 dark:bg-[#11141E] border border-slate-300 dark:border-slate-800 text-slate-900 dark:text-slate-100 text-sm rounded-xl py-2 px-3 focus:outline-none focus:border-indigo-500 cursor-pointer"
+                    className="w-full bg-canvas border border-border text-fg text-sm rounded-xl py-2 px-3 focus:outline-none focus:border-accent cursor-pointer"
                   >
                     <option value="active">Active</option>
                     <option value="completed">Completed</option>
@@ -1070,7 +1145,7 @@ export const ProjectDetailPage = () => {
               />
 
               <div className="space-y-1.5">
-                <label className="block text-xs font-medium text-slate-700 dark:text-slate-300">
+                <label className="block text-xs font-medium text-fg">
                   Project Description
                 </label>
                 <textarea
@@ -1078,11 +1153,11 @@ export const ProjectDetailPage = () => {
                   value={editDescription}
                   onChange={(e) => setEditDescription(e.target.value)}
                   placeholder="Detailed project summary..."
-                  className="w-full bg-slate-100 dark:bg-[#11141E] border border-slate-300 dark:border-slate-800 text-slate-900 dark:text-slate-100 text-xs rounded-xl p-3 focus:outline-none focus:border-indigo-500"
+                  className="w-full bg-canvas border border-border text-fg text-xs rounded-xl p-3 focus:outline-none focus:border-accent"
                 />
               </div>
 
-              <div className="flex gap-3 pt-3 border-t border-slate-200 dark:border-slate-800">
+              <div className="flex gap-3 pt-3 border-t border-border">
                 <Button
                   type="button"
                   variant="secondary"
@@ -1109,15 +1184,15 @@ export const ProjectDetailPage = () => {
       {/* Delete Step Confirmation Modal */}
       {deleteConfirmStep && (
         <div className="fixed inset-0 z-50 bg-black/70 backdrop-blur-sm flex items-center justify-center p-4">
-          <Card className="w-full max-w-sm p-6 space-y-4 border-slate-200 dark:border-slate-800 shadow-2xl bg-white dark:bg-[#181C27] text-center">
+          <Card className="w-full max-w-sm p-6 space-y-4 border-border shadow-2xl bg-surface text-center">
             <div className="w-10 h-10 rounded-full bg-rose-100 dark:bg-rose-900/30 text-rose-600 dark:text-rose-400 mx-auto flex items-center justify-center">
               <Trash2 className="w-5 h-5" />
             </div>
-            <h4 className="font-bold text-slate-900 dark:text-slate-100 text-sm">
+            <h4 className="font-bold text-fg text-sm">
               Delete Process Stage?
             </h4>
-            <p className="text-xs text-slate-500">
-              Are you sure you want to delete <strong className="text-slate-700 dark:text-slate-300">"{deleteConfirmStep.title}"</strong>?
+            <p className="text-xs text-muted">
+              Are you sure you want to delete <strong className="text-fg">"{deleteConfirmStep.title}"</strong>?
             </p>
             <div className="flex gap-3 pt-2">
               <Button

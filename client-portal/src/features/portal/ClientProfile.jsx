@@ -188,8 +188,8 @@ export const ClientProfile = () => {
               {displayName?.charAt(0) || 'C'}
             </div>
             <div>
-              <h3 className="font-bold text-slate-900 dark:text-slate-100">{displayName || 'Client Representative'}</h3>
-              <p className="text-xs text-slate-500 dark:text-slate-400 flex items-center justify-center gap-1 mt-1">
+              <h3 className="font-bold text-fg">{displayName || 'Client Representative'}</h3>
+              <p className="text-xs text-muted flex items-center justify-center gap-1 mt-1">
                 <Building className="w-3.5 h-3.5" /> {companyName || 'Acme Corp'}
               </p>
             </div>
@@ -197,7 +197,7 @@ export const ClientProfile = () => {
               <Badge variant="success">Client Workspace</Badge>
             </div>
 
-            <div className="pt-4 border-t border-slate-100 dark:border-emerald-950/60 text-left text-xs text-slate-600 dark:text-slate-400 space-y-2">
+            <div className="pt-4 border-t border-slate-100 dark:border-emerald-950/60 text-left text-xs text-muted space-y-2">
               <div className="flex items-center gap-2">
                 <Mail className="w-4 h-4 text-slate-400" />
                 <span className="truncate">{email}</span>
@@ -215,7 +215,7 @@ export const ClientProfile = () => {
             <h4 className="font-bold text-xs uppercase tracking-wider text-slate-400 flex items-center gap-1.5">
               <Key className="w-4 h-4" /> Alternative Reset
             </h4>
-            <p className="text-[11px] text-slate-500 dark:text-slate-450 leading-relaxed">
+            <p className="text-[11px] text-muted leading-relaxed">
               If you prefer to change your password using a verified email link, click the button below.
             </p>
             <button
@@ -231,7 +231,7 @@ export const ClientProfile = () => {
         <div className="md:col-span-2 space-y-6">
           {/* Profile Form */}
           <Card className="p-6 border-slate-200 dark:border-emerald-900/40 space-y-4">
-            <h3 className="font-bold text-slate-900 dark:text-slate-100 text-sm">Personal Details</h3>
+            <h3 className="font-bold text-fg text-sm">Personal Details</h3>
 
             <form onSubmit={handleUpdateProfile} className="space-y-4">
               <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
@@ -244,8 +244,8 @@ export const ClientProfile = () => {
                   required
                 />
                 <div>
-                  <label className="block text-xs font-medium text-slate-500 dark:text-slate-400 mb-1.5">Company Name (Read-Only)</label>
-                  <div className="flex items-center gap-2 bg-slate-100 dark:bg-[#11141E] border border-slate-200 dark:border-slate-800 text-slate-500 dark:text-slate-400 text-xs rounded-xl py-2.5 px-3.5">
+                  <label className="block text-xs font-medium text-muted mb-1.5">Company Name (Read-Only)</label>
+                  <div className="flex items-center gap-2 bg-chrome border border-border text-muted text-xs rounded-xl py-2.5 px-3.5">
                     <Building className="w-4 h-4" />
                     <span>{companyName}</span>
                   </div>
@@ -261,8 +261,8 @@ export const ClientProfile = () => {
                   icon={Phone}
                 />
                 <div>
-                  <label className="block text-xs font-medium text-slate-500 dark:text-slate-400 mb-1.5">Login Email (Read-Only)</label>
-                  <div className="flex items-center gap-2 bg-slate-100 dark:bg-[#11141E] border border-slate-200 dark:border-slate-800 text-slate-500 dark:text-slate-400 text-xs rounded-xl py-2.5 px-3.5">
+                  <label className="block text-xs font-medium text-muted mb-1.5">Login Email (Read-Only)</label>
+                  <div className="flex items-center gap-2 bg-chrome border border-border text-muted text-xs rounded-xl py-2.5 px-3.5">
                     <Mail className="w-4 h-4" />
                     <span>{email}</span>
                   </div>
@@ -285,7 +285,7 @@ export const ClientProfile = () => {
 
           {/* Change Password Card */}
           <Card className="p-6 border-slate-200 dark:border-emerald-900/40 space-y-4">
-            <h3 className="font-bold text-slate-900 dark:text-slate-100 text-sm">Security & Password</h3>
+            <h3 className="font-bold text-fg text-sm">Security & Password</h3>
 
             <form onSubmit={handleUpdatePassword} className="space-y-4">
               <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">

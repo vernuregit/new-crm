@@ -45,23 +45,23 @@ function downloadCsv(filename, csvText) {
 
 function StatCard({ label, value, sub, icon: Icon, accent = 'indigo' }) {
   const accents = {
-    indigo: 'bg-indigo-50 dark:bg-indigo-500/10 text-indigo-600 dark:text-indigo-400',
+    indigo: 'bg-accent-soft text-accent',
     amber: 'bg-amber-50 dark:bg-amber-500/10 text-amber-600 dark:text-amber-400',
     emerald: 'bg-emerald-50 dark:bg-emerald-500/10 text-emerald-600 dark:text-emerald-400',
     rose: 'bg-rose-50 dark:bg-rose-500/10 text-rose-600 dark:text-rose-400',
-    slate: 'bg-slate-100 dark:bg-slate-800 text-slate-600 dark:text-slate-300',
+    slate: 'bg-canvas text-muted',
     violet: 'bg-violet-50 dark:bg-violet-500/10 text-violet-600 dark:text-violet-400',
   }
   return (
-    <Card className="p-4 border-slate-200 dark:border-slate-800 flex items-center gap-3">
+    <Card className="p-4 border-border flex items-center gap-3">
       <div className={`w-10 h-10 rounded-xl flex items-center justify-center shrink-0 ${accents[accent] || accents.indigo}`}>
         <Icon className="w-5 h-5" />
       </div>
       <div className="min-w-0">
-        <div className="text-[10px] uppercase tracking-wider font-semibold text-slate-500 dark:text-slate-400">
+        <div className="text-[10px] uppercase tracking-wider font-semibold text-muted">
           {label}
         </div>
-        <div className="text-xl font-bold text-slate-900 dark:text-slate-100 truncate">{value}</div>
+        <div className="text-xl font-bold text-fg truncate">{value}</div>
         {sub ? <div className="text-[10px] text-slate-400 mt-0.5">{sub}</div> : null}
       </div>
     </Card>
@@ -237,18 +237,18 @@ export function EmployeeMonthlyReportPage() {
 
       <div className="flex flex-wrap items-center justify-between gap-3">
         <div className="flex flex-wrap items-center gap-2">
-          <label className="text-xs text-slate-500 font-medium">Month</label>
+          <label className="text-xs text-muted font-medium">Month</label>
           <NativePickerInput
             type="month"
             value={month}
             onChange={(e) => setMonth(e.target.value)}
-            className="bg-slate-100 dark:bg-[#181C27] border border-slate-300 dark:border-slate-800 text-sm text-slate-800 dark:text-slate-200 rounded-xl px-3 py-2 focus:outline-none"
+            className="bg-canvas border border-border text-sm text-fg rounded-xl px-3 py-2 focus:outline-none"
           />
-          <label className="text-xs text-slate-500 font-medium ml-2">Employee</label>
+          <label className="text-xs text-muted font-medium ml-2">Employee</label>
           <select
             value={selectedUid}
             onChange={(e) => setSelectedUid(e.target.value)}
-            className="bg-slate-100 dark:bg-[#181C27] border border-slate-300 dark:border-slate-800 text-sm text-slate-800 dark:text-slate-200 rounded-xl px-3 py-2 focus:outline-none min-w-[200px]"
+            className="bg-canvas border border-border text-sm text-fg rounded-xl px-3 py-2 focus:outline-none min-w-[200px]"
           >
             {employees.length === 0 && <option value="">No employees</option>}
             {employees.map((emp) => {
@@ -310,9 +310,9 @@ export function EmployeeMonthlyReportPage() {
         </Card>
       ) : !report ? (
         <div className="space-y-4">
-          <Card className="p-10 text-center border-dashed border-slate-300 dark:border-slate-700 space-y-3">
+          <Card className="p-10 text-center border-dashed border-border space-y-3">
             <FileText className="w-10 h-10 mx-auto text-slate-400" />
-            <p className="text-sm text-slate-600 dark:text-slate-300 font-medium">
+            <p className="text-sm text-muted font-medium">
               No stored report for this employee and month.
             </p>
             <p className="text-xs text-slate-400">
@@ -336,7 +336,7 @@ export function EmployeeMonthlyReportPage() {
         <>
           <div className="flex flex-wrap items-center justify-between gap-2">
             <div>
-              <h3 className="text-sm font-bold text-slate-900 dark:text-slate-100">
+              <h3 className="text-sm font-bold text-fg">
                 {report.displayName}
                 <span className="text-slate-400 font-normal"> · {report.month}</span>
               </h3>
@@ -413,22 +413,22 @@ export function EmployeeMonthlyReportPage() {
               accountStartDate={accountStartDate}
             />
 
-            <Card className="p-4 border-slate-200 dark:border-slate-800 space-y-2">
-              <h4 className="text-xs font-bold uppercase tracking-wider text-slate-500">Averages</h4>
-              <div className="text-sm text-slate-700 dark:text-slate-300 space-y-1.5">
+            <Card className="p-4 border-border space-y-2">
+              <h4 className="text-xs font-bold uppercase tracking-wider text-muted">Averages</h4>
+              <div className="text-sm text-fg space-y-1.5">
                 <div className="flex justify-between"><span>Avg check-in</span><span className="font-mono">{att.avgCheckIn || '—'}</span></div>
                 <div className="flex justify-between"><span>Avg check-out</span><span className="font-mono">{att.avgCheckOut || '—'}</span></div>
                 <div className="flex justify-between"><span>Extra hours</span><span className="font-mono">{att.totalExtraHoursLabel || '0h 0m'}</span></div>
                 <div className="flex justify-between"><span>On duty days</span><span>{att.onDutyDays ?? 0}</span></div>
                 <div className="flex justify-between"><span>On-time days</span><span>{att.onTimeDays ?? 0}</span></div>
               </div>
-              <h4 className="text-xs font-bold uppercase tracking-wider text-slate-500 pt-3">Leave by type</h4>
+              <h4 className="text-xs font-bold uppercase tracking-wider text-muted pt-3">Leave by type</h4>
               {Object.keys(leave.byType || {}).length === 0 ? (
                 <p className="text-xs text-slate-400">No approved leave this month</p>
               ) : (
                 <div className="space-y-1">
                   {Object.entries(leave.byType).map(([type, days]) => (
-                    <div key={type} className="flex justify-between text-sm text-slate-700 dark:text-slate-300">
+                    <div key={type} className="flex justify-between text-sm text-fg">
                       <span>{type}</span>
                       <span className="font-semibold">{days}d</span>
                     </div>
@@ -437,13 +437,13 @@ export function EmployeeMonthlyReportPage() {
               )}
             </Card>
 
-            <Card className="overflow-x-auto p-0 border-slate-200 dark:border-slate-800 lg:col-span-2">
-              <div className="px-4 py-3 border-b border-slate-200 dark:border-slate-800">
-                <h4 className="text-xs font-bold uppercase tracking-wider text-slate-500">Daily breakdown</h4>
+            <Card className="overflow-x-auto p-0 border-border lg:col-span-2">
+              <div className="px-4 py-3 border-b border-border">
+                <h4 className="text-xs font-bold uppercase tracking-wider text-muted">Daily breakdown</h4>
               </div>
               <table className="w-full text-xs">
                 <thead>
-                  <tr className="bg-slate-50 dark:bg-slate-900/80 text-slate-500 dark:text-slate-400 text-left">
+                  <tr className="bg-canvas/80 text-muted text-left">
                     <th className="p-3 font-semibold">Date</th>
                     <th className="p-3 font-semibold">Status</th>
                     <th className="p-3 font-semibold">Clock in</th>
@@ -456,7 +456,7 @@ export function EmployeeMonthlyReportPage() {
                 </thead>
                 <tbody className="divide-y divide-slate-100 dark:divide-slate-800/60">
                   {(report.daily || []).map((row) => (
-                    <tr key={row.date} className="text-slate-700 dark:text-slate-300">
+                    <tr key={row.date} className="text-fg">
                       <td className="p-3 font-medium whitespace-nowrap">{row.date}</td>
                       <td className="p-3">
                         {row.present ? (
@@ -496,9 +496,9 @@ export function EmployeeMonthlyReportPage() {
       )}
 
       {/* Month roster summary */}
-      <Card className="overflow-x-auto p-0 border-slate-200 dark:border-slate-800">
-        <div className="px-4 py-3 border-b border-slate-200 dark:border-slate-800 flex items-center justify-between">
-          <h4 className="text-xs font-bold uppercase tracking-wider text-slate-500">
+      <Card className="overflow-x-auto p-0 border-border">
+        <div className="px-4 py-3 border-b border-border flex items-center justify-between">
+          <h4 className="text-xs font-bold uppercase tracking-wider text-muted">
             All stored reports · {month}
           </h4>
           <span className="text-[11px] text-slate-400">{monthReports.length} snapshot(s)</span>
@@ -510,7 +510,7 @@ export function EmployeeMonthlyReportPage() {
         ) : (
           <table className="w-full text-xs">
             <thead>
-              <tr className="bg-slate-50 dark:bg-slate-900/80 text-slate-500 dark:text-slate-400 text-left">
+              <tr className="bg-canvas/80 text-muted text-left">
                 <th className="p-3 font-semibold">Employee</th>
                 <th className="p-3 font-semibold">Present</th>
                 <th className="p-3 font-semibold">Late</th>
@@ -525,11 +525,11 @@ export function EmployeeMonthlyReportPage() {
                 <tr
                   key={r.id || `${r.uid}_${r.month}`}
                   className={`cursor-pointer hover:bg-slate-50 dark:hover:bg-slate-800/40 ${
-                    r.uid === selectedUid ? 'bg-indigo-50/50 dark:bg-indigo-950/20' : ''
+                    r.uid === selectedUid ? 'bg-accent-soft ' : ''
                   }`}
                   onClick={() => setSelectedUid(r.uid)}
                 >
-                  <td className="p-3 font-semibold text-slate-900 dark:text-slate-100">{r.displayName}</td>
+                  <td className="p-3 font-semibold text-fg">{r.displayName}</td>
                   <td className="p-3">{r.attendance?.presentDays ?? '—'}</td>
                   <td className="p-3 text-amber-600 dark:text-amber-400">{r.attendance?.lateDays ?? '—'}</td>
                   <td className="p-3">{r.leave?.approvedDays ?? '—'}</td>

@@ -183,13 +183,13 @@ export const AdminProfile = () => {
       <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
         {/* Left Side: Summary Card */}
         <div className="md:col-span-1 space-y-6">
-          <Card className="p-6 text-center space-y-4 border-slate-200 dark:border-slate-800">
-            <div className="w-20 h-20 rounded-2xl bg-indigo-100 dark:bg-indigo-600/20 text-indigo-600 dark:text-indigo-400 font-bold text-3xl flex items-center justify-center border border-indigo-200 dark:border-indigo-500/30 mx-auto">
+          <Card className="p-6 text-center space-y-4 border-border">
+            <div className="w-20 h-20 rounded-2xl bg-accent-soft text-accent font-bold text-3xl flex items-center justify-center border border-accent/30 mx-auto">
               {displayName?.charAt(0) || 'A'}
             </div>
             <div>
-              <h3 className="font-bold text-slate-900 dark:text-slate-100">{displayName || 'Administrator'}</h3>
-              <p className="text-xs text-slate-500 dark:text-slate-400 flex items-center justify-center gap-1 mt-1">
+              <h3 className="font-bold text-fg">{displayName || 'Administrator'}</h3>
+              <p className="text-xs text-muted flex items-center justify-center gap-1 mt-1">
                 <Building className="w-3.5 h-3.5" /> {org?.name || 'Business OS Workspace'}
               </p>
             </div>
@@ -198,7 +198,7 @@ export const AdminProfile = () => {
               <Badge variant="neutral" className="text-[10px]">Owner</Badge>
             </div>
 
-            <div className="pt-4 border-t border-slate-100 dark:border-slate-800 text-left text-xs text-slate-650 dark:text-slate-400 space-y-2.5">
+            <div className="pt-4 border-t border-slate-100 dark:border-border text-left text-xs text-muted space-y-2.5">
               <div className="flex items-center gap-2">
                 <Mail className="w-4 h-4 text-slate-400" />
                 <span className="truncate">{email}</span>
@@ -216,16 +216,16 @@ export const AdminProfile = () => {
             </div>
           </Card>
 
-          <Card className="p-6 border-slate-200 dark:border-slate-800 space-y-3">
+          <Card className="p-6 border-border space-y-3">
             <h4 className="font-bold text-xs uppercase tracking-wider text-slate-400 flex items-center gap-1.5">
               <Key className="w-4 h-4" /> Reset Option
             </h4>
-            <p className="text-[11px] text-slate-500 dark:text-slate-455 leading-relaxed">
+            <p className="text-[11px] text-muted dark:text-slate-455 leading-relaxed">
               Generate an administrative link to update credentials via email verification.
             </p>
             <button
               onClick={handleSendResetEmail}
-              className="w-full text-center text-xs text-indigo-600 dark:text-indigo-400 font-bold hover:underline cursor-pointer"
+              className="w-full text-center text-xs text-accent font-bold hover:underline cursor-pointer"
             >
               Email Me Password Reset Link
             </button>
@@ -234,8 +234,8 @@ export const AdminProfile = () => {
 
         {/* Right Side: Account details and password form */}
         <div className="md:col-span-2 space-y-6">
-          <Card className="p-6 border-slate-200 dark:border-slate-800 space-y-4">
-            <h3 className="font-bold text-slate-900 dark:text-slate-100 text-sm">Personal System Details</h3>
+          <Card className="p-6 border-border space-y-4">
+            <h3 className="font-bold text-fg text-sm">Personal System Details</h3>
 
             <form onSubmit={handleUpdateProfile} className="space-y-4">
               <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
@@ -248,8 +248,8 @@ export const AdminProfile = () => {
                   required
                 />
                 <div>
-                  <label className="block text-xs font-medium text-slate-500 dark:text-slate-400 mb-1.5">Organization/Workspace</label>
-                  <div className="flex items-center gap-2 bg-slate-100 dark:bg-[#11141E] border border-slate-200 dark:border-slate-800 text-slate-500 dark:text-slate-400 text-xs rounded-xl py-2.5 px-3.5">
+                  <label className="block text-xs font-medium text-muted mb-1.5">Organization/Workspace</label>
+                  <div className="flex items-center gap-2 bg-canvas border border-border text-muted text-xs rounded-xl py-2.5 px-3.5">
                     <Building className="w-4 h-4" />
                     <span>{org?.name || 'Business OS Workspace'}</span>
                   </div>
@@ -265,8 +265,8 @@ export const AdminProfile = () => {
                   icon={Phone}
                 />
                 <div>
-                  <label className="block text-xs font-medium text-slate-500 dark:text-slate-400 mb-1.5">Primary Email</label>
-                  <div className="flex items-center gap-2 bg-slate-100 dark:bg-[#11141E] border border-slate-200 dark:border-slate-800 text-slate-500 dark:text-slate-400 text-xs rounded-xl py-2.5 px-3.5">
+                  <label className="block text-xs font-medium text-muted mb-1.5">Primary Email</label>
+                  <div className="flex items-center gap-2 bg-canvas border border-border text-muted text-xs rounded-xl py-2.5 px-3.5">
                     <Mail className="w-4 h-4" />
                     <span>{email}</span>
                   </div>
@@ -277,7 +277,7 @@ export const AdminProfile = () => {
                 <Button
                   type="submit"
                   variant="primary"
-                  className="bg-indigo-600 hover:bg-indigo-500 px-6 cursor-pointer"
+                  className="bg-accent hover:bg-accent-hover px-6 cursor-pointer"
                   icon={Save}
                   disabled={saving}
                 >
@@ -287,8 +287,8 @@ export const AdminProfile = () => {
             </form>
           </Card>
 
-          <Card className="p-6 border-slate-200 dark:border-slate-800 space-y-4">
-            <h3 className="font-bold text-slate-900 dark:text-slate-100 text-sm">Security & Password</h3>
+          <Card className="p-6 border-border space-y-4">
+            <h3 className="font-bold text-fg text-sm">Security & Password</h3>
 
             <form onSubmit={handleUpdatePassword} className="space-y-4">
               <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
@@ -316,7 +316,7 @@ export const AdminProfile = () => {
                 <Button
                   type="submit"
                   variant="primary"
-                  className="bg-indigo-600 hover:bg-indigo-500 px-6 cursor-pointer"
+                  className="bg-accent hover:bg-accent-hover px-6 cursor-pointer"
                   icon={Save}
                   disabled={passwordSaving}
                 >

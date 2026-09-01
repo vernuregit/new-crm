@@ -93,12 +93,12 @@ const COLOR_MAP = {
     toggle: 'bg-amber-500',
   },
   indigo: {
-    bg: 'bg-indigo-500/10 dark:bg-indigo-500/15',
-    border: 'border-indigo-500/20 dark:border-indigo-500/30',
-    text: 'text-indigo-600 dark:text-indigo-400',
-    glow: 'shadow-indigo-500/20',
-    ring: 'ring-indigo-500/30',
-    toggle: 'bg-indigo-500',
+    bg: 'bg-accent-soft',
+    border: 'border-accent/20 dark:border-accent/30',
+    text: 'text-accent',
+    glow: 'shadow-accent/20',
+    ring: 'ring-accent/30',
+    toggle: 'bg-accent',
   },
 }
 
@@ -114,7 +114,7 @@ const INTERVAL_OPTIONS = [
   { label: '3 hr', value: 180 },
 ]
 
-const ToggleSwitch = ({ checked, onChange, colorClass = 'bg-indigo-500' }) => (
+const ToggleSwitch = ({ checked, onChange, colorClass = 'bg-accent' }) => (
   <button
     type="button"
     role="switch"
@@ -171,10 +171,10 @@ export const WellnessSettings = () => {
             <Heart className="w-6 h-6 text-rose-500 dark:text-rose-400" />
           </div>
           <div>
-            <h1 className="text-xl font-bold text-slate-900 dark:text-slate-100">
+            <h1 className="text-xl font-bold text-fg">
               Wellness Reminders
             </h1>
-            <p className="text-xs text-slate-500 dark:text-slate-400 mt-0.5">
+            <p className="text-xs text-muted mt-0.5">
               Stay healthy with periodic browser notifications
             </p>
           </div>
@@ -199,10 +199,10 @@ export const WellnessSettings = () => {
               <AlertTriangle className="w-5 h-5 text-amber-600 dark:text-amber-400" />
             </div>
             <div className="flex-1">
-              <h3 className="text-sm font-semibold text-slate-900 dark:text-slate-100">
+              <h3 className="text-sm font-semibold text-fg">
                 Browser Notifications {notificationPermission === 'denied' ? 'Blocked' : 'Not Enabled'}
               </h3>
-              <p className="text-xs text-slate-500 dark:text-slate-400 mt-0.5">
+              <p className="text-xs text-muted mt-0.5">
                 {notificationPermission === 'denied'
                   ? 'Notifications are blocked. Please enable them in your browser settings. In-app notifications will be used as a fallback.'
                   : 'Grant permission to receive wellness reminders even when this tab is in the background.'}
@@ -226,7 +226,7 @@ export const WellnessSettings = () => {
             ) : (
               <Shield className="w-4 h-4 text-emerald-600 dark:text-emerald-400" />
             )}
-            <h3 className="text-sm font-semibold text-slate-900 dark:text-slate-100">
+            <h3 className="text-sm font-semibold text-fg">
               Do Not Disturb
             </h3>
           </div>
@@ -240,7 +240,7 @@ export const WellnessSettings = () => {
             </Badge>
           )}
         </div>
-        <p className="text-[11px] text-slate-500 dark:text-slate-400">
+        <p className="text-[11px] text-muted">
           {snoozed
             ? 'All wellness reminders are paused'
             : 'Temporarily pause all reminders'}
@@ -268,7 +268,7 @@ export const WellnessSettings = () => {
             </Button>
 
             {showSnoozeMenu && (
-              <div className="absolute top-full left-0 right-0 mt-1 bg-white dark:bg-[#1a1e2e] border border-slate-200 dark:border-slate-700 rounded-xl shadow-xl z-20 overflow-hidden">
+              <div className="absolute top-full left-0 right-0 mt-1 bg-surface border border-border rounded-xl shadow-xl z-20 overflow-hidden">
                 {[
                   { label: '30 minutes', mins: 30 },
                   { label: '1 hour', mins: 60 },
@@ -281,7 +281,7 @@ export const WellnessSettings = () => {
                       opt.mins ? snooze(opt.mins) : snoozeRestOfDay()
                       setShowSnoozeMenu(false)
                     }}
-                    className="w-full text-left px-4 py-2.5 text-xs text-slate-700 dark:text-slate-300 hover:bg-slate-100 dark:hover:bg-slate-800 transition-colors flex items-center gap-2"
+                    className="w-full text-left px-4 py-2.5 text-xs text-fg hover:bg-chrome transition-colors flex items-center gap-2"
                   >
                     <Timer className="w-3 h-3 text-slate-400" />
                     {opt.label}
@@ -295,8 +295,8 @@ export const WellnessSettings = () => {
 
       {/* Reminder Cards Grid */}
       <div className="space-y-3">
-        <h2 className="text-sm font-semibold text-slate-700 dark:text-slate-300 uppercase tracking-wider flex items-center gap-2">
-          <Settings2 className="w-4 h-4 text-indigo-600 dark:text-indigo-400" />
+        <h2 className="text-sm font-semibold text-fg uppercase tracking-wider flex items-center gap-2">
+          <Settings2 className="w-4 h-4 text-accent" />
           Individual Reminders
         </h2>
 
@@ -313,7 +313,7 @@ export const WellnessSettings = () => {
                 className={`p-0 overflow-hidden transition-all duration-300 ${
                   settings.enabled
                     ? `${colors.border} shadow-md ${colors.glow}`
-                    : 'border-slate-200 dark:border-slate-800 opacity-60'
+                    : 'border-border opacity-60'
                 }`}
               >
                 {/* Card Header */}
@@ -328,11 +328,11 @@ export const WellnessSettings = () => {
 
                   <div className="flex-1 min-w-0">
                     <div className="flex items-center gap-2">
-                      <h3 className="text-sm font-semibold text-slate-900 dark:text-slate-100 truncate">
+                      <h3 className="text-sm font-semibold text-fg truncate">
                         {reminder.name}
                       </h3>
                     </div>
-                    <p className="text-[11px] text-slate-500 dark:text-slate-400 truncate mt-0.5">
+                    <p className="text-[11px] text-muted truncate mt-0.5">
                       {reminder.description}
                     </p>
                   </div>
@@ -342,7 +342,7 @@ export const WellnessSettings = () => {
                       onClick={() =>
                         setExpandedCard(isExpanded ? null : reminder.id)
                       }
-                      className="w-7 h-7 rounded-lg bg-slate-100 dark:bg-slate-800 hover:bg-slate-200 dark:hover:bg-slate-700 flex items-center justify-center transition-colors text-slate-400 dark:text-slate-500"
+                      className="w-7 h-7 rounded-lg bg-chrome hover:bg-slate-200 dark:hover:bg-slate-700 flex items-center justify-center transition-colors text-slate-400 dark:text-slate-500"
                     >
                       {isExpanded ? (
                         <ChevronUp className="w-3.5 h-3.5" />
@@ -363,7 +363,7 @@ export const WellnessSettings = () => {
                   <div className="px-4 pb-4 pt-1 border-t border-slate-100 dark:border-slate-800/50 space-y-3 animate-in fade-in duration-200">
                     <div className="flex items-center gap-2">
                       <Timer className="w-3.5 h-3.5 text-slate-400 dark:text-slate-500" />
-                      <span className="text-[11px] font-semibold text-slate-500 dark:text-slate-400 uppercase tracking-wider">
+                      <span className="text-[11px] font-semibold text-muted uppercase tracking-wider">
                         Remind every
                       </span>
                     </div>
@@ -377,7 +377,7 @@ export const WellnessSettings = () => {
                           className={`px-3 py-1.5 rounded-lg text-[11px] font-medium transition-all cursor-pointer ${
                             Math.abs((settings.interval || 0) - opt.value) < 0.01
                               ? `${colors.bg} ${colors.text} ${colors.border} border shadow-sm font-semibold`
-                              : 'bg-slate-100 dark:bg-slate-800 text-slate-600 dark:text-slate-400 border border-transparent hover:border-slate-300 dark:hover:border-slate-700'
+                              : 'bg-chrome text-muted border border-transparent hover:border-slate-300 dark:hover:border-slate-700'
                           }`}
                         >
                           {opt.label}

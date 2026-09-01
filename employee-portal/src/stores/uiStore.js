@@ -4,7 +4,7 @@ const getInitialTheme = () => {
   if (typeof window === 'undefined') return 'light'
   const saved = localStorage.getItem('app-theme')
   if (saved) return saved
-  return 'light'
+  return window.matchMedia?.('(prefers-color-scheme: dark)').matches ? 'dark' : 'light'
 }
 
 const applyTheme = (theme) => {

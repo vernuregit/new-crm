@@ -104,20 +104,20 @@ export const KnowledgeBase = () => {
           placeholder="Search articles..."
           value={searchQuery}
           onChange={(e) => setSearchQuery(e.target.value)}
-          className="w-full bg-slate-900 border border-slate-800 text-xs text-slate-200 rounded-xl pl-9 pr-3 py-2 focus:outline-none focus:border-indigo-500"
+          className="w-full bg-slate-900 border border-border text-xs text-slate-200 rounded-xl pl-9 pr-3 py-2 focus:outline-none focus:border-accent"
         />
       </div>
 
       {loading ? (
         <div className="flex items-center justify-center py-16 text-xs text-slate-400">
-          <Loader2 className="w-5 h-5 animate-spin mr-2 text-indigo-400" />
+          <Loader2 className="w-5 h-5 animate-spin mr-2 text-accent" />
           Loading Knowledge Articles...
         </div>
       ) : filtered.length === 0 ? (
         <Card className="py-12 text-center space-y-2">
-          <BookOpen className="w-7 h-7 text-slate-500 mx-auto" />
+          <BookOpen className="w-7 h-7 text-muted mx-auto" />
           <p className="text-slate-300 font-semibold text-sm">No articles found</p>
-          <p className="text-xs text-slate-500">Create an article or change your search filter.</p>
+          <p className="text-xs text-muted">Create an article or change your search filter.</p>
         </Card>
       ) : (
         <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
@@ -129,26 +129,26 @@ export const KnowledgeBase = () => {
               className="space-y-3 cursor-pointer flex flex-col justify-between"
             >
               <div className="space-y-2">
-                <div className="w-8 h-8 rounded-lg bg-indigo-500/10 text-indigo-400 flex items-center justify-center">
+                <div className="w-8 h-8 rounded-lg bg-accent-soft text-accent flex items-center justify-center">
                   <BookOpen className="w-4 h-4" />
                 </div>
                 <div className="flex items-center gap-2">
-                  <span className="text-[10px] uppercase font-bold text-indigo-400 bg-indigo-500/10 px-2 py-0.5 rounded">
+                  <span className="text-[10px] uppercase font-bold text-accent bg-accent-soft px-2 py-0.5 rounded">
                     {art.category || 'General'}
                   </span>
                   <span className="text-[10px] text-slate-400">
                     {art.createdByRole === 'Employee' ? 'Employee Post' : 'Admin Post'}
                   </span>
                 </div>
-                <h4 className="font-bold text-slate-100 text-sm line-clamp-2">{art.title}</h4>
+                <h4 className="font-bold text-fg text-sm line-clamp-2">{art.title}</h4>
                 <p className="text-xs text-slate-400 line-clamp-3">{art.summary || art.content}</p>
               </div>
-              <div className="pt-2 border-t border-slate-800/80 flex items-center justify-between text-[11px] text-slate-400">
+              <div className="pt-2 border-t border-border/80 flex items-center justify-between text-[11px] text-slate-400">
                 <span className="flex items-center gap-1">
-                  <User className="w-3 h-3 text-slate-500" /> {art.author || 'Admin'}
+                  <User className="w-3 h-3 text-muted" /> {art.author || 'Admin'}
                 </span>
                 <span className="flex items-center gap-1">
-                  <Clock className="w-3 h-3 text-slate-500" />
+                  <Clock className="w-3 h-3 text-muted" />
                   {art.updatedAt ? new Date(art.updatedAt).toLocaleDateString() : 'Recently'}
                 </span>
               </div>
@@ -159,10 +159,10 @@ export const KnowledgeBase = () => {
 
       {selectedDoc && (
         <div className="fixed inset-0 z-50 bg-black/80 flex items-center justify-center p-4">
-          <Card className="w-full max-w-xl max-h-[85vh] overflow-y-auto p-6 space-y-4 relative bg-slate-900 border-slate-800">
-            <div className="flex items-start justify-between pb-3 border-b border-slate-800">
+          <Card className="w-full max-w-xl max-h-[85vh] overflow-y-auto p-6 space-y-4 relative bg-slate-900 border-border">
+            <div className="flex items-start justify-between pb-3 border-b border-border">
               <div>
-                <span className="text-xs font-semibold text-indigo-400">{selectedDoc.category}</span>
+                <span className="text-xs font-semibold text-accent">{selectedDoc.category}</span>
                 <h3 className="font-bold text-white text-base mt-1">{selectedDoc.title}</h3>
                 <p className="text-xs text-slate-400">
                   By {selectedDoc.author || 'Admin'} ({selectedDoc.createdByRole || 'Role'})
@@ -184,8 +184,8 @@ export const KnowledgeBase = () => {
 
       {showAddModal && (
         <div className="fixed inset-0 z-50 bg-black/80 flex items-center justify-center p-4">
-          <Card className="w-full max-w-lg p-6 space-y-4 relative bg-slate-900 border-slate-800">
-            <div className="flex items-center justify-between pb-2 border-b border-slate-800">
+          <Card className="w-full max-w-lg p-6 space-y-4 relative bg-slate-900 border-border">
+            <div className="flex items-center justify-between pb-2 border-b border-border">
               <h3 className="font-bold text-white text-sm">Create New Knowledge Article</h3>
               <button onClick={() => setShowAddModal(false)} className="text-slate-400 hover:text-white">
                 <X className="w-4 h-4" />
@@ -198,7 +198,7 @@ export const KnowledgeBase = () => {
                   type="text"
                   value={title}
                   onChange={(e) => setTitle(e.target.value)}
-                  className="w-full bg-slate-950 border border-slate-800 text-xs text-white rounded-lg p-2.5"
+                  className="w-full bg-slate-950 border border-border text-xs text-white rounded-lg p-2.5"
                   required
                 />
               </div>
@@ -208,7 +208,7 @@ export const KnowledgeBase = () => {
                   type="text"
                   value={category}
                   onChange={(e) => setCategory(e.target.value)}
-                  className="w-full bg-slate-950 border border-slate-800 text-xs text-white rounded-lg p-2.5"
+                  className="w-full bg-slate-950 border border-border text-xs text-white rounded-lg p-2.5"
                 />
               </div>
               <div>
@@ -217,7 +217,7 @@ export const KnowledgeBase = () => {
                   type="text"
                   value={author}
                   onChange={(e) => setAuthor(e.target.value)}
-                  className="w-full bg-slate-950 border border-slate-800 text-xs text-white rounded-lg p-2.5"
+                  className="w-full bg-slate-950 border border-border text-xs text-white rounded-lg p-2.5"
                   placeholder="Your Name"
                 />
               </div>
@@ -227,7 +227,7 @@ export const KnowledgeBase = () => {
                   rows={5}
                   value={content}
                   onChange={(e) => setContent(e.target.value)}
-                  className="w-full bg-slate-950 border border-slate-800 text-xs text-white rounded-lg p-2.5"
+                  className="w-full bg-slate-950 border border-border text-xs text-white rounded-lg p-2.5"
                   required
                 />
               </div>

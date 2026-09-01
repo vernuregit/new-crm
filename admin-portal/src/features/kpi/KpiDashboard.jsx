@@ -60,7 +60,7 @@ const ScoreSparkline = ({ history }) => {
 
   if (!points) {
     return (
-      <p className="text-xs text-slate-500 dark:text-slate-400">
+      <p className="text-xs text-muted">
         No history yet — recalculate to start tracking trend.
       </p>
     )
@@ -70,7 +70,7 @@ const ScoreSparkline = ({ history }) => {
     <div className="space-y-2">
       <svg
         viewBox={`0 0 ${points.w} ${points.h}`}
-        className="w-full max-w-[200px] h-10 text-indigo-500"
+        className="w-full max-w-[200px] h-10 text-accent"
         preserveAspectRatio="none"
       >
         <polyline
@@ -82,7 +82,7 @@ const ScoreSparkline = ({ history }) => {
           points={points.polyline}
         />
       </svg>
-      <p className="text-[10px] text-slate-500 dark:text-slate-400">
+      <p className="text-[10px] text-muted">
         Last {points.chron.length} snapshot{points.chron.length === 1 ? '' : 's'}
       </p>
     </div>
@@ -138,15 +138,15 @@ export const KpiDashboard = () => {
           }
         />
 
-        <div className="flex items-center gap-2 border-b border-slate-200 dark:border-slate-800 pb-3">
+        <div className="flex items-center gap-2 border-b border-border pb-3">
           <NavLink
             to="/kpi"
             end
             className={({ isActive }) =>
               `flex items-center gap-2 px-3 py-1.5 rounded-xl text-xs font-semibold transition-colors ${
                 isActive
-                  ? 'bg-indigo-50 dark:bg-indigo-600/20 text-indigo-600 dark:text-indigo-400 border border-indigo-200 dark:border-indigo-500/30'
-                  : 'text-slate-600 dark:text-slate-400 hover:text-slate-900 dark:hover:text-slate-200 hover:bg-slate-100 dark:hover:bg-slate-800'
+                  ? 'bg-accent-soft text-accent border border-accent/30'
+                  : 'text-muted hover:text-fg hover:bg-slate-100 dark:hover:bg-slate-800'
               }`
             }
           >
@@ -157,8 +157,8 @@ export const KpiDashboard = () => {
             className={({ isActive }) =>
               `flex items-center gap-2 px-3 py-1.5 rounded-xl text-xs font-semibold transition-colors ${
                 isActive
-                  ? 'bg-indigo-50 dark:bg-indigo-600/20 text-indigo-600 dark:text-indigo-400 border border-indigo-200 dark:border-indigo-500/30'
-                  : 'text-slate-600 dark:text-slate-400 hover:text-slate-900 dark:hover:text-slate-200 hover:bg-slate-100 dark:hover:bg-slate-800'
+                  ? 'bg-accent-soft text-accent border border-accent/30'
+                  : 'text-muted hover:text-fg hover:bg-slate-100 dark:hover:bg-slate-800'
               }`
             }
           >
@@ -175,7 +175,7 @@ export const KpiDashboard = () => {
 
       {isLoading && (
         <div className="flex items-center justify-center py-16">
-          <Loader2 className="w-8 h-8 text-indigo-400 animate-spin" />
+          <Loader2 className="w-8 h-8 text-accent animate-spin" />
           <span className="ml-3 text-slate-400 text-sm">Loading health data…</span>
         </div>
       )}
@@ -183,7 +183,7 @@ export const KpiDashboard = () => {
       {!isLoading && (
         <>
           {/* Hero */}
-          <Card className="p-6 border-indigo-200 dark:border-indigo-500/30 bg-gradient-to-r from-slate-100 via-indigo-50/50 to-slate-100 dark:from-[#181C27] dark:via-[#151924] dark:to-[#12151E] relative overflow-hidden">
+          <Card className="p-6 border-accent/30 bg-gradient-to-r from-surface via-accent-soft to-surface relative overflow-hidden">
             <div className="flex flex-col lg:flex-row items-start lg:items-center justify-between gap-6 relative z-10">
               <div className="space-y-2">
                 <div className="flex items-center gap-2 flex-wrap">
@@ -209,17 +209,17 @@ export const KpiDashboard = () => {
                     </span>
                   )}
                   {latestScore.trend === 'stable' && score != null && prev != null && (
-                    <span className="text-xs flex items-center gap-1 text-slate-500">
+                    <span className="text-xs flex items-center gap-1 text-muted">
                       <Minus className="w-3.5 h-3.5" /> Stable
                     </span>
                   )}
                 </div>
                 <div className="flex items-baseline gap-4">
-                  <h2 className="text-5xl font-black text-transparent bg-clip-text bg-gradient-to-r from-indigo-600 via-purple-600 to-emerald-600 dark:from-indigo-400 dark:via-purple-300 dark:to-emerald-400">
+                  <h2 className="text-5xl font-black text-transparent bg-clip-text bg-gradient-to-r from-accent via-accent-hover to-emerald-500">
                     {score != null ? `${score} / 100` : '— / 100'}
                   </h2>
                 </div>
-                <p className="text-xs text-slate-500 dark:text-slate-400">
+                <p className="text-xs text-muted">
                   {latestScore.calculatedAt
                     ? `Last calculated: ${new Date(latestScore.calculatedAt).toLocaleString()}`
                     : 'No score yet. Click Recalculate to compute from live CRM data.'}
@@ -236,12 +236,12 @@ export const KpiDashboard = () => {
                     return (
                       <div
                         key={key}
-                        className="p-3 rounded-xl bg-slate-50 dark:bg-slate-900/80 border border-slate-200 dark:border-slate-800 text-center space-y-1 min-w-[88px]"
+                        className="p-3 rounded-xl bg-canvas/80 border border-border text-center space-y-1 min-w-[88px]"
                       >
-                        <span className="text-[10px] text-slate-500 dark:text-slate-400 uppercase font-bold tracking-wider">
+                        <span className="text-[10px] text-muted uppercase font-bold tracking-wider">
                           {label}
                         </span>
-                        <p className="text-lg font-bold text-slate-900 dark:text-slate-100">
+                        <p className="text-lg font-bold text-fg">
                           {pScore != null ? `${pScore}%` : '—'}
                         </p>
                         {!p?.hasData && (
@@ -252,7 +252,7 @@ export const KpiDashboard = () => {
                   })}
                 </div>
                 <div className="shrink-0">
-                  <p className="text-[10px] uppercase font-bold tracking-wider text-slate-500 mb-1">
+                  <p className="text-[10px] uppercase font-bold tracking-wider text-muted mb-1">
                     Trend
                   </p>
                   <ScoreSparkline history={history} />
@@ -264,8 +264,8 @@ export const KpiDashboard = () => {
           {/* Why this score */}
           {(latestScore.contributors?.positive?.length > 0 ||
             latestScore.contributors?.negative?.length > 0) && (
-            <Card className="p-4 border-slate-200 dark:border-slate-800 space-y-3">
-              <h3 className="font-bold text-slate-900 dark:text-slate-100 text-sm">
+            <Card className="p-4 border-border space-y-3">
+              <h3 className="font-bold text-fg text-sm">
                 Why this score
               </h3>
               <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
@@ -274,14 +274,14 @@ export const KpiDashboard = () => {
                     Strengths
                   </p>
                   {latestScore.contributors.positive.length === 0 ? (
-                    <p className="text-xs text-slate-500">No strong contributors yet.</p>
+                    <p className="text-xs text-muted">No strong contributors yet.</p>
                   ) : (
                     latestScore.contributors.positive.map((m) => (
                       <div
                         key={m.key}
                         className="flex items-center justify-between text-xs p-2 rounded-lg bg-emerald-50 dark:bg-emerald-500/10 border border-emerald-200 dark:border-emerald-500/20"
                       >
-                        <span className="text-slate-800 dark:text-slate-200">{m.label}</span>
+                        <span className="text-fg">{m.label}</span>
                         <span className="font-bold text-emerald-700 dark:text-emerald-400">
                           {m.score}
                         </span>
@@ -294,14 +294,14 @@ export const KpiDashboard = () => {
                     Dragging down
                   </p>
                   {latestScore.contributors.negative.length === 0 ? (
-                    <p className="text-xs text-slate-500">No weak contributors.</p>
+                    <p className="text-xs text-muted">No weak contributors.</p>
                   ) : (
                     latestScore.contributors.negative.map((m) => (
                       <div
                         key={m.key}
                         className="flex items-center justify-between text-xs p-2 rounded-lg bg-amber-50 dark:bg-amber-500/10 border border-amber-200 dark:border-amber-500/20"
                       >
-                        <span className="text-slate-800 dark:text-slate-200">{m.label}</span>
+                        <span className="text-fg">{m.label}</span>
                         <span className="font-bold text-amber-700 dark:text-amber-400">
                           {m.score}
                         </span>
@@ -315,13 +315,13 @@ export const KpiDashboard = () => {
 
           {/* Risks & Recommendations */}
           <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
-            <Card className="space-y-4 border-slate-200 dark:border-slate-800">
-              <div className="flex items-center gap-2 pb-3 border-b border-slate-200 dark:border-slate-800 text-slate-900 dark:text-slate-100 font-bold text-sm">
+            <Card className="space-y-4 border-border">
+              <div className="flex items-center gap-2 pb-3 border-b border-border text-fg font-bold text-sm">
                 <AlertTriangle className="w-4 h-4 text-amber-500" />
                 <span>Active Risk Alerts</span>
               </div>
               {!latestScore.risks?.length ? (
-                <div className="flex items-start gap-2 text-xs text-slate-500 dark:text-slate-400 p-1">
+                <div className="flex items-start gap-2 text-xs text-muted p-1">
                   <CheckCircle2 className="w-4 h-4 text-emerald-500 shrink-0" />
                   <span>No active risks — all scored metrics are in acceptable range.</span>
                 </div>
@@ -340,13 +340,13 @@ export const KpiDashboard = () => {
               )}
             </Card>
 
-            <Card className="space-y-4 border-slate-200 dark:border-slate-800">
-              <div className="flex items-center gap-2 pb-3 border-b border-slate-200 dark:border-slate-800 text-slate-900 dark:text-slate-100 font-bold text-sm">
-                <Lightbulb className="w-4 h-4 text-indigo-600 dark:text-indigo-400" />
+            <Card className="space-y-4 border-border">
+              <div className="flex items-center gap-2 pb-3 border-b border-border text-fg font-bold text-sm">
+                <Lightbulb className="w-4 h-4 text-accent" />
                 <span>Recommended Actions</span>
               </div>
               {!latestScore.recommendations?.length ? (
-                <p className="text-xs text-slate-500 dark:text-slate-400">
+                <p className="text-xs text-muted">
                   No recommendations right now. Keep monitoring weekly.
                 </p>
               ) : (
@@ -354,15 +354,15 @@ export const KpiDashboard = () => {
                   {latestScore.recommendations.map((rec, idx) => (
                     <div
                       key={idx}
-                      className="p-3 rounded-xl bg-slate-50 dark:bg-slate-900 border border-slate-200 dark:border-slate-800 text-xs space-y-1"
+                      className="p-3 rounded-xl bg-canvas border border-border text-xs space-y-1"
                     >
                       <div className="flex items-center justify-between">
                         <Badge variant="brand">{rec.category}</Badge>
-                        <span className="text-[10px] text-slate-500">
+                        <span className="text-[10px] text-muted">
                           Priority #{rec.priority}
                         </span>
                       </div>
-                      <p className="text-slate-800 dark:text-slate-200 font-medium">
+                      <p className="text-fg font-medium">
                         {rec.text}
                       </p>
                     </div>
@@ -373,12 +373,12 @@ export const KpiDashboard = () => {
           </div>
 
           {/* Pillar metric drill-down */}
-          <Card className="space-y-0 border-slate-200 dark:border-slate-800 p-0 overflow-hidden">
-            <div className="p-4 border-b border-slate-200 dark:border-slate-800">
-              <h3 className="font-bold text-slate-900 dark:text-slate-100 text-sm">
+          <Card className="space-y-0 border-border p-0 overflow-hidden">
+            <div className="p-4 border-b border-border">
+              <h3 className="font-bold text-fg text-sm">
                 Pillar & Metric Breakdown
               </h3>
-              <p className="text-xs text-slate-500 dark:text-slate-400 mt-1">
+              <p className="text-xs text-muted mt-1">
                 Expand a pillar to see raw values, targets, and normalized scores.
               </p>
             </div>
@@ -396,7 +396,7 @@ export const KpiDashboard = () => {
               return (
                 <div
                   key={key}
-                  className="border-b border-slate-200 dark:border-slate-800 last:border-b-0"
+                  className="border-b border-border last:border-b-0"
                 >
                   <button
                     type="button"
@@ -410,10 +410,10 @@ export const KpiDashboard = () => {
                         <ChevronRight className="w-4 h-4 text-slate-400" />
                       )}
                       <div>
-                        <p className="text-sm font-bold text-slate-900 dark:text-slate-100">
+                        <p className="text-sm font-bold text-fg">
                           {p?.label || PILLAR_LABELS[key]}
                         </p>
-                        <p className="text-[10px] text-slate-500">
+                        <p className="text-[10px] text-muted">
                           Weight{' '}
                           {p?.weight != null
                             ? `${Math.round(p.weight * 100)}%`
@@ -422,7 +422,7 @@ export const KpiDashboard = () => {
                         </p>
                       </div>
                     </div>
-                    <span className="text-lg font-bold text-slate-900 dark:text-slate-100">
+                    <span className="text-lg font-bold text-fg">
                       {p?.score != null ? p.score : '—'}
                     </span>
                   </button>
@@ -430,13 +430,13 @@ export const KpiDashboard = () => {
                   {isOpen && (
                     <div className="px-4 pb-4 overflow-x-auto">
                       {metrics.length === 0 ? (
-                        <p className="text-xs text-slate-500 py-2">
+                        <p className="text-xs text-muted py-2">
                           No metrics available for this pillar.
                         </p>
                       ) : (
                         <table className="w-full text-left text-xs border-collapse">
                           <thead>
-                            <tr className="text-slate-500 dark:text-slate-400 border-b border-slate-200 dark:border-slate-800">
+                            <tr className="text-muted border-b border-border">
                               <th className="py-2 pr-3 font-semibold">Metric</th>
                               <th className="py-2 pr-3 font-semibold">Current</th>
                               <th className="py-2 pr-3 font-semibold">Target</th>
@@ -447,10 +447,10 @@ export const KpiDashboard = () => {
                           <tbody className="divide-y divide-slate-100 dark:divide-slate-800/60">
                             {metrics.map((m) => (
                               <tr key={m.key}>
-                                <td className="py-2.5 pr-3 font-medium text-slate-800 dark:text-slate-200">
+                                <td className="py-2.5 pr-3 font-medium text-fg">
                                   {m.label}
                                 </td>
-                                <td className="py-2.5 pr-3 text-slate-600 dark:text-slate-300">
+                                <td className="py-2.5 pr-3 text-muted">
                                   {formatRaw(m)}
                                   {m.key === 'overdueHealth' && m.displayRaw != null && (
                                     <span className="text-slate-400 ml-1">
@@ -463,7 +463,7 @@ export const KpiDashboard = () => {
                                     </span>
                                   )}
                                 </td>
-                                <td className="py-2.5 pr-3 text-slate-600 dark:text-slate-300">
+                                <td className="py-2.5 pr-3 text-muted">
                                   {m.unit === '×'
                                     ? `${m.target}×`
                                     : m.key === 'overdueHealth'
@@ -489,7 +489,7 @@ export const KpiDashboard = () => {
                                     <span className="text-slate-400">—</span>
                                   )}
                                 </td>
-                                <td className="py-2.5 text-slate-500">
+                                <td className="py-2.5 text-muted">
                                   {m.weight != null
                                     ? `${Math.round(m.weight * 100)}%`
                                     : '—'}

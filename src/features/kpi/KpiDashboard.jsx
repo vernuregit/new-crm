@@ -46,15 +46,15 @@ export const KpiDashboard = () => {
           }
         />
 
-        <div className="flex items-center gap-2 border-b border-slate-200 dark:border-slate-800 pb-3">
+        <div className="flex items-center gap-2 border-b border-border pb-3">
           <NavLink
             to="/kpi"
             end
             className={({ isActive }) =>
               `flex items-center gap-2 px-3 py-1.5 rounded-xl text-xs font-semibold transition-colors ${
                 isActive
-                  ? 'bg-indigo-50 dark:bg-indigo-600/20 text-indigo-600 dark:text-indigo-400 border border-indigo-200 dark:border-indigo-500/30'
-                  : 'text-slate-600 dark:text-slate-400 hover:text-slate-900 dark:hover:text-slate-200 hover:bg-slate-100 dark:hover:bg-slate-800'
+                  ? 'bg-accent-soft text-accent border border-accent/30'
+                  : 'text-muted hover:text-fg hover:bg-slate-100 dark:hover:bg-slate-800'
               }`
             }
           >
@@ -65,8 +65,8 @@ export const KpiDashboard = () => {
             className={({ isActive }) =>
               `flex items-center gap-2 px-3 py-1.5 rounded-xl text-xs font-semibold transition-colors ${
                 isActive
-                  ? 'bg-indigo-50 dark:bg-indigo-600/20 text-indigo-600 dark:text-indigo-400 border border-indigo-200 dark:border-indigo-500/30'
-                  : 'text-slate-600 dark:text-slate-400 hover:text-slate-900 dark:hover:text-slate-200 hover:bg-slate-100 dark:hover:bg-slate-800'
+                  ? 'bg-accent-soft text-accent border border-accent/30'
+                  : 'text-muted hover:text-fg hover:bg-slate-100 dark:hover:bg-slate-800'
               }`
             }
           >
@@ -76,7 +76,7 @@ export const KpiDashboard = () => {
       </div>
 
       {/* Hero Health Score Card */}
-      <Card className="p-6 border-indigo-200 dark:border-indigo-500/30 bg-gradient-to-r from-slate-100 via-indigo-50/50 to-slate-100 dark:from-[#181C27] dark:via-[#151924] dark:to-[#12151E] relative overflow-hidden">
+      <Card className="p-6 border-accent/30 bg-gradient-to-r from-surface via-accent-soft to-surface relative overflow-hidden">
         <div className="flex flex-col md:flex-row items-start md:items-center justify-between gap-6 relative z-10">
           <div className="space-y-2">
             <div className="flex items-center gap-2">
@@ -86,12 +86,12 @@ export const KpiDashboard = () => {
               </span>
             </div>
             <div className="flex items-baseline gap-4">
-              <h2 className="text-5xl font-black text-transparent bg-clip-text bg-gradient-to-r from-indigo-600 via-purple-600 to-emerald-600 dark:from-indigo-400 dark:via-purple-300 dark:to-emerald-400">
+              <h2 className="text-5xl font-black text-transparent bg-clip-text bg-gradient-to-r from-accent via-accent-hover to-emerald-500">
                 {latestScore.overallScore} / 100
               </h2>
-              <span className="text-xs font-semibold text-slate-700 dark:text-slate-300">Optimal Growth Status</span>
+              <span className="text-xs font-semibold text-fg">Optimal Growth Status</span>
             </div>
-            <p className="text-xs text-slate-500 dark:text-slate-400">
+            <p className="text-xs text-muted">
               Evaluated across CRM, Finance, Project Velocity, and Team Utilization indicators.
             </p>
           </div>
@@ -99,9 +99,9 @@ export const KpiDashboard = () => {
           {/* Module Health Gauges */}
           <div className="grid grid-cols-2 sm:grid-cols-4 gap-3 w-full md:w-auto">
             {Object.entries(latestScore.breakdown || {}).map(([mod, data]) => (
-              <div key={mod} className="p-3 rounded-xl bg-slate-50 dark:bg-slate-900/80 border border-slate-200 dark:border-slate-800 text-center space-y-1">
-                <span className="text-[10px] text-slate-500 dark:text-slate-400 uppercase font-bold tracking-wider">{mod}</span>
-                <p className="text-lg font-bold text-slate-900 dark:text-slate-100">{data.score}%</p>
+              <div key={mod} className="p-3 rounded-xl bg-canvas/80 border border-border text-center space-y-1">
+                <span className="text-[10px] text-muted uppercase font-bold tracking-wider">{mod}</span>
+                <p className="text-lg font-bold text-fg">{data.score}%</p>
               </div>
             ))}
           </div>
@@ -111,8 +111,8 @@ export const KpiDashboard = () => {
       {/* Risk Alert & Recommendations Grid */}
       <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
         {/* Risk Alerts */}
-        <Card className="space-y-4 border-slate-200 dark:border-slate-800">
-          <div className="flex items-center gap-2 pb-3 border-b border-slate-200 dark:border-slate-800 text-slate-900 dark:text-slate-100 font-bold text-sm">
+        <Card className="space-y-4 border-border">
+          <div className="flex items-center gap-2 pb-3 border-b border-border text-fg font-bold text-sm">
             <AlertTriangle className="w-4 h-4 text-amber-500" />
             <span>Active Risk Alerts</span>
           </div>
@@ -127,19 +127,19 @@ export const KpiDashboard = () => {
         </Card>
 
         {/* Recommended Actions */}
-        <Card className="space-y-4 border-slate-200 dark:border-slate-800">
-          <div className="flex items-center gap-2 pb-3 border-b border-slate-200 dark:border-slate-800 text-slate-900 dark:text-slate-100 font-bold text-sm">
-            <Lightbulb className="w-4 h-4 text-indigo-600 dark:text-indigo-400" />
+        <Card className="space-y-4 border-border">
+          <div className="flex items-center gap-2 pb-3 border-b border-border text-fg font-bold text-sm">
+            <Lightbulb className="w-4 h-4 text-accent" />
             <span>Recommended Executive Actions</span>
           </div>
           <div className="space-y-3">
             {latestScore.recommendations?.map((rec, idx) => (
-              <div key={idx} className="p-3 rounded-xl bg-slate-50 dark:bg-slate-900 border border-slate-200 dark:border-slate-800 text-xs space-y-1">
+              <div key={idx} className="p-3 rounded-xl bg-canvas border border-border text-xs space-y-1">
                 <div className="flex items-center justify-between">
                   <Badge variant="brand">{rec.category}</Badge>
-                  <span className="text-[10px] text-slate-500">Priority #{rec.priority}</span>
+                  <span className="text-[10px] text-muted">Priority #{rec.priority}</span>
                 </div>
-                <p className="text-slate-800 dark:text-slate-200 font-medium">{rec.text}</p>
+                <p className="text-fg font-medium">{rec.text}</p>
               </div>
             ))}
           </div>
@@ -147,15 +147,15 @@ export const KpiDashboard = () => {
       </div>
 
       {/* Active KPI Definitions Table */}
-      <Card className="space-y-4 border-slate-200 dark:border-slate-800 p-0 overflow-x-auto">
-        <div className="p-4 border-b border-slate-200 dark:border-slate-800 flex items-center justify-between">
-          <h3 className="font-bold text-slate-900 dark:text-slate-100 text-sm">Active Organization KPI Definitions</h3>
-          <span className="text-xs text-slate-500 dark:text-slate-400">{kpiDefinitions.length} KPI Rules Active</span>
+      <Card className="space-y-4 border-border p-0 overflow-x-auto">
+        <div className="p-4 border-b border-border flex items-center justify-between">
+          <h3 className="font-bold text-fg text-sm">Active Organization KPI Definitions</h3>
+          <span className="text-xs text-muted">{kpiDefinitions.length} KPI Rules Active</span>
         </div>
 
         <table className="w-full text-left border-collapse text-xs">
           <thead>
-            <tr className="bg-slate-100 dark:bg-slate-900/80 border-b border-slate-200 dark:border-slate-800 text-slate-700 dark:text-slate-400 font-semibold">
+            <tr className="bg-canvas/80 border-b border-border text-slate-700 dark:text-slate-400 font-semibold">
               <th className="p-4 font-semibold">KPI Name</th>
               <th className="p-4 font-semibold">Module</th>
               <th className="p-4 font-semibold">Formula</th>
@@ -166,15 +166,15 @@ export const KpiDashboard = () => {
               <th className="p-4 font-semibold text-right">Action</th>
             </tr>
           </thead>
-          <tbody className="divide-y divide-slate-200 dark:divide-slate-800/60 text-slate-700 dark:text-slate-300">
+          <tbody className="divide-y divide-slate-200 dark:divide-slate-800/60 text-fg">
             {kpiDefinitions.map((kpi) => (
               <tr key={kpi.kpiId} className="hover:bg-slate-50 dark:hover:bg-slate-800/30 transition-colors">
                 <td className="p-4 font-bold text-slate-900 dark:text-slate-200">{kpi.name}</td>
-                <td className="p-4 uppercase text-slate-500 dark:text-slate-400 font-mono text-[11px]">{kpi.module}</td>
-                <td className="p-4 text-slate-500 dark:text-slate-400 font-mono text-[11px] max-w-xs truncate">{kpi.formula}</td>
+                <td className="p-4 uppercase text-muted font-mono text-[11px]">{kpi.module}</td>
+                <td className="p-4 text-muted font-mono text-[11px] max-w-xs truncate">{kpi.formula}</td>
                 <td className="p-4 text-slate-800 dark:text-slate-300 font-medium">≥ {kpi.targetValue}{kpi.unit}</td>
                 <td className="p-4 font-bold text-emerald-600 dark:text-emerald-400">{kpi.currentValue}{kpi.unit}</td>
-                <td className="p-4 text-slate-500 dark:text-slate-400">{kpi.healthScoreWeight * 100}%</td>
+                <td className="p-4 text-muted">{kpi.healthScoreWeight * 100}%</td>
                 <td className="p-4">
                   <Badge variant={kpi.status === 'exceeded' || kpi.status === 'on_track' ? 'success' : 'danger'}>
                     {kpi.status}
@@ -183,7 +183,7 @@ export const KpiDashboard = () => {
                 <td className="p-4 text-right">
                   <button
                     onClick={() => deleteKpiDefinition(kpi.kpiId)}
-                    className="p-1.5 text-slate-400 dark:text-slate-500 hover:text-rose-600 dark:hover:text-rose-400 rounded-lg hover:bg-slate-100 dark:hover:bg-slate-800 transition-colors"
+                    className="p-1.5 text-muted hover:text-rose-600 dark:hover:text-rose-400 rounded-lg hover:bg-slate-100 dark:hover:bg-slate-800 transition-colors"
                   >
                     <Trash2 className="w-4 h-4" />
                   </button>

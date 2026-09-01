@@ -87,27 +87,27 @@ export const PayslipsPage = () => {
       <PageHeader title="My Payslips" description="View and download your monthly salary slips." />
 
       <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
-        <Card className="p-6 md:col-span-1 bg-gradient-to-br from-purple-50 to-white dark:from-purple-900/10 dark:to-[#12151E] border-purple-100 dark:border-purple-900/20">
+        <Card className="p-6 md:col-span-1 bg-gradient-to-br from-accent-soft to-surface border-accent/20">
           <div className="flex items-center gap-3 mb-2">
-            <div className="p-2 bg-purple-100 dark:bg-purple-900/30 rounded-lg">
-              <IndianRupee className="w-5 h-5 text-purple-600 dark:text-purple-400" />
+            <div className="p-2 bg-accent-soft rounded-lg">
+              <IndianRupee className="w-5 h-5 text-accent" />
             </div>
-            <h3 className="text-sm font-medium text-slate-600 dark:text-slate-400">Total Earned ({selectedYear})</h3>
+            <h3 className="text-sm font-medium text-muted">Total Earned ({selectedYear})</h3>
           </div>
-          <p className="text-3xl font-bold text-slate-900 dark:text-white">
+          <p className="text-3xl font-bold text-fg">
             {formatCurrency(totalEarned)}
           </p>
         </Card>
       </div>
 
-      <div className="flex gap-2 overflow-x-auto pb-2 border-b border-slate-200 dark:border-slate-800">
+      <div className="flex gap-2 overflow-x-auto pb-2 border-b border-border">
         {years.map(year => (
           <button
             key={year}
             onClick={() => setSelectedYear(year)}
             className={`px-4 py-3 text-sm font-medium border-b-2 transition-colors ${
               selectedYear === year 
-                ? 'border-purple-600 text-purple-600 dark:border-purple-400 dark:text-purple-400' 
+                ? 'border-accent text-accent' 
                 : 'border-transparent text-slate-500 hover:text-slate-700 dark:text-slate-400 dark:hover:text-slate-300'
             }`}
           >
@@ -131,16 +131,16 @@ export const PayslipsPage = () => {
           </div>
         </Card>
       ) : filteredPayslips.length === 0 ? (
-        <Card className="p-12 flex flex-col items-center justify-center text-center text-slate-500 dark:text-slate-400">
+        <Card className="p-12 flex flex-col items-center justify-center text-center text-muted">
           <Receipt className="w-12 h-12 mb-4 text-slate-400 dark:text-slate-500" />
-          <p className="text-lg font-medium text-slate-900 dark:text-white mb-1">No payslips available for {selectedYear}.</p>
+          <p className="text-lg font-medium text-fg mb-1">No payslips available for {selectedYear}.</p>
           <p>Contact HR if you believe this is an error.</p>
         </Card>
       ) : (
         <Card className="overflow-hidden">
           <div className="overflow-x-auto">
             <table className="w-full text-sm text-left">
-              <thead className="text-xs text-slate-500 uppercase bg-slate-50 dark:bg-slate-800/50 dark:text-slate-400">
+              <thead className="text-xs text-slate-500 uppercase bg-chrome/50 dark:text-slate-400">
                 <tr>
                   <th className="px-6 py-4 font-medium">Month</th>
                   <th className="px-6 py-4 font-medium">Gross Salary</th>
@@ -152,11 +152,11 @@ export const PayslipsPage = () => {
               </thead>
               <tbody className="divide-y divide-slate-100 dark:divide-slate-800">
                 {filteredPayslips.map(payslip => (
-                  <tr key={payslip.id} className="bg-white dark:bg-[#12151E] hover:bg-slate-50 dark:hover:bg-slate-800/50 transition-colors">
-                    <td className="px-6 py-4 font-medium text-slate-900 dark:text-white whitespace-nowrap">
+                  <tr key={payslip.id} className="bg-surface hover:bg-chrome/50 transition-colors">
+                    <td className="px-6 py-4 font-medium text-fg whitespace-nowrap">
                       {monthNames[payslip.month - 1]} {payslip.year}
                     </td>
-                    <td className="px-6 py-4 text-slate-600 dark:text-slate-300">
+                    <td className="px-6 py-4 text-muted">
                       {formatCurrency(payslip.grossSalary)}
                     </td>
                     <td className="px-6 py-4 text-red-600 dark:text-red-400">

@@ -117,15 +117,15 @@ export const Pipeline = () => {
         />
 
         {/* CRM Sub-Navigation Tabs */}
-        <div className="flex items-center justify-between border-b border-slate-200 dark:border-slate-800 pb-3">
+        <div className="flex items-center justify-between border-b border-border pb-3">
           <div className="flex items-center gap-2">
             <NavLink
               to="/crm/pipeline"
               className={({ isActive }) =>
                 `flex items-center gap-2 px-3 py-1.5 rounded-xl text-xs font-semibold transition-colors ${
                   isActive
-                    ? 'bg-indigo-50 dark:bg-indigo-600/20 text-indigo-600 dark:text-indigo-400 border border-indigo-200 dark:border-indigo-500/30'
-                    : 'text-slate-600 dark:text-slate-400 hover:text-slate-900 dark:hover:text-slate-200 hover:bg-slate-100 dark:hover:bg-slate-800'
+                    ? 'bg-accent-soft text-accent border border-accent/30'
+                    : 'text-muted hover:text-fg hover:bg-slate-100 dark:hover:bg-slate-800'
                 }`
               }
             >
@@ -136,8 +136,8 @@ export const Pipeline = () => {
               className={({ isActive }) =>
                 `flex items-center gap-2 px-3 py-1.5 rounded-xl text-xs font-semibold transition-colors ${
                   isActive
-                    ? 'bg-indigo-50 dark:bg-indigo-600/20 text-indigo-600 dark:text-indigo-400 border border-indigo-200 dark:border-indigo-500/30'
-                    : 'text-slate-600 dark:text-slate-400 hover:text-slate-900 dark:hover:text-slate-200 hover:bg-slate-100 dark:hover:bg-slate-800'
+                    ? 'bg-accent-soft text-accent border border-accent/30'
+                    : 'text-muted hover:text-fg hover:bg-slate-100 dark:hover:bg-slate-800'
                 }`
               }
             >
@@ -148,8 +148,8 @@ export const Pipeline = () => {
               className={({ isActive }) =>
                 `flex items-center gap-2 px-3 py-1.5 rounded-xl text-xs font-semibold transition-colors ${
                   isActive
-                    ? 'bg-indigo-50 dark:bg-indigo-600/20 text-indigo-600 dark:text-indigo-400 border border-indigo-200 dark:border-indigo-500/30'
-                    : 'text-slate-600 dark:text-slate-400 hover:text-slate-900 dark:hover:text-slate-200 hover:bg-slate-100 dark:hover:bg-slate-800'
+                    ? 'bg-accent-soft text-accent border border-accent/30'
+                    : 'text-muted hover:text-fg hover:bg-slate-100 dark:hover:bg-slate-800'
                 }`
               }
             >
@@ -159,13 +159,13 @@ export const Pipeline = () => {
 
           {/* Search Bar */}
           <div className="relative w-64">
-            <Search className="w-3.5 h-3.5 absolute left-3 top-1/2 -translate-y-1/2 text-slate-400 dark:text-slate-500" />
+            <Search className="w-3.5 h-3.5 absolute left-3 top-1/2 -translate-y-1/2 text-muted" />
             <input
               type="text"
               placeholder="Search deals, contacts..."
               value={searchQuery}
               onChange={(e) => setSearchQuery(e.target.value)}
-              className="w-full bg-slate-100 dark:bg-[#181C27] border border-slate-300 dark:border-slate-800 text-xs text-slate-800 dark:text-slate-200 placeholder-slate-400 dark:placeholder-slate-500 rounded-xl pl-8 pr-3 py-1.5 focus:outline-none focus:border-indigo-500 transition-colors"
+              className="w-full bg-canvas border border-border text-xs text-fg placeholder:text-muted rounded-xl pl-8 pr-3 py-1.5 focus:outline-none focus:border-accent transition-colors"
             />
           </div>
         </div>
@@ -173,35 +173,35 @@ export const Pipeline = () => {
 
       {/* Metrics Summary Strip */}
       <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4">
-        <Card className="p-4 flex items-center justify-between border-slate-200 dark:border-slate-800/80">
+        <Card className="p-4 flex items-center justify-between border-border">
           <div>
-            <span className="text-[11px] font-medium text-slate-500 dark:text-slate-400 uppercase tracking-wider">
+            <span className="text-[11px] font-medium text-muted uppercase tracking-wider">
               Total Pipeline Value
             </span>
-            <p className="text-xl font-bold text-slate-900 dark:text-slate-100 mt-1">
+            <p className="text-xl font-bold text-fg mt-1">
               ${totalPipelineValue.toLocaleString()}
             </p>
           </div>
-          <div className="w-9 h-9 rounded-xl bg-indigo-50 dark:bg-indigo-500/10 text-indigo-600 dark:text-indigo-400 flex items-center justify-center">
+          <div className="w-9 h-9 rounded-xl bg-accent-soft text-accent flex items-center justify-center">
             <DollarSign className="w-5 h-5" />
           </div>
         </Card>
 
-        <Card className="p-4 flex items-center justify-between border-slate-200 dark:border-slate-800/80">
+        <Card className="p-4 flex items-center justify-between border-border">
           <div>
-            <span className="text-[11px] font-medium text-slate-500 dark:text-slate-400 uppercase tracking-wider">
+            <span className="text-[11px] font-medium text-muted uppercase tracking-wider">
               Active Opportunities
             </span>
-            <p className="text-xl font-bold text-slate-900 dark:text-slate-100 mt-1">{filteredLeads.length}</p>
+            <p className="text-xl font-bold text-fg mt-1">{filteredLeads.length}</p>
           </div>
-          <div className="w-9 h-9 rounded-xl bg-blue-50 dark:bg-blue-500/10 text-blue-600 dark:text-blue-400 flex items-center justify-center">
+          <div className="w-9 h-9 rounded-xl bg-info-soft text-info flex items-center justify-center">
             <Layers className="w-5 h-5" />
           </div>
         </Card>
 
-        <Card className="p-4 flex items-center justify-between border-slate-200 dark:border-slate-800/80">
+        <Card className="p-4 flex items-center justify-between border-border">
           <div>
-            <span className="text-[11px] font-medium text-slate-500 dark:text-slate-400 uppercase tracking-wider">
+            <span className="text-[11px] font-medium text-muted uppercase tracking-wider">
               Win Rate
             </span>
             <p className="text-xl font-bold text-emerald-600 dark:text-emerald-400 mt-1">{winRate}%</p>
@@ -211,9 +211,9 @@ export const Pipeline = () => {
           </div>
         </Card>
 
-        <Card className="p-4 flex items-center justify-between border-slate-200 dark:border-slate-800/80">
+        <Card className="p-4 flex items-center justify-between border-border">
           <div>
-            <span className="text-[11px] font-medium text-slate-500 dark:text-slate-400 uppercase tracking-wider">
+            <span className="text-[11px] font-medium text-muted uppercase tracking-wider">
               Average Deal Size
             </span>
             <p className="text-xl font-bold text-purple-600 dark:text-purple-400 mt-1">
@@ -240,15 +240,15 @@ export const Pipeline = () => {
           return (
             <div
               key={stage.id}
-              className="w-72 shrink-0 bg-slate-100/90 dark:bg-[#12151E] border border-slate-200/80 dark:border-slate-800/80 rounded-2xl p-3 flex flex-col space-y-3"
+              className="w-72 shrink-0 bg-canvas border border-border/80 rounded-2xl p-3 flex flex-col space-y-3"
             >
               {/* Stage Column Header */}
-              <div className="flex items-center justify-between px-1 pb-2 border-b border-slate-200 dark:border-slate-800/80">
+              <div className="flex items-center justify-between px-1 pb-2 border-b border-border">
                 <div className="flex items-center gap-2">
-                  <span className="font-semibold text-slate-800 dark:text-slate-200 text-xs">{stage.name}</span>
+                  <span className="font-semibold text-fg text-xs">{stage.name}</span>
                   <Badge variant="brand">{stageLeads.length}</Badge>
                 </div>
-                <span className="text-[10px] font-bold text-slate-600 dark:text-slate-400">
+                <span className="text-[10px] font-bold text-muted">
                   ${stageTotalValue.toLocaleString()}
                 </span>
               </div>
@@ -256,7 +256,7 @@ export const Pipeline = () => {
               {/* Cards Container */}
               <div className="space-y-3 flex-1 overflow-y-auto max-h-[600px] pr-0.5">
                 {stageLeads.length === 0 ? (
-                  <div className="p-4 text-center border border-dashed border-slate-300 dark:border-slate-800 rounded-xl text-[11px] text-slate-400 dark:text-slate-600">
+                  <div className="p-4 text-center border border-dashed border-border rounded-xl text-[11px] text-slate-400 dark:text-slate-600">
                     No deals in stage
                   </div>
                 ) : (
@@ -264,11 +264,11 @@ export const Pipeline = () => {
                     <Card
                       key={lead.leadId}
                       hover
-                      className="p-3.5 space-y-2.5 cursor-pointer bg-white dark:bg-[#181C27] border-slate-200 dark:border-slate-800 hover:border-indigo-500/40 relative group"
+                      className="p-3.5 space-y-2.5 cursor-pointer bg-surface border-border hover:border-accent/40 relative group"
                       onClick={() => setSelectedLead(lead)}
                     >
                       <div className="flex items-start justify-between">
-                        <span className="text-xs font-bold text-slate-900 dark:text-slate-100 group-hover:text-indigo-600 dark:group-hover:text-indigo-400 transition-colors">
+                        <span className="text-xs font-bold text-fg group-hover:text-accent dark:group-hover:text-accent transition-colors">
                           {lead.name}
                         </span>
                         <Badge
@@ -284,23 +284,23 @@ export const Pipeline = () => {
                         </Badge>
                       </div>
 
-                      <div className="flex items-center gap-1.5 text-[11px] text-slate-500 dark:text-slate-400">
-                        <Building className="w-3 h-3 text-slate-400 dark:text-slate-500" />
+                      <div className="flex items-center gap-1.5 text-[11px] text-muted">
+                        <Building className="w-3 h-3 text-muted" />
                         <span className="truncate">{lead.companyName}</span>
                       </div>
 
-                      <div className="flex items-center justify-between text-xs pt-2 border-t border-slate-200 dark:border-slate-800/60">
+                      <div className="flex items-center justify-between text-xs pt-2 border-t border-border/60">
                         <span className="font-bold text-emerald-600 dark:text-emerald-400 flex items-center gap-0.5">
                           ${Number(lead.estimatedValue).toLocaleString()}
                         </span>
-                        <div className="flex items-center gap-1 text-[10px] text-slate-500 dark:text-slate-400">
+                        <div className="flex items-center gap-1 text-[10px] text-muted">
                           <User className="w-3 h-3" /> {lead.ownerName}
                         </div>
                       </div>
 
                       {/* Move Stage Selector */}
                       <div
-                        className="pt-2 flex items-center justify-between text-[10px] text-slate-500 dark:text-slate-400"
+                        className="pt-2 flex items-center justify-between text-[10px] text-muted"
                         onClick={(e) => e.stopPropagation()}
                       >
                         <span>Move Stage:</span>
@@ -312,7 +312,7 @@ export const Pipeline = () => {
                               updateLeadStage(lead.leadId, newStg.id, newStg.name)
                             }
                           }}
-                          className="bg-slate-100 dark:bg-slate-900 border border-slate-300 dark:border-slate-800 text-[10px] text-slate-700 dark:text-slate-300 rounded px-1.5 py-0.5 focus:outline-none"
+                          className="bg-canvas border border-border text-[10px] text-fg rounded px-1.5 py-0.5 focus:outline-none"
                         >
                           {stages.map((s) => (
                             <option key={s.id} value={s.id}>
@@ -333,9 +333,9 @@ export const Pipeline = () => {
       {/* Add Lead Modal */}
       {showAddModal && (
         <div className="fixed inset-0 z-50 bg-black/70 backdrop-blur-sm flex items-center justify-center p-4">
-          <Card className="w-full max-w-lg p-6 space-y-4 border-slate-800 shadow-2xl relative">
-            <div className="flex items-center justify-between pb-3 border-b border-slate-800">
-              <h3 className="font-bold text-slate-100 text-sm">Create New Opportunity</h3>
+          <Card className="w-full max-w-lg p-6 space-y-4 border-border shadow-2xl relative">
+            <div className="flex items-center justify-between pb-3 border-b border-border">
+              <h3 className="font-bold text-fg text-sm">Create New Opportunity</h3>
               <button
                 onClick={() => setShowAddModal(false)}
                 className="text-slate-400 hover:text-white p-1 rounded-lg hover:bg-slate-800"
@@ -390,7 +390,7 @@ export const Pipeline = () => {
                 <select
                   value={newStageId}
                   onChange={(e) => setNewStageId(e.target.value)}
-                  className="w-full bg-[#11141E] border border-slate-800 text-slate-100 text-sm rounded-xl py-2.5 px-3.5 focus:outline-none focus:border-indigo-500"
+                  className="w-full bg-canvas border border-border text-fg text-sm rounded-xl py-2.5 px-3.5 focus:outline-none focus:border-accent"
                 >
                   {stages.map((s) => (
                     <option key={s.id} value={s.id}>
@@ -416,12 +416,12 @@ export const Pipeline = () => {
       {/* Lead Detail Drawer / Modal */}
       {selectedLead && (
         <div className="fixed inset-0 z-50 bg-black/70 backdrop-blur-sm flex items-center justify-end">
-          <div className="w-full max-w-md h-full bg-[#12151E] border-l border-slate-800 p-6 flex flex-col justify-between overflow-y-auto space-y-6">
+          <div className="w-full max-w-md h-full bg-surface border-l border-border p-6 flex flex-col justify-between overflow-y-auto space-y-6">
             <div className="space-y-6">
-              <div className="flex items-center justify-between pb-4 border-b border-slate-800">
+              <div className="flex items-center justify-between pb-4 border-b border-border">
                 <div>
-                  <h3 className="font-bold text-slate-100 text-lg">{selectedLead.name}</h3>
-                  <p className="text-xs text-indigo-400">{selectedLead.companyName}</p>
+                  <h3 className="font-bold text-fg text-lg">{selectedLead.name}</h3>
+                  <p className="text-xs text-accent">{selectedLead.companyName}</p>
                 </div>
                 <button
                   onClick={() => setSelectedLead(null)}
@@ -432,7 +432,7 @@ export const Pipeline = () => {
               </div>
 
               <div className="space-y-3 text-xs">
-                <div className="flex items-center justify-between p-3 rounded-xl bg-slate-900 border border-slate-800">
+                <div className="flex items-center justify-between p-3 rounded-xl bg-slate-900 border border-border">
                   <span className="text-slate-400">Deal Value</span>
                   <span className="font-bold text-emerald-400 text-base">
                     ${Number(selectedLead.estimatedValue).toLocaleString()}
@@ -440,23 +440,23 @@ export const Pipeline = () => {
                 </div>
 
                 <div className="space-y-2">
-                  <div className="flex justify-between py-1 border-b border-slate-800/60">
+                  <div className="flex justify-between py-1 border-b border-border/60">
                     <span className="text-slate-400">Stage</span>
                     <Badge variant="brand">{selectedLead.pipelineStage}</Badge>
                   </div>
-                  <div className="flex justify-between py-1 border-b border-slate-800/60">
+                  <div className="flex justify-between py-1 border-b border-border/60">
                     <span className="text-slate-400">Lead Score</span>
                     <Badge variant="success">{selectedLead.score} / 100</Badge>
                   </div>
-                  <div className="flex justify-between py-1 border-b border-slate-800/60">
+                  <div className="flex justify-between py-1 border-b border-border/60">
                     <span className="text-slate-400">Contact Person</span>
                     <span className="text-slate-200">{selectedLead.contactName}</span>
                   </div>
-                  <div className="flex justify-between py-1 border-b border-slate-800/60">
+                  <div className="flex justify-between py-1 border-b border-border/60">
                     <span className="text-slate-400">Email</span>
                     <span className="text-slate-200">{selectedLead.email || 'N/A'}</span>
                   </div>
-                  <div className="flex justify-between py-1 border-b border-slate-800/60">
+                  <div className="flex justify-between py-1 border-b border-border/60">
                     <span className="text-slate-400">Owner</span>
                     <span className="text-slate-200">{selectedLead.ownerName}</span>
                   </div>
@@ -464,7 +464,7 @@ export const Pipeline = () => {
               </div>
             </div>
 
-            <div className="pt-4 border-t border-slate-800 flex gap-3">
+            <div className="pt-4 border-t border-border flex gap-3">
               <Button
                 variant="danger"
                 size="sm"

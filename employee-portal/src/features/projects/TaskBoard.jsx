@@ -33,13 +33,13 @@ const STATUS_DOT_COLORS = {
   todo: 'bg-sky-500 dark:bg-sky-400',
   blue: 'bg-sky-500 dark:bg-sky-400',
   sky: 'bg-sky-500 dark:bg-sky-400',
-  in_progress: 'bg-indigo-500 dark:bg-indigo-400',
-  indigo: 'bg-indigo-500 dark:bg-indigo-400',
+  in_progress: 'bg-accent',
+  indigo: 'bg-accent',
   in_review: 'bg-amber-500 dark:bg-amber-400',
   amber: 'bg-amber-500 dark:bg-amber-400',
   done: 'bg-emerald-500 dark:bg-emerald-400',
   emerald: 'bg-emerald-500 dark:bg-emerald-400',
-  purple: 'bg-purple-500 dark:bg-purple-400',
+  purple: 'bg-accent',
   rose: 'bg-rose-500 dark:bg-rose-400',
 }
 
@@ -347,7 +347,7 @@ export const TaskBoard = ({ embedded = false, lockedProjectId = null }) => {
           />
         )}
 
-        <div className="flex flex-wrap items-center justify-between gap-3 border-b border-slate-200 dark:border-slate-800 pb-3">
+        <div className="flex flex-wrap items-center justify-between gap-3 border-b border-border pb-3">
           <div className="flex items-center gap-2">
             {embedded ? (
               <Button icon={Plus} variant="primary" size="sm" onClick={handleOpenAddModal}>
@@ -360,8 +360,8 @@ export const TaskBoard = ({ embedded = false, lockedProjectId = null }) => {
                   className={({ isActive }) =>
                     `flex items-center gap-2 px-3 py-1.5 rounded-xl text-xs font-semibold transition-colors ${
                       isActive
-                        ? 'bg-indigo-50 dark:bg-indigo-600/20 text-indigo-600 dark:text-indigo-400 border border-indigo-200 dark:border-indigo-500/30'
-                        : 'text-slate-600 dark:text-slate-400 hover:text-slate-900 dark:hover:text-slate-200 hover:bg-slate-100 dark:hover:bg-slate-800'
+                        ? 'bg-accent-soft text-accent border border-accent/20 dark:border-accent/30'
+                        : 'text-muted hover:text-slate-900 dark:hover:text-slate-200 hover:bg-chrome'
                     }`
                   }
                 >
@@ -372,8 +372,8 @@ export const TaskBoard = ({ embedded = false, lockedProjectId = null }) => {
                   className={({ isActive }) =>
                     `flex items-center gap-2 px-3 py-1.5 rounded-xl text-xs font-semibold transition-colors ${
                       isActive
-                        ? 'bg-indigo-50 dark:bg-indigo-600/20 text-indigo-600 dark:text-indigo-400 border border-indigo-200 dark:border-indigo-500/30'
-                        : 'text-slate-600 dark:text-slate-400 hover:text-slate-900 dark:hover:text-slate-200 hover:bg-slate-100 dark:hover:bg-slate-800'
+                        ? 'bg-accent-soft text-accent border border-accent/20 dark:border-accent/30'
+                        : 'text-muted hover:text-slate-900 dark:hover:text-slate-200 hover:bg-chrome'
                     }`
                   }
                 >
@@ -386,13 +386,13 @@ export const TaskBoard = ({ embedded = false, lockedProjectId = null }) => {
           <div className="flex flex-wrap items-center gap-3">
             {!embedded && (
               <div className="flex items-center gap-2">
-                <span className="text-xs font-medium text-slate-500 dark:text-slate-400 flex items-center gap-1">
-                  <Filter className="w-3.5 h-3.5 text-indigo-500" /> Filter Project:
+                <span className="text-xs font-medium text-muted flex items-center gap-1">
+                  <Filter className="w-3.5 h-3.5 text-accent" /> Filter Project:
                 </span>
                 <select
                   value={selectedProjectId || 'all'}
                   onChange={(e) => handleProjectFilterChange(e.target.value)}
-                  className="bg-slate-100 dark:bg-[#181C27] border border-slate-300 dark:border-slate-800 text-xs text-slate-900 dark:text-slate-100 font-semibold rounded-xl px-3 py-1.5 focus:outline-none focus:border-indigo-500 cursor-pointer transition-colors"
+                  className="bg-chrome border border-border text-xs text-fg font-semibold rounded-xl px-3 py-1.5 focus:outline-none focus:border-accent cursor-pointer transition-colors"
                 >
                   <option value="all">All Projects ({visibleProjects.length})</option>
                   {visibleProjects.map((p) => (
@@ -411,11 +411,11 @@ export const TaskBoard = ({ embedded = false, lockedProjectId = null }) => {
                 placeholder="Search tasks..."
                 value={searchQuery}
                 onChange={(e) => setSearchQuery(e.target.value)}
-                className="w-full bg-slate-100 dark:bg-[#181C27] border border-slate-300 dark:border-slate-800 text-xs text-slate-800 dark:text-slate-200 placeholder-slate-400 dark:placeholder-slate-500 rounded-xl pl-8 pr-3 py-1.5 focus:outline-none transition-colors"
+                className="w-full bg-chrome border border-border text-xs text-fg placeholder-slate-400 dark:placeholder-slate-500 rounded-xl pl-8 pr-3 py-1.5 focus:outline-none transition-colors"
               />
             </div>
 
-            <div className="flex items-center gap-1 bg-slate-100 dark:bg-[#181C27] border border-slate-300 dark:border-slate-800 rounded-xl p-0.5">
+            <div className="flex items-center gap-1 bg-chrome border border-border rounded-xl p-0.5">
               {[
                 { id: 'board', label: 'Board', icon: Kanban },
                 { id: 'list', label: 'List', icon: List },
@@ -427,8 +427,8 @@ export const TaskBoard = ({ embedded = false, lockedProjectId = null }) => {
                   onClick={() => setViewMode(id)}
                   className={`flex items-center gap-1.5 px-2.5 py-1.5 rounded-lg text-[11px] font-semibold transition-colors ${
                     viewMode === id
-                      ? 'bg-indigo-600 text-white shadow-sm'
-                      : 'text-slate-600 dark:text-slate-400 hover:text-slate-900 dark:hover:text-slate-200'
+                      ? 'bg-accent text-white shadow-sm'
+                      : 'text-muted hover:text-slate-900 dark:hover:text-slate-200'
                   }`}
                 >
                   <Icon className="w-3.5 h-3.5" />
@@ -442,21 +442,21 @@ export const TaskBoard = ({ embedded = false, lockedProjectId = null }) => {
 
       {/* Active Project Filter Alert Banner */}
       {!embedded && selectedProjectId && selectedProjectId !== 'all' && (
-        <div className="flex items-center justify-between bg-indigo-50 dark:bg-indigo-950/40 border border-indigo-200 dark:border-indigo-800/60 rounded-xl px-4 py-2.5 text-xs text-indigo-900 dark:text-indigo-200">
+        <div className="flex items-center justify-between bg-accent-soft border border-accent/20 rounded-xl px-4 py-2.5 text-xs text-accent">
           <div className="flex items-center gap-2">
-            <span className="font-medium text-slate-600 dark:text-slate-300">
+            <span className="font-medium text-muted">
               Showing tasks for project:
             </span>
-            <span className="bg-indigo-600 text-white px-2.5 py-0.5 rounded-lg font-bold">
+            <span className="bg-accent text-white px-2.5 py-0.5 rounded-lg font-bold">
               {activeProject ? activeProject.name : selectedProjectId}
             </span>
-            <span className="text-slate-500 dark:text-slate-400">
+            <span className="text-muted">
               ({filteredTasks.length} {filteredTasks.length === 1 ? 'task' : 'tasks'})
             </span>
           </div>
           <button
             onClick={() => handleProjectFilterChange('all')}
-            className="flex items-center gap-1 text-xs font-semibold text-indigo-600 dark:text-indigo-400 hover:underline"
+            className="flex items-center gap-1 text-xs font-semibold text-accent hover:underline"
           >
             <X className="w-3.5 h-3.5" /> Show All Projects
           </button>
@@ -497,12 +497,12 @@ export const TaskBoard = ({ embedded = false, lockedProjectId = null }) => {
               onDrop={(e) => handleDrop(e, status.id)}
               className={`w-72 shrink-0 border rounded-2xl p-3 flex flex-col space-y-3 transition-all ${
                 draggedOverCol === status.id
-                  ? 'bg-indigo-50/80 dark:bg-indigo-950/40 border-indigo-500/80 ring-2 ring-indigo-500/40 shadow-lg'
-                  : 'bg-slate-100/90 dark:bg-[#12151E] border-slate-200 dark:border-slate-800/80'
+                  ? 'bg-accent-soft border-accent/80 ring-2 ring-accent/40 shadow-lg'
+                  : 'bg-chrome border-border'
               }`}
             >
-              <div className="flex items-center justify-between px-1 pb-2 border-b border-slate-200 dark:border-slate-800/80">
-                <span className="font-bold text-slate-800 dark:text-slate-200 text-xs flex items-center gap-2">
+              <div className="flex items-center justify-between px-1 pb-2 border-b border-border">
+                <span className="font-bold text-fg text-xs flex items-center gap-2">
                   <span className={`w-2.5 h-2.5 rounded-full inline-block ${getStatusDotBg(status)}`} />
                   {status.name}
                 </span>
@@ -526,7 +526,7 @@ export const TaskBoard = ({ embedded = false, lockedProjectId = null }) => {
 
               <div className="space-y-3 flex-1 overflow-y-auto max-h-[600px]">
                 {colTasks.length === 0 ? (
-                  <div className="p-4 text-center border border-dashed border-slate-300 dark:border-slate-800 rounded-xl text-[11px] text-slate-400 dark:text-slate-500 bg-white/50 dark:bg-transparent">
+                  <div className="p-4 text-center border border-dashed border-border rounded-xl text-[11px] text-slate-400 dark:text-slate-500 bg-white/50 dark:bg-transparent">
                     No tasks in {status.name}
                   </div>
                 ) : (
@@ -542,11 +542,11 @@ export const TaskBoard = ({ embedded = false, lockedProjectId = null }) => {
                     >
                       <Card
                         hover
-                        className="p-3.5 space-y-2.5 bg-white dark:bg-[#181C27] border-slate-200 dark:border-slate-800 hover:border-indigo-500/40 relative group shadow-sm"
+                        className="p-3.5 space-y-2.5 bg-surface border-border hover:border-accent/40 relative group shadow-sm"
                         onClick={() => setSelectedTask(t)}
                       >
                         <div className="flex items-start justify-between">
-                          <span className="text-xs font-bold text-slate-900 dark:text-slate-100 group-hover:text-indigo-600 dark:group-hover:text-indigo-400 transition-colors">
+                          <span className="text-xs font-bold text-fg group-hover:text-accent transition-colors">
                             {t.title}
                           </span>
                           <Badge
@@ -560,32 +560,32 @@ export const TaskBoard = ({ embedded = false, lockedProjectId = null }) => {
                           </Badge>
                         </div>
 
-                        <p className="text-[11px] text-indigo-600 dark:text-indigo-400 font-medium truncate">
+                        <p className="text-[11px] text-accent font-medium truncate">
                           {t.projectName}
                         </p>
 
                         {/* Subtask Mini Stepper Bar on Kanban Card */}
                         <SubtaskStepper taskId={t.taskId} subtasks={t.subtasks || []} compact={true} />
 
-                        <div className="flex items-center justify-between text-xs pt-2 border-t border-slate-200 dark:border-slate-800/60">
-                          <span className="flex items-center gap-1 text-[11px] text-slate-500 dark:text-slate-400">
-                            <Clock className="w-3 h-3 text-indigo-600 dark:text-indigo-400" />{' '}
+                        <div className="flex items-center justify-between text-xs pt-2 border-t border-border">
+                          <span className="flex items-center gap-1 text-[11px] text-muted">
+                            <Clock className="w-3 h-3 text-accent" />{' '}
                             {formatTaskTimerLabel(t)}
                           </span>
-                          <span className="flex items-center gap-1 text-[10px] text-slate-500 dark:text-slate-400">
+                          <span className="flex items-center gap-1 text-[10px] text-muted">
                             <User className="w-3 h-3 text-slate-400 dark:text-slate-500" /> {t.assigneeName}
                           </span>
                         </div>
 
                         <div
-                          className="pt-2 flex items-center justify-between text-[10px] text-slate-500 dark:text-slate-400"
+                          className="pt-2 flex items-center justify-between text-[10px] text-muted"
                           onClick={(e) => e.stopPropagation()}
                         >
                           <span>Status:</span>
                           <select
                             value={t.status}
                             onChange={(e) => updateTaskStatus(t.taskId, e.target.value)}
-                            className="bg-slate-100 dark:bg-slate-900 border border-slate-300 dark:border-slate-800 text-[10px] text-slate-800 dark:text-slate-300 rounded px-1.5 py-0.5 focus:outline-none"
+                            className="bg-chrome border border-border text-[10px] text-fg rounded px-1.5 py-0.5 focus:outline-none"
                           >
                             {visibleStatuses.map((s) => (
                               <option key={s.id} value={s.id}>
@@ -604,12 +604,12 @@ export const TaskBoard = ({ embedded = false, lockedProjectId = null }) => {
         })}
 
         {/* Sticky Floating + Add Status Button */}
-        <div className="sticky right-0 shrink-0 self-start z-10 pl-3 py-1 bg-gradient-to-l from-slate-50 via-slate-50/90 to-transparent dark:from-[#0D0F17] dark:via-[#0D0F17]/90">
+        <div className="sticky right-0 shrink-0 self-start z-10 pl-3 py-1 bg-gradient-to-l from-slate-50 via-slate-50/90 to-transparent dark:from-canvas dark:via-canvas/90">
           <button
             type="button"
             onClick={() => setShowAddStatusModal(true)}
             title="Add Custom Status Column"
-            className="w-10 h-10 rounded-2xl bg-indigo-600 hover:bg-indigo-500 text-white flex items-center justify-center transition-all shadow-lg shadow-indigo-600/30 hover:scale-105 active:scale-95 border border-indigo-400/30 group"
+            className="w-10 h-10 rounded-2xl bg-accent hover:bg-accent-hover text-white flex items-center justify-center transition-all shadow-lg shadow-accent/30 hover:scale-105 active:scale-95 border border-accent/30 group"
           >
             <Plus className="w-5 h-5 transition-transform group-hover:rotate-90" />
           </button>
@@ -620,12 +620,12 @@ export const TaskBoard = ({ embedded = false, lockedProjectId = null }) => {
       {/* New Task Modal */}
       {showAddModal && (
         <div className="fixed inset-0 z-50 bg-black/70 backdrop-blur-sm flex items-center justify-center p-4">
-          <Card className="w-full max-w-lg p-6 space-y-4 border-slate-200 dark:border-slate-800 shadow-2xl relative bg-white dark:bg-[#181C27]">
-            <div className="flex items-center justify-between pb-3 border-b border-slate-200 dark:border-slate-800">
-              <h3 className="font-bold text-slate-900 dark:text-slate-100 text-sm">Create Task</h3>
+          <Card className="w-full max-w-lg p-6 space-y-4 border-border shadow-2xl relative bg-surface">
+            <div className="flex items-center justify-between pb-3 border-b border-border">
+              <h3 className="font-bold text-fg text-sm">Create Task</h3>
               <button
                 onClick={() => setShowAddModal(false)}
-                className="text-slate-400 hover:text-slate-900 dark:hover:text-white p-1 rounded-lg hover:bg-slate-100 dark:hover:bg-slate-800 transition-colors"
+                className="text-slate-400 hover:text-slate-900 dark:hover:text-white p-1 rounded-lg hover:bg-chrome transition-colors"
               >
                 <X className="w-4 h-4" />
               </button>
@@ -641,18 +641,18 @@ export const TaskBoard = ({ embedded = false, lockedProjectId = null }) => {
               />
 
               <div className="space-y-1.5 text-left">
-                <label className="block text-xs font-medium text-slate-700 dark:text-slate-300">Target Project</label>
+                <label className="block text-xs font-medium text-fg">Target Project</label>
                 <select
                   value={projectId}
                   onChange={(e) => setProjectId(e.target.value)}
                   disabled={embedded}
-                  className="w-full bg-slate-100/80 dark:bg-slate-900 border border-slate-300 dark:border-slate-800 text-slate-900 dark:text-slate-100 text-sm rounded-xl py-2.5 px-3.5 focus:outline-none focus:border-indigo-500 cursor-pointer disabled:opacity-70 disabled:cursor-not-allowed"
+                  className="w-full bg-chrome border border-border text-fg text-sm rounded-xl py-2.5 px-3.5 focus:outline-none focus:border-accent cursor-pointer disabled:opacity-70 disabled:cursor-not-allowed"
                 >
                   {visibleProjects.map((p) => (
                     <option
                       key={p.projectId || p.id}
                       value={p.projectId || p.id}
-                      className="bg-white dark:bg-slate-900 text-slate-900 dark:text-slate-100"
+                      className="bg-surface text-fg"
                     >
                       {p.name}
                     </option>
@@ -661,21 +661,21 @@ export const TaskBoard = ({ embedded = false, lockedProjectId = null }) => {
               </div>
 
               <div className="space-y-1.5 text-left">
-                <label className="block text-xs font-medium text-slate-700 dark:text-slate-300">Priority</label>
+                <label className="block text-xs font-medium text-fg">Priority</label>
                 <select
                   value={priority}
                   onChange={(e) => setPriority(e.target.value)}
-                  className="w-full bg-slate-100/80 dark:bg-slate-900 border border-slate-300 dark:border-slate-800 text-slate-900 dark:text-slate-100 text-sm rounded-xl py-2.5 px-3.5 focus:outline-none focus:border-indigo-500 cursor-pointer"
+                  className="w-full bg-chrome border border-border text-fg text-sm rounded-xl py-2.5 px-3.5 focus:outline-none focus:border-accent cursor-pointer"
                 >
-                  <option value="low" className="bg-white dark:bg-slate-900 text-slate-900 dark:text-slate-100">Low</option>
-                  <option value="medium" className="bg-white dark:bg-slate-900 text-slate-900 dark:text-slate-100">Medium</option>
-                  <option value="high" className="bg-white dark:bg-slate-900 text-slate-900 dark:text-slate-100">High</option>
-                  <option value="critical" className="bg-white dark:bg-slate-900 text-slate-900 dark:text-slate-100">Critical</option>
+                  <option value="low" className="bg-surface text-fg">Low</option>
+                  <option value="medium" className="bg-surface text-fg">Medium</option>
+                  <option value="high" className="bg-surface text-fg">High</option>
+                  <option value="critical" className="bg-surface text-fg">Critical</option>
                 </select>
               </div>
 
-              <p className="text-[11px] text-slate-500 dark:text-slate-400 flex items-center gap-1.5">
-                <Clock className="w-3.5 h-3.5 text-indigo-500" />
+              <p className="text-[11px] text-muted flex items-center gap-1.5">
+                <Clock className="w-3.5 h-3.5 text-accent" />
                 Timer starts automatically when the task is created.
               </p>
 
@@ -695,27 +695,27 @@ export const TaskBoard = ({ embedded = false, lockedProjectId = null }) => {
       {/* Task Time & Subtask Timeline Detail Modal */}
       {liveSelectedTask && (
         <div className="fixed inset-0 z-50 bg-black/70 backdrop-blur-sm flex items-center justify-center p-4 overflow-y-auto">
-          <Card className="w-full max-w-2xl p-6 space-y-6 border-slate-200 dark:border-slate-800 shadow-2xl relative bg-white dark:bg-[#181C27] max-h-[90vh] overflow-y-auto">
-            <div className="flex items-center justify-between pb-3 border-b border-slate-200 dark:border-slate-800">
+          <Card className="w-full max-w-2xl p-6 space-y-6 border-border shadow-2xl relative bg-surface max-h-[90vh] overflow-y-auto">
+            <div className="flex items-center justify-between pb-3 border-b border-border">
               <div>
-                <h3 className="font-bold text-slate-900 dark:text-slate-100 text-base">{liveSelectedTask.title}</h3>
-                <p className="text-xs text-indigo-600 dark:text-indigo-400 font-medium">{liveSelectedTask.projectName}</p>
+                <h3 className="font-bold text-fg text-base">{liveSelectedTask.title}</h3>
+                <p className="text-xs text-accent font-medium">{liveSelectedTask.projectName}</p>
               </div>
               <button
                 onClick={() => setSelectedTask(null)}
-                className="text-slate-400 hover:text-slate-900 dark:hover:text-white p-1 rounded-lg hover:bg-slate-100 dark:hover:bg-slate-800 transition-colors"
+                className="text-slate-400 hover:text-slate-900 dark:hover:text-white p-1 rounded-lg hover:bg-chrome transition-colors"
               >
                 <X className="w-5 h-5" />
               </button>
             </div>
 
-            <div className="grid grid-cols-2 gap-4 text-xs bg-slate-50 dark:bg-slate-900/40 p-3 rounded-2xl border border-slate-200 dark:border-slate-800">
+            <div className="grid grid-cols-2 gap-4 text-xs bg-chrome p-3 rounded-2xl border border-border">
               <div className="space-y-1">
-                <span className="text-slate-500 dark:text-slate-400 block">Created By</span>
-                <span className="text-slate-900 dark:text-slate-100 font-bold">{liveSelectedTask.createdByName || liveSelectedTask.assigneeName || 'Employee'}</span>
+                <span className="text-muted block">Created By</span>
+                <span className="text-fg font-bold">{liveSelectedTask.createdByName || liveSelectedTask.assigneeName || 'Employee'}</span>
               </div>
               <div className="space-y-1">
-                <span className="text-slate-500 dark:text-slate-400 block">Timer</span>
+                <span className="text-muted block">Timer</span>
                 <span className="text-emerald-600 dark:text-emerald-400 font-bold flex items-center gap-1.5">
                   <Clock className="w-3.5 h-3.5" />
                   {formatTaskTimerLabel(liveSelectedTask)}
@@ -727,7 +727,7 @@ export const TaskBoard = ({ embedded = false, lockedProjectId = null }) => {
             <SubtaskStepper taskId={liveSelectedTask.taskId} subtasks={liveSelectedTask.subtasks || []} />
 
             {/* Task Timer Controls */}
-            <div className="space-y-3 pt-3 border-t border-slate-200 dark:border-slate-800">
+            <div className="space-y-3 pt-3 border-t border-border">
               <div className="flex gap-3 pt-1">
                 <Button
                   type="button"
@@ -766,7 +766,7 @@ export const TaskBoard = ({ embedded = false, lockedProjectId = null }) => {
                   </Button>
                 )}
                 {(liveSelectedTask.timerStatus === 'stopped' || liveSelectedTask.status === 'done') && (
-                  <div className="flex-1 flex items-center justify-center text-xs font-semibold text-slate-500 dark:text-slate-400 bg-slate-100 dark:bg-slate-900/60 rounded-xl px-3">
+                  <div className="flex-1 flex items-center justify-center text-xs font-semibold text-muted bg-chrome rounded-xl px-3">
                     Timer stopped
                   </div>
                 )}
@@ -779,24 +779,24 @@ export const TaskBoard = ({ embedded = false, lockedProjectId = null }) => {
       {/* Confirm Delete Task Modal */}
       {deleteConfirmTask && (
         <div className="fixed inset-0 z-50 bg-black/70 backdrop-blur-sm flex items-center justify-center p-4">
-          <Card className="w-full max-w-md p-6 space-y-4 border-slate-200 dark:border-slate-800 shadow-2xl relative bg-white dark:bg-[#181C27]">
-            <div className="flex items-center justify-between pb-3 border-b border-slate-200 dark:border-slate-800">
-              <h3 className="font-bold text-slate-900 dark:text-slate-100 text-sm flex items-center gap-2">
+          <Card className="w-full max-w-md p-6 space-y-4 border-border shadow-2xl relative bg-surface">
+            <div className="flex items-center justify-between pb-3 border-b border-border">
+              <h3 className="font-bold text-fg text-sm flex items-center gap-2">
                 <Trash2 className="w-4 h-4 text-rose-500" /> Confirm Delete Task
               </h3>
               <button
                 onClick={() => setDeleteConfirmTask(null)}
-                className="text-slate-400 hover:text-slate-600 dark:hover:text-white p-1 rounded-lg hover:bg-slate-100 dark:hover:bg-slate-800 transition-colors"
+                className="text-slate-400 hover:text-slate-600 dark:hover:text-white p-1 rounded-lg hover:bg-chrome transition-colors"
               >
                 <X className="w-4 h-4" />
               </button>
             </div>
 
-            <p className="text-xs text-slate-600 dark:text-slate-300 leading-relaxed">
-              Are you sure you want to delete task <strong className="text-slate-900 dark:text-white">{deleteConfirmTask.title}</strong>? This action cannot be undone.
+            <p className="text-xs text-muted leading-relaxed">
+              Are you sure you want to delete task <strong className="text-fg">{deleteConfirmTask.title}</strong>? This action cannot be undone.
             </p>
 
-            <div className="flex items-center justify-end gap-3 pt-3 border-t border-slate-200 dark:border-slate-800">
+            <div className="flex items-center justify-end gap-3 pt-3 border-t border-border">
               <Button variant="secondary" onClick={() => setDeleteConfirmTask(null)}>
                 Cancel
               </Button>
@@ -825,24 +825,24 @@ export const TaskBoard = ({ embedded = false, lockedProjectId = null }) => {
       {/* Confirm Delete Status Modal */}
       {deleteConfirmStatus && (
         <div className="fixed inset-0 z-50 bg-black/70 backdrop-blur-sm flex items-center justify-center p-4">
-          <Card className="w-full max-w-md p-6 space-y-4 border-slate-200 dark:border-slate-800 shadow-2xl relative bg-white dark:bg-[#181C27]">
-            <div className="flex items-center justify-between pb-3 border-b border-slate-200 dark:border-slate-800">
-              <h3 className="font-bold text-slate-900 dark:text-slate-100 text-sm flex items-center gap-2">
+          <Card className="w-full max-w-md p-6 space-y-4 border-border shadow-2xl relative bg-surface">
+            <div className="flex items-center justify-between pb-3 border-b border-border">
+              <h3 className="font-bold text-fg text-sm flex items-center gap-2">
                 <Trash2 className="w-4 h-4 text-rose-500" /> Confirm Delete Status Column
               </h3>
               <button
                 onClick={() => setDeleteConfirmStatus(null)}
-                className="text-slate-400 hover:text-slate-600 dark:hover:text-white p-1 rounded-lg hover:bg-slate-100 dark:hover:bg-slate-800 transition-colors"
+                className="text-slate-400 hover:text-slate-600 dark:hover:text-white p-1 rounded-lg hover:bg-chrome transition-colors"
               >
                 <X className="w-4 h-4" />
               </button>
             </div>
 
-            <p className="text-xs text-slate-600 dark:text-slate-300 leading-relaxed">
-              Are you sure you want to delete status column <strong className="text-slate-900 dark:text-white">{deleteConfirmStatus.name}</strong>? Any tasks currently in this status will be automatically moved to <strong className="text-indigo-600 dark:text-indigo-400">To Do</strong>.
+            <p className="text-xs text-muted leading-relaxed">
+              Are you sure you want to delete status column <strong className="text-fg">{deleteConfirmStatus.name}</strong>? Any tasks currently in this status will be automatically moved to <strong className="text-accent">To Do</strong>.
             </p>
 
-            <div className="flex items-center justify-end gap-3 pt-3 border-t border-slate-200 dark:border-slate-800">
+            <div className="flex items-center justify-end gap-3 pt-3 border-t border-border">
               <Button variant="secondary" onClick={() => setDeleteConfirmStatus(null)}>
                 Cancel
               </Button>
@@ -863,12 +863,12 @@ export const TaskBoard = ({ embedded = false, lockedProjectId = null }) => {
       {/* Create Custom Status Modal */}
       {showAddStatusModal && (
         <div className="fixed inset-0 z-50 bg-black/70 backdrop-blur-sm flex items-center justify-center p-4">
-          <Card className="w-full max-w-md p-6 space-y-4 border-slate-200 dark:border-slate-800 shadow-2xl relative bg-white dark:bg-[#181C27]">
-            <div className="flex items-center justify-between pb-3 border-b border-slate-200 dark:border-slate-800">
-              <h3 className="font-bold text-slate-900 dark:text-slate-100 text-sm">Add Custom Task Status</h3>
+          <Card className="w-full max-w-md p-6 space-y-4 border-border shadow-2xl relative bg-surface">
+            <div className="flex items-center justify-between pb-3 border-b border-border">
+              <h3 className="font-bold text-fg text-sm">Add Custom Task Status</h3>
               <button
                 onClick={() => setShowAddStatusModal(false)}
-                className="text-slate-400 hover:text-slate-900 dark:hover:text-white p-1 rounded-lg hover:bg-slate-100 dark:hover:bg-slate-800 transition-colors"
+                className="text-slate-400 hover:text-slate-900 dark:hover:text-white p-1 rounded-lg hover:bg-chrome transition-colors"
               >
                 <X className="w-4 h-4" />
               </button>
@@ -884,11 +884,11 @@ export const TaskBoard = ({ embedded = false, lockedProjectId = null }) => {
               />
 
               <div className="space-y-1.5">
-                <label className="text-xs font-semibold text-slate-700 dark:text-slate-300">Badge Theme Color</label>
+                <label className="text-xs font-semibold text-fg">Badge Theme Color</label>
                 <select
                   value={newStatusColor}
                   onChange={(e) => setNewStatusColor(e.target.value)}
-                  className="w-full bg-slate-100 dark:bg-slate-900 border border-slate-300 dark:border-slate-800 text-xs text-slate-800 dark:text-slate-200 rounded-xl p-2.5 focus:outline-none focus:border-indigo-500 cursor-pointer"
+                  className="w-full bg-chrome border border-border text-xs text-fg rounded-xl p-2.5 focus:outline-none focus:border-accent cursor-pointer"
                 >
                   <option value="purple">Purple Theme</option>
                   <option value="indigo">Indigo Theme</option>

@@ -67,16 +67,16 @@ export const EmployeeLoginPage = () => {
   }
 
   return (
-    <div className="min-h-screen bg-slate-50 dark:bg-[#0F1117] flex items-center justify-center p-4 relative overflow-hidden text-slate-900 dark:text-slate-100 transition-colors duration-200">
-      <div className="absolute top-1/4 left-1/2 -translate-x-1/2 w-96 h-96 bg-purple-500/10 dark:bg-purple-600/15 blur-[120px] rounded-full pointer-events-none" />
+    <div className="min-h-screen bg-canvas text-fg flex items-center justify-center p-4 relative overflow-hidden transition-colors duration-200">
+      <div className="absolute top-1/4 left-1/2 -translate-x-1/2 w-96 h-96 bg-accent/15 blur-[120px] rounded-full pointer-events-none" />
 
-      <Card className="w-full max-w-md p-8 relative z-10 border-purple-200/80 dark:border-purple-500/30 shadow-xl dark:shadow-2xl space-y-6">
+      <Card className="w-full max-w-md p-8 relative z-10 border-accent/30 shadow-xl dark:shadow-2xl space-y-6">
         <div className="text-center space-y-2">
-          <div className="inline-flex w-12 h-12 rounded-2xl bg-purple-50 dark:bg-purple-600/20 text-purple-600 dark:text-purple-400 items-center justify-center border border-purple-200 dark:border-purple-500/30 mb-1">
+          <div className="inline-flex w-12 h-12 rounded-2xl bg-accent-soft text-accent items-center justify-center border border-accent/30 mb-1">
             <UserCheck className="w-6 h-6" />
           </div>
-          <h2 className="text-2xl font-bold text-slate-900 dark:text-slate-100 tracking-tight">Employee   EMPLOYEE PORTAL</h2>
-          <p className="text-xs text-slate-500 dark:text-slate-400">Sprint Tasks, Time Tracker & Attendance Sign-In</p>
+          <h2 className="text-2xl font-bold text-fg tracking-tight">Employee EMPLOYEE PORTAL</h2>
+          <p className="text-xs text-muted">Sprint Tasks, Time Tracker & Attendance Sign-In</p>
         </div>
 
         {error && (
@@ -107,16 +107,16 @@ export const EmployeeLoginPage = () => {
             required
           />
 
-          <Button type="submit" variant="primary" className="w-full mt-2 bg-purple-600 hover:bg-purple-500" disabled={loading} icon={ArrowRight}>
+          <Button type="submit" variant="primary" className="w-full mt-2 bg-accent hover:bg-accent-hover" disabled={loading} icon={ArrowRight}>
             {loading ? 'Authenticating Staff...' : 'Sign In to   EMPLOYEE Workspace'}
           </Button>
         </form>
 
         <div className="relative text-center">
           <div className="absolute inset-0 flex items-center">
-            <div className="w-full border-t border-slate-200 dark:border-slate-800" />
+            <div className="w-full border-t border-border" />
           </div>
-          <span className="relative bg-white dark:bg-[#181C27] px-3 text-[11px] text-slate-500 dark:text-slate-400 uppercase tracking-wider">
+          <span className="relative bg-surface px-3 text-[11px] text-muted uppercase tracking-wider">
             Or  EMPLOYEESSO
           </span>
         </div>
@@ -131,8 +131,8 @@ export const EmployeeLoginPage = () => {
           Sign In with  EMPLOYEEGoogle SSO
         </Button>
 
-        <div className="pt-2 text-center text-xs text-slate-500 dark:text-slate-400 flex justify-between">
-          <Link to="/login/admin" className="hover:text-indigo-600 dark:hover:text-indigo-400 font-medium">Admin Login →</Link>
+        <div className="pt-2 text-center text-xs text-muted flex justify-between">
+          <Link to="/login/admin" className="hover:text-accent dark:hover:text-accent font-medium">Admin Login →</Link>
           <Link to="/login/client" className="hover:text-emerald-600 dark:hover:text-emerald-400 font-medium">Client Login →</Link>
         </div>
       </Card>

@@ -26,7 +26,7 @@ export const AppShell = () => {
   }
 
   return (
-    <div className="min-h-screen bg-[#F8FAFC] dark:bg-[#0B0F17] text-slate-900 dark:text-slate-100 flex flex-col transition-colors">
+    <div className="min-h-screen bg-canvas text-fg flex flex-col transition-colors">
       <ClientSidebar />
       <div
         className={`flex-1 flex flex-col transition-all duration-300 ${

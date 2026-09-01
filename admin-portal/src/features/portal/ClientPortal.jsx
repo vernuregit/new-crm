@@ -37,7 +37,7 @@ export const ClientPortal = () => {
           description="Tenant-isolated workspace for tracking your project deliverables, approving milestones, and managing invoices"
         />
 
-        <div className="flex items-center gap-2 border-b border-slate-200 dark:border-slate-800/80 pb-3 overflow-x-auto">
+        <div className="flex items-center gap-2 border-b border-border pb-3 overflow-x-auto">
           <NavLink
             to="/portal"
             end
@@ -45,7 +45,7 @@ export const ClientPortal = () => {
               `flex items-center gap-2 px-3.5 py-1.5 rounded-xl text-xs font-semibold transition-all whitespace-nowrap ${
                 isActive
                   ? 'bg-emerald-50 text-emerald-700 border border-emerald-300 shadow-xs dark:bg-emerald-500/20 dark:text-emerald-300 dark:border-emerald-500/30'
-                  : 'text-slate-600 dark:text-slate-400 hover:text-slate-900 dark:hover:text-slate-100 hover:bg-slate-100 dark:hover:bg-slate-800/60 border border-transparent'
+                  : 'text-muted hover:text-slate-900 dark:hover:text-fg hover:bg-slate-100 dark:hover:bg-slate-800/60 border border-transparent'
               }`
             }
           >
@@ -57,7 +57,7 @@ export const ClientPortal = () => {
               `flex items-center gap-2 px-3.5 py-1.5 rounded-xl text-xs font-semibold transition-all whitespace-nowrap ${
                 isActive
                   ? 'bg-emerald-50 text-emerald-700 border border-emerald-300 shadow-xs dark:bg-emerald-500/20 dark:text-emerald-300 dark:border-emerald-500/30'
-                  : 'text-slate-600 dark:text-slate-400 hover:text-slate-900 dark:hover:text-slate-100 hover:bg-slate-100 dark:hover:bg-slate-800/60 border border-transparent'
+                  : 'text-muted hover:text-slate-900 dark:hover:text-fg hover:bg-slate-100 dark:hover:bg-slate-800/60 border border-transparent'
               }`
             }
           >
@@ -69,7 +69,7 @@ export const ClientPortal = () => {
               `flex items-center gap-2 px-3.5 py-1.5 rounded-xl text-xs font-semibold transition-all whitespace-nowrap ${
                 isActive
                   ? 'bg-emerald-50 text-emerald-700 border border-emerald-300 shadow-xs dark:bg-emerald-500/20 dark:text-emerald-300 dark:border-emerald-500/30'
-                  : 'text-slate-600 dark:text-slate-400 hover:text-slate-900 dark:hover:text-slate-100 hover:bg-slate-100 dark:hover:bg-slate-800/60 border border-transparent'
+                  : 'text-muted hover:text-slate-900 dark:hover:text-fg hover:bg-slate-100 dark:hover:bg-slate-800/60 border border-transparent'
               }`
             }
           >
@@ -81,7 +81,7 @@ export const ClientPortal = () => {
               `flex items-center gap-2 px-3.5 py-1.5 rounded-xl text-xs font-semibold transition-all whitespace-nowrap ${
                 isActive
                   ? 'bg-emerald-50 text-emerald-700 border border-emerald-300 shadow-xs dark:bg-emerald-500/20 dark:text-emerald-300 dark:border-emerald-500/30'
-                  : 'text-slate-600 dark:text-slate-400 hover:text-slate-900 dark:hover:text-slate-100 hover:bg-slate-100 dark:hover:bg-slate-800/60 border border-transparent'
+                  : 'text-muted hover:text-slate-900 dark:hover:text-fg hover:bg-slate-100 dark:hover:bg-slate-800/60 border border-transparent'
               }`
             }
           >
@@ -97,8 +97,8 @@ export const ClientPortal = () => {
             <ShieldCheck className="w-5 h-5" />
           </div>
           <div>
-            <h4 className="font-bold text-slate-900 dark:text-slate-100 text-xs">Secure Client Isolation Active</h4>
-            <p className="text-[11px] text-slate-600 dark:text-slate-400 mt-0.5">
+            <h4 className="font-bold text-fg text-xs">Secure Client Isolation Active</h4>
+            <p className="text-[11px] text-muted mt-0.5">
               Filtered exclusively for <strong className="text-slate-900 dark:text-slate-200">Acme Corp</strong> via Custom Claims & Firestore Path Rules.
             </p>
           </div>
@@ -108,21 +108,21 @@ export const ClientPortal = () => {
 
       {/* Portal Metrics */}
       <div className="grid grid-cols-1 sm:grid-cols-3 gap-4">
-        <Card className="p-4 flex items-center justify-between border-slate-200 dark:border-slate-800/80 shadow-xs">
+        <Card className="p-4 flex items-center justify-between border-border shadow-xs">
           <div>
-            <span className="text-[11px] font-semibold text-slate-500 dark:text-slate-400 uppercase tracking-wider">
+            <span className="text-[11px] font-semibold text-muted uppercase tracking-wider">
               Active Projects
             </span>
-            <p className="text-2xl font-bold text-slate-900 dark:text-slate-100 mt-1">{projects.length}</p>
+            <p className="text-2xl font-bold text-fg mt-1">{projects.length}</p>
           </div>
           <div className="w-10 h-10 rounded-xl bg-emerald-50 dark:bg-emerald-500/10 text-emerald-600 dark:text-emerald-400 border border-emerald-100 dark:border-emerald-500/20 flex items-center justify-center shadow-xs">
             <Briefcase className="w-5 h-5" />
           </div>
         </Card>
 
-        <Card className="p-4 flex items-center justify-between border-slate-200 dark:border-slate-800/80 shadow-xs">
+        <Card className="p-4 flex items-center justify-between border-border shadow-xs">
           <div>
-            <span className="text-[11px] font-semibold text-slate-500 dark:text-slate-400 uppercase tracking-wider">
+            <span className="text-[11px] font-semibold text-muted uppercase tracking-wider">
               Pending Approvals
             </span>
             <p className="text-2xl font-bold text-amber-600 dark:text-amber-400 mt-1">{pendingApprovals.length}</p>
@@ -132,9 +132,9 @@ export const ClientPortal = () => {
           </div>
         </Card>
 
-        <Card className="p-4 flex items-center justify-between border-slate-200 dark:border-slate-800/80 shadow-xs">
+        <Card className="p-4 flex items-center justify-between border-border shadow-xs">
           <div>
-            <span className="text-[11px] font-semibold text-slate-500 dark:text-slate-400 uppercase tracking-wider">
+            <span className="text-[11px] font-semibold text-muted uppercase tracking-wider">
               Outstanding Balance
             </span>
             <p className="text-2xl font-bold text-rose-600 dark:text-rose-400 mt-1">
@@ -149,23 +149,23 @@ export const ClientPortal = () => {
 
       {/* Deliverable Approvals Section */}
       <div className="space-y-3">
-        <h3 className="text-sm font-bold text-slate-900 dark:text-slate-100">Deliverable Sign-offs Needed</h3>
+        <h3 className="text-sm font-bold text-fg">Deliverable Sign-offs Needed</h3>
         {approvals.length === 0 ? (
-          <Card className="p-6 text-center text-xs text-slate-500 dark:text-slate-400 border-dashed">
+          <Card className="p-6 text-center text-xs text-muted border-dashed">
             No pending deliverable sign-offs right now.
           </Card>
         ) : (
           approvals.map((app) => (
-            <Card key={app.approvalId} hover className="flex items-center justify-between p-4 border-slate-200 dark:border-slate-800 shadow-xs">
+            <Card key={app.approvalId} hover className="flex items-center justify-between p-4 border-border shadow-xs">
               <div className="space-y-1">
                 <div className="flex items-center gap-2">
-                  <h4 className="font-bold text-slate-900 dark:text-slate-100 text-sm">{app.title}</h4>
+                  <h4 className="font-bold text-fg text-sm">{app.title}</h4>
                   <Badge variant={app.status === 'approved' ? 'success' : app.status === 'rejected' ? 'danger' : 'warning'}>
                     {app.status}
                   </Badge>
                 </div>
-                <p className="text-xs text-slate-600 dark:text-slate-400">{app.notes}</p>
-                <span className="text-[10px] text-slate-500 dark:text-slate-400 block font-medium">Project: {app.projectName} • Requested: {app.requestedAt}</span>
+                <p className="text-xs text-muted">{app.notes}</p>
+                <span className="text-[10px] text-muted block font-medium">Project: {app.projectName} • Requested: {app.requestedAt}</span>
               </div>
 
               {app.status === 'pending' && (
@@ -195,22 +195,22 @@ export const ClientPortal = () => {
 
       {/* Project Status Overview */}
       <div className="space-y-3">
-        <h3 className="text-sm font-bold text-slate-900 dark:text-slate-100">Project Progress Overview</h3>
+        <h3 className="text-sm font-bold text-fg">Project Progress Overview</h3>
         <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
           {projects.map((p) => (
-            <Card key={p.projectId} hover className="space-y-3 border-slate-200 dark:border-slate-800 shadow-xs">
+            <Card key={p.projectId} hover className="space-y-3 border-border shadow-xs">
               <div className="flex items-center justify-between">
-                <h4 className="font-bold text-slate-900 dark:text-slate-100 text-sm">{p.name}</h4>
+                <h4 className="font-bold text-fg text-sm">{p.name}</h4>
                 <Badge variant="success">{p.completionPercent}% Completed</Badge>
               </div>
-              <p className="text-xs text-slate-600 dark:text-slate-400">{p.description}</p>
-              <div className="w-full bg-slate-100 dark:bg-slate-900 h-2.5 rounded-full overflow-hidden border border-slate-200 dark:border-slate-800">
+              <p className="text-xs text-muted">{p.description}</p>
+              <div className="w-full bg-canvas h-2.5 rounded-full overflow-hidden border border-border">
                 <div
                   className="bg-gradient-to-r from-emerald-500 to-teal-500 h-full rounded-full transition-all duration-500"
                   style={{ width: `${p.completionPercent}%` }}
                 />
               </div>
-              <div className="flex justify-between text-[11px] text-slate-500 dark:text-slate-400 pt-1 font-medium">
+              <div className="flex justify-between text-[11px] text-muted pt-1 font-medium">
                 <span>Next Milestone: {p.nextMilestone}</span>
                 <span>Due: {p.dueDate}</span>
               </div>

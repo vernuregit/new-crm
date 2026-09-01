@@ -31,8 +31,8 @@ function formatHours(hours) {
 function TimelineEntryCard({ entry }) {
   const type = entry.entryType === 'upskilling' ? 'upskilling' : 'work'
   return (
-    <div className="rounded-xl bg-slate-50 dark:bg-[#1a1f2e] border border-slate-200 dark:border-slate-700/70 p-2.5">
-      <p className="w-full text-xs text-slate-800 dark:text-slate-100 leading-snug break-words whitespace-pre-wrap">
+    <div className="rounded-xl bg-canvas border border-border p-2.5">
+      <p className="w-full text-xs text-slate-800 dark:text-fg leading-snug break-words whitespace-pre-wrap">
         {entry.description}
       </p>
       <div className="mt-2 flex items-center justify-between gap-2">
@@ -40,12 +40,12 @@ function TimelineEntryCard({ entry }) {
           className={`text-[10px] ${
             type === 'upskilling'
               ? 'text-violet-500 dark:text-violet-400'
-              : 'text-slate-400 dark:text-slate-500'
+              : 'text-muted'
           }`}
         >
           {type === 'upskilling' ? 'Upskilling' : 'Work'}
         </p>
-        <span className="shrink-0 text-[10px] font-semibold text-slate-600 dark:text-slate-300 bg-slate-200/80 dark:bg-slate-700/80 rounded-md px-1.5 py-0.5">
+        <span className="shrink-0 text-[10px] font-semibold text-muted bg-slate-200/80 dark:bg-slate-700/80 rounded-md px-1.5 py-0.5">
           {formatHours(entry.hours)}
         </span>
       </div>
@@ -170,7 +170,7 @@ export function EmployeeTimelinePage() {
           <select
             value={selectedUid}
             onChange={(e) => setSelectedUid(e.target.value)}
-            className="bg-slate-100 dark:bg-[#181C27] border border-slate-300 dark:border-slate-800 text-sm text-slate-800 dark:text-slate-200 rounded-xl px-3 py-2 focus:outline-none min-w-[200px]"
+            className="bg-canvas border border-border text-sm text-fg rounded-xl px-3 py-2 focus:outline-none min-w-[200px]"
           >
             {employees.length === 0 && (
               <option value="">No employees</option>
@@ -193,9 +193,9 @@ export function EmployeeTimelinePage() {
             onClick={() => shiftWeek(-1)}
             aria-label="Previous week"
           />
-          <div className="flex items-center gap-2 px-3 py-1.5 rounded-xl bg-slate-100 dark:bg-slate-800/60 border border-slate-200 dark:border-slate-700">
-            <CalendarDays className="w-4 h-4 text-indigo-500" />
-            <span className="text-sm font-semibold text-slate-800 dark:text-slate-100">
+          <div className="flex items-center gap-2 px-3 py-1.5 rounded-xl bg-canvas/60 border border-slate-200 dark:border-slate-700">
+            <CalendarDays className="w-4 h-4 text-accent" />
+            <span className="text-sm font-semibold text-slate-800 dark:text-fg">
               {weekRangeLabel(weekDays)}
             </span>
           </div>
@@ -215,14 +215,14 @@ export function EmployeeTimelinePage() {
           </Button>
         </div>
 
-        <div className="flex items-center gap-2 text-sm text-slate-600 dark:text-slate-300">
-          <Clock className="w-4 h-4 text-indigo-500" />
+        <div className="flex items-center gap-2 text-sm text-muted">
+          <Clock className="w-4 h-4 text-accent" />
           <span>
             {selectedEmployee
               ? `${selectedEmployee.displayName || selectedEmployee.name}: `
               : ''}
             Week total:{' '}
-            <strong className="text-slate-900 dark:text-slate-100">
+            <strong className="text-fg">
               {formatHours(weekTotal)}
             </strong>
           </span>
@@ -246,8 +246,8 @@ export function EmployeeTimelinePage() {
               key={dateStr}
               className={`flex flex-col min-h-[260px] p-3 border ${
                 isToday
-                  ? 'border-indigo-400 dark:border-indigo-500/50 ring-1 ring-indigo-500/20'
-                  : 'border-slate-200 dark:border-slate-800'
+                  ? 'border-accent/30/50 ring-1 ring-accent/20'
+                  : 'border-border'
               }`}
             >
               <div className="mb-3">
@@ -256,8 +256,8 @@ export function EmployeeTimelinePage() {
                     <div
                       className={`text-xs font-bold uppercase tracking-wide ${
                         isToday
-                          ? 'text-indigo-600 dark:text-indigo-400'
-                          : 'text-slate-700 dark:text-slate-200'
+                          ? 'text-accent'
+                          : 'text-fg'
                       }`}
                     >
                       {DAY_LABELS[idx]} {day.getDate()}
@@ -268,7 +268,7 @@ export function EmployeeTimelinePage() {
                     className={`shrink-0 text-[10px] font-semibold rounded-full px-2 py-0.5 border ${
                       isFullDay
                         ? 'text-emerald-600 dark:text-emerald-400 border-emerald-400/60 bg-emerald-50 dark:bg-emerald-500/10'
-                        : 'text-slate-500 dark:text-slate-400 border-slate-300 dark:border-slate-600'
+                        : 'text-muted border-slate-300 dark:border-slate-600'
                     }`}
                   >
                     {formatHours(dayTotal)} of {TARGET_DAY_HOURS}h
@@ -280,7 +280,7 @@ export function EmployeeTimelinePage() {
                 {loading ? (
                   <p className="text-[11px] text-slate-400 py-4 text-center">Loading…</p>
                 ) : dayEntries.length === 0 ? (
-                  <div className="rounded-xl border border-dashed border-slate-300 dark:border-slate-700 py-8 text-[11px] text-slate-400 text-center">
+                  <div className="rounded-xl border border-dashed border-border py-8 text-[11px] text-slate-400 text-center">
                     No entries
                   </div>
                 ) : (

@@ -30,14 +30,14 @@ export const WorkflowHistory = () => {
           description="Audit trail of automated execution runs, triggers, and action outputs"
         />
 
-        <div className="flex items-center gap-2 border-b border-slate-800 pb-3">
+        <div className="flex items-center gap-2 border-b border-border pb-3">
           <NavLink
             to="/workflows"
             end
             className={({ isActive }) =>
               `flex items-center gap-2 px-3 py-1.5 rounded-xl text-xs font-semibold transition-colors ${
                 isActive
-                  ? 'bg-indigo-600/20 text-indigo-400 border border-indigo-500/30'
+                  ? 'bg-accent-soft text-accent border border-accent/30'
                   : 'text-slate-400 hover:text-slate-200 hover:bg-slate-800'
               }`
             }
@@ -49,7 +49,7 @@ export const WorkflowHistory = () => {
             className={({ isActive }) =>
               `flex items-center gap-2 px-3 py-1.5 rounded-xl text-xs font-semibold transition-colors ${
                 isActive
-                  ? 'bg-indigo-600/20 text-indigo-400 border border-indigo-500/30'
+                  ? 'bg-accent-soft text-accent border border-accent/30'
                   : 'text-slate-400 hover:text-slate-200 hover:bg-slate-800'
               }`
             }
@@ -61,7 +61,7 @@ export const WorkflowHistory = () => {
             className={({ isActive }) =>
               `flex items-center gap-2 px-3 py-1.5 rounded-xl text-xs font-semibold transition-colors ${
                 isActive
-                  ? 'bg-indigo-600/20 text-indigo-400 border border-indigo-500/30'
+                  ? 'bg-accent-soft text-accent border border-accent/30'
                   : 'text-slate-400 hover:text-slate-200 hover:bg-slate-800'
               }`
             }
@@ -74,7 +74,7 @@ export const WorkflowHistory = () => {
       {/* Loading State */}
       {isLoading && (
         <div className="flex items-center justify-center py-20">
-          <Loader2 className="w-7 h-7 text-indigo-400 animate-spin" />
+          <Loader2 className="w-7 h-7 text-accent animate-spin" />
           <span className="ml-3 text-slate-400 text-sm">
             Loading execution logs...
           </span>
@@ -85,13 +85,13 @@ export const WorkflowHistory = () => {
         <div className="space-y-3">
           {/* Empty state */}
           {runs.length === 0 && (
-            <Card className="py-20 text-center space-y-3 border-slate-800">
+            <Card className="py-20 text-center space-y-3 border-border">
               <div className="w-14 h-14 rounded-2xl bg-slate-800 flex items-center justify-center mx-auto">
-                <ScrollText className="w-7 h-7 text-slate-500" />
+                <ScrollText className="w-7 h-7 text-muted" />
               </div>
               <div className="space-y-1">
                 <p className="text-slate-200 font-semibold text-sm">No execution logs yet</p>
-                <p className="text-slate-500 text-xs">
+                <p className="text-muted text-xs">
                   Logs will appear here once workflow rules are created and triggered.
                 </p>
               </div>
@@ -100,12 +100,12 @@ export const WorkflowHistory = () => {
 
           {/* Run log cards */}
           {runs.map((r) => (
-            <Card key={r.runId} hover className="p-4 border-slate-800 space-y-2">
+            <Card key={r.runId} hover className="p-4 border-border space-y-2">
               <div className="flex items-center justify-between">
                 <div className="flex items-center gap-2">
-                  <h4 className="font-bold text-slate-100 text-sm">{r.workflowName}</h4>
+                  <h4 className="font-bold text-fg text-sm">{r.workflowName}</h4>
                   {r.recipientEmail && (
-                    <span className="flex items-center gap-1 text-[11px] text-indigo-400 bg-indigo-500/10 px-2 py-0.5 rounded-md border border-indigo-500/20">
+                    <span className="flex items-center gap-1 text-[11px] text-accent bg-accent-soft px-2 py-0.5 rounded-md border border-accent/20">
                       <Mail className="w-3 h-3" /> {r.recipientEmail}
                     </span>
                   )}
@@ -120,18 +120,18 @@ export const WorkflowHistory = () => {
                 </div>
               </div>
 
-              <p className="text-xs text-indigo-400">Triggered by: {r.triggeredBy}</p>
+              <p className="text-xs text-accent">Triggered by: {r.triggeredBy}</p>
 
-              <div className="p-3 rounded-xl bg-slate-900 border border-slate-800 font-mono text-xs text-slate-400 space-y-1">
+              <div className="p-3 rounded-xl bg-slate-900 border border-border font-mono text-xs text-slate-400 space-y-1">
                 {r.logs?.map((log, i) => (
                   <div key={i} className="flex items-start gap-2">
-                    <span className="text-indigo-400 shrink-0">›</span>
+                    <span className="text-accent shrink-0">›</span>
                     <span>{log}</span>
                   </div>
                 ))}
               </div>
 
-              <span className="text-[10px] text-slate-500 block">
+              <span className="text-[10px] text-muted block">
                 Executed at: {r.executedAt ? new Date(r.executedAt).toLocaleString() : r.executedAt}
               </span>
             </Card>

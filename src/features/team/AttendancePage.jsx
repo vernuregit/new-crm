@@ -28,13 +28,13 @@ export const AttendancePage = () => {
           }
         />
 
-        <div className="flex items-center gap-2 border-b border-slate-800 pb-3">
+        <div className="flex items-center gap-2 border-b border-border pb-3">
           <NavLink
             to="/team/employees"
             className={({ isActive }) =>
               `flex items-center gap-2 px-3 py-1.5 rounded-xl text-xs font-semibold transition-colors ${
                 isActive
-                  ? 'bg-indigo-600/20 text-indigo-400 border border-indigo-500/30'
+                  ? 'bg-accent-soft text-accent border border-accent/30'
                   : 'text-slate-400 hover:text-slate-200 hover:bg-slate-800'
               }`
             }
@@ -46,7 +46,7 @@ export const AttendancePage = () => {
             className={({ isActive }) =>
               `flex items-center gap-2 px-3 py-1.5 rounded-xl text-xs font-semibold transition-colors ${
                 isActive
-                  ? 'bg-indigo-600/20 text-indigo-400 border border-indigo-500/30'
+                  ? 'bg-accent-soft text-accent border border-accent/30'
                   : 'text-slate-400 hover:text-slate-200 hover:bg-slate-800'
               }`
             }
@@ -58,7 +58,7 @@ export const AttendancePage = () => {
             className={({ isActive }) =>
               `flex items-center gap-2 px-3 py-1.5 rounded-xl text-xs font-semibold transition-colors ${
                 isActive
-                  ? 'bg-indigo-600/20 text-indigo-400 border border-indigo-500/30'
+                  ? 'bg-accent-soft text-accent border border-accent/30'
                   : 'text-slate-400 hover:text-slate-200 hover:bg-slate-800'
               }`
             }
@@ -69,10 +69,10 @@ export const AttendancePage = () => {
       </div>
 
       {/* Attendance Table */}
-      <Card className="overflow-x-auto p-0 border-slate-800">
+      <Card className="overflow-x-auto p-0 border-border">
         <table className="w-full text-left border-collapse text-xs">
           <thead>
-            <tr className="bg-slate-900/80 border-b border-slate-800 text-slate-400">
+            <tr className="bg-slate-900/80 border-b border-border text-slate-400">
               <th className="p-4 font-semibold">Employee</th>
               <th className="p-4 font-semibold">Department</th>
               <th className="p-4 font-semibold">Clock In Time</th>
@@ -86,7 +86,7 @@ export const AttendancePage = () => {
                 <td className="p-4 font-bold text-slate-200">{emp.displayName}</td>
                 <td className="p-4 text-slate-300">{emp.departmentName}</td>
                 <td className="p-4 text-slate-400">09:00 AM</td>
-                <td className="p-4 font-semibold text-indigo-400">8.0 hrs</td>
+                <td className="p-4 font-semibold text-accent">8.0 hrs</td>
                 <td className="p-4">
                   <Badge variant={emp.status === 'active' ? 'success' : 'warning'}>
                     {emp.status === 'active' ? 'Present' : 'On Leave'}

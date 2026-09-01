@@ -65,14 +65,14 @@ export const LeadList = () => {
         />
 
         {/* Sub-Navigation & Filters */}
-        <div className="flex flex-col md:flex-row items-center justify-between gap-4 border-b border-slate-800 pb-3">
+        <div className="flex flex-col md:flex-row items-center justify-between gap-4 border-b border-border pb-3">
           <div className="flex items-center gap-2 w-full md:w-auto">
             <NavLink
               to="/crm/pipeline"
               className={({ isActive }) =>
                 `flex items-center gap-2 px-3 py-1.5 rounded-xl text-xs font-semibold transition-colors ${
                   isActive
-                    ? 'bg-indigo-600/20 text-indigo-400 border border-indigo-500/30'
+                    ? 'bg-accent-soft text-accent border border-accent/30'
                     : 'text-slate-400 hover:text-slate-200 hover:bg-slate-800'
                 }`
               }
@@ -84,7 +84,7 @@ export const LeadList = () => {
               className={({ isActive }) =>
                 `flex items-center gap-2 px-3 py-1.5 rounded-xl text-xs font-semibold transition-colors ${
                   isActive
-                    ? 'bg-indigo-600/20 text-indigo-400 border border-indigo-500/30'
+                    ? 'bg-accent-soft text-accent border border-accent/30'
                     : 'text-slate-400 hover:text-slate-200 hover:bg-slate-800'
                 }`
               }
@@ -96,7 +96,7 @@ export const LeadList = () => {
               className={({ isActive }) =>
                 `flex items-center gap-2 px-3 py-1.5 rounded-xl text-xs font-semibold transition-colors ${
                   isActive
-                    ? 'bg-indigo-600/20 text-indigo-400 border border-indigo-500/30'
+                    ? 'bg-accent-soft text-accent border border-accent/30'
                     : 'text-slate-400 hover:text-slate-200 hover:bg-slate-800'
                 }`
               }
@@ -109,7 +109,7 @@ export const LeadList = () => {
             <select
               value={selectedStage}
               onChange={(e) => setSelectedStage(e.target.value)}
-              className="bg-slate-100 dark:bg-[#181C27] border border-slate-300 dark:border-slate-800 text-xs text-slate-800 dark:text-slate-200 rounded-xl px-3 py-1.5 focus:outline-none transition-colors"
+              className="bg-canvas border border-border text-xs text-fg rounded-xl px-3 py-1.5 focus:outline-none transition-colors"
             >
               <option value="all">All Stages</option>
               {stages.map((s) => (
@@ -120,13 +120,13 @@ export const LeadList = () => {
             </select>
 
             <div className="relative w-64">
-              <Search className="w-3.5 h-3.5 absolute left-3 top-1/2 -translate-y-1/2 text-slate-400 dark:text-slate-500" />
+              <Search className="w-3.5 h-3.5 absolute left-3 top-1/2 -translate-y-1/2 text-muted" />
               <input
                 type="text"
                 placeholder="Search leads..."
                 value={searchQuery}
                 onChange={(e) => setSearchQuery(e.target.value)}
-                className="w-full bg-slate-100 dark:bg-[#181C27] border border-slate-300 dark:border-slate-800 text-xs text-slate-800 dark:text-slate-200 placeholder-slate-400 dark:placeholder-slate-500 rounded-xl pl-8 pr-3 py-1.5 focus:outline-none focus:border-indigo-500 transition-colors"
+                className="w-full bg-canvas border border-border text-xs text-fg placeholder:text-muted rounded-xl pl-8 pr-3 py-1.5 focus:outline-none focus:border-accent transition-colors"
               />
             </div>
           </div>
@@ -134,10 +134,10 @@ export const LeadList = () => {
       </div>
 
       {/* Table */}
-      <Card className="overflow-x-auto p-0 border-slate-200 dark:border-slate-800">
+      <Card className="overflow-x-auto p-0 border-border">
         <table className="w-full text-left border-collapse text-xs">
           <thead>
-            <tr className="bg-slate-100 dark:bg-slate-900/80 border-b border-slate-200 dark:border-slate-800 text-slate-700 dark:text-slate-400">
+            <tr className="bg-canvas/80 border-b border-border text-slate-700 dark:text-slate-400">
               <th className="p-4 font-semibold">Deal Name</th>
               <th className="p-4 font-semibold">Company</th>
               <th className="p-4 font-semibold">Contact</th>
@@ -150,7 +150,7 @@ export const LeadList = () => {
           <tbody className="divide-y divide-slate-200 dark:divide-slate-800/60">
             {filtered.length === 0 ? (
               <tr>
-                <td colSpan={7} className="p-8 text-center text-slate-500">
+                <td colSpan={7} className="p-8 text-center text-muted">
                   No leads found matching your criteria.
                 </td>
               </tr>
@@ -158,8 +158,8 @@ export const LeadList = () => {
               filtered.map((lead) => (
                 <tr key={lead.leadId} className="hover:bg-slate-50 dark:hover:bg-slate-800/30 transition-colors">
                   <td className="p-4 font-bold text-slate-900 dark:text-slate-200">{lead.name}</td>
-                  <td className="p-4 text-slate-700 dark:text-slate-300">{lead.companyName}</td>
-                  <td className="p-4 text-slate-600 dark:text-slate-400">{lead.contactName}</td>
+                  <td className="p-4 text-fg">{lead.companyName}</td>
+                  <td className="p-4 text-muted">{lead.contactName}</td>
                   <td className="p-4 font-semibold text-emerald-600 dark:text-emerald-400">
                     ₹{Number(lead.estimatedValue).toLocaleString('en-IN')}
                   </td>
@@ -167,7 +167,7 @@ export const LeadList = () => {
                     <select
                       value={lead.pipelineStageId}
                       onChange={(e) => handleStageChange(lead.leadId, e.target.value)}
-                      className="bg-white dark:bg-slate-900 border border-slate-300 dark:border-slate-800 text-xs text-slate-700 dark:text-slate-300 rounded px-2 py-1 focus:outline-none"
+                      className="bg-surface border border-border text-xs text-fg rounded px-2 py-1 focus:outline-none"
                     >
                       {stages.map((s) => (
                         <option key={s.id} value={s.id}>

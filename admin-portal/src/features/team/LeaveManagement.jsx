@@ -40,7 +40,7 @@ const SINGLE_DAY_LEAVE_TYPES = new Set([
 const isSingleDayLeaveType = (type) => SINGLE_DAY_LEAVE_TYPES.has(type)
 
 const FILTER_SELECT_CLASS =
-  'w-full bg-slate-100/80 dark:bg-[#11141E] border border-slate-300 dark:border-slate-800 text-slate-900 dark:text-slate-100 text-xs rounded-xl py-2.5 px-3 focus:outline-none focus:border-indigo-500 focus:ring-1 focus:ring-indigo-500 transition-all cursor-pointer'
+  'w-full bg-canvas border border-border text-fg text-xs rounded-xl py-2.5 px-3 focus:outline-none focus:border-accent focus:ring-1 focus:ring-accent transition-all cursor-pointer'
 
 const LEAVE_TYPE_OPTIONS = [
   'Annual Leave',
@@ -489,13 +489,13 @@ export const LeaveManagement = () => {
         <TeamSubNav />
       </div>
 
-      <Card className="p-4 border-slate-200 dark:border-slate-800 bg-white dark:bg-[#12151E]">
+      <Card className="p-4 border-border bg-surface">
         <div className="flex flex-wrap items-center justify-between gap-2 mb-3">
-          <div className="flex items-center gap-2 text-slate-800 dark:text-slate-200">
-            <Filter className="w-4 h-4 text-indigo-500 dark:text-indigo-400" />
+          <div className="flex items-center gap-2 text-fg">
+            <Filter className="w-4 h-4 text-accent" />
             <h3 className="text-xs font-semibold">Filter leave & WFH requests</h3>
             {hasActiveFilters && (
-              <span className="text-[11px] text-slate-500 dark:text-slate-400">
+              <span className="text-[11px] text-muted">
                 Showing {visibleRequests.length} of {leaveRequests.filter((r) => !r.hiddenFromAdmin).length}
               </span>
             )}
@@ -549,7 +549,7 @@ export const LeaveManagement = () => {
             onChange={(e) => setRangeTo(e.target.value)}
           />
           <div className="space-y-1.5 text-left">
-            <label className="block text-xs font-medium text-slate-700 dark:text-slate-300">Employee</label>
+            <label className="block text-xs font-medium text-fg">Employee</label>
             <select
               value={filterEmployee}
               onChange={(e) => setFilterEmployee(e.target.value)}
@@ -564,7 +564,7 @@ export const LeaveManagement = () => {
             </select>
           </div>
           <div className="space-y-1.5 text-left">
-            <label className="block text-xs font-medium text-slate-700 dark:text-slate-300">Leave type</label>
+            <label className="block text-xs font-medium text-fg">Leave type</label>
             <select
               value={filterLeaveType}
               onChange={(e) => setFilterLeaveType(e.target.value)}
@@ -579,7 +579,7 @@ export const LeaveManagement = () => {
             </select>
           </div>
           <div className="space-y-1.5 text-left">
-            <label className="block text-xs font-medium text-slate-700 dark:text-slate-300">Status</label>
+            <label className="block text-xs font-medium text-fg">Status</label>
             <select
               value={filterStatus}
               onChange={(e) => setFilterStatus(e.target.value)}
@@ -597,10 +597,10 @@ export const LeaveManagement = () => {
       </Card>
 
       {/* Leave Requests Table */}
-      <Card className="overflow-x-auto p-0 border-slate-200 dark:border-slate-800">
+      <Card className="overflow-x-auto p-0 border-border">
         <table className="w-full text-left border-collapse text-xs">
           <thead>
-            <tr className="bg-slate-100 dark:bg-slate-900/80 border-b border-slate-200 dark:border-slate-800 text-slate-700 dark:text-slate-400 font-semibold">
+            <tr className="bg-canvas/80 border-b border-border text-slate-700 dark:text-slate-400 font-semibold">
               <th className="p-4 font-semibold">Employee</th>
               <th className="p-4 font-semibold">Leave Type</th>
               <th className="p-4 font-semibold">Duration</th>
@@ -612,8 +612,8 @@ export const LeaveManagement = () => {
           <tbody className="divide-y divide-slate-200 dark:divide-slate-800/60">
             {visibleRequests.length === 0 && (
               <tr>
-                <td colSpan={6} className="p-8 text-center text-slate-500 dark:text-slate-400">
-                  <p className="text-sm font-medium text-slate-700 dark:text-slate-300">No leave or WFH requests found</p>
+                <td colSpan={6} className="p-8 text-center text-muted">
+                  <p className="text-sm font-medium text-fg">No leave or WFH requests found</p>
                   <p className="text-xs mt-1">
                     {hasActiveFilters
                       ? 'Try another date, expand the date range, or clear filters.'
@@ -623,7 +623,7 @@ export const LeaveManagement = () => {
               </tr>
             )}
             {visibleRequests.map((req) => (
-              <tr key={req.leaveId} className="hover:bg-slate-50 dark:hover:bg-slate-800/30 transition-colors text-slate-700 dark:text-slate-300">
+              <tr key={req.leaveId} className="hover:bg-slate-50 dark:hover:bg-slate-800/30 transition-colors text-fg">
                 <td className="p-4">
                   {(() => {
                     const info = getEmployeeInfo(req)
@@ -636,20 +636,20 @@ export const LeaveManagement = () => {
                             className="w-8 h-8 rounded-full object-cover border border-slate-200 dark:border-slate-700 shrink-0"
                           />
                         ) : (
-                          <div className="w-8 h-8 rounded-full bg-indigo-500/20 text-indigo-600 dark:text-indigo-400 border border-indigo-500/30 flex items-center justify-center font-bold text-xs shrink-0 shadow-sm">
+                          <div className="w-8 h-8 rounded-full bg-accent-soft text-accent border border-accent/30 flex items-center justify-center font-bold text-xs shrink-0 shadow-sm">
                             {info.initials}
                           </div>
                         )}
                         <div className="flex flex-col min-w-0">
-                          <span className="font-bold text-slate-900 dark:text-slate-100 text-xs truncate">
+                          <span className="font-bold text-fg text-xs truncate">
                             {info.name}
                           </span>
                           {info.email ? (
-                            <span className="text-[11px] text-slate-500 dark:text-slate-400 truncate">
+                            <span className="text-[11px] text-muted truncate">
                               {info.email}
                             </span>
                           ) : info.role ? (
-                            <span className="text-[11px] text-slate-500 dark:text-slate-400 truncate">
+                            <span className="text-[11px] text-muted truncate">
                               {info.role}
                             </span>
                           ) : null}
@@ -659,10 +659,10 @@ export const LeaveManagement = () => {
                   })()}
                 </td>
                 <td className="p-4 text-slate-800 dark:text-slate-300 font-medium">{formatLeaveTypeLabel(req)}</td>
-                <td className="p-4 text-slate-600 dark:text-slate-400">
+                <td className="p-4 text-muted">
                   {formatLeaveDuration(req)}
                 </td>
-                <td className="p-4 text-slate-600 dark:text-slate-400 min-w-[14rem] max-w-lg whitespace-pre-wrap break-words">{req.reason}</td>
+                <td className="p-4 text-muted min-w-[14rem] max-w-lg whitespace-pre-wrap break-words">{req.reason}</td>
                 <td className="p-4">
                   <div className="flex flex-col gap-1">
                     <Badge
@@ -679,12 +679,12 @@ export const LeaveManagement = () => {
                       {req.status}
                     </Badge>
                     {req.reviewedBy && req.status !== 'pending' && req.status !== 'cancelled' && (
-                      <span className="text-[10px] text-slate-500 dark:text-slate-400 font-medium">
+                      <span className="text-[10px] text-muted font-medium">
                         by {req.reviewedBy}
                       </span>
                     )}
                     {req.status === 'cancelled' && req.cancelledBy && (
-                      <span className="text-[10px] text-slate-500 dark:text-slate-400 font-medium">
+                      <span className="text-[10px] text-muted font-medium">
                         by {req.cancelledBy}
                       </span>
                     )}
@@ -728,14 +728,14 @@ export const LeaveManagement = () => {
       {/* Delete Confirmation Modal */}
       {deleteTarget && (
         <div className="fixed inset-0 z-50 bg-black/70 backdrop-blur-sm flex items-center justify-center p-4">
-          <Card className="w-full max-w-md p-6 space-y-4 border-slate-200 dark:border-slate-800 shadow-2xl rounded-2xl bg-white dark:bg-[#181C27]">
+          <Card className="w-full max-w-md p-6 space-y-4 border-border shadow-2xl rounded-2xl bg-surface">
             <div className="flex items-start gap-3">
               <div className="w-10 h-10 rounded-xl flex items-center justify-center shrink-0 border bg-rose-50 dark:bg-rose-500/10 text-rose-600 dark:text-rose-400 border-rose-200 dark:border-rose-500/30">
                 <Trash2 className="w-5 h-5" />
               </div>
               <div>
-                <h3 className="font-bold text-slate-900 dark:text-slate-100 text-sm">Hide Leave Request?</h3>
-                <p className="text-xs text-slate-600 dark:text-slate-400 mt-1.5 leading-relaxed">
+                <h3 className="font-bold text-fg text-sm">Hide Leave Request?</h3>
+                <p className="text-xs text-muted mt-1.5 leading-relaxed">
                   This will remove the {deleteTarget.leaveType} request for{' '}
                   {deleteTarget.employeeName || 'this employee'} ({deleteTarget.startDate}
                   {deleteTarget.endDate && deleteTarget.endDate !== deleteTarget.startDate
@@ -773,9 +773,9 @@ export const LeaveManagement = () => {
       {/* Request Leave Modal */}
       {showAddModal && (
         <div className="fixed inset-0 z-50 bg-black/70 backdrop-blur-sm flex items-center justify-center p-4 overflow-y-auto">
-          <Card className="w-full max-w-lg max-h-[90vh] overflow-y-auto p-6 space-y-4 border-slate-200 dark:border-slate-800 shadow-2xl relative rounded-2xl bg-white dark:bg-[#181C27]">
-            <div className="flex items-center justify-between pb-3 border-b border-slate-200 dark:border-slate-800 sticky top-0 bg-white/95 dark:bg-[#11141E]/95 backdrop-blur-md z-10 py-1">
-              <h3 className="font-bold text-slate-900 dark:text-slate-100 text-sm">Submit Leave Request</h3>
+          <Card className="w-full max-w-lg max-h-[90vh] overflow-y-auto p-6 space-y-4 border-border shadow-2xl relative rounded-2xl bg-surface">
+            <div className="flex items-center justify-between pb-3 border-b border-border sticky top-0 bg-surface/95 backdrop-blur-md z-10 py-1">
+              <h3 className="font-bold text-fg text-sm">Submit Leave Request</h3>
               <button
                 onClick={() => {
                   setShowAddModal(false)
@@ -796,14 +796,14 @@ export const LeaveManagement = () => {
 
             <form onSubmit={handleRequestLeave} className="space-y-4">
               <div className="space-y-1.5 text-left">
-                <label className="block text-xs font-medium text-slate-700 dark:text-slate-300">Employee</label>
+                <label className="block text-xs font-medium text-fg">Employee</label>
                 <select
                   value={employeeName}
                   onChange={(e) => setEmployeeName(e.target.value)}
-                  className="w-full bg-slate-100/80 dark:bg-[#11141E] border border-slate-300 dark:border-slate-800 text-slate-900 dark:text-slate-100 text-sm rounded-xl py-2.5 px-3.5 focus:outline-none focus:border-indigo-500 focus:ring-1 focus:ring-indigo-500 transition-all cursor-pointer"
+                  className="w-full bg-canvas border border-border text-fg text-sm rounded-xl py-2.5 px-3.5 focus:outline-none focus:border-accent focus:ring-1 focus:ring-accent transition-all cursor-pointer"
                 >
                   {employees.map((emp) => (
-                    <option key={emp.uid || emp.employeeId} value={emp.displayName} className="bg-white dark:bg-[#11141E] text-slate-900 dark:text-slate-100">
+                    <option key={emp.uid || emp.employeeId} value={emp.displayName} className="bg-surface text-fg">
                       {emp.displayName}
                     </option>
                   ))}
@@ -811,7 +811,7 @@ export const LeaveManagement = () => {
               </div>
 
               <div className="space-y-1.5 text-left">
-                <label className="block text-xs font-medium text-slate-700 dark:text-slate-300">Leave Type</label>
+                <label className="block text-xs font-medium text-fg">Leave Type</label>
                 <select
                   value={leaveType}
                   onChange={(e) => {
@@ -822,24 +822,24 @@ export const LeaveManagement = () => {
                       setEndDate(startDate)
                     }
                   }}
-                  className="w-full bg-slate-100/80 dark:bg-[#11141E] border border-slate-300 dark:border-slate-800 text-slate-900 dark:text-slate-100 text-sm rounded-xl py-2.5 px-3.5 focus:outline-none focus:border-indigo-500 focus:ring-1 focus:ring-indigo-500 transition-all cursor-pointer"
+                  className="w-full bg-canvas border border-border text-fg text-sm rounded-xl py-2.5 px-3.5 focus:outline-none focus:border-accent focus:ring-1 focus:ring-accent transition-all cursor-pointer"
                 >
-                  <option value="Annual Leave" className="bg-white dark:bg-[#11141E] text-slate-900 dark:text-slate-100">Annual Leave</option>
-                  <option value="Sick Leave" className="bg-white dark:bg-[#11141E] text-slate-900 dark:text-slate-100">Sick Leave</option>
-                  <option value="Casual Leave" className="bg-white dark:bg-[#11141E] text-slate-900 dark:text-slate-100">Casual Leave</option>
-                  <option value="Permission" className="bg-white dark:bg-[#11141E] text-slate-900 dark:text-slate-100">
+                  <option value="Annual Leave" className="bg-surface text-fg">Annual Leave</option>
+                  <option value="Sick Leave" className="bg-surface text-fg">Sick Leave</option>
+                  <option value="Casual Leave" className="bg-surface text-fg">Casual Leave</option>
+                  <option value="Permission" className="bg-surface text-fg">
                     Permission ({formatHoursAsHrsMins(resolvePermissionHours(selectedEmployee || {}))}/month · no approval)
                   </option>
                   {selectedWfhPolicy.canRequest && (
-                    <option value="Work From Home" className="bg-white dark:bg-[#11141E] text-slate-900 dark:text-slate-100">
+                    <option value="Work From Home" className="bg-surface text-fg">
                       Work From Home ({getWfhAllowanceLabel(selectedWfhPolicy)})
                     </option>
                   )}
-                  <option value="On Duty" className="bg-white dark:bg-[#11141E] text-slate-900 dark:text-slate-100">On Duty (outdoor / official work)</option>
-                  <option value="LOP (Loss of Pay)" className="bg-white dark:bg-[#11141E] text-slate-900 dark:text-slate-100">LOP (Loss of Pay)</option>
+                  <option value="On Duty" className="bg-surface text-fg">On Duty (outdoor / official work)</option>
+                  <option value="LOP (Loss of Pay)" className="bg-surface text-fg">LOP (Loss of Pay)</option>
                 </select>
                 {selectedEmployee && (
-                  <p className="text-[11px] text-slate-500 dark:text-slate-400 mt-1">
+                  <p className="text-[11px] text-muted mt-1">
                     Employee WFH: {getWfhAllowanceLabel(selectedWfhPolicy)}
                     {selectedWfhPolicy.mode === 'full' ? ' (no leave request needed)' : ''}
                     {selectedWfhPolicy.mode === 'monthly' ? ' (admin approval for employee requests)' : ''}
@@ -847,7 +847,7 @@ export const LeaveManagement = () => {
                   </p>
                 )}
                 {leaveType === PERMISSION_LEAVE_TYPE && selectedEmployee && (
-                  <p className="text-[11px] text-slate-500 dark:text-slate-400 mt-1">
+                  <p className="text-[11px] text-muted mt-1">
                     Permission remaining this month:{' '}
                     {formatHoursAsHrsMins(
                       Math.max(
@@ -881,8 +881,8 @@ export const LeaveManagement = () => {
                     }}
                   />
                   {startDate && (
-                    <p className="text-[11px] text-slate-500 dark:text-slate-400">
-                      Selected: <span className="font-semibold text-indigo-600 dark:text-indigo-400">{startDate}</span>
+                    <p className="text-[11px] text-muted">
+                      Selected: <span className="font-semibold text-accent">{startDate}</span>
                       {leaveType === PERMISSION_LEAVE_TYPE ? '' : ' (1 Day)'}
                     </p>
                   )}
@@ -904,11 +904,11 @@ export const LeaveManagement = () => {
                     />
                   </div>
                   {startDate && endDate && (
-                    <p className="text-[11px] text-slate-500 dark:text-slate-400">
+                    <p className="text-[11px] text-muted">
                       Selected:{' '}
-                      <span className="font-semibold text-indigo-600 dark:text-indigo-400">{startDate}</span>
+                      <span className="font-semibold text-accent">{startDate}</span>
                       {' '}to{' '}
-                      <span className="font-semibold text-indigo-600 dark:text-indigo-400">{endDate}</span>
+                      <span className="font-semibold text-accent">{endDate}</span>
                       {' '}(
                       {Math.max(
                         1,
@@ -935,7 +935,7 @@ export const LeaveManagement = () => {
                     onChange={(e) => setEndTime(e.target.value)}
                   />
                   {startTime && endTime && hoursBetween(startTime, endTime) > 0 && (
-                    <p className="col-span-2 text-[11px] text-slate-500 dark:text-slate-400">
+                    <p className="col-span-2 text-[11px] text-muted">
                       Duration: {formatHoursAsHrsMins(hoursBetween(startTime, endTime))}
                     </p>
                   )}

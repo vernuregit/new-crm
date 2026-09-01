@@ -37,11 +37,11 @@ import { collection, query, where, getDocs, orderBy, limit } from 'firebase/fire
 const quickLinks = [
   { name: 'Projects', path: '/projects/list', icon: FolderKanban, tile: 'bg-violet-50 dark:bg-violet-500/10 text-violet-600 dark:text-violet-400' },
   { name: 'Sprint Tasks', path: '/tasks', icon: Briefcase, tile: 'bg-orange-50 dark:bg-orange-500/10 text-orange-600 dark:text-orange-400' },
-  { name: 'Work Timeline', path: '/timeline', icon: CalendarDays, tile: 'bg-blue-50 dark:bg-blue-500/10 text-blue-600 dark:text-blue-400' },
+  { name: 'Work Timeline', path: '/timeline', icon: CalendarDays, tile: 'bg-accent-soft text-accent' },
   { name: 'Team Directory', path: '/directory', icon: Users, tile: 'bg-teal-50 dark:bg-teal-500/10 text-teal-600 dark:text-teal-400' },
   { name: 'Attendance', path: '/attendance', icon: Calendar, tile: 'bg-emerald-50 dark:bg-emerald-500/10 text-emerald-600 dark:text-emerald-400' },
   { name: 'Leave & PTO', path: '/team/leave', icon: Calendar, tile: 'bg-rose-50 dark:bg-rose-500/10 text-rose-600 dark:text-rose-400' },
-  { name: 'My Goals', path: '/goals', icon: Target, tile: 'bg-purple-50 dark:bg-purple-500/10 text-purple-600 dark:text-purple-400' },
+  { name: 'My Goals', path: '/goals', icon: Target, tile: 'bg-accent-soft text-accent' },
 ]
 
 const requestStyle = (leaveType = '') => {
@@ -50,10 +50,10 @@ const requestStyle = (leaveType = '') => {
     return { icon: Home, tile: 'bg-emerald-50 dark:bg-emerald-500/10 text-emerald-600 dark:text-emerald-400' }
   }
   if (t.includes('sick')) {
-    return { icon: HeartPulse, tile: 'bg-purple-50 dark:bg-purple-500/10 text-purple-600 dark:text-purple-400' }
+    return { icon: HeartPulse, tile: 'bg-accent-soft text-accent' }
   }
   if (t.includes('duty') || t.includes('permission')) {
-    return { icon: Laptop, tile: 'bg-blue-50 dark:bg-blue-500/10 text-blue-600 dark:text-blue-400' }
+    return { icon: Laptop, tile: 'bg-accent-soft text-accent' }
   }
   if (t.includes('lop')) {
     return { icon: Umbrella, tile: 'bg-rose-50 dark:bg-rose-500/10 text-rose-600 dark:text-rose-400' }
@@ -86,16 +86,17 @@ export const EmployeeDashboard = () => {
   const [loadingWidgets, setLoadingWidgets] = useState(true)
 
   const [userQuote, setUserQuote] = useState(() => {
-    return userDoc?.quote || userDoc?.proverb || (currentUserId ? localStorage.getItem(`crm_quote_${currentUserId}`) : '') || ''
+    const stored = currentUserId ? localStorage.getItem(`crm_quote_${currentUserId}`) : ''
+    const fromDoc = userDoc?.quote || userDoc?.proverb || ''
+    const persisted = Date.parse(userDoc?.quoteUpdatedAt || '') || 0
+    return (persisted > 0 ? fromDoc : stored || fromDoc) || ''
   })
 
   useEffect(() => {
-    if (userDoc?.quote || userDoc?.proverb) {
-      setUserQuote(userDoc.quote || userDoc.proverb)
-    } else if (currentUserId) {
-      const stored = localStorage.getItem(`crm_quote_${currentUserId}`)
-      setUserQuote(stored || '')
-    }
+    const stored = currentUserId ? localStorage.getItem(`crm_quote_${currentUserId}`) : ''
+    const fromDoc = userDoc?.quote || userDoc?.proverb || ''
+    const persisted = Date.parse(userDoc?.quoteUpdatedAt || '') || 0
+    setUserQuote((persisted > 0 ? fromDoc : stored || fromDoc) || '')
   }, [userDoc, currentUserId])
 
   useEffect(() => {
@@ -203,31 +204,31 @@ export const EmployeeDashboard = () => {
 
   const priorityColors = {
     urgent: 'bg-red-50 dark:bg-red-500/10 border-red-200 dark:border-red-500/30',
-    info: 'bg-blue-50 dark:bg-blue-500/10 border-blue-200 dark:border-blue-500/30',
+    info: 'bg-accent-soft border-accent/20',
     event: 'bg-emerald-50 dark:bg-emerald-500/10 border-emerald-200 dark:border-emerald-500/30',
   }
 
   return (
     <div className="space-y-6">
       {/* Welcome Header */}
-      <div className="relative overflow-hidden rounded-2xl bg-gradient-to-r from-indigo-50 via-purple-50 to-blue-50 dark:from-indigo-600/20 dark:via-purple-600/10 dark:to-blue-600/20 border border-indigo-200 dark:border-indigo-500/20 p-6 sm:p-8">
-        <div className="absolute top-0 right-0 w-72 h-72 bg-indigo-500/10 dark:bg-indigo-600/10 blur-3xl rounded-full pointer-events-none" />
+      <div className="relative overflow-hidden rounded-2xl bg-gradient-to-r from-accent-soft via-accent-soft to-accent-soft border border-accent/20 p-6 sm:p-8">
+        <div className="absolute top-0 right-0 w-72 h-72 bg-accent-soft blur-3xl rounded-full pointer-events-none" />
         <div className="relative z-10 flex flex-wrap lg:flex-nowrap items-center justify-between gap-4">
           <div className="flex items-center gap-3 shrink-0">
             <div className="w-12 h-12 rounded-2xl bg-accent-soft flex items-center justify-center text-accent font-bold text-lg shrink-0">
               {firstName.charAt(0).toUpperCase()}
             </div>
             <div>
-              <h1 className="text-2xl font-bold text-slate-900 dark:text-slate-100">
+              <h1 className="text-2xl font-bold text-fg">
                 Good {currentHour < 12 ? 'Morning' : currentHour < 17 ? 'Afternoon' : 'Evening'}, {firstName}!
               </h1>
-              <p className="text-slate-500 dark:text-slate-400 text-sm mt-0.5">{today}</p>
+              <p className="text-muted text-sm mt-0.5">{today}</p>
             </div>
           </div>
 
           {userQuote ? (
             <div className="flex-1 max-w-xl mx-0 sm:mx-4 my-2 lg:my-0">
-              <p className="text-xs sm:text-sm italic font-medium text-slate-700 dark:text-slate-300 truncate">
+              <p className="text-xs sm:text-sm italic font-medium text-fg truncate">
                 "{userQuote}"
               </p>
             </div>
@@ -237,9 +238,9 @@ export const EmployeeDashboard = () => {
             {isBrightSun ? (
               <div
                 title="10:00 AM - 5:00 PM: Bright Sun"
-                className="p-3.5 rounded-2xl bg-amber-500/15 border border-amber-500/30 text-amber-500 dark:text-amber-400 shadow-[0_0_20px_rgba(245,158,11,0.45)] animate-pulse flex items-center justify-center"
+                className="p-3.5 rounded-2xl bg-amber-500/15 border border-amber-500/30 text-amber-500 dark:text-amber-400 shadow-[0_0_20px_rgba(7,146,139,0.45)] animate-pulse flex items-center justify-center"
               >
-                <Sun className="w-10 h-10 fill-amber-400/40 text-amber-500 dark:text-amber-400 drop-shadow-[0_0_12px_rgba(245,158,11,0.9)]" />
+                <Sun className="w-10 h-10 fill-amber-400/40 text-amber-500 dark:text-amber-400 drop-shadow-[0_0_12px_rgba(7,146,139,0.9)]" />
               </div>
             ) : (
               <div
@@ -254,7 +255,7 @@ export const EmployeeDashboard = () => {
       </div>
 
       <ClockInOverviewWidget>
-        <Card className="p-5 border-slate-200 dark:border-slate-800/80 space-y-3 w-full h-full flex flex-col">
+        <Card className="p-5 border-border space-y-3 w-full h-full flex flex-col">
           <div className="flex items-center justify-between">
             <h2 className="text-sm font-semibold text-slate-900 dark:text-slate-200">My Tasks</h2>
             <NavLink to="/tasks" className="text-xs text-accent hover:underline font-medium flex items-center gap-1">
@@ -275,11 +276,11 @@ export const EmployeeDashboard = () => {
                   <div
                     key={task.taskId}
                     onClick={() => handleToggleTaskStatus(task)}
-                    className="flex items-center gap-3 px-2 py-2.5 rounded-xl cursor-pointer hover:bg-slate-50 dark:hover:bg-slate-800/50 transition-colors"
+                    className="flex items-center gap-3 px-2 py-2.5 rounded-xl cursor-pointer hover:bg-chrome/50 transition-colors"
                   >
                     <Circle className="w-4 h-4 shrink-0 text-slate-300 dark:text-slate-600" />
                     <div className="flex-1 min-w-0">
-                      <span className="text-sm block truncate text-slate-800 dark:text-slate-200 font-medium">
+                      <span className="text-sm block truncate text-fg font-medium">
                         {task.title}
                       </span>
                       <span className={`text-[11px] ${due?.urgent ? 'text-rose-500 font-medium' : 'text-slate-400 dark:text-slate-500'}`}>
@@ -301,7 +302,7 @@ export const EmployeeDashboard = () => {
       </ClockInOverviewWidget>
 
       <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
-        <Card className="p-5 border-slate-200 dark:border-slate-800/80 space-y-3">
+        <Card className="p-5 border-border space-y-3">
           <div className="flex items-center justify-between">
             <h2 className="text-sm font-semibold text-slate-900 dark:text-slate-200">Recent Activity</h2>
             <NavLink to="/team/leave" className="text-xs text-accent hover:underline font-medium flex items-center gap-1">
@@ -321,15 +322,15 @@ export const EmployeeDashboard = () => {
                 const Icon = style.icon
                 const duration = formatLeaveDuration(req)
                 return (
-                  <div key={req.leaveId || req.id} className="flex items-center gap-3 p-2.5 rounded-xl bg-slate-50 dark:bg-slate-800/40">
+                  <div key={req.leaveId || req.id} className="flex items-center gap-3 p-2.5 rounded-xl bg-chrome/40">
                     <div className={`w-9 h-9 rounded-xl flex items-center justify-center shrink-0 ${style.tile}`}>
                       <Icon className="w-4 h-4" />
                     </div>
                     <div className="flex-1 min-w-0">
-                      <span className="text-xs font-semibold text-slate-800 dark:text-slate-200 block truncate">
+                      <span className="text-xs font-semibold text-fg block truncate">
                         {leaveType}
                       </span>
-                      <span className="text-[10px] text-slate-500 dark:text-slate-400 block truncate">
+                      <span className="text-[10px] text-muted block truncate">
                         {duration || req.startDate}
                       </span>
                     </div>
@@ -343,7 +344,7 @@ export const EmployeeDashboard = () => {
           )}
         </Card>
 
-        <Card className="p-5 border-slate-200 dark:border-slate-800/80 space-y-3">
+        <Card className="p-5 border-border space-y-3">
           <div className="flex items-center justify-between">
             <h2 className="text-sm font-semibold text-slate-900 dark:text-slate-200">Announcements</h2>
             <NavLink
@@ -356,7 +357,7 @@ export const EmployeeDashboard = () => {
           {loadingWidgets ? (
             <div className="space-y-2">
               {[1, 2].map((i) => (
-                <div key={i} className="h-14 bg-slate-100 dark:bg-slate-800/50 rounded-xl animate-pulse" />
+                <div key={i} className="h-14 bg-chrome/50 rounded-xl animate-pulse" />
               ))}
             </div>
           ) : announcements.length === 0 ? (
@@ -375,9 +376,9 @@ export const EmployeeDashboard = () => {
                     <Megaphone className="w-4 h-4" />
                   </div>
                   <div className="flex-1 min-w-0">
-                    <span className="text-xs font-semibold text-slate-800 dark:text-slate-200 block truncate">{ann.title}</span>
+                    <span className="text-xs font-semibold text-fg block truncate">{ann.title}</span>
                     {ann.body && (
-                      <p className="text-[11px] text-slate-500 dark:text-slate-400 mt-0.5 line-clamp-2">{ann.body}</p>
+                      <p className="text-[11px] text-muted mt-0.5 line-clamp-2">{ann.body}</p>
                     )}
                     <span className="text-[10px] text-slate-400 dark:text-slate-500 mt-1 block">{ann.author}</span>
                   </div>
@@ -387,7 +388,7 @@ export const EmployeeDashboard = () => {
           )}
         </Card>
 
-        <Card className="p-5 border-slate-200 dark:border-slate-800/80 space-y-4">
+        <Card className="p-5 border-border space-y-4">
           <h2 className="text-sm font-semibold text-slate-900 dark:text-slate-200">Quick Links</h2>
           <div className="grid grid-cols-3 gap-3">
             {quickLinks.map((link) => {
@@ -396,12 +397,12 @@ export const EmployeeDashboard = () => {
                 <NavLink
                   key={link.path}
                   to={link.path}
-                  className="flex flex-col items-center gap-2 p-2 rounded-2xl hover:bg-slate-50 dark:hover:bg-slate-800/50 transition-colors group"
+                  className="flex flex-col items-center gap-2 p-2 rounded-2xl hover:bg-chrome/50 transition-colors group"
                 >
                   <div className={`w-12 h-12 rounded-2xl flex items-center justify-center ${link.tile}`}>
                     <Icon className="w-5 h-5" />
                   </div>
-                  <span className="text-[11px] font-medium text-slate-600 dark:text-slate-300 text-center leading-tight group-hover:text-slate-900 dark:group-hover:text-slate-100">
+                  <span className="text-[11px] font-medium text-muted text-center leading-tight group-hover:text-slate-900 dark:group-hover:text-slate-100">
                     {link.name}
                   </span>
                 </NavLink>

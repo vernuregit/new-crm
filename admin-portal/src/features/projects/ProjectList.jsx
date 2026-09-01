@@ -334,15 +334,15 @@ export const ProjectList = () => {
           }
         />
 
-        <div className="flex items-center justify-between border-b border-slate-200 dark:border-slate-800 pb-3">
+        <div className="flex items-center justify-between border-b border-border pb-3">
           <div className="flex items-center gap-2">
             <NavLink
               to="/projects/list"
               className={({ isActive }) =>
                 `flex items-center gap-2 px-3 py-1.5 rounded-xl text-xs font-semibold transition-colors ${
                   isActive
-                    ? 'bg-indigo-50 dark:bg-indigo-600/20 text-indigo-600 dark:text-indigo-400 border border-indigo-200 dark:border-indigo-500/30'
-                    : 'text-slate-600 dark:text-slate-400 hover:text-slate-900 dark:hover:text-slate-200 hover:bg-slate-100 dark:hover:bg-slate-800'
+                    ? 'bg-accent-soft text-accent border border-accent/30'
+                    : 'text-muted hover:text-fg hover:bg-slate-100 dark:hover:bg-slate-800'
                 }`
               }
             >
@@ -353,8 +353,8 @@ export const ProjectList = () => {
               className={({ isActive }) =>
                 `flex items-center gap-2 px-3 py-1.5 rounded-xl text-xs font-semibold transition-colors ${
                   isActive
-                    ? 'bg-indigo-50 dark:bg-indigo-600/20 text-indigo-600 dark:text-indigo-400 border border-indigo-200 dark:border-indigo-500/30'
-                    : 'text-slate-600 dark:text-slate-400 hover:text-slate-900 dark:hover:text-slate-200 hover:bg-slate-100 dark:hover:bg-slate-800'
+                    ? 'bg-accent-soft text-accent border border-accent/30'
+                    : 'text-muted hover:text-fg hover:bg-slate-100 dark:hover:bg-slate-800'
                 }`
               }
             >
@@ -365,8 +365,8 @@ export const ProjectList = () => {
               className={({ isActive }) =>
                 `flex items-center gap-2 px-3 py-1.5 rounded-xl text-xs font-semibold transition-colors ${
                   isActive
-                    ? 'bg-indigo-50 dark:bg-indigo-600/20 text-indigo-600 dark:text-indigo-400 border border-indigo-200 dark:border-indigo-500/30'
-                    : 'text-slate-600 dark:text-slate-400 hover:text-slate-900 dark:hover:text-slate-200 hover:bg-slate-100 dark:hover:bg-slate-800'
+                    ? 'bg-accent-soft text-accent border border-accent/30'
+                    : 'text-muted hover:text-fg hover:bg-slate-100 dark:hover:bg-slate-800'
                 }`
               }
             >
@@ -378,7 +378,7 @@ export const ProjectList = () => {
             <select
               value={statusFilter}
               onChange={(e) => setStatusFilter(e.target.value)}
-              className="bg-slate-100 dark:bg-[#181C27] border border-slate-300 dark:border-slate-800 text-xs text-slate-800 dark:text-slate-200 rounded-xl px-3 py-1.5 focus:outline-none cursor-pointer"
+              className="bg-canvas border border-border text-xs text-fg rounded-xl px-3 py-1.5 focus:outline-none cursor-pointer"
             >
               <option value="all">All Statuses</option>
               <option value="active">Active</option>
@@ -387,13 +387,13 @@ export const ProjectList = () => {
             </select>
 
             <div className="relative w-64">
-              <Search className="w-3.5 h-3.5 absolute left-3 top-1/2 -translate-y-1/2 text-slate-400 dark:text-slate-500" />
+              <Search className="w-3.5 h-3.5 absolute left-3 top-1/2 -translate-y-1/2 text-muted" />
               <input
                 type="text"
                 placeholder="Search projects..."
                 value={searchQuery}
                 onChange={(e) => setSearchQuery(e.target.value)}
-                className="w-full bg-slate-100 dark:bg-[#181C27] border border-slate-300 dark:border-slate-800 text-xs text-slate-800 dark:text-slate-200 placeholder-slate-400 dark:placeholder-slate-500 rounded-xl pl-8 pr-3 py-1.5 focus:outline-none transition-colors"
+                className="w-full bg-canvas border border-border text-xs text-fg placeholder:text-muted rounded-xl pl-8 pr-3 py-1.5 focus:outline-none transition-colors"
               />
             </div>
           </div>
@@ -402,21 +402,21 @@ export const ProjectList = () => {
 
       {/* Metrics Summary Strip */}
       <div className="grid grid-cols-1 sm:grid-cols-3 gap-4">
-        <Card className="p-4 flex items-center justify-between border-slate-200 dark:border-slate-800/80">
+        <Card className="p-4 flex items-center justify-between border-border">
           <div>
-            <span className="text-[11px] font-medium text-slate-500 dark:text-slate-400 uppercase tracking-wider">
+            <span className="text-[11px] font-medium text-muted uppercase tracking-wider">
               Active Projects
             </span>
-            <p className="text-xl font-bold text-slate-900 dark:text-slate-100 mt-1">{activeCount}</p>
+            <p className="text-xl font-bold text-fg mt-1">{activeCount}</p>
           </div>
-          <div className="w-9 h-9 rounded-xl bg-indigo-50 dark:bg-indigo-500/10 text-indigo-600 dark:text-indigo-400 flex items-center justify-center">
+          <div className="w-9 h-9 rounded-xl bg-accent-soft text-accent flex items-center justify-center">
             <Briefcase className="w-5 h-5" />
           </div>
         </Card>
 
-        <Card className="p-4 flex items-center justify-between border-slate-200 dark:border-slate-800/80">
+        <Card className="p-4 flex items-center justify-between border-border">
           <div>
-            <span className="text-[11px] font-medium text-slate-500 dark:text-slate-400 uppercase tracking-wider">
+            <span className="text-[11px] font-medium text-muted uppercase tracking-wider">
               Avg Completion Rate
             </span>
             <p className="text-xl font-bold text-emerald-600 dark:text-emerald-400 mt-1">{avgCompletion}%</p>
@@ -426,9 +426,9 @@ export const ProjectList = () => {
           </div>
         </Card>
 
-        <Card className="p-4 flex items-center justify-between border-slate-200 dark:border-slate-800/80">
+        <Card className="p-4 flex items-center justify-between border-border">
           <div>
-            <span className="text-[11px] font-medium text-slate-500 dark:text-slate-400 uppercase tracking-wider">
+            <span className="text-[11px] font-medium text-muted uppercase tracking-wider">
               Total Logged Hours
             </span>
             <p className="text-xl font-bold text-purple-600 dark:text-purple-400 mt-1">{totalLoggedHours} hrs</p>
@@ -441,15 +441,15 @@ export const ProjectList = () => {
 
       {/* Project Cards Grid */}
       {loading ? (
-        <div className="flex flex-col items-center justify-center py-12 text-slate-500 dark:text-slate-400 space-y-3">
-          <div className="w-8 h-8 border-2 border-indigo-600 dark:border-indigo-500 border-t-transparent rounded-full animate-spin" />
+        <div className="flex flex-col items-center justify-center py-12 text-muted space-y-3">
+          <div className="w-8 h-8 border-2 border-accent border-t-transparent rounded-full animate-spin" />
           <p className="text-xs">Loading projects...</p>
         </div>
       ) : filtered.length === 0 ? (
-        <div className="col-span-full flex flex-col items-center justify-center py-16 text-center border border-dashed border-slate-300 dark:border-slate-800 rounded-2xl bg-slate-50/50 dark:bg-[#11141E]/50">
+        <div className="col-span-full flex flex-col items-center justify-center py-16 text-center border border-dashed border-border rounded-2xl bg-surface/50">
           <FolderKanban className="w-10 h-10 text-slate-400 dark:text-slate-600 mb-3" />
-          <h4 className="text-sm font-semibold text-slate-700 dark:text-slate-300">No Projects Found</h4>
-          <p className="text-xs text-slate-500 max-w-sm mt-1 mb-4">
+          <h4 className="text-sm font-semibold text-fg">No Projects Found</h4>
+          <p className="text-xs text-muted max-w-sm mt-1 mb-4">
             No projects have been added yet or match your search filter. Click "New Project" to create your first project.
           </p>
           <Button icon={Plus} variant="primary" onClick={() => setShowAddModal(true)}>
@@ -466,16 +466,16 @@ export const ProjectList = () => {
               <Card
                 key={pId}
                 hover
-                className="space-y-4 border-slate-200 dark:border-slate-800 cursor-pointer group"
+                className="space-y-4 border-border cursor-pointer group"
                 onClick={() => handleProjectClick(proj)}
               >
                 <div className="flex items-start justify-between">
                   <div>
-                    <h3 className="font-bold text-slate-900 dark:text-slate-100 text-sm group-hover:text-indigo-600 dark:group-hover:text-indigo-400 transition-colors flex items-center gap-1.5">
+                    <h3 className="font-bold text-fg text-sm group-hover:text-accent dark:group-hover:text-accent transition-colors flex items-center gap-1.5">
                       {proj.name}
                     </h3>
-                    <p className="text-xs text-slate-500 dark:text-slate-400 flex items-center gap-1 mt-0.5">
-                      <Building className="w-3 h-3 text-slate-400 dark:text-slate-500" /> {proj.clientName}
+                    <p className="text-xs text-muted flex items-center gap-1 mt-0.5">
+                      <Building className="w-3 h-3 text-muted" /> {proj.clientName}
                     </p>
                   </div>
                   <div className="flex items-center gap-1.5" onClick={(e) => e.stopPropagation()}>
@@ -496,7 +496,7 @@ export const ProjectList = () => {
                         handleOpenEditModal(proj)
                       }}
                       title="Edit project name & details"
-                      className="text-slate-400 dark:text-slate-500 hover:text-indigo-600 dark:hover:text-indigo-400 p-1 rounded hover:bg-slate-100 dark:hover:bg-slate-800 transition-colors"
+                      className="text-muted hover:text-accent dark:hover:text-accent p-1 rounded hover:bg-slate-100 dark:hover:bg-slate-800 transition-colors"
                     >
                       <Pencil className="w-3.5 h-3.5" />
                     </button>
@@ -506,18 +506,18 @@ export const ProjectList = () => {
                         setDeleteConfirmProj(proj)
                       }}
                       title="Delete project"
-                      className="text-slate-400 dark:text-slate-500 hover:text-rose-600 dark:hover:text-rose-400 p-1 rounded hover:bg-slate-100 dark:hover:bg-slate-800 transition-colors"
+                      className="text-muted hover:text-rose-600 dark:hover:text-rose-400 p-1 rounded hover:bg-slate-100 dark:hover:bg-slate-800 transition-colors"
                     >
                       <Trash2 className="w-3.5 h-3.5" />
                     </button>
                   </div>
                 </div>
 
-                <p className="text-xs text-slate-600 dark:text-slate-400 line-clamp-2">{proj.description}</p>
+                <p className="text-xs text-muted line-clamp-2">{proj.description}</p>
 
                 {/* Progress Bar */}
                 <div className="space-y-1.5 pt-1">
-                  <div className="flex justify-between text-xs text-slate-600 dark:text-slate-400">
+                  <div className="flex justify-between text-xs text-muted">
                     <span>Completion Velocity</span>
                     <span className="font-bold text-emerald-600 dark:text-emerald-400">{proj.completionPercent}%</span>
                   </div>
@@ -531,12 +531,12 @@ export const ProjectList = () => {
 
                 {/* Assigned Employees / Members on Project Card */}
                 <div
-                  className="pt-2 border-t border-slate-200 dark:border-slate-800/60 flex items-center justify-between"
+                  className="pt-2 border-t border-border/60 flex items-center justify-between"
                   onClick={(e) => e.stopPropagation()}
                 >
                   <div className="flex items-center gap-1.5 flex-wrap">
-                    <span className="text-[11px] font-semibold text-slate-500 dark:text-slate-400 flex items-center gap-1">
-                      <Users className="w-3 h-3 text-indigo-500" /> Team:
+                    <span className="text-[11px] font-semibold text-muted flex items-center gap-1">
+                      <Users className="w-3 h-3 text-accent" /> Team:
                     </span>
                     {membersList.length === 0 ? (
                       <span className="text-[11px] text-slate-400 italic">Unassigned</span>
@@ -546,9 +546,9 @@ export const ProjectList = () => {
                         return (
                           <span
                             key={idx}
-                            className="inline-flex items-center gap-1 text-[10px] bg-slate-100 dark:bg-slate-800 text-slate-700 dark:text-slate-300 px-2 py-0.5 rounded-md font-medium border border-slate-200 dark:border-slate-700"
+                            className="inline-flex items-center gap-1 text-[10px] bg-canvas text-fg px-2 py-0.5 rounded-md font-medium border border-slate-200 dark:border-slate-700"
                           >
-                            <User className="w-2.5 h-2.5 text-indigo-500" />
+                            <User className="w-2.5 h-2.5 text-accent" />
                             {name}
                           </span>
                         )
@@ -569,18 +569,18 @@ export const ProjectList = () => {
                       setMemberModalProj(proj)
                     }}
                     title="Add or manage employees in this project"
-                    className="flex items-center gap-1 px-2 py-1 bg-indigo-50 dark:bg-indigo-950/60 hover:bg-indigo-100 dark:hover:bg-indigo-900/60 text-indigo-600 dark:text-indigo-400 border border-indigo-200 dark:border-indigo-800/60 text-[10px] font-bold rounded-lg transition-colors"
+                    className="flex items-center gap-1 px-2 py-1 bg-accent-soft hover:bg-accent-soft text-accent border border-accent/30 text-[10px] font-bold rounded-lg transition-colors"
                   >
                     <UserPlus className="w-3 h-3" /> Add Employee
                   </button>
                 </div>
 
                 {/* Card Footer Info & Quick Actions */}
-                <div className="pt-2 border-t border-slate-200 dark:border-slate-800/60 space-y-2">
-                  <div className="flex items-center justify-between text-[11px] text-slate-600 dark:text-slate-400">
+                <div className="pt-2 border-t border-border/60 space-y-2">
+                  <div className="flex items-center justify-between text-[11px] text-muted">
                     <div className="flex items-center gap-1">
-                      <span className="font-medium text-slate-700 dark:text-slate-300">Client: </span>
-                      <span className="truncate max-w-[100px] font-semibold text-slate-800 dark:text-slate-200">
+                      <span className="font-medium text-fg">Client: </span>
+                      <span className="truncate max-w-[100px] font-semibold text-fg">
                         {proj.clientName || 'Independent'}
                       </span>
                     </div>
@@ -591,7 +591,7 @@ export const ProjectList = () => {
                         </span>
                       )}
                       <div className="flex items-center gap-1">
-                        <span className="font-medium text-slate-700 dark:text-slate-300">Lead: </span>
+                        <span className="font-medium text-fg">Lead: </span>
                         <span className="truncate max-w-[100px]">{proj.ownerName || 'Unassigned'}</span>
                       </div>
                     </div>
@@ -604,7 +604,7 @@ export const ProjectList = () => {
                         e.stopPropagation()
                         navigate(`/projects/${pId}`)
                       }}
-                      className="flex-1 text-center py-1.5 px-2 bg-indigo-50 dark:bg-indigo-950/40 hover:bg-indigo-100 dark:hover:bg-indigo-900/60 text-indigo-600 dark:text-indigo-400 text-[11px] font-bold rounded-lg transition-colors border border-indigo-200 dark:border-indigo-800/60 flex items-center justify-center gap-1"
+                      className="flex-1 text-center py-1.5 px-2 bg-accent-soft hover:bg-accent-soft text-accent text-[11px] font-bold rounded-lg transition-colors border border-accent/30 flex items-center justify-center gap-1"
                     >
                       <Clock className="w-3 h-3" /> Timeline & Manage
                     </button>
@@ -615,7 +615,7 @@ export const ProjectList = () => {
                         setSelectedProjectId(pId)
                         navigate(`/projects/tasks?projectId=${pId}`)
                       }}
-                      className="py-1.5 px-3 bg-slate-100 dark:bg-slate-800 hover:bg-slate-200 dark:hover:bg-slate-700 text-slate-700 dark:text-slate-300 text-[11px] font-semibold rounded-lg transition-colors border border-slate-200 dark:border-slate-700 flex items-center justify-center gap-1"
+                      className="py-1.5 px-3 bg-canvas hover:bg-surface text-fg text-[11px] font-semibold rounded-lg transition-colors border border-slate-200 dark:border-slate-700 flex items-center justify-center gap-1"
                     >
                       <Kanban className="w-3 h-3" /> Tasks
                     </button>
@@ -630,14 +630,14 @@ export const ProjectList = () => {
       {/* Member Management Modal ("Add Employee in Project Card") */}
       {memberModalProj && (
         <div className="fixed inset-0 z-50 bg-black/70 backdrop-blur-sm flex items-center justify-center p-4">
-          <Card className="w-full max-w-lg p-6 space-y-4 border-slate-200 dark:border-slate-800 shadow-2xl relative bg-white dark:bg-[#181C27] max-h-[85vh] flex flex-col">
-            <div className="flex items-center justify-between pb-3 border-b border-slate-200 dark:border-slate-800">
+          <Card className="w-full max-w-lg p-6 space-y-4 border-border shadow-2xl relative bg-surface max-h-[85vh] flex flex-col">
+            <div className="flex items-center justify-between pb-3 border-b border-border">
               <div>
-                <h3 className="font-bold text-slate-900 dark:text-slate-100 text-sm flex items-center gap-2">
-                  <UserPlus className="w-4 h-4 text-indigo-500" /> Manage Project Employees
+                <h3 className="font-bold text-fg text-sm flex items-center gap-2">
+                  <UserPlus className="w-4 h-4 text-accent" /> Manage Project Employees
                 </h3>
-                <p className="text-xs text-slate-500 dark:text-slate-400 mt-0.5">
-                  Project: <strong className="text-indigo-600 dark:text-indigo-400">{memberModalProj.name}</strong>
+                <p className="text-xs text-muted mt-0.5">
+                  Project: <strong className="text-accent">{memberModalProj.name}</strong>
                 </p>
               </div>
               <button
@@ -648,7 +648,7 @@ export const ProjectList = () => {
               </button>
             </div>
 
-            <p className="text-xs text-slate-600 dark:text-slate-300">
+            <p className="text-xs text-muted">
               Select team members to assign them to this project card:
             </p>
 
@@ -673,8 +673,8 @@ export const ProjectList = () => {
                         onClick={() => handleToggleMemberSelection(empIdStr)}
                         className={`flex items-center justify-between p-3 rounded-xl border cursor-pointer transition-all ${
                           isChecked
-                            ? 'bg-indigo-50/70 dark:bg-indigo-950/40 border-indigo-300 dark:border-indigo-700/60'
-                            : 'bg-slate-50 dark:bg-slate-900/40 border-slate-200 dark:border-slate-800 hover:border-slate-300'
+                            ? 'bg-accent-soft border-accent/40'
+                            : 'bg-canvas/40 border-border hover:border-slate-300'
                         }`}
                       >
                         <div className="flex items-center gap-3">
@@ -682,13 +682,13 @@ export const ProjectList = () => {
                             type="checkbox"
                             checked={isChecked}
                             onChange={() => handleToggleMemberSelection(empIdStr)}
-                            className="rounded border-slate-300 text-indigo-600 focus:ring-indigo-500 cursor-pointer"
+                            className="rounded border-slate-300 text-accent focus:ring-accent cursor-pointer"
                           />
                           <div>
-                            <span className="text-xs font-semibold text-slate-900 dark:text-slate-100 block">
+                            <span className="text-xs font-semibold text-fg block">
                               {emp.name}
                             </span>
-                            <span className="text-[10px] text-slate-500 dark:text-slate-400">
+                            <span className="text-[10px] text-muted">
                               {emp.email || emp.role || 'Employee'}
                             </span>
                           </div>
@@ -699,7 +699,7 @@ export const ProjectList = () => {
                 </div>
               )}
 
-              <div className="flex gap-3 pt-3 border-t border-slate-200 dark:border-slate-800">
+              <div className="flex gap-3 pt-3 border-t border-border">
                 <Button
                   type="button"
                   variant="secondary"
@@ -720,9 +720,9 @@ export const ProjectList = () => {
       {/* Add Project Modal */}
       {showAddModal && (
         <div className="fixed inset-0 z-50 bg-black/70 backdrop-blur-sm flex items-center justify-center p-4">
-          <Card className="w-full max-w-lg p-6 space-y-4 border-slate-200 dark:border-slate-800 shadow-2xl relative bg-white dark:bg-[#181C27]">
-            <div className="flex items-center justify-between pb-3 border-b border-slate-200 dark:border-slate-800">
-              <h3 className="font-bold text-slate-900 dark:text-slate-100 text-sm">Create New Project</h3>
+          <Card className="w-full max-w-lg p-6 space-y-4 border-border shadow-2xl relative bg-surface">
+            <div className="flex items-center justify-between pb-3 border-b border-border">
+              <h3 className="font-bold text-fg text-sm">Create New Project</h3>
               <button
                 onClick={() => setShowAddModal(false)}
                 className="text-slate-400 hover:text-slate-600 dark:hover:text-white p-1 rounded-lg hover:bg-slate-100 dark:hover:bg-slate-800 transition-colors"
@@ -757,18 +757,18 @@ export const ProjectList = () => {
 
               {/* Real Client Dropdown */}
               <div className="space-y-1.5 text-left">
-                <label className="block text-xs font-medium text-slate-700 dark:text-slate-300">Client Name</label>
+                <label className="block text-xs font-medium text-fg">Client Name</label>
                 {dropdownLoading ? (
                   <div className="text-xs text-slate-400">Loading clients...</div>
                 ) : (
                   <select
                     value={selectedClientId}
                     onChange={(e) => setSelectedClientId(e.target.value)}
-                    className="w-full bg-slate-100/80 dark:bg-[#11141E] border border-slate-300 dark:border-slate-800 text-slate-900 dark:text-slate-100 text-sm rounded-xl py-2.5 px-3.5 focus:outline-none focus:border-indigo-500 focus:ring-1 focus:ring-indigo-500 transition-all cursor-pointer"
+                    className="w-full bg-canvas border border-border text-fg text-sm rounded-xl py-2.5 px-3.5 focus:outline-none focus:border-accent focus:ring-1 focus:ring-accent transition-all cursor-pointer"
                   >
                     <option value="">Independent / Internal</option>
                     {clients.map((client) => (
-                      <option key={client.id} value={client.id} className="bg-white dark:bg-[#11141E] text-slate-900 dark:text-slate-100">
+                      <option key={client.id} value={client.id} className="bg-surface text-fg">
                         {client.name}
                       </option>
                     ))}
@@ -778,18 +778,18 @@ export const ProjectList = () => {
 
               {/* Assign Lead Dropdown */}
               <div className="space-y-1.5 text-left">
-                <label className="block text-xs font-medium text-slate-700 dark:text-slate-300">Project Lead</label>
+                <label className="block text-xs font-medium text-fg">Project Lead</label>
                 {dropdownLoading ? (
                   <div className="text-xs text-slate-400">Loading team members...</div>
                 ) : (
                   <select
                     value={selectedEmployeeId}
                     onChange={(e) => setSelectedEmployeeId(e.target.value)}
-                    className="w-full bg-slate-100/80 dark:bg-[#11141E] border border-slate-300 dark:border-slate-800 text-slate-900 dark:text-slate-100 text-sm rounded-xl py-2.5 px-3.5 focus:outline-none focus:border-indigo-500 focus:ring-1 focus:ring-indigo-500 transition-all cursor-pointer"
+                    className="w-full bg-canvas border border-border text-fg text-sm rounded-xl py-2.5 px-3.5 focus:outline-none focus:border-accent focus:ring-1 focus:ring-accent transition-all cursor-pointer"
                   >
                     <option value="">Unassigned</option>
                     {employees.map((emp) => (
-                      <option key={emp.id} value={emp.id} className="bg-white dark:bg-[#11141E] text-slate-900 dark:text-slate-100">
+                      <option key={emp.id} value={emp.id} className="bg-surface text-fg">
                         {emp.name}{emp.role && emp.role.toLowerCase() !== 'employee' ? ` (${emp.role})` : ''}
                       </option>
                     ))}
@@ -821,13 +821,13 @@ export const ProjectList = () => {
       {/* Edit Project Modal */}
       {editModalProj && (
         <div className="fixed inset-0 z-50 bg-black/70 backdrop-blur-sm flex items-center justify-center p-4">
-          <Card className="w-full max-w-lg p-6 space-y-4 border-slate-200 dark:border-slate-800 shadow-2xl relative bg-white dark:bg-[#181C27]">
-            <div className="flex items-center justify-between pb-3 border-b border-slate-200 dark:border-slate-800">
+          <Card className="w-full max-w-lg p-6 space-y-4 border-border shadow-2xl relative bg-surface">
+            <div className="flex items-center justify-between pb-3 border-b border-border">
               <div className="flex items-center gap-2">
-                <div className="w-7 h-7 rounded-lg bg-indigo-50 dark:bg-indigo-500/10 text-indigo-600 dark:text-indigo-400 flex items-center justify-center">
+                <div className="w-7 h-7 rounded-lg bg-accent-soft text-accent flex items-center justify-center">
                   <Pencil className="w-4 h-4" />
                 </div>
-                <h3 className="font-bold text-slate-900 dark:text-slate-100 text-sm">Edit Project</h3>
+                <h3 className="font-bold text-fg text-sm">Edit Project</h3>
               </div>
               <button
                 onClick={() => setEditModalProj(null)}
@@ -850,7 +850,7 @@ export const ProjectList = () => {
               <div className="grid grid-cols-2 gap-3">
                 {/* Client Dropdown */}
                 <div className="space-y-1.5 text-left">
-                  <label className="block text-xs font-medium text-slate-700 dark:text-slate-300">Client Name</label>
+                  <label className="block text-xs font-medium text-fg">Client Name</label>
                   <select
                     value={editSelectedClientId}
                     onChange={(e) => {
@@ -858,11 +858,11 @@ export const ProjectList = () => {
                       const found = clients.find((c) => c.id === e.target.value)
                       if (found) setEditClientName(found.name)
                     }}
-                    className="w-full bg-slate-100/80 dark:bg-[#11141E] border border-slate-300 dark:border-slate-800 text-slate-900 dark:text-slate-100 text-sm rounded-xl py-2.5 px-3.5 focus:outline-none focus:border-indigo-500 focus:ring-1 focus:ring-indigo-500 transition-all cursor-pointer"
+                    className="w-full bg-canvas border border-border text-fg text-sm rounded-xl py-2.5 px-3.5 focus:outline-none focus:border-accent focus:ring-1 focus:ring-accent transition-all cursor-pointer"
                   >
                     <option value="">{editClientName || 'Independent / Internal'}</option>
                     {clients.map((client) => (
-                      <option key={client.id} value={client.id} className="bg-white dark:bg-[#11141E] text-slate-900 dark:text-slate-100">
+                      <option key={client.id} value={client.id} className="bg-surface text-fg">
                         {client.name}
                       </option>
                     ))}
@@ -871,13 +871,13 @@ export const ProjectList = () => {
 
                 {/* Status Dropdown */}
                 <div className="space-y-1.5 text-left">
-                  <label className="block text-xs font-medium text-slate-700 dark:text-slate-300">
+                  <label className="block text-xs font-medium text-fg">
                     Project Status
                   </label>
                   <select
                     value={editStatus}
                     onChange={(e) => setEditStatus(e.target.value)}
-                    className="w-full bg-slate-100/80 dark:bg-[#11141E] border border-slate-300 dark:border-slate-800 text-slate-900 dark:text-slate-100 text-sm rounded-xl py-2.5 px-3.5 focus:outline-none focus:border-indigo-500 focus:ring-1 focus:ring-indigo-500 transition-all cursor-pointer"
+                    className="w-full bg-canvas border border-border text-fg text-sm rounded-xl py-2.5 px-3.5 focus:outline-none focus:border-accent focus:ring-1 focus:ring-accent transition-all cursor-pointer"
                   >
                     <option value="active">Active</option>
                     <option value="completed">Completed</option>
@@ -904,12 +904,12 @@ export const ProjectList = () => {
               </div>
 
               <div className="space-y-1.5 text-left">
-                <label className="block text-xs font-medium text-slate-700 dark:text-slate-300">Project Description</label>
+                <label className="block text-xs font-medium text-fg">Project Description</label>
                 <textarea
                   placeholder="Brief summary of deliverables & tech stack..."
                   value={editDescription}
                   onChange={(e) => setEditDescription(e.target.value)}
-                  className="w-full bg-slate-100/80 dark:bg-[#11141E] border border-slate-300 dark:border-slate-800 text-slate-900 dark:text-slate-100 placeholder-slate-400 dark:placeholder-slate-500 text-xs rounded-xl p-3 h-20 focus:outline-none focus:border-indigo-500 focus:ring-1 focus:ring-indigo-500 transition-all"
+                  className="w-full bg-canvas border border-border text-fg placeholder:text-muted text-xs rounded-xl p-3 h-20 focus:outline-none focus:border-accent focus:ring-1 focus:ring-accent transition-all"
                 />
               </div>
 
@@ -935,9 +935,9 @@ export const ProjectList = () => {
       {/* Confirm Delete Project Modal */}
       {deleteConfirmProj && (
         <div className="fixed inset-0 z-50 bg-black/70 backdrop-blur-sm flex items-center justify-center p-4">
-          <Card className="w-full max-w-md p-6 space-y-4 border-slate-200 dark:border-slate-800 shadow-2xl relative bg-white dark:bg-[#181C27]">
-            <div className="flex items-center justify-between pb-3 border-b border-slate-200 dark:border-slate-800">
-              <h3 className="font-bold text-slate-900 dark:text-slate-100 text-sm flex items-center gap-2">
+          <Card className="w-full max-w-md p-6 space-y-4 border-border shadow-2xl relative bg-surface">
+            <div className="flex items-center justify-between pb-3 border-b border-border">
+              <h3 className="font-bold text-fg text-sm flex items-center gap-2">
                 <Trash2 className="w-4 h-4 text-rose-500" /> Confirm Delete Project
               </h3>
               <button
@@ -948,11 +948,11 @@ export const ProjectList = () => {
               </button>
             </div>
 
-            <p className="text-xs text-slate-600 dark:text-slate-300 leading-relaxed">
+            <p className="text-xs text-muted leading-relaxed">
               Are you sure you want to delete project <strong className="text-slate-900 dark:text-white">{deleteConfirmProj.name}</strong>? All associated sprint data and tasks will be affected. This action cannot be undone.
             </p>
 
-            <div className="flex items-center justify-end gap-3 pt-3 border-t border-slate-200 dark:border-slate-800">
+            <div className="flex items-center justify-end gap-3 pt-3 border-t border-border">
               <Button variant="secondary" onClick={() => setDeleteConfirmProj(null)}>
                 Cancel
               </Button>

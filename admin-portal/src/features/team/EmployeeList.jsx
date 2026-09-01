@@ -323,7 +323,7 @@ export const EmployeeList = () => {
             <select
               value={selectedDept}
               onChange={(e) => setSelectedDept(e.target.value)}
-              className="bg-slate-100 dark:bg-[#181C27] border border-slate-300 dark:border-slate-800 text-xs text-slate-800 dark:text-slate-200 rounded-xl px-3 py-1.5 focus:outline-none"
+              className="bg-canvas border border-border text-xs text-fg rounded-xl px-3 py-1.5 focus:outline-none"
             >
               <option value="all">All Departments</option>
               {uniqueDepartments.map((deptName) => (
@@ -336,7 +336,7 @@ export const EmployeeList = () => {
             <select
               value={selectedRole}
               onChange={(e) => setSelectedRole(e.target.value)}
-              className="bg-slate-100 dark:bg-[#181C27] border border-slate-300 dark:border-slate-800 text-xs text-slate-800 dark:text-slate-200 rounded-xl px-3 py-1.5 focus:outline-none cursor-pointer"
+              className="bg-canvas border border-border text-xs text-fg rounded-xl px-3 py-1.5 focus:outline-none cursor-pointer"
             >
               <option value="all">All Roles</option>
               {uniqueRoles.map((roleName) => (
@@ -347,13 +347,13 @@ export const EmployeeList = () => {
             </select>
 
             <div className="relative w-64">
-              <Search className="w-3.5 h-3.5 absolute left-3 top-1/2 -translate-y-1/2 text-slate-400 dark:text-slate-500" />
+              <Search className="w-3.5 h-3.5 absolute left-3 top-1/2 -translate-y-1/2 text-muted" />
               <input
                 type="text"
                 placeholder="Search member, role..."
                 value={searchQuery}
                 onChange={(e) => setSearchQuery(e.target.value)}
-                className="w-full bg-slate-100 dark:bg-[#181C27] border border-slate-300 dark:border-slate-800 text-xs text-slate-800 dark:text-slate-200 placeholder-slate-400 dark:placeholder-slate-500 rounded-xl pl-8 pr-3 py-1.5 focus:outline-none transition-colors"
+                className="w-full bg-canvas border border-border text-xs text-fg placeholder:text-muted rounded-xl pl-8 pr-3 py-1.5 focus:outline-none transition-colors"
               />
             </div>
           </div>
@@ -361,14 +361,14 @@ export const EmployeeList = () => {
       </div>
 
       {/* Summary Metrics */}
-      <Card className="p-4 flex items-center justify-between border-slate-200 dark:border-slate-800/80 max-w-sm">
+      <Card className="p-4 flex items-center justify-between border-border max-w-sm">
         <div>
-          <span className="text-[11px] font-medium text-slate-500 dark:text-slate-400 uppercase tracking-wider">
+          <span className="text-[11px] font-medium text-muted uppercase tracking-wider">
             Total Team Members
           </span>
-          <p className="text-xl font-bold text-slate-900 dark:text-slate-100 mt-1">{totalHeadcount} Members</p>
+          <p className="text-xl font-bold text-fg mt-1">{totalHeadcount} Members</p>
         </div>
-        <div className="w-9 h-9 rounded-xl bg-indigo-50 dark:bg-indigo-500/10 text-indigo-600 dark:text-indigo-400 flex items-center justify-center">
+        <div className="w-9 h-9 rounded-xl bg-accent-soft text-accent flex items-center justify-center">
           <Users className="w-5 h-5" />
         </div>
       </Card>
@@ -382,29 +382,29 @@ export const EmployeeList = () => {
           const leaveDays = monthSnap?.leave?.approvedDays
 
           return (
-            <Card key={empUid} hover className="space-y-3.5 border-slate-200 dark:border-slate-800 relative group">
+            <Card key={empUid} hover className="space-y-3.5 border-border relative group">
               <div className="flex items-start justify-between">
                 <div className="flex items-center gap-3">
-                  <div className="w-10 h-10 rounded-xl bg-gradient-to-tr from-indigo-600 to-indigo-400 text-white font-bold flex items-center justify-center text-sm shadow-md shadow-indigo-600/20">
+                  <div className="w-10 h-10 rounded-xl bg-gradient-to-tr from-accent to-accent-hover text-white font-bold flex items-center justify-center text-sm shadow-md shadow-accent/20">
                     {emp.displayName ? emp.displayName.charAt(0) : 'U'}
                   </div>
                   <div>
-                    <h4 className="font-bold text-slate-900 dark:text-slate-100 text-sm group-hover:text-indigo-600 dark:group-hover:text-indigo-400 transition-colors">
+                    <h4 className="font-bold text-fg text-sm group-hover:text-accent dark:group-hover:text-accent transition-colors">
                       {emp.displayName}
                     </h4>
-                    <p className="text-xs text-slate-500 dark:text-slate-400">{emp.roleName}</p>
+                    <p className="text-xs text-muted">{emp.roleName}</p>
                   </div>
                 </div>
               </div>
 
-              <div className="space-y-1 text-xs text-slate-500 dark:text-slate-400 pt-1">
+              <div className="space-y-1 text-xs text-muted pt-1">
                 <div className="flex items-center gap-2">
-                  <Building className="w-3.5 h-3.5 text-slate-400 dark:text-slate-500" />
-                  <span className="text-slate-700 dark:text-slate-300 font-medium">{emp.departmentName}</span>
+                  <Building className="w-3.5 h-3.5 text-muted" />
+                  <span className="text-fg font-medium">{emp.departmentName}</span>
                 </div>
                 <div className="flex items-center gap-2">
-                  <Mail className="w-3.5 h-3.5 text-slate-400 dark:text-slate-500" />
-                  <span className="truncate text-slate-600 dark:text-slate-400">{emp.email}</span>
+                  <Mail className="w-3.5 h-3.5 text-muted" />
+                  <span className="truncate text-muted">{emp.email}</span>
                 </div>
               </div>
 
@@ -425,13 +425,13 @@ export const EmployeeList = () => {
                   Late {att?.lateDays ?? '—'}
                 </span>
                 <span
-                  className="inline-flex items-center gap-1 px-2 py-0.5 rounded-md bg-indigo-50 dark:bg-indigo-500/10 border border-indigo-200/60 dark:border-indigo-500/20 text-[10px] font-medium text-indigo-700 dark:text-indigo-400"
+                  className="inline-flex items-center gap-1 px-2 py-0.5 rounded-md bg-accent-soft border border-accent/30/20 text-[10px] font-medium text-accent"
                   title={`${thisMonth} leave days`}
                 >
                   Leave {leaveDays ?? '—'}
                 </span>
                 <span
-                  className="inline-flex items-center gap-1 px-2 py-0.5 rounded-md bg-slate-100 dark:bg-slate-900 border border-slate-200 dark:border-slate-800 text-[10px] font-medium text-slate-700 dark:text-slate-300"
+                  className="inline-flex items-center gap-1 px-2 py-0.5 rounded-md bg-canvas border border-border text-[10px] font-medium text-fg"
                   title={`${thisMonth} avg hours`}
                 >
                   <Clock className="w-3 h-3" />
@@ -446,7 +446,7 @@ export const EmployeeList = () => {
                   .map((skill, idx) => (
                     <span
                       key={idx}
-                      className="px-2 py-0.5 rounded-md bg-slate-100 dark:bg-slate-900 border border-slate-200 dark:border-slate-800 text-[10px] text-slate-700 dark:text-slate-300 font-medium"
+                      className="px-2 py-0.5 rounded-md bg-canvas border border-border text-[10px] text-fg font-medium"
                     >
                       {skill}
                     </span>
@@ -454,25 +454,25 @@ export const EmployeeList = () => {
               </div>
 
               {/* Clean Footer */}
-              <div className="pt-3 border-t border-slate-200 dark:border-slate-800/60 flex items-center justify-between gap-1">
+              <div className="pt-3 border-t border-border/60 flex items-center justify-between gap-1">
                 <div className="flex items-center gap-0.5">
                   <Link
                     to="/team/attendance"
-                    className="p-1.5 text-slate-400 dark:text-slate-500 hover:text-emerald-600 dark:hover:text-emerald-400 rounded-lg hover:bg-slate-100 dark:hover:bg-slate-800 transition-colors"
+                    className="p-1.5 text-muted hover:text-emerald-600 dark:hover:text-emerald-400 rounded-lg hover:bg-slate-100 dark:hover:bg-slate-800 transition-colors"
                     title="Attendance"
                   >
                     <CheckCircle2 className="w-4 h-4" />
                   </Link>
                   <Link
                     to={`/team/timeline?uid=${encodeURIComponent(empUid)}`}
-                    className="p-1.5 text-slate-400 dark:text-slate-500 hover:text-indigo-600 dark:hover:text-indigo-400 rounded-lg hover:bg-slate-100 dark:hover:bg-slate-800 transition-colors"
+                    className="p-1.5 text-muted hover:text-accent dark:hover:text-accent rounded-lg hover:bg-slate-100 dark:hover:bg-slate-800 transition-colors"
                     title="Work Timeline"
                   >
                     <CalendarDays className="w-4 h-4" />
                   </Link>
                   <Link
                     to={`/team/reports?uid=${encodeURIComponent(empUid)}&month=${thisMonth}`}
-                    className="p-1.5 text-slate-400 dark:text-slate-500 hover:text-indigo-600 dark:hover:text-indigo-400 rounded-lg hover:bg-slate-100 dark:hover:bg-slate-800 transition-colors"
+                    className="p-1.5 text-muted hover:text-accent dark:hover:text-accent rounded-lg hover:bg-slate-100 dark:hover:bg-slate-800 transition-colors"
                     title="Monthly Report"
                   >
                     <FileText className="w-4 h-4" />
@@ -481,14 +481,14 @@ export const EmployeeList = () => {
                 <div className="flex items-center gap-1">
                   <button
                     onClick={() => handleEditClick(emp)}
-                    className="p-1.5 text-slate-400 dark:text-slate-500 hover:text-indigo-600 dark:hover:text-indigo-400 rounded-lg hover:bg-slate-100 dark:hover:bg-slate-800 transition-colors"
+                    className="p-1.5 text-muted hover:text-accent dark:hover:text-accent rounded-lg hover:bg-slate-100 dark:hover:bg-slate-800 transition-colors"
                     title="Edit Member"
                   >
                     <Edit className="w-4 h-4" />
                   </button>
                   <button
                     onClick={() => setDeleteConfirmEmp(emp)}
-                    className="p-1.5 text-slate-400 dark:text-slate-500 hover:text-rose-600 dark:hover:text-rose-400 rounded-lg hover:bg-slate-100 dark:hover:bg-slate-800 transition-colors"
+                    className="p-1.5 text-muted hover:text-rose-600 dark:hover:text-rose-400 rounded-lg hover:bg-slate-100 dark:hover:bg-slate-800 transition-colors"
                     title="Remove Member"
                   >
                     <Trash2 className="w-4 h-4" />
@@ -503,9 +503,9 @@ export const EmployeeList = () => {
       {/* Invite Member Modal */}
       {showAddModal && (
         <div className="fixed inset-0 z-50 bg-black/70 backdrop-blur-sm flex items-center justify-center p-4">
-          <Card className="w-full max-w-lg p-6 space-y-4 border-slate-200 dark:border-slate-800 shadow-2xl relative bg-white dark:bg-[#181C27]">
-            <div className="flex items-center justify-between pb-3 border-b border-slate-200 dark:border-slate-800">
-              <h3 className="font-bold text-slate-900 dark:text-slate-100 text-sm">Invite Team Member</h3>
+          <Card className="w-full max-w-lg p-6 space-y-4 border-border shadow-2xl relative bg-surface">
+            <div className="flex items-center justify-between pb-3 border-b border-border">
+              <h3 className="font-bold text-fg text-sm">Invite Team Member</h3>
               <button
                 onClick={() => setShowAddModal(false)}
                 className="text-slate-400 hover:text-slate-600 dark:hover:text-white p-1 rounded-lg hover:bg-slate-100 dark:hover:bg-slate-800 transition-colors"
@@ -529,15 +529,15 @@ export const EmployeeList = () => {
             <form onSubmit={handleInviteMember} className="space-y-4">
               {/* Account Type Selector */}
               <div className="space-y-1.5">
-                <label className="block text-xs font-medium text-slate-700 dark:text-slate-300">Account Access Level *</label>
-                <div className="grid grid-cols-2 p-1 bg-slate-100 dark:bg-slate-900 rounded-xl border border-slate-200 dark:border-slate-800 text-xs">
+                <label className="block text-xs font-medium text-fg">Account Access Level *</label>
+                <div className="grid grid-cols-2 p-1 bg-canvas rounded-xl border border-border text-xs">
                   <button
                     type="button"
                     onClick={() => setAccountType('employee')}
                     className={`py-2 rounded-lg font-medium transition-colors flex items-center justify-center gap-1.5 ${
                       accountType === 'employee'
-                        ? 'bg-indigo-600 text-white shadow-sm font-semibold'
-                        : 'text-slate-600 dark:text-slate-400 hover:text-slate-900 dark:hover:text-white'
+                        ? 'bg-accent text-white shadow-sm font-semibold'
+                        : 'text-muted hover:text-slate-900 dark:hover:text-white'
                     }`}
                   >
                     <Users className="w-3.5 h-3.5" /> Employee Staff
@@ -547,8 +547,8 @@ export const EmployeeList = () => {
                     onClick={() => setAccountType('admin')}
                     className={`py-2 rounded-lg font-medium transition-colors flex items-center justify-center gap-1.5 ${
                       accountType === 'admin'
-                        ? 'bg-indigo-600 text-white shadow-sm font-semibold'
-                        : 'text-slate-600 dark:text-slate-400 hover:text-slate-900 dark:hover:text-white'
+                        ? 'bg-accent text-white shadow-sm font-semibold'
+                        : 'text-muted hover:text-slate-900 dark:hover:text-white'
                     }`}
                   >
                     <ShieldCheck className="w-3.5 h-3.5" /> Admin / Executive
@@ -587,16 +587,16 @@ export const EmployeeList = () => {
                   <div className="grid grid-cols-2 gap-3">
                     {createdRoles.length > 0 ? (
                       <div className="space-y-1.5 text-left">
-                        <label className="block text-xs font-medium text-slate-700 dark:text-slate-300">Role Title *</label>
+                        <label className="block text-xs font-medium text-fg">Role Title *</label>
                         <select
                           value={roleName}
                           onChange={(e) => setRoleName(e.target.value)}
-                          className="w-full bg-slate-100/80 dark:bg-[#11141E] border border-slate-300 dark:border-slate-800 text-slate-900 dark:text-slate-100 text-sm rounded-xl py-2.5 px-3.5 focus:outline-none focus:border-indigo-500 focus:ring-1 focus:ring-indigo-500 transition-all cursor-pointer"
+                          className="w-full bg-canvas border border-border text-fg text-sm rounded-xl py-2.5 px-3.5 focus:outline-none focus:border-accent focus:ring-1 focus:ring-accent transition-all cursor-pointer"
                           required
                         >
                           <option value="">Select Role</option>
                           {createdRoles.map((role) => (
-                            <option key={role.roleId} value={role.name} className="bg-white dark:bg-[#11141E] text-slate-900 dark:text-slate-100">
+                            <option key={role.roleId} value={role.name} className="bg-surface text-fg">
                               {role.name}
                             </option>
                           ))}
@@ -613,14 +613,14 @@ export const EmployeeList = () => {
                     {isCustomDept ? (
                       <div className="space-y-1.5 text-left">
                         <div className="flex justify-between items-center">
-                          <label className="block text-xs font-medium text-slate-700 dark:text-slate-300">Custom Department *</label>
+                          <label className="block text-xs font-medium text-fg">Custom Department *</label>
                           <button
                             type="button"
                             onClick={() => {
                               setIsCustomDept(false)
                               setDepartmentName(departments[0]?.name || '')
                             }}
-                            className="text-[10px] text-indigo-500 hover:text-indigo-600 dark:text-indigo-400 dark:hover:text-indigo-300 font-bold"
+                            className="text-[10px] text-accent hover:text-accent dark:hover:text-accent font-bold"
                           >
                             Choose Existing
                           </button>
@@ -634,7 +634,7 @@ export const EmployeeList = () => {
                       </div>
                     ) : (
                       <div className="space-y-1.5 text-left">
-                        <label className="block text-xs font-medium text-slate-700 dark:text-slate-300">Department</label>
+                        <label className="block text-xs font-medium text-fg">Department</label>
                         <select
                           value={departmentName}
                           onChange={(e) => {
@@ -645,14 +645,14 @@ export const EmployeeList = () => {
                               setDepartmentName(e.target.value)
                             }
                           }}
-                          className="w-full bg-slate-100/80 dark:bg-[#11141E] border border-slate-300 dark:border-slate-800 text-slate-900 dark:text-slate-100 text-sm rounded-xl py-2.5 px-3.5 focus:outline-none focus:border-indigo-500 focus:ring-1 focus:ring-indigo-500 transition-all cursor-pointer"
+                          className="w-full bg-canvas border border-border text-fg text-sm rounded-xl py-2.5 px-3.5 focus:outline-none focus:border-accent focus:ring-1 focus:ring-accent transition-all cursor-pointer"
                         >
                           {departments.map((d) => (
-                            <option key={d.deptId} value={d.name} className="bg-white dark:bg-[#11141E] text-slate-900 dark:text-slate-100">
+                            <option key={d.deptId} value={d.name} className="bg-surface text-fg">
                               {d.name}
                             </option>
                           ))}
-                          <option value="ADD_CUSTOM" className="bg-white dark:bg-[#11141E] text-indigo-600 dark:text-indigo-400 font-semibold">
+                          <option value="ADD_CUSTOM" className="bg-surface text-accent font-semibold">
                             + Add Custom Department
                           </option>
                         </select>
@@ -685,16 +685,16 @@ export const EmployeeList = () => {
       {/* Edit Member Modal */}
       {showEditModal && editingEmployee && (
         <div className="fixed inset-0 z-50 bg-black/70 backdrop-blur-sm flex items-center justify-center p-4">
-          <Card className="w-full max-w-2xl p-6 border-slate-200 dark:border-slate-800 shadow-2xl relative bg-white dark:bg-[#181C27] max-h-[92vh] overflow-y-auto">
+          <Card className="w-full max-w-2xl p-6 border-border shadow-2xl relative bg-surface max-h-[92vh] overflow-y-auto">
             {/* Modal Header */}
-            <div className="flex items-center justify-between pb-4 border-b border-slate-200 dark:border-slate-800 mb-5">
+            <div className="flex items-center justify-between pb-4 border-b border-border mb-5">
               <div className="flex items-center gap-3">
-                <div className="w-8 h-8 rounded-xl bg-indigo-50 dark:bg-indigo-500/10 text-indigo-600 dark:text-indigo-400 flex items-center justify-center">
+                <div className="w-8 h-8 rounded-xl bg-accent-soft text-accent flex items-center justify-center">
                   <Edit className="w-4 h-4" />
                 </div>
                 <div>
-                  <h3 className="font-bold text-slate-900 dark:text-slate-100 text-sm">Edit Employee Details</h3>
-                  <p className="text-[11px] text-slate-400 dark:text-slate-500 mt-0.5">{editingEmployee.displayName}</p>
+                  <h3 className="font-bold text-fg text-sm">Edit Employee Details</h3>
+                  <p className="text-[11px] text-muted mt-0.5">{editingEmployee.displayName}</p>
                 </div>
               </div>
               <button
@@ -723,7 +723,7 @@ export const EmployeeList = () => {
 
               {/* ── Section: Basic Info ── */}
               <div>
-                <p className="text-[11px] font-semibold text-indigo-500 dark:text-indigo-400 uppercase tracking-widest mb-3 flex items-center gap-1.5">
+                <p className="text-[11px] font-semibold text-accent uppercase tracking-widest mb-3 flex items-center gap-1.5">
                   <Users className="w-3.5 h-3.5" /> Basic Information
                 </p>
                 <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
@@ -759,21 +759,21 @@ export const EmployeeList = () => {
 
               {/* ── Section: Role & Department ── */}
               <div>
-                <p className="text-[11px] font-semibold text-indigo-500 dark:text-indigo-400 uppercase tracking-widest mb-3 flex items-center gap-1.5">
+                <p className="text-[11px] font-semibold text-accent uppercase tracking-widest mb-3 flex items-center gap-1.5">
                   <Building className="w-3.5 h-3.5" /> Role & Department
                 </p>
                 <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
                   {createdRoles.length > 0 ? (
                     <div className="space-y-1.5 text-left">
-                      <label className="block text-xs font-medium text-slate-700 dark:text-slate-300">Role Title</label>
+                      <label className="block text-xs font-medium text-fg">Role Title</label>
                       <select
                         value={roleName}
                         onChange={(e) => setRoleName(e.target.value)}
-                        className="w-full bg-slate-100/80 dark:bg-[#11141E] border border-slate-300 dark:border-slate-800 text-slate-900 dark:text-slate-100 text-sm rounded-xl py-2.5 px-3.5 focus:outline-none focus:border-indigo-500 focus:ring-1 focus:ring-indigo-500 transition-all cursor-pointer"
+                        className="w-full bg-canvas border border-border text-fg text-sm rounded-xl py-2.5 px-3.5 focus:outline-none focus:border-accent focus:ring-1 focus:ring-accent transition-all cursor-pointer"
                       >
                         <option value="">Select Role</option>
                         {createdRoles.map((role) => (
-                          <option key={role.roleId} value={role.name} className="bg-white dark:bg-[#11141E] text-slate-900 dark:text-slate-100">
+                          <option key={role.roleId} value={role.name} className="bg-surface text-fg">
                             {role.name}
                           </option>
                         ))}
@@ -791,11 +791,11 @@ export const EmployeeList = () => {
                   {isCustomDept ? (
                     <div className="space-y-1.5 text-left">
                       <div className="flex justify-between items-center">
-                        <label className="block text-xs font-medium text-slate-700 dark:text-slate-300">Custom Department *</label>
+                        <label className="block text-xs font-medium text-fg">Custom Department *</label>
                         <button
                           type="button"
                           onClick={() => { setIsCustomDept(false); setDepartmentName(departments[0]?.name || '') }}
-                          className="text-[10px] text-indigo-500 hover:text-indigo-600 dark:text-indigo-400 font-bold"
+                          className="text-[10px] text-accent hover:text-accent font-bold"
                         >
                           Choose Existing
                         </button>
@@ -809,19 +809,19 @@ export const EmployeeList = () => {
                     </div>
                   ) : (
                     <div className="space-y-1.5 text-left">
-                      <label className="block text-xs font-medium text-slate-700 dark:text-slate-300">Department</label>
+                      <label className="block text-xs font-medium text-fg">Department</label>
                       <select
                         value={departmentName}
                         onChange={(e) => {
                           if (e.target.value === 'ADD_CUSTOM') { setIsCustomDept(true); setDepartmentName('') }
                           else setDepartmentName(e.target.value)
                         }}
-                        className="w-full bg-slate-100/80 dark:bg-[#11141E] border border-slate-300 dark:border-slate-800 text-slate-900 dark:text-slate-100 text-sm rounded-xl py-2.5 px-3.5 focus:outline-none focus:border-indigo-500 focus:ring-1 focus:ring-indigo-500 transition-all cursor-pointer"
+                        className="w-full bg-canvas border border-border text-fg text-sm rounded-xl py-2.5 px-3.5 focus:outline-none focus:border-accent focus:ring-1 focus:ring-accent transition-all cursor-pointer"
                       >
                         {departments.map((d) => (
-                          <option key={d.deptId} value={d.name} className="bg-white dark:bg-[#11141E] text-slate-900 dark:text-slate-100">{d.name}</option>
+                          <option key={d.deptId} value={d.name} className="bg-surface text-fg">{d.name}</option>
                         ))}
-                        <option value="ADD_CUSTOM" className="bg-white dark:bg-[#11141E] text-indigo-600 dark:text-indigo-400 font-semibold">+ Add Custom Department</option>
+                        <option value="ADD_CUSTOM" className="bg-surface text-accent font-semibold">+ Add Custom Department</option>
                       </select>
                     </div>
                   )}
@@ -830,13 +830,13 @@ export const EmployeeList = () => {
 
               {/* ── Section: Performance ── */}
               <div>
-                <p className="text-[11px] font-semibold text-indigo-500 dark:text-indigo-400 uppercase tracking-widest mb-3 flex items-center gap-1.5">
+                <p className="text-[11px] font-semibold text-accent uppercase tracking-widest mb-3 flex items-center gap-1.5">
                   <TrendingUp className="w-3.5 h-3.5" /> Performance
                 </p>
                 <div className="space-y-2">
                   <div className="flex items-center justify-between">
-                    <label className="text-xs font-medium text-slate-700 dark:text-slate-300">Utilization Rate</label>
-                    <span className="text-xs font-bold text-indigo-600 dark:text-indigo-400">{utilizationRate}%</span>
+                    <label className="text-xs font-medium text-fg">Utilization Rate</label>
+                    <span className="text-xs font-bold text-accent">{utilizationRate}%</span>
                   </div>
                   <input
                     type="range"
@@ -844,7 +844,7 @@ export const EmployeeList = () => {
                     max="100"
                     value={utilizationRate}
                     onChange={(e) => setUtilizationRate(Number(e.target.value))}
-                    className="w-full h-2 appearance-none rounded-full bg-slate-200 dark:bg-slate-700 accent-indigo-600 cursor-pointer"
+                    className="w-full h-2 appearance-none rounded-full bg-slate-200 dark:bg-slate-700 accent-accent cursor-pointer"
                   />
                   <div className="flex justify-between text-[10px] text-slate-400">
                     <span>0%</span><span>50%</span><span>100%</span>
@@ -854,7 +854,7 @@ export const EmployeeList = () => {
 
               {/* ── Section: Skills ── */}
               <div>
-                <p className="text-[11px] font-semibold text-indigo-500 dark:text-indigo-400 uppercase tracking-widest mb-3 flex items-center gap-1.5">
+                <p className="text-[11px] font-semibold text-accent uppercase tracking-widest mb-3 flex items-center gap-1.5">
                   <Tag className="w-3.5 h-3.5" /> Skills & Expertise
                 </p>
                 <div className="flex gap-2 mb-3">
@@ -864,12 +864,12 @@ export const EmployeeList = () => {
                     onChange={(e) => setSkillInput(e.target.value)}
                     onKeyDown={(e) => { if (e.key === 'Enter') { e.preventDefault(); handleAddSkill() } }}
                     placeholder="Add a skill (press Enter)"
-                    className="flex-1 bg-slate-100/80 dark:bg-[#11141E] border border-slate-300 dark:border-slate-800 text-slate-900 dark:text-slate-100 text-sm rounded-xl py-2 px-3.5 focus:outline-none focus:border-indigo-500 focus:ring-1 focus:ring-indigo-500 transition-all"
+                    className="flex-1 bg-canvas border border-border text-fg text-sm rounded-xl py-2 px-3.5 focus:outline-none focus:border-accent focus:ring-1 focus:ring-accent transition-all"
                   />
                   <button
                     type="button"
                     onClick={handleAddSkill}
-                    className="px-3 py-2 bg-indigo-600 hover:bg-indigo-700 text-white rounded-xl text-xs font-semibold transition-colors flex items-center gap-1"
+                    className="px-3 py-2 bg-accent hover:bg-accent-hover text-white rounded-xl text-xs font-semibold transition-colors flex items-center gap-1"
                   >
                     <Plus className="w-3.5 h-3.5" /> Add
                   </button>
@@ -879,13 +879,13 @@ export const EmployeeList = () => {
                     {skills.map((skill, idx) => (
                       <span
                         key={idx}
-                        className="flex items-center gap-1 px-2.5 py-1 rounded-lg bg-indigo-50 dark:bg-indigo-500/10 border border-indigo-200 dark:border-indigo-500/20 text-[11px] text-indigo-700 dark:text-indigo-300 font-medium"
+                        className="flex items-center gap-1 px-2.5 py-1 rounded-lg bg-accent-soft border border-accent/20 text-[11px] text-accent font-medium"
                       >
                         {skill}
                         <button
                           type="button"
                           onClick={() => handleRemoveSkill(skill)}
-                          className="ml-0.5 text-indigo-400 hover:text-rose-500 transition-colors"
+                          className="ml-0.5 text-accent hover:text-rose-500 transition-colors"
                         >
                           <X className="w-3 h-3" />
                         </button>
@@ -893,13 +893,13 @@ export const EmployeeList = () => {
                     ))}
                   </div>
                 ) : (
-                  <p className="text-xs text-slate-400 dark:text-slate-500 italic">No skills added yet</p>
+                  <p className="text-xs text-muted italic">No skills added yet</p>
                 )}
               </div>
 
               {/* ── Section: Bio ── */}
               <div>
-                <p className="text-[11px] font-semibold text-indigo-500 dark:text-indigo-400 uppercase tracking-widest mb-3 flex items-center gap-1.5">
+                <p className="text-[11px] font-semibold text-accent uppercase tracking-widest mb-3 flex items-center gap-1.5">
                   <FileText className="w-3.5 h-3.5" /> About / Bio
                 </p>
                 <textarea
@@ -907,12 +907,12 @@ export const EmployeeList = () => {
                   onChange={(e) => setBio(e.target.value)}
                   placeholder="Short bio or notes about this employee..."
                   rows={3}
-                  className="w-full bg-slate-100/80 dark:bg-[#11141E] border border-slate-300 dark:border-slate-800 text-slate-900 dark:text-slate-100 text-sm rounded-xl py-2.5 px-3.5 focus:outline-none focus:border-indigo-500 focus:ring-1 focus:ring-indigo-500 transition-all resize-none"
+                  className="w-full bg-canvas border border-border text-fg text-sm rounded-xl py-2.5 px-3.5 focus:outline-none focus:border-accent focus:ring-1 focus:ring-accent transition-all resize-none"
                 />
               </div>
 
               {/* Actions */}
-              <div className="flex gap-3 pt-2 border-t border-slate-200 dark:border-slate-800">
+              <div className="flex gap-3 pt-2 border-t border-border">
                 <Button
                   type="button"
                   variant="secondary"
@@ -934,9 +934,9 @@ export const EmployeeList = () => {
       {/* Delete Employee Confirmation Modal */}
       {deleteConfirmEmp && (
         <div className="fixed inset-0 z-50 bg-black/70 backdrop-blur-sm flex items-center justify-center p-4">
-          <Card className="w-full max-w-md p-6 space-y-4 border-slate-200 dark:border-slate-800 shadow-2xl relative bg-white dark:bg-[#181C27]">
-            <div className="flex items-center justify-between pb-3 border-b border-slate-200 dark:border-slate-800">
-              <h3 className="font-bold text-slate-900 dark:text-slate-100 text-sm flex items-center gap-2">
+          <Card className="w-full max-w-md p-6 space-y-4 border-border shadow-2xl relative bg-surface">
+            <div className="flex items-center justify-between pb-3 border-b border-border">
+              <h3 className="font-bold text-fg text-sm flex items-center gap-2">
                 <Trash2 className="w-4 h-4 text-rose-500" /> Confirm Delete Member
               </h3>
               <button
@@ -947,11 +947,11 @@ export const EmployeeList = () => {
               </button>
             </div>
 
-            <p className="text-xs text-slate-600 dark:text-slate-300 leading-relaxed">
+            <p className="text-xs text-muted leading-relaxed">
               Are you sure you want to delete <strong className="text-slate-900 dark:text-white">{deleteConfirmEmp.displayName}</strong> ({deleteConfirmEmp.email})? This action cannot be undone.
             </p>
 
-            <div className="flex items-center justify-end gap-3 pt-3 border-t border-slate-200 dark:border-slate-800">
+            <div className="flex items-center justify-end gap-3 pt-3 border-t border-border">
               <Button variant="secondary" onClick={() => setDeleteConfirmEmp(null)}>
                 Cancel
               </Button>

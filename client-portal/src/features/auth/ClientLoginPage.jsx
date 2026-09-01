@@ -88,14 +88,14 @@ export const ClientLoginPage = () => {
   }
 
   return (
-    <div className="min-h-screen bg-slate-50 dark:bg-[#0F1117] flex items-center justify-center p-4 relative overflow-hidden text-slate-900 dark:text-slate-100 transition-colors duration-200">
+    <div className="min-h-screen bg-canvas text-fg flex items-center justify-center p-4 relative overflow-hidden transition-colors duration-200">
       {/* Top right theme toggle */}
       <div className="absolute top-4 right-4 z-20">
         <button
           type="button"
           onClick={toggleTheme}
           title={theme === 'dark' ? 'Switch to Light Mode' : 'Switch to Dark Mode'}
-          className="w-9 h-9 rounded-xl bg-white dark:bg-slate-800 hover:bg-slate-100 dark:hover:bg-slate-700 text-slate-600 dark:text-amber-400 flex items-center justify-center transition-all cursor-pointer border border-slate-200 dark:border-slate-700 shadow-sm"
+          className="w-9 h-9 rounded-xl bg-surface hover:bg-slate-100 dark:hover:bg-slate-700 text-slate-600 dark:text-amber-400 flex items-center justify-center transition-all cursor-pointer border border-border shadow-sm"
         >
           {theme === 'dark' ? (
             <Sun className="w-4 h-4 text-amber-400 transition-transform duration-300 rotate-0 hover:rotate-45" />
@@ -109,11 +109,11 @@ export const ClientLoginPage = () => {
 
       <Card className="w-full max-w-md p-8 relative z-10 border-emerald-200/80 dark:border-emerald-500/30 shadow-xl dark:shadow-2xl space-y-6">
         <div className="text-center space-y-2">
-          <div className="inline-flex w-20 h-20 rounded-full bg-slate-100 dark:bg-slate-800/90 p-2 items-center justify-center border border-slate-200 dark:border-slate-700/80 shadow-md mb-2">
+          <div className="inline-flex w-20 h-20 rounded-full bg-chrome/90 p-2 items-center justify-center border border-border/80 shadow-md mb-2">
             <img src={haloLogo} alt="The Halo Effect Consulting" className="w-full h-full object-contain rounded-full" />
           </div>
-          <h2 className="text-2xl font-bold text-slate-900 dark:text-slate-100 tracking-tight">Client Portal Sign In</h2>
-          <p className="text-xs text-slate-500 dark:text-slate-400">Isolated Deliverables, Invoices & Sign-off Workspace</p>
+          <h2 className="text-2xl font-bold text-fg tracking-tight">Client Portal Sign In</h2>
+          <p className="text-xs text-muted">Isolated Deliverables, Invoices & Sign-off Workspace</p>
         </div>
 
         {error && (

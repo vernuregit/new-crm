@@ -65,13 +65,13 @@ export const ExpenseList = () => {
           }
         />
 
-        <div className="flex items-center gap-2 border-b border-slate-200 dark:border-slate-800 pb-3">
+        <div className="flex items-center gap-2 border-b border-border pb-3">
           <NavLink
             to="/finance/invoices"
             className={({ isActive }) =>
               `flex items-center gap-2 px-3 py-1.5 rounded-xl text-xs font-semibold transition-colors ${
                 isActive
-                  ? 'bg-indigo-600/20 text-indigo-400 border border-indigo-500/30'
+                  ? 'bg-accent-soft text-accent border border-accent/30'
                   : 'text-slate-400 hover:text-slate-200 hover:bg-slate-800'
               }`
             }
@@ -83,7 +83,7 @@ export const ExpenseList = () => {
             className={({ isActive }) =>
               `flex items-center gap-2 px-3 py-1.5 rounded-xl text-xs font-semibold transition-colors ${
                 isActive
-                  ? 'bg-indigo-600/20 text-indigo-400 border border-indigo-500/30'
+                  ? 'bg-accent-soft text-accent border border-accent/30'
                   : 'text-slate-400 hover:text-slate-200 hover:bg-slate-800'
               }`
             }
@@ -95,7 +95,7 @@ export const ExpenseList = () => {
             className={({ isActive }) =>
               `flex items-center gap-2 px-3 py-1.5 rounded-xl text-xs font-semibold transition-colors ${
                 isActive
-                  ? 'bg-indigo-600/20 text-indigo-400 border border-indigo-500/30'
+                  ? 'bg-accent-soft text-accent border border-accent/30'
                   : 'text-slate-400 hover:text-slate-200 hover:bg-slate-800'
               }`
             }
@@ -106,10 +106,10 @@ export const ExpenseList = () => {
       </div>
 
       {/* Expenses Table */}
-      <Card className="overflow-x-auto p-0 border-slate-200 dark:border-slate-800">
+      <Card className="overflow-x-auto p-0 border-border">
         <table className="w-full text-left border-collapse text-xs">
           <thead>
-            <tr className="bg-slate-100 dark:bg-slate-900/80 border-b border-slate-200 dark:border-slate-800 text-slate-700 dark:text-slate-400">
+            <tr className="bg-canvas/80 border-b border-border text-slate-700 dark:text-slate-400">
               <th className="p-4 font-semibold">Vendor</th>
               <th className="p-4 font-semibold">Category</th>
               <th className="p-4 font-semibold">Date</th>
@@ -122,10 +122,10 @@ export const ExpenseList = () => {
             {expenses.map((exp) => (
               <tr key={exp.expenseId || exp.id} className="hover:bg-slate-50 dark:hover:bg-slate-800/30 transition-colors">
                 <td className="p-4 font-bold text-slate-900 dark:text-slate-200">{exp.vendor}</td>
-                <td className="p-4 text-slate-700 dark:text-slate-300">{exp.category}</td>
-                <td className="p-4 text-slate-600 dark:text-slate-400">{exp.date}</td>
+                <td className="p-4 text-fg">{exp.category}</td>
+                <td className="p-4 text-muted">{exp.date}</td>
                 <td className="p-4 font-bold text-rose-600 dark:text-rose-400">₹{exp.amount?.toLocaleString('en-IN')}</td>
-                <td className="p-4 text-slate-600 dark:text-slate-400 max-w-xs truncate">{exp.notes || '—'}</td>
+                <td className="p-4 text-muted max-w-xs truncate">{exp.notes || '—'}</td>
                 <td className="p-4 text-right">
                   <button
                     onClick={() => setDeleteConfirmExpense(exp)}
@@ -143,9 +143,9 @@ export const ExpenseList = () => {
       {/* Create Expense Modal */}
       {showAddModal && (
         <div className="fixed inset-0 z-50 bg-black/70 backdrop-blur-sm flex items-center justify-center p-4">
-          <Card className="w-full max-w-lg p-6 space-y-4 border-slate-200 dark:border-slate-800 shadow-2xl relative bg-white dark:bg-[#181C27]">
-            <div className="flex items-center justify-between pb-3 border-b border-slate-200 dark:border-slate-800">
-              <h3 className="font-bold text-slate-900 dark:text-slate-100 text-sm">Log Expense</h3>
+          <Card className="w-full max-w-lg p-6 space-y-4 border-border shadow-2xl relative bg-surface">
+            <div className="flex items-center justify-between pb-3 border-b border-border">
+              <h3 className="font-bold text-fg text-sm">Log Expense</h3>
               <button
                 onClick={() => setShowAddModal(false)}
                 className="text-slate-400 hover:text-slate-600 dark:hover:text-white p-1 rounded-lg hover:bg-slate-100 dark:hover:bg-slate-800 transition-colors"
@@ -165,14 +165,14 @@ export const ExpenseList = () => {
 
               <div className="space-y-1.5 text-left">
                 <div className="flex items-center justify-between">
-                  <label className="block text-xs font-medium text-slate-700 dark:text-slate-300">Category</label>
+                  <label className="block text-xs font-medium text-fg">Category</label>
                   <button
                     type="button"
                     onClick={() => {
                       setIsCustomCategory(!isCustomCategory)
                       setCustomCategory('')
                     }}
-                    className="text-[11px] font-semibold text-indigo-600 dark:text-indigo-400 hover:underline cursor-pointer"
+                    className="text-[11px] font-semibold text-accent hover:underline cursor-pointer"
                   >
                     {isCustomCategory ? '← Select existing' : '+ Type custom category'}
                   </button>
@@ -196,7 +196,7 @@ export const ExpenseList = () => {
                         setCategory(e.target.value)
                       }
                     }}
-                    className="w-full bg-slate-100 dark:bg-slate-900 border border-slate-300 dark:border-slate-800 text-slate-900 dark:text-slate-100 text-xs rounded-xl p-2.5 focus:outline-none cursor-pointer"
+                    className="w-full bg-canvas border border-border text-fg text-xs rounded-xl p-2.5 focus:outline-none cursor-pointer"
                   >
                     {(categories || []).map((cat) => (
                       <option key={cat} value={cat}>
@@ -240,9 +240,9 @@ export const ExpenseList = () => {
       {/* Confirm Delete Expense Modal */}
       {deleteConfirmExpense && (
         <div className="fixed inset-0 z-50 bg-black/70 backdrop-blur-sm flex items-center justify-center p-4">
-          <Card className="w-full max-w-md p-6 space-y-4 border-slate-200 dark:border-slate-800 shadow-2xl relative bg-white dark:bg-[#181C27]">
-            <div className="flex items-center justify-between pb-3 border-b border-slate-200 dark:border-slate-800">
-              <h3 className="font-bold text-slate-900 dark:text-slate-100 text-sm flex items-center gap-2">
+          <Card className="w-full max-w-md p-6 space-y-4 border-border shadow-2xl relative bg-surface">
+            <div className="flex items-center justify-between pb-3 border-b border-border">
+              <h3 className="font-bold text-fg text-sm flex items-center gap-2">
                 <Trash2 className="w-4 h-4 text-rose-500" /> Confirm Delete Expense
               </h3>
               <button
@@ -253,11 +253,11 @@ export const ExpenseList = () => {
               </button>
             </div>
 
-            <p className="text-xs text-slate-600 dark:text-slate-300 leading-relaxed">
+            <p className="text-xs text-muted leading-relaxed">
               Are you sure you want to delete expense for <strong className="text-slate-900 dark:text-white">{deleteConfirmExpense.vendor}</strong> (₹{deleteConfirmExpense.amount?.toLocaleString('en-IN')})? This action cannot be undone.
             </p>
 
-            <div className="flex items-center justify-end gap-3 pt-3 border-t border-slate-200 dark:border-slate-800">
+            <div className="flex items-center justify-end gap-3 pt-3 border-t border-border">
               <Button variant="secondary" onClick={() => setDeleteConfirmExpense(null)}>
                 Cancel
               </Button>

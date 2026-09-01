@@ -23,10 +23,10 @@ const CopyRow = ({ label, value }) => {
   }
 
   return (
-    <div className="flex items-start justify-between gap-3 p-3 rounded-xl bg-slate-50 dark:bg-slate-950/50 border border-slate-200 dark:border-slate-800">
+    <div className="flex items-start justify-between gap-3 p-3 rounded-xl bg-slate-50 dark:bg-slate-950/50 border border-border">
       <div className="min-w-0">
-        <p className="text-[11px] uppercase tracking-wider text-slate-500 dark:text-slate-400">{label}</p>
-        <p className="text-sm font-semibold text-slate-900 dark:text-slate-100 break-all mt-0.5">{value}</p>
+        <p className="text-[11px] uppercase tracking-wider text-muted">{label}</p>
+        <p className="text-sm font-semibold text-fg break-all mt-0.5">{value}</p>
       </div>
       <Button type="button" variant="ghost" size="sm" icon={copied ? Check : Copy} onClick={copy} className="shrink-0">
         {copied ? 'Copied' : 'Copy'}
@@ -76,38 +76,38 @@ export const ClientBilling = () => {
       />
 
       {loading ? (
-        <p className="text-sm text-slate-500">Loading billing details...</p>
+        <p className="text-sm text-muted">Loading billing details...</p>
       ) : (
         <div className="grid grid-cols-1 lg:grid-cols-2 gap-5">
           <Card className="space-y-4">
-            <div className="flex items-center gap-2 pb-2 border-b border-slate-200 dark:border-slate-800">
-              <Building className="w-4 h-4 text-indigo-500" />
-              <h3 className="font-bold text-sm text-slate-900 dark:text-slate-100">Your billing profile</h3>
+            <div className="flex items-center gap-2 pb-2 border-b border-border">
+              <Building className="w-4 h-4 text-accent" />
+              <h3 className="font-bold text-sm text-fg">Your billing profile</h3>
             </div>
             {hasProfile ? (
               <div className="space-y-3 text-sm">
                 <div>
-                  <p className="text-[11px] text-slate-500">Company</p>
+                  <p className="text-[11px] text-muted">Company</p>
                   <p className="font-semibold">{companyName || '—'}</p>
                 </div>
                 <div>
-                  <p className="text-[11px] text-slate-500">GST / Tax ID</p>
+                  <p className="text-[11px] text-muted">GST / Tax ID</p>
                   <p className="font-semibold">{billing.taxId || 'Not on file yet'}</p>
                 </div>
                 <div>
-                  <p className="text-[11px] text-slate-500">Billing address</p>
+                  <p className="text-[11px] text-muted">Billing address</p>
                   <p className="font-medium whitespace-pre-line">{billing.billingAddress || 'Not on file yet'}</p>
                 </div>
                 <div>
-                  <p className="text-[11px] text-slate-500">Billing email</p>
+                  <p className="text-[11px] text-muted">Billing email</p>
                   <p className="font-medium">{billing.billingEmail || user?.email || '—'}</p>
                 </div>
-                <p className="text-[11px] text-slate-500">
+                <p className="text-[11px] text-muted">
                   Need a GST or address change? Ask your account manager to update your client profile.
                 </p>
               </div>
             ) : (
-              <p className="text-sm text-slate-500">
+              <p className="text-sm text-muted">
                 Your billing profile has not been filled in yet. Your account manager can add GST and address on your
                 client profile.
               </p>
@@ -115,11 +115,11 @@ export const ClientBilling = () => {
           </Card>
 
           <Card className="space-y-4">
-            <div className="flex items-center gap-2 pb-2 border-b border-slate-200 dark:border-slate-800">
+            <div className="flex items-center gap-2 pb-2 border-b border-border">
               <Landmark className="w-4 h-4 text-emerald-500" />
-              <h3 className="font-bold text-sm text-slate-900 dark:text-slate-100">Pay our company</h3>
+              <h3 className="font-bold text-sm text-fg">Pay our company</h3>
             </div>
-            <p className="text-xs text-slate-500">
+            <p className="text-xs text-muted">
               Transfer invoice amounts to this account. Include your invoice number in the payment reference.
             </p>
             {bank ? (
@@ -132,13 +132,13 @@ export const ClientBilling = () => {
                 <CopyRow label="UPI" value={bank.upi} />
                 <CopyRow label="Branch" value={bank.branch} />
                 {bank.notes && (
-                  <p className="text-xs text-slate-600 dark:text-slate-300 bg-amber-50 dark:bg-amber-950/30 border border-amber-200/60 dark:border-amber-800/40 rounded-xl p-3">
+                  <p className="text-xs text-muted bg-amber-50 dark:bg-amber-950/30 border border-amber-200/60 dark:border-amber-800/40 rounded-xl p-3">
                     {bank.notes}
                   </p>
                 )}
               </div>
             ) : (
-              <p className="text-sm text-slate-500">Bank details are not available yet.</p>
+              <p className="text-sm text-muted">Bank details are not available yet.</p>
             )}
           </Card>
         </div>

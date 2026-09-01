@@ -99,7 +99,7 @@ export const ClientFiles = () => {
     }
     if (lower.includes('.png') || lower.includes('.jpg') || lower.includes('.jpeg') || lower.includes('.webp') || lower.includes('image')) {
       return (
-        <div className="w-11 h-11 rounded-xl bg-blue-50 dark:bg-blue-500/15 text-blue-600 dark:text-blue-400 flex items-center justify-center shrink-0">
+        <div className="w-11 h-11 rounded-xl bg-accent-soft text-accent flex items-center justify-center shrink-0">
           <FileImage className="w-5 h-5" />
         </div>
       )
@@ -119,7 +119,7 @@ export const ClientFiles = () => {
       )
     }
     return (
-      <div className="w-11 h-11 rounded-xl bg-purple-50 dark:bg-purple-500/15 text-purple-600 dark:text-purple-400 flex items-center justify-center shrink-0">
+      <div className="w-11 h-11 rounded-xl bg-accent-soft text-accent flex items-center justify-center shrink-0">
         <File className="w-5 h-5" />
       </div>
     )
@@ -166,10 +166,10 @@ export const ClientFiles = () => {
   return (
     <div className="space-y-7 max-w-7xl mx-auto pb-10">
       <div>
-        <h2 className="text-2xl font-bold text-slate-900 dark:text-white tracking-tight">
+        <h2 className="text-2xl font-bold text-fg tracking-tight">
           Documents & Deliverables
         </h2>
-        <p className="text-sm text-slate-500 dark:text-slate-400 mt-1">
+        <p className="text-sm text-muted mt-1">
           Download client contracts, design specifications, technical documentation, and project deliverables.
         </p>
       </div>
@@ -177,12 +177,12 @@ export const ClientFiles = () => {
       {agreements.length > 0 && (
         <section className="space-y-3">
           <div>
-            <h3 className="text-sm font-semibold text-slate-900 dark:text-white">Legal agreements</h3>
-            <p className="text-xs text-slate-500 dark:text-slate-400 mt-0.5">
+            <h3 className="text-sm font-semibold text-fg">Legal agreements</h3>
+            <p className="text-xs text-muted mt-0.5">
               MSA, NDA, and SOW — download each PDF separately.
             </p>
           </div>
-          <div className="rounded-2xl border border-slate-200/80 dark:border-slate-800 overflow-hidden bg-white dark:bg-[#111827]">
+          <div className="rounded-2xl border border-border overflow-hidden bg-surface">
             {agreements.map((ag, idx) => {
               const short =
                 ag.id === 'msa' ? 'MSA' : ag.id === 'nda' ? 'NDA' : ag.id === 'sow' ? 'SOW' : ag.id.toUpperCase()
@@ -194,12 +194,12 @@ export const ClientFiles = () => {
                     idx < agreements.length - 1 ? 'border-b border-slate-100 dark:border-slate-800/80' : ''
                   }`}
                 >
-                  <div className="w-10 h-10 rounded-xl bg-blue-50 dark:bg-blue-500/10 text-blue-600 dark:text-blue-400 flex items-center justify-center shrink-0">
+                  <div className="w-10 h-10 rounded-xl bg-accent-soft text-accent flex items-center justify-center shrink-0">
                     <Scale className="w-4 h-4" />
                   </div>
                   <div className="min-w-0 flex-1">
-                    <p className="text-sm font-semibold text-slate-900 dark:text-white truncate">{label}</p>
-                    <p className="text-[11px] text-slate-500 dark:text-slate-400 mt-0.5">{short} · PDF</p>
+                    <p className="text-sm font-semibold text-fg truncate">{label}</p>
+                    <p className="text-[11px] text-muted mt-0.5">{short} · PDF</p>
                   </div>
                   <Button
                     size="sm"
@@ -219,8 +219,8 @@ export const ClientFiles = () => {
 
       <section className="space-y-3">
         <div>
-          <h3 className="text-sm font-semibold text-slate-900 dark:text-white">Project files</h3>
-          <p className="text-xs text-slate-500 dark:text-slate-400 mt-0.5">
+          <h3 className="text-sm font-semibold text-fg">Project files</h3>
+          <p className="text-xs text-muted mt-0.5">
             Specs, reports, and deliverables shared by your team.
           </p>
         </div>
@@ -232,8 +232,8 @@ export const ClientFiles = () => {
             onClick={() => setFilterCategory(tab)}
             className={`px-3.5 py-1.5 rounded-full text-xs font-semibold transition-all cursor-pointer whitespace-nowrap ${
               filterCategory === tab
-                ? 'bg-blue-600 text-white shadow-xs'
-                : 'bg-white dark:bg-[#111827] text-slate-600 dark:text-slate-400 hover:text-slate-900 dark:hover:text-slate-100 hover:bg-slate-100 dark:hover:bg-slate-800 border border-slate-200/80 dark:border-slate-800'
+                ? 'bg-accent text-white shadow-xs'
+                : 'bg-surface text-muted hover:text-slate-900 dark:hover:text-slate-100 hover:bg-chrome border border-border'
             }`}
           >
             {tab}
@@ -242,16 +242,16 @@ export const ClientFiles = () => {
       </div>
 
       {isLoading ? (
-        <div className="py-16 text-center text-slate-500 dark:text-slate-400">
-          <Loader2 className="w-6 h-6 animate-spin mx-auto text-blue-600 dark:text-blue-400 mb-2" />
+        <div className="py-16 text-center text-muted">
+          <Loader2 className="w-6 h-6 animate-spin mx-auto text-accent mb-2" />
           <span className="text-xs">Loading documents & deliverables...</span>
         </div>
       ) : filteredFiles.length === 0 ? (
-        <Card className="p-12 text-center text-slate-500 dark:text-slate-400 border-dashed space-y-3">
-          <div className="w-12 h-12 rounded-full bg-slate-100 dark:bg-slate-800 text-slate-400 flex items-center justify-center mx-auto">
+        <Card className="p-12 text-center text-muted border-dashed space-y-3">
+          <div className="w-12 h-12 rounded-full bg-chrome text-slate-400 flex items-center justify-center mx-auto">
             <FolderOpen className="w-6 h-6" />
           </div>
-          <h4 className="text-sm font-bold text-slate-900 dark:text-white">
+          <h4 className="text-sm font-bold text-fg">
             No downloadable deliverables uploaded yet
           </h4>
           <p className="text-xs text-slate-400 max-w-sm mx-auto">
@@ -270,21 +270,21 @@ export const ClientFiles = () => {
             return (
               <Card
                 key={f.fileId || f.id || fileName}
-                className="p-5 bg-white dark:bg-[#111827] border-slate-200/80 dark:border-slate-800 rounded-2xl shadow-2xs hover:shadow-xs transition-all flex flex-col justify-between gap-4"
+                className="p-5 bg-surface border-border rounded-2xl shadow-2xs hover:shadow-xs transition-all flex flex-col justify-between gap-4"
               >
                 <div className="flex items-start gap-3.5 min-w-0">
                   {getFileIcon(fileName, f.fileType)}
                   <div className="min-w-0 flex-1">
-                    <h4 className="font-bold text-slate-900 dark:text-white text-xs truncate" title={fileName}>
+                    <h4 className="font-bold text-fg text-xs truncate" title={fileName}>
                       {fileName}
                     </h4>
                     {projectName && (
-                      <p className="text-[11px] text-blue-600 dark:text-blue-400 font-medium truncate mt-0.5">
+                      <p className="text-[11px] text-accent font-medium truncate mt-0.5">
                         {projectName}
                       </p>
                     )}
                     <div className="flex flex-wrap items-center gap-2 text-[11px] text-slate-400 dark:text-slate-400 mt-1.5">
-                      <span className="inline-flex items-center px-2 py-0.5 rounded-md text-[10px] font-medium bg-slate-100 dark:bg-slate-800 text-slate-600 dark:text-slate-300">
+                      <span className="inline-flex items-center px-2 py-0.5 rounded-md text-[10px] font-medium bg-chrome text-muted">
                         {fileCategory}
                       </span>
                       <span>{fileSize}</span>
@@ -296,9 +296,9 @@ export const ClientFiles = () => {
                 <div className="flex items-center justify-end gap-2 pt-3 border-t border-slate-100 dark:border-slate-800/80">
                   <button
                     onClick={() => handleView(f)}
-                    className="inline-flex items-center gap-1 px-3 py-1.5 bg-slate-50 dark:bg-slate-800 hover:bg-slate-100 dark:hover:bg-slate-700 text-slate-700 dark:text-slate-200 rounded-xl border border-slate-200/80 dark:border-slate-700 text-xs font-semibold cursor-pointer transition-colors"
+                    className="inline-flex items-center gap-1 px-3 py-1.5 bg-chrome hover:bg-slate-100 dark:hover:bg-slate-700 text-slate-700 dark:text-slate-200 rounded-xl border border-slate-200/80 dark:border-slate-700 text-xs font-semibold cursor-pointer transition-colors"
                   >
-                    <Eye className="w-3.5 h-3.5 text-slate-500 dark:text-slate-400" />
+                    <Eye className="w-3.5 h-3.5 text-muted" />
                     <span>View</span>
                   </button>
                   <Button
@@ -306,7 +306,7 @@ export const ClientFiles = () => {
                     variant="primary"
                     icon={Download}
                     onClick={() => handleDownload(f)}
-                    className="bg-blue-600 hover:bg-blue-700 text-white cursor-pointer px-3 py-1.5 text-xs font-semibold rounded-xl"
+                    className="bg-accent hover:bg-accent-hover text-white cursor-pointer px-3 py-1.5 text-xs font-semibold rounded-xl"
                   >
                     Download
                   </Button>
@@ -321,9 +321,9 @@ export const ClientFiles = () => {
       {/* Document Detail / Information Modal */}
       {previewDoc && (
         <div className="fixed inset-0 bg-black/60 backdrop-blur-sm z-50 flex items-center justify-center p-4">
-          <div className="bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800 rounded-2xl max-w-lg w-full p-6 space-y-5 shadow-2xl">
+          <div className="bg-surface border border-border rounded-2xl max-w-lg w-full p-6 space-y-5 shadow-2xl">
             <div className="flex items-center justify-between pb-3 border-b border-slate-100 dark:border-slate-800">
-              <h3 className="font-bold text-sm text-slate-900 dark:text-white truncate">
+              <h3 className="font-bold text-sm text-fg truncate">
                 {previewDoc.filename || previewDoc.fileName || previewDoc.name}
               </h3>
               <button
@@ -334,23 +334,23 @@ export const ClientFiles = () => {
               </button>
             </div>
 
-            <div className="bg-slate-50 dark:bg-slate-950/60 p-4 rounded-xl border border-slate-200/80 dark:border-slate-800 space-y-3 text-xs">
+            <div className="bg-slate-50 dark:bg-slate-950/60 p-4 rounded-xl border border-border space-y-3 text-xs">
               <div className="flex justify-between">
                 <span className="text-slate-500">Category:</span>
-                <span className="font-semibold text-slate-800 dark:text-slate-200">{previewDoc.category || 'Deliverable'}</span>
+                <span className="font-semibold text-fg">{previewDoc.category || 'Deliverable'}</span>
               </div>
               <div className="flex justify-between">
                 <span className="text-slate-500">Size:</span>
-                <span className="font-semibold text-slate-800 dark:text-slate-200">{previewDoc.size || '1.5 MB'}</span>
+                <span className="font-semibold text-fg">{previewDoc.size || '1.5 MB'}</span>
               </div>
               <div className="flex justify-between">
                 <span className="text-slate-500">Uploaded Date:</span>
-                <span className="font-semibold text-slate-800 dark:text-slate-200">{previewDoc.uploadedAt || 'Recent'}</span>
+                <span className="font-semibold text-fg">{previewDoc.uploadedAt || 'Recent'}</span>
               </div>
               {previewDoc.description && (
-                <div className="pt-2 border-t border-slate-200 dark:border-slate-800">
+                <div className="pt-2 border-t border-border">
                   <span className="text-slate-500 block mb-1">Description:</span>
-                  <p className="text-slate-700 dark:text-slate-300">{previewDoc.description}</p>
+                  <p className="text-fg">{previewDoc.description}</p>
                 </div>
               )}
             </div>
@@ -371,7 +371,7 @@ export const ClientFiles = () => {
                   handleDownload(previewDoc)
                   setPreviewDoc(null)
                 }}
-                className="bg-blue-600 hover:bg-blue-700 text-white"
+                className="bg-accent hover:bg-accent-hover text-white"
               >
                 Download File
               </Button>

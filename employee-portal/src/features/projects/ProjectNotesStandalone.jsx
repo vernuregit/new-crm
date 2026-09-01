@@ -64,14 +64,14 @@ export const ProjectNotesStandalone = () => {
         description="Task list with status, dates, priority, and notes"
       />
 
-      <div className="flex flex-wrap items-center gap-3 border-b border-slate-200 dark:border-slate-800 pb-3">
-        <span className="text-xs font-medium text-slate-500 dark:text-slate-400 flex items-center gap-1">
-          <Filter className="w-3.5 h-3.5 text-indigo-500" /> Project:
+      <div className="flex flex-wrap items-center gap-3 border-b border-border pb-3">
+        <span className="text-xs font-medium text-muted flex items-center gap-1">
+          <Filter className="w-3.5 h-3.5 text-accent" /> Project:
         </span>
         <select
           value={projectId || ''}
           onChange={(e) => handleProjectChange(e.target.value)}
-          className="bg-slate-100 dark:bg-[#181C27] border border-slate-300 dark:border-slate-800 text-xs text-slate-900 dark:text-slate-100 font-semibold rounded-xl px-3 py-1.5 focus:outline-none focus:border-indigo-500 cursor-pointer"
+          className="bg-chrome border border-border text-xs text-fg font-semibold rounded-xl px-3 py-1.5 focus:outline-none focus:border-accent cursor-pointer"
         >
           {visibleProjects.length === 0 ? (
             <option value="">No projects available</option>
@@ -90,7 +90,7 @@ export const ProjectNotesStandalone = () => {
       ) : (
         <Card className="p-12 text-center space-y-2 border-dashed">
           <StickyNote className="w-10 h-10 mx-auto text-slate-400" />
-          <p className="text-sm font-semibold text-slate-800 dark:text-slate-200">Select a project</p>
+          <p className="text-sm font-semibold text-fg">Select a project</p>
           <p className="text-xs text-slate-400">Notes are stored per project.</p>
         </Card>
       )}

@@ -1,4 +1,4 @@
-import React, { useState, useEffect } from 'react'
+import React, { useState, useEffect, useRef } from 'react'
 import { PageHeader } from '../../components/layout/PageHeader'
 import { Card } from '../../components/ui/Card'
 import { Badge } from '../../components/ui/Badge'
@@ -6,7 +6,7 @@ import { Button } from '../../components/ui/Button'
 import { Input } from '../../components/ui/Input'
 import { useUserStore } from '../../stores/userStore'
 import { db, auth } from '../../shared/services/firebaseService'
-import { updateDoc, doc, getDoc } from 'firebase/firestore'
+import { setDoc, doc, getDoc, collection, query, where, getDocs, limit } from 'firebase/firestore'
 import { updatePassword, sendPasswordResetEmail, updateProfile } from 'firebase/auth'
 import {
   User,
@@ -43,41 +43,62 @@ export const EmployeeProfile = () => {
   const [passwordSaving, setPasswordSaving] = useState(false)
   const [error, setError] = useState('')
   const [success, setSuccess] = useState('')
+  const hydratedUidRef = useRef(null)
 
   useEffect(() => {
-    const loadProfile = async () => {
-      if (!user) return
+    if (!user?.uid) {
+      hydratedUidRef.current = null
+      return
+    }
+    if (hydratedUidRef.current === user.uid) return
+
+    const applyDoc = (currentDoc) => {
+      hydratedUidRef.current = user.uid
       setEmail(user.email || '')
-
-      let currentDoc = userDoc
-      if (!currentDoc) {
-        try {
-          const snap = await getDoc(doc(db, 'users', user.uid))
-          if (snap.exists()) {
-            currentDoc = snap.data()
-            setUser(user, currentDoc, claims)
-          }
-        } catch (err) {
-          console.warn('Failed to fetch user doc:', err)
-        }
-      }
-
+      const storedQuote = localStorage.getItem(`crm_quote_${user.uid}`) || ''
       if (currentDoc) {
         setDisplayName(currentDoc.displayName || user?.displayName || '')
         setPhoneNumber(currentDoc.phoneNumber || '')
         setRoleName(currentDoc.roleName || currentDoc.role || 'Team Member')
         setDepartmentName(currentDoc.departmentName || currentDoc.department || 'Delivery & Operations')
         setSkills(currentDoc.skills || ['Productivity'])
-        setQuote(currentDoc.quote || currentDoc.proverb || (user?.uid ? localStorage.getItem(`crm_quote_${user.uid}`) : '') || '')
+        setQuote((Date.parse(currentDoc.quoteUpdatedAt || '') || 0) > 0
+          ? (currentDoc.quote || currentDoc.proverb || storedQuote)
+          : (storedQuote || currentDoc.quote || currentDoc.proverb || ''))
       } else {
         setDisplayName(user?.displayName || '')
         setRoleName('Software Specialist')
         setDepartmentName('Engineering & Product')
         setSkills(['React', 'Productivity'])
-        setQuote(user?.uid ? localStorage.getItem(`crm_quote_${user.uid}`) || '' : '')
+        setQuote(storedQuote)
       }
     }
-    loadProfile()
+
+    if (userDoc) {
+      applyDoc(userDoc)
+      return
+    }
+
+    let cancelled = false
+    getDoc(doc(db, 'users', user.uid))
+      .then((snap) => {
+        if (cancelled || hydratedUidRef.current === user.uid) return
+        if (snap.exists()) {
+          const currentDoc = snap.data()
+          setUser(user, currentDoc, claims)
+          applyDoc(currentDoc)
+        } else {
+          applyDoc(null)
+        }
+      })
+      .catch((err) => {
+        console.warn('Failed to fetch user doc:', err)
+        if (!cancelled) applyDoc(null)
+      })
+
+    return () => {
+      cancelled = true
+    }
   }, [user, userDoc, claims, setUser])
 
   const handleUpdateProfile = async (e) => {
@@ -89,13 +110,14 @@ export const EmployeeProfile = () => {
     try {
       const trimmedName = displayName.trim()
       const trimmedQuote = quote.trim()
-      const userRef = doc(db, 'users', user.uid)
+      const quoteUpdatedAt = new Date().toISOString()
       const updatedFields = {
         displayName: trimmedName,
         phoneNumber: phoneNumber.trim(),
         quote: trimmedQuote,
         proverb: trimmedQuote,
-        updatedAt: new Date().toISOString(),
+        quoteUpdatedAt,
+        updatedAt: quoteUpdatedAt,
       }
 
       if (user?.uid) {
@@ -103,7 +125,19 @@ export const EmployeeProfile = () => {
       }
 
       if (import.meta.env.VITE_FIREBASE_API_KEY !== 'mock_api_key_dev') {
-        await updateDoc(userRef, updatedFields)
+        await setDoc(doc(db, 'users', user.uid), updatedFields, { merge: true })
+        const quoteFields = { quote: trimmedQuote, proverb: trimmedQuote, quoteUpdatedAt, updatedAt: quoteUpdatedAt }
+        const empRef = doc(db, 'employees', user.uid)
+        const empSnap = await getDoc(empRef)
+        if (empSnap.exists()) {
+          await setDoc(empRef, quoteFields, { merge: true })
+        } else if (user.email) {
+          const empQuery = query(collection(db, 'employees'), where('email', '==', user.email), limit(1))
+          const empByEmail = await getDocs(empQuery)
+          if (!empByEmail.empty) {
+            await setDoc(empByEmail.docs[0].ref, quoteFields, { merge: true })
+          }
+        }
         if (auth.currentUser) {
           try {
             await updateProfile(auth.currentUser, { displayName: trimmedName })
@@ -210,13 +244,13 @@ export const EmployeeProfile = () => {
       <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
         {/* Left Side: Summary Card */}
         <div className="md:col-span-1 space-y-6">
-          <Card className="p-6 text-center space-y-4 border-slate-200 dark:border-slate-800">
-            <div className="w-20 h-20 rounded-2xl bg-indigo-100 dark:bg-indigo-600/20 text-indigo-600 dark:text-indigo-400 font-bold text-3xl flex items-center justify-center border border-indigo-200 dark:border-indigo-500/30 mx-auto">
+          <Card className="p-6 text-center space-y-4 border-border">
+            <div className="w-20 h-20 rounded-2xl bg-accent-soft text-accent font-bold text-3xl flex items-center justify-center border border-accent/20 dark:border-accent/30 mx-auto">
               {displayName?.charAt(0) || 'E'}
             </div>
             <div>
-              <h3 className="font-bold text-slate-900 dark:text-slate-100">{displayName || 'Employee Representative'}</h3>
-              <p className="text-xs text-slate-500 dark:text-slate-400 flex items-center justify-center gap-1 mt-1 font-medium">
+              <h3 className="font-bold text-fg">{displayName || 'Employee Representative'}</h3>
+              <p className="text-xs text-muted flex items-center justify-center gap-1 mt-1 font-medium">
                 <Briefcase className="w-3.5 h-3.5" /> {roleName}
               </p>
               <p className="text-[10px] text-slate-400 dark:text-slate-500 flex items-center justify-center gap-1 mt-0.5">
@@ -248,7 +282,7 @@ export const EmployeeProfile = () => {
                 </span>
                 <div className="flex flex-wrap gap-1">
                   {skills.map((s, idx) => (
-                    <span key={idx} className="px-2 py-0.5 bg-slate-100 dark:bg-slate-800 text-slate-600 dark:text-slate-350 text-[10px] font-semibold rounded-lg">
+                    <span key={idx} className="px-2 py-0.5 bg-chrome text-muted text-[10px] font-semibold rounded-lg">
                       {s}
                     </span>
                   ))}
@@ -257,7 +291,7 @@ export const EmployeeProfile = () => {
             )}
           </Card>
 
-          <Card className="p-6 border-slate-200 dark:border-slate-800 space-y-3">
+          <Card className="p-6 border-border space-y-3">
             <h4 className="font-bold text-xs uppercase tracking-wider text-slate-400 flex items-center gap-1.5">
               <Key className="w-4 h-4" /> Alternate Reset
             </h4>
@@ -266,7 +300,7 @@ export const EmployeeProfile = () => {
             </p>
             <button
               onClick={handleSendResetEmail}
-              className="w-full text-center text-xs text-indigo-600 dark:text-indigo-400 font-bold hover:underline cursor-pointer"
+              className="w-full text-center text-xs text-accent font-bold hover:underline cursor-pointer"
             >
               Email Me Password Reset Link
             </button>
@@ -275,8 +309,8 @@ export const EmployeeProfile = () => {
 
         {/* Right Side: Profile Details & Credentials forms */}
         <div className="md:col-span-2 space-y-6">
-          <Card className="p-6 border-slate-200 dark:border-slate-800 space-y-4">
-            <h3 className="font-bold text-slate-900 dark:text-slate-100 text-sm">Personal Details</h3>
+          <Card className="p-6 border-border space-y-4">
+            <h3 className="font-bold text-fg text-sm">Personal Details</h3>
 
             <form onSubmit={handleUpdateProfile} className="space-y-4">
               <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
@@ -289,8 +323,8 @@ export const EmployeeProfile = () => {
                   required
                 />
                 <div>
-                  <label className="block text-xs font-medium text-slate-500 dark:text-slate-400 mb-1.5">Corporate Role</label>
-                  <div className="flex items-center gap-2 bg-slate-100 dark:bg-[#11141E] border border-slate-200 dark:border-slate-800 text-slate-500 dark:text-slate-400 text-xs rounded-xl py-2.5 px-3.5">
+                  <label className="block text-xs font-medium text-muted mb-1.5">Corporate Role</label>
+                  <div className="flex items-center gap-2 bg-chrome border border-border text-muted text-xs rounded-xl py-2.5 px-3.5">
                     <Briefcase className="w-4 h-4" />
                     <span>{roleName} ({departmentName})</span>
                   </div>
@@ -306,8 +340,8 @@ export const EmployeeProfile = () => {
                   icon={Phone}
                 />
                 <div>
-                  <label className="block text-xs font-medium text-slate-500 dark:text-slate-400 mb-1.5">Corporate Email</label>
-                  <div className="flex items-center gap-2 bg-slate-100 dark:bg-[#11141E] border border-slate-200 dark:border-slate-800 text-slate-500 dark:text-slate-400 text-xs rounded-xl py-2.5 px-3.5">
+                  <label className="block text-xs font-medium text-muted mb-1.5">Corporate Email</label>
+                  <div className="flex items-center gap-2 bg-chrome border border-border text-muted text-xs rounded-xl py-2.5 px-3.5">
                     <Mail className="w-4 h-4" />
                     <span>{email}</span>
                   </div>
@@ -326,7 +360,7 @@ export const EmployeeProfile = () => {
                 <Button
                   type="submit"
                   variant="primary"
-                  className="bg-indigo-600 hover:bg-indigo-500 px-6 cursor-pointer"
+                  className="bg-accent hover:bg-accent-hover px-6 cursor-pointer"
                   icon={Save}
                   disabled={saving}
                 >
@@ -336,8 +370,8 @@ export const EmployeeProfile = () => {
             </form>
           </Card>
 
-          <Card className="p-6 border-slate-200 dark:border-slate-800 space-y-4">
-            <h3 className="font-bold text-slate-900 dark:text-slate-100 text-sm">Security & Password</h3>
+          <Card className="p-6 border-border space-y-4">
+            <h3 className="font-bold text-fg text-sm">Security & Password</h3>
 
             <form onSubmit={handleUpdatePassword} className="space-y-4">
               <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
@@ -365,7 +399,7 @@ export const EmployeeProfile = () => {
                 <Button
                   type="submit"
                   variant="primary"
-                  className="bg-indigo-600 hover:bg-indigo-500 px-6 cursor-pointer"
+                  className="bg-accent hover:bg-accent-hover px-6 cursor-pointer"
                   icon={Save}
                   disabled={passwordSaving}
                 >

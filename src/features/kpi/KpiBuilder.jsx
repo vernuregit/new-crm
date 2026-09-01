@@ -44,14 +44,14 @@ export const KpiBuilder = () => {
           description="Define custom organization metrics, mathematical aggregation formulas, and health score weightings"
         />
 
-        <div className="flex items-center gap-2 border-b border-slate-800 pb-3">
+        <div className="flex items-center gap-2 border-b border-border pb-3">
           <NavLink
             to="/kpi"
             end
             className={({ isActive }) =>
               `flex items-center gap-2 px-3 py-1.5 rounded-xl text-xs font-semibold transition-colors ${
                 isActive
-                  ? 'bg-indigo-600/20 text-indigo-400 border border-indigo-500/30'
+                  ? 'bg-accent-soft text-accent border border-accent/30'
                   : 'text-slate-400 hover:text-slate-200 hover:bg-slate-800'
               }`
             }
@@ -63,7 +63,7 @@ export const KpiBuilder = () => {
             className={({ isActive }) =>
               `flex items-center gap-2 px-3 py-1.5 rounded-xl text-xs font-semibold transition-colors ${
                 isActive
-                  ? 'bg-indigo-600/20 text-indigo-400 border border-indigo-500/30'
+                  ? 'bg-accent-soft text-accent border border-accent/30'
                   : 'text-slate-400 hover:text-slate-200 hover:bg-slate-800'
               }`
             }
@@ -73,7 +73,7 @@ export const KpiBuilder = () => {
         </div>
       </div>
 
-      <Card className="max-w-xl space-y-4 border-slate-800">
+      <Card className="max-w-xl space-y-4 border-border">
         <form onSubmit={handleSaveKpi} className="space-y-4">
           <Input
             label="KPI Name"
@@ -89,7 +89,7 @@ export const KpiBuilder = () => {
               <select
                 value={module}
                 onChange={(e) => setModule(e.target.value)}
-                className="w-full bg-[#11141E] border border-slate-800 text-slate-100 text-sm rounded-xl py-2.5 px-3.5 focus:outline-none"
+                className="w-full bg-canvas border border-border text-fg text-sm rounded-xl py-2.5 px-3.5 focus:outline-none"
               >
                 <option value="crm">CRM & Pipeline</option>
                 <option value="finance">Finance & Revenue</option>
@@ -130,7 +130,7 @@ export const KpiBuilder = () => {
                 max="1"
                 value={weight}
                 onChange={(e) => setWeight(e.target.value)}
-                className="w-full bg-[#11141E] border border-slate-800 text-slate-100 text-sm rounded-xl py-2.5 px-3.5 focus:outline-none"
+                className="w-full bg-canvas border border-border text-fg text-sm rounded-xl py-2.5 px-3.5 focus:outline-none"
               />
             </div>
           </div>

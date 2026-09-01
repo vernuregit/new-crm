@@ -109,7 +109,7 @@ export const getPresetDateRange = (presetKey) => {
 
 // ─── Sparkline Component ──────────────────────────────────────────────────────
 
-const Sparkline = ({ color = '#3b82f6', hasData = true }) => {
+const Sparkline = ({ color = '#07928b', hasData = true }) => {
   const d = hasData
     ? 'M0 25 C 20 28, 35 12, 50 16 C 65 20, 80 5, 100 8'
     : 'M0 20 L 100 20'
@@ -152,7 +152,7 @@ const DonutChart = ({ total = 0, segments = [] }) => {
           r={radius}
           fill="transparent"
           stroke="currentColor"
-          className="text-slate-100 dark:text-slate-800"
+          className="text-fg dark:text-slate-800"
           strokeWidth={strokeWidth}
         />
         {/* Slices */}
@@ -182,10 +182,10 @@ const DonutChart = ({ total = 0, segments = [] }) => {
       </svg>
       {/* Center Label */}
       <div className="absolute inset-0 flex flex-col items-center justify-center text-center pointer-events-none">
-        <span className="text-base font-extrabold text-slate-900 dark:text-slate-100 leading-tight">
+        <span className="text-base font-extrabold text-fg leading-tight">
           {total}
         </span>
-        <span className="text-[10px] font-medium text-slate-400 dark:text-slate-500">
+        <span className="text-[10px] font-medium text-muted">
           Total
         </span>
       </div>
@@ -332,16 +332,16 @@ export const FounderDashboard = () => {
   const projTotal = projectStats.total || 0
   const projSegments = [
     { label: 'Completed', count: projectStats.completed, percent: projTotal > 0 ? Math.round((projectStats.completed / projTotal) * 100) : 0, color: '#10b981' },
-    { label: 'In Progress', count: projectStats.inProgress, percent: projTotal > 0 ? Math.round((projectStats.inProgress / projTotal) * 100) : 0, color: '#2563eb' },
-    { label: 'On Hold', count: projectStats.onHold, percent: projTotal > 0 ? Math.round((projectStats.onHold / projTotal) * 100) : 0, color: '#f97316' },
+    { label: 'In Progress', count: projectStats.inProgress, percent: projTotal > 0 ? Math.round((projectStats.inProgress / projTotal) * 100) : 0, color: '#07928b' },
+    { label: 'On Hold', count: projectStats.onHold, percent: projTotal > 0 ? Math.round((projectStats.onHold / projTotal) * 100) : 0, color: '#f59e0b' },
     { label: 'Not Started', count: projectStats.notStarted, percent: projTotal > 0 ? Math.round((projectStats.notStarted / projTotal) * 100) : 0, color: '#64748b' },
   ]
 
   const taskTotal = taskStats.total || 0
   const taskSegments = [
     { label: 'Completed', count: taskStats.completed, percent: taskTotal > 0 ? Math.round((taskStats.completed / taskTotal) * 100) : 0, color: '#10b981' },
-    { label: 'In Progress', count: taskStats.inProgress, percent: taskTotal > 0 ? Math.round((taskStats.inProgress / taskTotal) * 100) : 0, color: '#2563eb' },
-    { label: 'To Do', count: taskStats.todo, percent: taskTotal > 0 ? Math.round((taskStats.todo / taskTotal) * 100) : 0, color: '#f97316' },
+    { label: 'In Progress', count: taskStats.inProgress, percent: taskTotal > 0 ? Math.round((taskStats.inProgress / taskTotal) * 100) : 0, color: '#07928b' },
+    { label: 'To Do', count: taskStats.todo, percent: taskTotal > 0 ? Math.round((taskStats.todo / taskTotal) * 100) : 0, color: '#f59e0b' },
     { label: 'Overdue', count: taskStats.overdue, percent: taskTotal > 0 ? Math.round((taskStats.overdue / taskTotal) * 100) : 0, color: '#ef4444' },
   ]
 
@@ -360,10 +360,10 @@ export const FounderDashboard = () => {
       {/* ── 1. Top Welcome Banner & Date / Action Controls ────────────────── */}
       <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4">
         <div>
-          <h1 className="text-xl font-bold text-slate-900 dark:text-slate-100 flex items-center gap-2">
+          <h1 className="text-xl font-bold text-fg flex items-center gap-2">
             Welcome back, Admin! <span className="text-lg"></span>
           </h1>
-          <p className="text-xs text-slate-500 dark:text-slate-400 mt-0.5">
+          <p className="text-xs text-muted mt-0.5">
             Here's what's happening in your organization today.
           </p>
         </div>
@@ -377,7 +377,7 @@ export const FounderDashboard = () => {
             }}
             disabled={loading}
             title="Refresh dashboard metrics"
-            className="p-2 bg-white dark:bg-[#181C27] border border-slate-200 dark:border-slate-800 rounded-xl text-slate-500 dark:text-slate-400 hover:text-slate-900 dark:hover:text-slate-200 shadow-xs hover:border-slate-300 dark:hover:border-slate-700 transition-all cursor-pointer disabled:opacity-50"
+            className="p-2 bg-surface border border-border rounded-xl text-muted hover:text-fg shadow-xs hover:border-border transition-all cursor-pointer disabled:opacity-50"
           >
             <RefreshCw className={`w-3.5 h-3.5 ${loading ? 'animate-spin' : ''}`} />
           </button>
@@ -386,18 +386,18 @@ export const FounderDashboard = () => {
           <div className="relative" ref={dateDropdownRef}>
             <button
               onClick={() => setShowDateDropdown(!showDateDropdown)}
-              className="flex items-center gap-2 px-3.5 py-2 bg-white dark:bg-[#181C27] border border-slate-200 dark:border-slate-800 hover:border-indigo-500/50 rounded-xl text-xs font-medium text-slate-700 dark:text-slate-200 shadow-xs transition-all cursor-pointer"
+              className="flex items-center gap-2 px-3.5 py-2 bg-surface border border-border hover:border-accent/50 rounded-xl text-xs font-medium text-fg shadow-xs transition-all cursor-pointer"
             >
-              <Calendar className="w-3.5 h-3.5 text-indigo-500" />
+              <Calendar className="w-3.5 h-3.5 text-accent" />
               <span className="font-semibold">{currentRange.label}</span>
               <ChevronDown className={`w-3 h-3 text-slate-400 transition-transform duration-200 ${showDateDropdown ? 'rotate-180' : ''}`} />
             </button>
 
             {/* Date Range Popover */}
             {showDateDropdown && (
-              <div className="absolute right-0 mt-2 w-72 bg-white dark:bg-[#181C27] border border-slate-200 dark:border-slate-800 rounded-2xl shadow-2xl p-3 z-40 space-y-3">
+              <div className="absolute right-0 mt-2 w-72 bg-surface border border-border rounded-2xl shadow-2xl p-3 z-40 space-y-3">
                 <div>
-                  <p className="text-[11px] font-bold uppercase tracking-wider text-slate-400 dark:text-slate-500 px-2 mb-1.5">
+                  <p className="text-[11px] font-bold uppercase tracking-wider text-muted px-2 mb-1.5">
                     Filter by Period
                   </p>
                   <div className="grid grid-cols-2 gap-1 text-xs">
@@ -409,12 +409,12 @@ export const FounderDashboard = () => {
                           onClick={() => handleSelectPreset(preset.key)}
                           className={`flex items-center justify-between px-2.5 py-1.5 rounded-lg text-xs font-medium transition-colors cursor-pointer text-left ${
                             isSelected
-                              ? 'bg-indigo-50 dark:bg-indigo-500/20 text-indigo-600 dark:text-indigo-400 font-semibold'
-                              : 'text-slate-700 dark:text-slate-300 hover:bg-slate-50 dark:hover:bg-slate-800/60'
+                              ? 'bg-accent-soft text-accent font-semibold'
+                              : 'text-fg hover:bg-slate-50 dark:hover:bg-slate-800/60'
                           }`}
                         >
                           <span>{preset.label}</span>
-                          {isSelected && <Check className="w-3.5 h-3.5 text-indigo-600 dark:text-indigo-400" />}
+                          {isSelected && <Check className="w-3.5 h-3.5 text-accent" />}
                         </button>
                       )
                     })}
@@ -422,36 +422,36 @@ export const FounderDashboard = () => {
                 </div>
 
                 {/* Custom Range Picker */}
-                <div className="pt-2 border-t border-slate-100 dark:border-slate-800">
-                  <p className="text-[11px] font-bold uppercase tracking-wider text-slate-400 dark:text-slate-500 px-2 mb-2">
+                <div className="pt-2 border-t border-slate-100 dark:border-border">
+                  <p className="text-[11px] font-bold uppercase tracking-wider text-muted px-2 mb-2">
                     Custom Date Range
                   </p>
                   <form onSubmit={handleApplyCustomRange} className="space-y-2 px-1">
                     <div className="grid grid-cols-2 gap-2">
                       <div>
-                        <label className="text-[10px] text-slate-500 dark:text-slate-400 mb-0.5 block">Start Date</label>
+                        <label className="text-[10px] text-muted mb-0.5 block">Start Date</label>
                         <NativePickerInput
                           type="date"
                           value={customStartDate}
                           onChange={(e) => setCustomStartDate(e.target.value)}
                           required
-                          className="w-full bg-slate-50 dark:bg-[#11141E] border border-slate-200 dark:border-slate-800 text-slate-900 dark:text-slate-100 text-xs rounded-lg p-1.5 focus:outline-none focus:border-indigo-500"
+                          className="w-full bg-canvas border border-border text-fg text-xs rounded-lg p-1.5 focus:outline-none focus:border-accent"
                         />
                       </div>
                       <div>
-                        <label className="text-[10px] text-slate-500 dark:text-slate-400 mb-0.5 block">End Date</label>
+                        <label className="text-[10px] text-muted mb-0.5 block">End Date</label>
                         <NativePickerInput
                           type="date"
                           value={customEndDate}
                           onChange={(e) => setCustomEndDate(e.target.value)}
                           required
-                          className="w-full bg-slate-50 dark:bg-[#11141E] border border-slate-200 dark:border-slate-800 text-slate-900 dark:text-slate-100 text-xs rounded-lg p-1.5 focus:outline-none focus:border-indigo-500"
+                          className="w-full bg-canvas border border-border text-fg text-xs rounded-lg p-1.5 focus:outline-none focus:border-accent"
                         />
                       </div>
                     </div>
                     <button
                       type="submit"
-                      className="w-full mt-2 py-1.5 bg-indigo-600 hover:bg-indigo-700 text-white rounded-lg text-xs font-semibold shadow-xs transition-colors cursor-pointer"
+                      className="w-full mt-2 py-1.5 bg-accent hover:bg-accent-hover text-white rounded-lg text-xs font-semibold shadow-xs transition-colors cursor-pointer"
                     >
                       Apply Custom Range
                     </button>
@@ -465,7 +465,7 @@ export const FounderDashboard = () => {
           <div className="relative">
             <button
               onClick={() => setShowNewDropdown(!showNewDropdown)}
-              className="flex items-center gap-1.5 px-4 py-2 bg-indigo-600 hover:bg-indigo-700 text-white rounded-xl text-xs font-semibold shadow-sm shadow-indigo-600/20 transition-all cursor-pointer"
+              className="flex items-center gap-1.5 px-4 py-2 bg-accent hover:bg-accent-hover text-white rounded-xl text-xs font-semibold shadow-sm shadow-accent/20 transition-all cursor-pointer"
             >
               <Plus className="w-3.5 h-3.5" />
               <span>New</span>
@@ -473,22 +473,22 @@ export const FounderDashboard = () => {
             </button>
 
             {showNewDropdown && (
-              <div className="absolute right-0 mt-2 w-48 bg-white dark:bg-[#181C27] border border-slate-200 dark:border-slate-800 rounded-xl shadow-xl py-1.5 z-30 text-xs">
+              <div className="absolute right-0 mt-2 w-48 bg-surface border border-border rounded-xl shadow-xl py-1.5 z-30 text-xs">
                 <button
                   onClick={() => {
                     setShowNewDropdown(false)
                     navigate('/projects/list')
                   }}
-                  className="w-full text-left px-3.5 py-2 hover:bg-slate-50 dark:hover:bg-slate-800/60 flex items-center gap-2 text-slate-700 dark:text-slate-200"
+                  className="w-full text-left px-3.5 py-2 hover:bg-slate-50 dark:hover:bg-slate-800/60 flex items-center gap-2 text-fg"
                 >
-                  <FolderPlus className="w-3.5 h-3.5 text-indigo-500" /> Create Project
+                  <FolderPlus className="w-3.5 h-3.5 text-accent" /> Create Project
                 </button>
                 <button
                   onClick={() => {
                     setShowNewDropdown(false)
                     navigate('/team/employees')
                   }}
-                  className="w-full text-left px-3.5 py-2 hover:bg-slate-50 dark:hover:bg-slate-800/60 flex items-center gap-2 text-slate-700 dark:text-slate-200"
+                  className="w-full text-left px-3.5 py-2 hover:bg-slate-50 dark:hover:bg-slate-800/60 flex items-center gap-2 text-fg"
                 >
                   <UserPlus className="w-3.5 h-3.5 text-emerald-500" /> Add Employee
                 </button>
@@ -497,7 +497,7 @@ export const FounderDashboard = () => {
                     setShowNewDropdown(false)
                     navigate('/finance/invoices')
                   }}
-                  className="w-full text-left px-3.5 py-2 hover:bg-slate-50 dark:hover:bg-slate-800/60 flex items-center gap-2 text-slate-700 dark:text-slate-200"
+                  className="w-full text-left px-3.5 py-2 hover:bg-slate-50 dark:hover:bg-slate-800/60 flex items-center gap-2 text-fg"
                 >
                   <FileText className="w-3.5 h-3.5 text-purple-500" /> Generate Invoice
                 </button>
@@ -510,15 +510,15 @@ export const FounderDashboard = () => {
       {/* ── 2. Top 4 Metric KPI Cards ─────────────────────────────────────── */}
       <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4">
         {/* Card 1: Total Revenue */}
-        <Card className="p-4 bg-white dark:bg-[#181C27] border-slate-200/80 dark:border-slate-800 hover:shadow-md transition-shadow">
+        <Card className="p-4 bg-surface border-border hover:shadow-md transition-shadow">
           <div className="flex items-start justify-between">
             <div className="flex items-center gap-3">
-              <div className="w-10 h-10 rounded-xl bg-blue-50 dark:bg-blue-500/10 text-blue-600 dark:text-blue-400 flex items-center justify-center font-bold text-base">
+              <div className="w-10 h-10 rounded-xl bg-info-soft text-info flex items-center justify-center font-bold text-base">
                 <IndianRupee className="w-4.5 h-4.5" />
               </div>
               <div>
-                <p className="text-xs font-medium text-slate-500 dark:text-slate-400">Total Revenue</p>
-                <h3 className="text-lg font-bold text-slate-900 dark:text-slate-100 tracking-tight mt-0.5">
+                <p className="text-xs font-medium text-muted">Total Revenue</p>
+                <h3 className="text-lg font-bold text-fg tracking-tight mt-0.5">
                   {formatCurrency(revenue.mrr)}
                 </h3>
               </div>
@@ -534,15 +534,15 @@ export const FounderDashboard = () => {
         </Card>
 
         {/* Card 2: Active Pipeline */}
-        <Card className="p-4 bg-white dark:bg-[#181C27] border-slate-200/80 dark:border-slate-800 hover:shadow-md transition-shadow">
+        <Card className="p-4 bg-surface border-border hover:shadow-md transition-shadow">
           <div className="flex items-start justify-between">
             <div className="flex items-center gap-3">
               <div className="w-10 h-10 rounded-xl bg-emerald-50 dark:bg-emerald-500/10 text-emerald-600 dark:text-emerald-400 flex items-center justify-center">
                 <Users className="w-4.5 h-4.5" />
               </div>
               <div>
-                <p className="text-xs font-medium text-slate-500 dark:text-slate-400">Active Pipeline</p>
-                <h3 className="text-lg font-bold text-slate-900 dark:text-slate-100 tracking-tight mt-0.5">
+                <p className="text-xs font-medium text-muted">Active Pipeline</p>
+                <h3 className="text-lg font-bold text-fg tracking-tight mt-0.5">
                   {formatCurrency(pipeline.pipelineValue)}
                 </h3>
               </div>
@@ -556,15 +556,15 @@ export const FounderDashboard = () => {
         </Card>
 
         {/* Card 3: Active Projects */}
-        <Card className="p-4 bg-white dark:bg-[#181C27] border-slate-200/80 dark:border-slate-800 hover:shadow-md transition-shadow">
+        <Card className="p-4 bg-surface border-border hover:shadow-md transition-shadow">
           <div className="flex items-start justify-between">
             <div className="flex items-center gap-3">
               <div className="w-10 h-10 rounded-xl bg-purple-50 dark:bg-purple-500/10 text-purple-600 dark:text-purple-400 flex items-center justify-center">
                 <Briefcase className="w-4.5 h-4.5" />
               </div>
               <div>
-                <p className="text-xs font-medium text-slate-500 dark:text-slate-400">Active Projects</p>
-                <h3 className="text-lg font-bold text-slate-900 dark:text-slate-100 tracking-tight mt-0.5">
+                <p className="text-xs font-medium text-muted">Active Projects</p>
+                <h3 className="text-lg font-bold text-fg tracking-tight mt-0.5">
                   {projectStats.total}
                 </h3>
               </div>
@@ -578,15 +578,15 @@ export const FounderDashboard = () => {
         </Card>
 
         {/* Card 4: Business Health */}
-        <Card className="p-4 bg-white dark:bg-[#181C27] border-slate-200/80 dark:border-slate-800 hover:shadow-md transition-shadow">
+        <Card className="p-4 bg-surface border-border hover:shadow-md transition-shadow">
           <div className="flex items-start justify-between">
             <div className="flex items-center gap-3">
               <div className="w-10 h-10 rounded-xl bg-amber-50 dark:bg-amber-500/10 text-amber-600 dark:text-amber-400 flex items-center justify-center">
                 <Heart className="w-4.5 h-4.5" />
               </div>
               <div>
-                <p className="text-xs font-medium text-slate-500 dark:text-slate-400">Business Health</p>
-                <h3 className="text-lg font-bold text-slate-900 dark:text-slate-100 tracking-tight mt-0.5">
+                <p className="text-xs font-medium text-muted">Business Health</p>
+                <h3 className="text-lg font-bold text-fg tracking-tight mt-0.5">
                   {health.overall} / 100
                 </h3>
               </div>
@@ -602,16 +602,16 @@ export const FounderDashboard = () => {
 
       {/* Daily org snapshot — not affected by the date filter */}
       <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4">
-        <Card className="p-4 bg-white dark:bg-[#181C27] border-slate-200/80 dark:border-slate-800">
+        <Card className="p-4 bg-surface border-border">
           <div className="flex items-start justify-between">
             <div>
-              <p className="text-xs font-medium text-slate-500 dark:text-slate-400 flex items-center gap-1.5">
-                <Users className="w-3.5 h-3.5 text-indigo-500" /> Employees
+              <p className="text-xs font-medium text-muted flex items-center gap-1.5">
+                <Users className="w-3.5 h-3.5 text-accent" /> Employees
               </p>
-              <h3 className="text-xl font-extrabold text-slate-900 dark:text-slate-100 mt-1">
+              <h3 className="text-xl font-extrabold text-fg mt-1">
                 {orgStats.employees.total}
               </h3>
-              <p className="text-[11px] text-slate-400 dark:text-slate-500 mt-0.5">
+              <p className="text-[11px] text-muted mt-0.5">
                 Total Employees <span className="text-emerald-600 dark:text-emerald-400 font-semibold ml-1.5">{orgStats.employees.growth}</span>
               </p>
             </div>
@@ -621,24 +621,24 @@ export const FounderDashboard = () => {
           </div>
         </Card>
 
-        <Card className="p-4 bg-white dark:bg-[#181C27] border-slate-200/80 dark:border-slate-800">
+        <Card className="p-4 bg-surface border-border">
           <div className="flex items-start justify-between">
             <div className="w-full">
-              <p className="text-xs font-medium text-slate-500 dark:text-slate-400 flex items-center gap-1.5">
-                <UserCheck className="w-3.5 h-3.5 text-blue-500" /> Attendance Today
+              <p className="text-xs font-medium text-muted flex items-center gap-1.5">
+                <UserCheck className="w-3.5 h-3.5 text-info" /> Attendance Today
               </p>
               <div className="flex items-baseline justify-between mt-1">
-                <h3 className="text-xl font-extrabold text-slate-900 dark:text-slate-100">
+                <h3 className="text-xl font-extrabold text-fg">
                   {orgStats.attendance.present} / {orgStats.attendance.total}
                 </h3>
-                <span className="text-xs font-bold text-blue-600 dark:text-blue-400">
+                <span className="text-xs font-bold text-info">
                   {orgStats.attendance.percent}%
                 </span>
               </div>
-              <p className="text-[11px] text-slate-400 dark:text-slate-500 mt-0.5">Present today</p>
-              <div className="w-full bg-slate-100 dark:bg-slate-800 h-1.5 rounded-full overflow-hidden mt-2">
+              <p className="text-[11px] text-muted mt-0.5">Present today</p>
+              <div className="w-full bg-canvas h-1.5 rounded-full overflow-hidden mt-2">
                 <div
-                  className="bg-blue-600 h-full rounded-full transition-all duration-700"
+                  className="bg-info h-full rounded-full transition-all duration-700"
                   style={{ width: `${Math.min(Number(orgStats.attendance.percent) || 0, 100)}%` }}
                 />
               </div>
@@ -646,21 +646,21 @@ export const FounderDashboard = () => {
           </div>
         </Card>
 
-        <Card className="p-4 bg-white dark:bg-[#181C27] border-slate-200/80 dark:border-slate-800">
+        <Card className="p-4 bg-surface border-border">
           <div className="flex items-start justify-between">
             <div>
-              <p className="text-xs font-medium text-slate-500 dark:text-slate-400 flex items-center gap-1.5">
+              <p className="text-xs font-medium text-muted flex items-center gap-1.5">
                 <Calendar className="w-3.5 h-3.5 text-amber-500" /> Leaves Today
               </p>
-              <h3 className="text-xl font-extrabold text-slate-900 dark:text-slate-100 mt-1">
+              <h3 className="text-xl font-extrabold text-fg mt-1">
                 {orgStats.leaves.approved}
               </h3>
-              <p className="text-[11px] text-slate-400 dark:text-slate-500 mt-0.5">Approved today</p>
+              <p className="text-[11px] text-muted mt-0.5">Approved today</p>
             </div>
             <div className="flex flex-col items-end gap-2">
               <button
                 onClick={() => navigate('/team/leave')}
-                className="text-[11px] font-semibold text-indigo-600 dark:text-indigo-400 hover:underline cursor-pointer"
+                className="text-[11px] font-semibold text-accent hover:underline cursor-pointer"
               >
                 View all
               </button>
@@ -671,21 +671,21 @@ export const FounderDashboard = () => {
           </div>
         </Card>
 
-        <Card className="p-4 bg-white dark:bg-[#181C27] border-slate-200/80 dark:border-slate-800">
+        <Card className="p-4 bg-surface border-border">
           <div className="flex items-start justify-between">
             <div>
-              <p className="text-xs font-medium text-slate-500 dark:text-slate-400 flex items-center gap-1.5">
+              <p className="text-xs font-medium text-muted flex items-center gap-1.5">
                 <Headphones className="w-3.5 h-3.5 text-emerald-500" /> Client Support
               </p>
-              <h3 className="text-xl font-extrabold text-slate-900 dark:text-slate-100 mt-1">
+              <h3 className="text-xl font-extrabold text-fg mt-1">
                 {orgStats.tickets.open}
               </h3>
-              <p className="text-[11px] text-slate-400 dark:text-slate-500 mt-0.5">Open Tickets</p>
+              <p className="text-[11px] text-muted mt-0.5">Open Tickets</p>
             </div>
             <div className="flex flex-col items-end gap-2">
               <button
                 onClick={() => navigate('/team/helpdesk')}
-                className="text-[11px] font-semibold text-indigo-600 dark:text-indigo-400 hover:underline cursor-pointer"
+                className="text-[11px] font-semibold text-accent hover:underline cursor-pointer"
               >
                 View all
               </button>
@@ -700,12 +700,12 @@ export const FounderDashboard = () => {
       {/* ── 3. Middle Section: Recent Activity & Business Health Overview ── */}
       <div className="grid grid-cols-1 lg:grid-cols-2 gap-5">
         {/* Left: Recent Activity */}
-        <Card className="p-5 bg-white dark:bg-[#181C27] border-slate-200/80 dark:border-slate-800 space-y-4">
+        <Card className="p-5 bg-surface border-border space-y-4">
           <div className="flex items-center justify-between">
-            <h3 className="font-bold text-slate-900 dark:text-slate-100 text-sm">Recent Activity</h3>
+            <h3 className="font-bold text-fg text-sm">Recent Activity</h3>
             <button
               onClick={() => navigate('/team/timeline')}
-              className="text-xs font-semibold text-indigo-600 dark:text-indigo-400 px-2.5 py-1 rounded-lg bg-indigo-50 dark:bg-indigo-500/10 hover:bg-indigo-100 dark:hover:bg-indigo-500/20 transition-colors cursor-pointer"
+              className="text-xs font-semibold text-accent px-2.5 py-1 rounded-lg bg-accent-soft hover:bg-accent-soft transition-colors cursor-pointer"
             >
               View All
             </button>
@@ -713,14 +713,14 @@ export const FounderDashboard = () => {
 
           <div className="space-y-3.5 pt-1">
             {activities.length === 0 ? (
-              <div className="py-8 flex flex-col items-center justify-center text-center text-slate-400 dark:text-slate-500 space-y-2">
+              <div className="py-8 flex flex-col items-center justify-center text-center text-muted space-y-2">
                 <Inbox className="w-8 h-8 stroke-1 text-slate-300 dark:text-slate-600" />
                 <p className="text-xs">No recent activity recorded in this period.</p>
               </div>
             ) : (
               activities.map((act) => {
                 let IconComp = Folder
-                let iconStyle = 'bg-blue-50 text-blue-600 dark:bg-blue-500/10 dark:text-blue-400'
+                let iconStyle = 'bg-info-soft text-info'
 
                 if (act.type === 'invoice') {
                   IconComp = FileText
@@ -743,11 +743,11 @@ export const FounderDashboard = () => {
                         <IconComp className="w-4 h-4" />
                       </div>
                       <div className="min-w-0 truncate">
-                        <p className="font-semibold text-slate-800 dark:text-slate-200 truncate">{act.title}</p>
-                        <p className="text-[11px] text-slate-400 dark:text-slate-500 truncate">{act.author}</p>
+                        <p className="font-semibold text-fg truncate">{act.title}</p>
+                        <p className="text-[11px] text-muted truncate">{act.author}</p>
                       </div>
                     </div>
-                    <span className="text-[11px] text-slate-400 dark:text-slate-500 font-medium shrink-0">
+                    <span className="text-[11px] text-muted font-medium shrink-0">
                       {act.time}
                     </span>
                   </div>
@@ -758,12 +758,12 @@ export const FounderDashboard = () => {
         </Card>
 
         {/* Right: Business Health Overview */}
-        <Card className="p-5 bg-white dark:bg-[#181C27] border-slate-200/80 dark:border-slate-800 space-y-4">
+        <Card className="p-5 bg-surface border-border space-y-4">
           <div className="flex items-center justify-between">
-            <h3 className="font-bold text-slate-900 dark:text-slate-100 text-sm">Business Health Overview</h3>
+            <h3 className="font-bold text-fg text-sm">Business Health Overview</h3>
             <button
               onClick={() => navigate('/kpi')}
-              className="text-xs font-semibold text-indigo-600 dark:text-indigo-400 px-2.5 py-1 rounded-lg bg-indigo-50 dark:bg-indigo-500/10 hover:bg-indigo-100 dark:hover:bg-indigo-500/20 transition-colors cursor-pointer"
+              className="text-xs font-semibold text-accent px-2.5 py-1 rounded-lg bg-accent-soft hover:bg-accent-soft transition-colors cursor-pointer"
             >
               View Details
             </button>
@@ -773,12 +773,12 @@ export const FounderDashboard = () => {
             {/* CRM & Pipeline Health */}
             <div className="space-y-1.5">
               <div className="flex justify-between font-medium">
-                <span className="text-slate-700 dark:text-slate-300">CRM & Pipeline Health</span>
-                <span className="font-bold text-slate-900 dark:text-slate-100">{health.crm}%</span>
+                <span className="text-fg">CRM & Pipeline Health</span>
+                <span className="font-bold text-fg">{health.crm}%</span>
               </div>
-              <div className="w-full bg-slate-100 dark:bg-slate-800 h-2 rounded-full overflow-hidden">
+              <div className="w-full bg-canvas h-2 rounded-full overflow-hidden">
                 <div
-                  className="bg-blue-600 h-full rounded-full transition-all duration-700"
+                  className="bg-info h-full rounded-full transition-all duration-700"
                   style={{ width: `${health.crm}%` }}
                 />
               </div>
@@ -787,10 +787,10 @@ export const FounderDashboard = () => {
             {/* Finance & Liquidity */}
             <div className="space-y-1.5">
               <div className="flex justify-between font-medium">
-                <span className="text-slate-700 dark:text-slate-300">Finance & Liquidity</span>
-                <span className="font-bold text-slate-900 dark:text-slate-100">{health.finance}%</span>
+                <span className="text-fg">Finance & Liquidity</span>
+                <span className="font-bold text-fg">{health.finance}%</span>
               </div>
-              <div className="w-full bg-slate-100 dark:bg-slate-800 h-2 rounded-full overflow-hidden">
+              <div className="w-full bg-canvas h-2 rounded-full overflow-hidden">
                 <div
                   className="bg-emerald-600 h-full rounded-full transition-all duration-700"
                   style={{ width: `${health.finance}%` }}
@@ -801,10 +801,10 @@ export const FounderDashboard = () => {
             {/* Team Performance */}
             <div className="space-y-1.5">
               <div className="flex justify-between font-medium">
-                <span className="text-slate-700 dark:text-slate-300">Team Performance</span>
-                <span className="font-bold text-slate-900 dark:text-slate-100">{health.team}%</span>
+                <span className="text-fg">Team Performance</span>
+                <span className="font-bold text-fg">{health.team}%</span>
               </div>
-              <div className="w-full bg-slate-100 dark:bg-slate-800 h-2 rounded-full overflow-hidden">
+              <div className="w-full bg-canvas h-2 rounded-full overflow-hidden">
                 <div
                   className="bg-purple-600 h-full rounded-full transition-all duration-700"
                   style={{ width: `${health.team}%` }}
@@ -815,10 +815,10 @@ export const FounderDashboard = () => {
             {/* Project On-Time Delivery */}
             <div className="space-y-1.5">
               <div className="flex justify-between font-medium">
-                <span className="text-slate-700 dark:text-slate-300">Project On-Time Delivery</span>
-                <span className="font-bold text-slate-900 dark:text-slate-100">{health.projects}%</span>
+                <span className="text-fg">Project On-Time Delivery</span>
+                <span className="font-bold text-fg">{health.projects}%</span>
               </div>
-              <div className="w-full bg-slate-100 dark:bg-slate-800 h-2 rounded-full overflow-hidden">
+              <div className="w-full bg-canvas h-2 rounded-full overflow-hidden">
                 <div
                   className="bg-orange-600 h-full rounded-full transition-all duration-700"
                   style={{ width: `${health.projects}%` }}
@@ -832,19 +832,19 @@ export const FounderDashboard = () => {
       {/* ── 4. Lower Section: 3 Columns (Projects Overview, Tasks Overview, Quick Actions) ── */}
       <div className="grid grid-cols-1 md:grid-cols-3 gap-5">
         {/* Projects Overview Donut Card */}
-        <Card className="p-5 bg-white dark:bg-[#181C27] border-slate-200/80 dark:border-slate-800 flex flex-col justify-between">
+        <Card className="p-5 bg-surface border-border flex flex-col justify-between">
           <div>
-            <h3 className="font-bold text-slate-900 dark:text-slate-100 text-sm mb-4">Projects Overview</h3>
+            <h3 className="font-bold text-fg text-sm mb-4">Projects Overview</h3>
             <div className="flex items-center gap-4">
               <DonutChart total={projectStats.total} segments={projSegments} />
               <div className="space-y-2 text-xs w-full">
                 {projSegments.map((seg, i) => (
-                  <div key={i} className="flex items-center justify-between text-slate-600 dark:text-slate-400">
+                  <div key={i} className="flex items-center justify-between text-muted">
                     <div className="flex items-center gap-2">
                       <span className="w-2 h-2 rounded-full shrink-0" style={{ backgroundColor: seg.color }} />
                       <span className="text-xs">{seg.label}</span>
                     </div>
-                    <span className="font-semibold text-slate-800 dark:text-slate-200 text-xs">
+                    <span className="font-semibold text-fg text-xs">
                       {seg.count} ({seg.percent}%)
                     </span>
                   </div>
@@ -855,26 +855,26 @@ export const FounderDashboard = () => {
 
           <button
             onClick={() => navigate('/projects/list')}
-            className="mt-5 pt-3 border-t border-slate-100 dark:border-slate-800/80 text-xs font-semibold text-indigo-600 dark:text-indigo-400 hover:text-indigo-700 dark:hover:text-indigo-300 flex items-center gap-1 cursor-pointer transition-colors text-left"
+            className="mt-5 pt-3 border-t border-slate-100 dark:border-border/80 text-xs font-semibold text-accent hover:text-accent dark:hover:text-accent flex items-center gap-1 cursor-pointer transition-colors text-left"
           >
             View all projects <ArrowRight className="w-3.5 h-3.5" />
           </button>
         </Card>
 
         {/* Tasks Overview Donut Card */}
-        <Card className="p-5 bg-white dark:bg-[#181C27] border-slate-200/80 dark:border-slate-800 flex flex-col justify-between">
+        <Card className="p-5 bg-surface border-border flex flex-col justify-between">
           <div>
-            <h3 className="font-bold text-slate-900 dark:text-slate-100 text-sm mb-4">Tasks Overview</h3>
+            <h3 className="font-bold text-fg text-sm mb-4">Tasks Overview</h3>
             <div className="flex items-center gap-4">
               <DonutChart total={taskStats.total} segments={taskSegments} />
               <div className="space-y-2 text-xs w-full">
                 {taskSegments.map((seg, i) => (
-                  <div key={i} className="flex items-center justify-between text-slate-600 dark:text-slate-400">
+                  <div key={i} className="flex items-center justify-between text-muted">
                     <div className="flex items-center gap-2">
                       <span className="w-2 h-2 rounded-full shrink-0" style={{ backgroundColor: seg.color }} />
                       <span className="text-xs">{seg.label}</span>
                     </div>
-                    <span className="font-semibold text-slate-800 dark:text-slate-200 text-xs">
+                    <span className="font-semibold text-fg text-xs">
                       {seg.count} ({seg.percent}%)
                     </span>
                   </div>
@@ -885,33 +885,33 @@ export const FounderDashboard = () => {
 
           <button
             onClick={() => navigate('/projects/tasks')}
-            className="mt-5 pt-3 border-t border-slate-100 dark:border-slate-800/80 text-xs font-semibold text-indigo-600 dark:text-indigo-400 hover:text-indigo-700 dark:hover:text-indigo-300 flex items-center gap-1 cursor-pointer transition-colors text-left"
+            className="mt-5 pt-3 border-t border-slate-100 dark:border-border/80 text-xs font-semibold text-accent hover:text-accent dark:hover:text-accent flex items-center gap-1 cursor-pointer transition-colors text-left"
           >
             View all tasks <ArrowRight className="w-3.5 h-3.5" />
           </button>
         </Card>
 
         {/* Quick Actions Card */}
-        <Card className="p-5 bg-white dark:bg-[#181C27] border-slate-200/80 dark:border-slate-800 space-y-3">
-          <h3 className="font-bold text-slate-900 dark:text-slate-100 text-sm mb-1">Quick Actions</h3>
+        <Card className="p-5 bg-surface border-border space-y-3">
+          <h3 className="font-bold text-fg text-sm mb-1">Quick Actions</h3>
 
           <div className="space-y-2">
             <button
               onClick={() => navigate('/projects/list')}
-              className="w-full flex items-center justify-between p-2.5 rounded-xl border border-slate-200/80 dark:border-slate-800 hover:border-indigo-300 dark:hover:border-indigo-500/40 hover:bg-slate-50 dark:hover:bg-slate-800/50 transition-all text-xs font-medium text-slate-800 dark:text-slate-200 group cursor-pointer"
+              className="w-full flex items-center justify-between p-2.5 rounded-xl border border-border hover:border-accent dark:hover:border-accent/40 hover:bg-slate-50 dark:hover:bg-slate-800/50 transition-all text-xs font-medium text-fg group cursor-pointer"
             >
               <div className="flex items-center gap-2.5">
-                <div className="w-7 h-7 rounded-lg bg-blue-50 dark:bg-blue-500/10 text-blue-600 dark:text-blue-400 flex items-center justify-center">
+                <div className="w-7 h-7 rounded-lg bg-info-soft text-info flex items-center justify-center">
                   <FolderPlus className="w-3.5 h-3.5" />
                 </div>
                 <span>Create New Project</span>
               </div>
-              <ChevronRight className="w-4 h-4 text-slate-400 group-hover:text-indigo-600 dark:group-hover:text-indigo-400 transition-colors" />
+              <ChevronRight className="w-4 h-4 text-slate-400 group-hover:text-accent dark:group-hover:text-accent transition-colors" />
             </button>
 
             <button
               onClick={() => navigate('/team/employees')}
-              className="w-full flex items-center justify-between p-2.5 rounded-xl border border-slate-200/80 dark:border-slate-800 hover:border-emerald-300 dark:hover:border-emerald-500/40 hover:bg-slate-50 dark:hover:bg-slate-800/50 transition-all text-xs font-medium text-slate-800 dark:text-slate-200 group cursor-pointer"
+              className="w-full flex items-center justify-between p-2.5 rounded-xl border border-border hover:border-emerald-300 dark:hover:border-emerald-500/40 hover:bg-slate-50 dark:hover:bg-slate-800/50 transition-all text-xs font-medium text-fg group cursor-pointer"
             >
               <div className="flex items-center gap-2.5">
                 <div className="w-7 h-7 rounded-lg bg-emerald-50 dark:bg-emerald-500/10 text-emerald-600 dark:text-emerald-400 flex items-center justify-center">
@@ -924,7 +924,7 @@ export const FounderDashboard = () => {
 
             <button
               onClick={() => navigate('/finance/invoices')}
-              className="w-full flex items-center justify-between p-2.5 rounded-xl border border-slate-200/80 dark:border-slate-800 hover:border-purple-300 dark:hover:border-purple-500/40 hover:bg-slate-50 dark:hover:bg-slate-800/50 transition-all text-xs font-medium text-slate-800 dark:text-slate-200 group cursor-pointer"
+              className="w-full flex items-center justify-between p-2.5 rounded-xl border border-border hover:border-purple-300 dark:hover:border-purple-500/40 hover:bg-slate-50 dark:hover:bg-slate-800/50 transition-all text-xs font-medium text-fg group cursor-pointer"
             >
               <div className="flex items-center gap-2.5">
                 <div className="w-7 h-7 rounded-lg bg-purple-50 dark:bg-purple-500/10 text-purple-600 dark:text-purple-400 flex items-center justify-center">
@@ -937,7 +937,7 @@ export const FounderDashboard = () => {
 
             <button
               onClick={() => navigate('/reports/sales')}
-              className="w-full flex items-center justify-between p-2.5 rounded-xl border border-slate-200/80 dark:border-slate-800 hover:border-amber-300 dark:hover:border-amber-500/40 hover:bg-slate-50 dark:hover:bg-slate-800/50 transition-all text-xs font-medium text-slate-800 dark:text-slate-200 group cursor-pointer"
+              className="w-full flex items-center justify-between p-2.5 rounded-xl border border-border hover:border-amber-300 dark:hover:border-amber-500/40 hover:bg-slate-50 dark:hover:bg-slate-800/50 transition-all text-xs font-medium text-fg group cursor-pointer"
             >
               <div className="flex items-center gap-2.5">
                 <div className="w-7 h-7 rounded-lg bg-amber-50 dark:bg-amber-500/10 text-amber-600 dark:text-amber-400 flex items-center justify-center">

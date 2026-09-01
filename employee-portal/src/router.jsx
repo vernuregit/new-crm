@@ -29,6 +29,7 @@ import { PayslipsPage } from './features/payslips/PayslipsPage'
 import { GoalsPage } from './features/goals/GoalsPage'
 import { HelpDeskPage } from './features/helpdesk/HelpDeskPage'
 import { ProjectNotesStandalone } from './features/projects/ProjectNotesStandalone'
+import { ProjectManagePage } from './features/projects/ProjectManagePage'
 
 export const router = createBrowserRouter([
   {
@@ -46,6 +47,7 @@ export const router = createBrowserRouter([
       { path: 'projects', element: <Navigate to="/projects/list" replace /> },
       { path: 'projects/list', element: <ProjectList /> },
       { path: 'projects/tasks', element: <TaskBoard /> },
+      { path: 'projects/:projectId/manage', element: <ProjectManagePage /> },
       {
         path: 'projects/:projectId',
         element: <ProjectSessionPage />,

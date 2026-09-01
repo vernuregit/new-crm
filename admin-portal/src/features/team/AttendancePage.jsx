@@ -167,23 +167,23 @@ function TimerWheel({ label, value, onUp, onDown }) {
       <button
         type="button"
         onClick={onUp}
-        className="p-1 rounded-lg text-slate-400 hover:text-indigo-400 hover:bg-slate-800/80 transition-colors"
+        className="p-1 rounded-lg text-muted hover:text-accent hover:bg-accent-soft transition-colors"
         aria-label={`Increase ${label}`}
       >
         <ChevronUp className="w-5 h-5" />
       </button>
-      <div className="w-16 h-14 rounded-xl bg-slate-100 dark:bg-slate-900 border border-slate-300 dark:border-slate-700 flex items-center justify-center font-mono text-2xl font-black text-slate-900 dark:text-slate-100 tabular-nums">
+      <div className="w-16 h-14 rounded-xl bg-canvas border border-border flex items-center justify-center font-mono text-2xl font-black text-fg tabular-nums">
         {value}
       </div>
       <button
         type="button"
         onClick={onDown}
-        className="p-1 rounded-lg text-slate-400 hover:text-indigo-400 hover:bg-slate-800/80 transition-colors"
+        className="p-1 rounded-lg text-muted hover:text-accent hover:bg-accent-soft transition-colors"
         aria-label={`Decrease ${label}`}
       >
         <ChevronDown className="w-5 h-5" />
       </button>
-      <span className="text-[10px] uppercase tracking-wider font-semibold text-slate-500">{label}</span>
+      <span className="text-[10px] uppercase tracking-wider font-semibold text-muted">{label}</span>
     </div>
   )
 }
@@ -217,7 +217,7 @@ function AttendanceTimer({ value, onChange, disabled = false }) {
   return (
     <div className={`flex items-end justify-center gap-2 select-none ${disabled ? 'opacity-40 pointer-events-none' : ''}`}>
       <TimerWheel label="Hour" value={pad2(parts.hour)} onUp={() => bumpHour(1)} onDown={() => bumpHour(-1)} />
-      <span className="text-2xl font-black text-slate-500 pb-8">:</span>
+      <span className="text-2xl font-black text-muted pb-8">:</span>
       <TimerWheel label="Min" value={pad2(parts.minute)} onUp={() => bumpMinute(1)} onDown={() => bumpMinute(-1)} />
       <div className="flex flex-col gap-1.5 pb-6 ml-1">
         {['AM', 'PM'].map((period) => (
@@ -227,8 +227,8 @@ function AttendanceTimer({ value, onChange, disabled = false }) {
             onClick={() => commit({ ampm: period })}
             className={`px-3 py-1.5 rounded-lg text-[11px] font-bold border transition-colors ${
               parts.ampm === period
-                ? 'bg-indigo-600 text-white border-indigo-500'
-                : 'bg-slate-100 dark:bg-slate-800 text-slate-500 border-slate-300 dark:border-slate-700 hover:border-indigo-500/50'
+                ? 'bg-accent text-white border-accent'
+                : 'bg-canvas text-muted border-border hover:border-accent/50'
             }`}
           >
             {period}
@@ -741,7 +741,7 @@ export const AttendancePage = () => {
       </div>
 
       {/* Office Location geofence */}
-      <Card className="border-slate-700 bg-[#181C27] p-4 space-y-3">
+      <Card className="border-border bg-surface p-4 space-y-3">
         <button
           type="button"
           onClick={() => setShowOfficePanel((v) => !v)}
@@ -750,21 +750,21 @@ export const AttendancePage = () => {
           <div className="flex items-center gap-2">
             <MapPin className="w-4 h-4 text-emerald-400" />
             <div>
-              <h3 className="text-sm font-bold text-slate-100">Office Location</h3>
-              <p className="text-[11px] text-slate-400 mt-0.5">
+              <h3 className="text-sm font-bold text-fg">Office Location</h3>
+              <p className="text-[11px] text-muted mt-0.5">
                 Employees must be inside this radius to clock in (unless Full WFH or approved WFH today).
               </p>
             </div>
           </div>
           {showOfficePanel ? (
-            <ChevronUp className="w-4 h-4 text-slate-400" />
+            <ChevronUp className="w-4 h-4 text-muted" />
           ) : (
-            <ChevronDown className="w-4 h-4 text-slate-400" />
+            <ChevronDown className="w-4 h-4 text-muted" />
           )}
         </button>
 
         {officeLoaded && !showOfficePanel && (
-          <p className="text-[11px] text-slate-500 pl-6">
+          <p className="text-[11px] text-muted pl-6">
             {officeLat && officeLng
               ? `Configured: ${officeLat}, ${officeLng} · ${officeRadius}m radius`
               : 'Not configured — office clock-in will be blocked until you set coordinates.'}
@@ -772,7 +772,7 @@ export const AttendancePage = () => {
         )}
 
         {showOfficePanel && (
-          <form onSubmit={handleSaveOfficeLocation} className="space-y-3 pt-1 border-t border-slate-800">
+          <form onSubmit={handleSaveOfficeLocation} className="space-y-3 pt-1 border-t border-border">
             {officeError && (
               <p className="text-xs text-rose-400">{officeError}</p>
             )}
@@ -792,7 +792,7 @@ export const AttendancePage = () => {
                     ? 'Office location saved'
                     : 'Use my device location'}
               </Button>
-              <p className="text-[11px] text-slate-400">
+              <p className="text-[11px] text-muted">
                 Stand at the office and tap this to set the GPS pin. On an office computer, tap it again to also save the Wi-Fi location employees use (it will not replace the GPS pin).
               </p>
             </div>
@@ -853,7 +853,7 @@ export const AttendancePage = () => {
           <div className={`flex items-center gap-1.5 px-3 py-1.5 rounded-xl text-xs font-medium border ${
             isLive
               ? 'bg-emerald-500/10 border-emerald-500/20 text-emerald-400'
-              : 'bg-slate-800 border-slate-700 text-slate-400'
+              : 'bg-canvas border-border text-muted'
           }`}>
             {isLive ? (
               <>
@@ -870,7 +870,7 @@ export const AttendancePage = () => {
           </div>
 
           {lastRefresh && (
-            <span className="text-[11px] text-slate-500">
+            <span className="text-[11px] text-muted">
               Updated {lastRefresh.toLocaleTimeString('en-US', { hour: '2-digit', minute: '2-digit', second: '2-digit', hour12: true })}
             </span>
           )}
@@ -882,12 +882,12 @@ export const AttendancePage = () => {
             type="date"
             value={selectedDate}
             onChange={(e) => setSelectedDate(e.target.value)}
-            className="bg-slate-100 dark:bg-slate-800 border border-slate-300 dark:border-slate-700 text-slate-800 dark:text-slate-200 text-xs rounded-xl px-3 py-1.5 focus:outline-none focus:border-indigo-500 focus:ring-1 focus:ring-indigo-500 transition-colors"
+            className="bg-canvas border border-border text-fg text-xs rounded-xl px-3 py-1.5 focus:outline-none focus:border-accent focus:ring-1 focus:ring-accent transition-colors"
           />
           <button
             type="button"
             onClick={() => setSelectedDate(todayStr())}
-            className="text-xs px-3 py-1.5 bg-indigo-600/20 border border-indigo-500/30 text-indigo-400 rounded-xl hover:bg-indigo-600/30 transition-colors font-medium flex items-center gap-1"
+            className="text-xs px-3 py-1.5 bg-accent-soft border border-accent/30 text-accent rounded-xl hover:bg-accent-soft transition-colors font-medium flex items-center gap-1"
           >
             Today
           </button>
@@ -896,44 +896,44 @@ export const AttendancePage = () => {
 
       {/* Summary Stats Row */}
       <div className="grid grid-cols-2 sm:grid-cols-4 gap-3">
-        <Card className="p-4 border-slate-800 bg-slate-900/60 flex items-center gap-3">
+        <Card className="p-4 border-border bg-surface flex items-center gap-3">
           <div className="w-9 h-9 rounded-xl bg-emerald-500/10 flex items-center justify-center">
             <CheckCircle2 className="w-4 h-4 text-emerald-400" />
           </div>
           <div>
-            <div className="text-xl font-black text-slate-100">{presentCount}</div>
-            <div className="text-[10px] text-slate-400 uppercase tracking-wider font-semibold">Present Today</div>
+            <div className="text-xl font-black text-fg">{presentCount}</div>
+            <div className="text-[10px] text-muted uppercase tracking-wider font-semibold">Present Today</div>
           </div>
         </Card>
 
-        <Card className="p-4 border-slate-800 bg-slate-900/60 flex items-center gap-3">
+        <Card className="p-4 border-border bg-surface flex items-center gap-3">
           <div className="w-9 h-9 rounded-xl bg-sky-500/10 flex items-center justify-center">
             <LogIn className="w-4 h-4 text-sky-400" />
           </div>
           <div>
-            <div className="text-xl font-black text-slate-100">{activeNow}</div>
-            <div className="text-[10px] text-slate-400 uppercase tracking-wider font-semibold">Active Now</div>
+            <div className="text-xl font-black text-fg">{activeNow}</div>
+            <div className="text-[10px] text-muted uppercase tracking-wider font-semibold">Active Now</div>
           </div>
         </Card>
 
-        <Card className="p-4 border-slate-800 bg-slate-900/60 flex items-center gap-3">
+        <Card className="p-4 border-border bg-surface flex items-center gap-3">
           <div className="w-9 h-9 rounded-xl bg-amber-500/10 flex items-center justify-center">
             <Coffee className="w-4 h-4 text-amber-400" />
           </div>
           <div>
-            <div className="text-xl font-black text-slate-100">{onBreakCount}</div>
-            <div className="text-[10px] text-slate-400 uppercase tracking-wider font-semibold">On Break</div>
+            <div className="text-xl font-black text-fg">{onBreakCount}</div>
+            <div className="text-[10px] text-muted uppercase tracking-wider font-semibold">On Break</div>
           </div>
         </Card>
 
         {false && (
-        <Card className="p-4 border-slate-800 bg-slate-900/60 flex items-center gap-3">
+        <Card className="p-4 border-border bg-surface flex items-center gap-3">
           <div className="w-9 h-9 rounded-xl bg-violet-500/10 flex items-center justify-center">
             <Zap className="w-4 h-4 text-violet-400" />
           </div>
           <div>
-            <div className="text-xl font-black text-slate-100">{extraTimeCount}</div>
-            <div className="text-[10px] text-slate-400 uppercase tracking-wider font-semibold">Extra Time</div>
+            <div className="text-xl font-black text-fg">{extraTimeCount}</div>
+            <div className="text-[10px] text-muted uppercase tracking-wider font-semibold">Extra Time</div>
           </div>
         </Card>
         )}
@@ -948,22 +948,22 @@ export const AttendancePage = () => {
       )}
 
       {/* Attendance Table */}
-      <Card className="overflow-x-auto p-0 border-slate-800">
+      <Card className="overflow-x-auto p-0 border-border">
         {loading ? (
-          <div className="flex items-center justify-center py-16 gap-3 text-slate-400 text-sm">
+          <div className="flex items-center justify-center py-16 gap-3 text-muted text-sm">
             <RefreshCw className="w-5 h-5 animate-spin" />
             <span>Loading attendance data…</span>
           </div>
         ) : rows.length === 0 ? (
-          <div className="flex flex-col items-center justify-center py-16 text-slate-500 text-sm gap-2">
+          <div className="flex flex-col items-center justify-center py-16 text-muted text-sm gap-2">
             <Users className="w-8 h-8 opacity-30" />
             <p>No employees found for {formatDate(selectedDate)}</p>
-            <p className="text-xs text-slate-600">Add employees in the directory, then mark them Present or Absent here.</p>
+            <p className="text-xs text-muted">Add employees in the directory, then mark them Present or Absent here.</p>
           </div>
         ) : (
           <table className="w-full text-left border-collapse text-xs">
             <thead>
-              <tr className="bg-slate-900/80 border-b border-slate-800 text-slate-400 font-semibold">
+              <tr className="bg-canvas border-b border-border text-muted font-semibold">
                 <th className="p-4 font-semibold">Employee</th>
                 <th className="p-4 font-semibold">Department</th>
                 <th className="p-4 font-semibold">Clock In</th>
@@ -978,25 +978,25 @@ export const AttendancePage = () => {
               {rows.map((row) => (
                 <tr
                   key={row.uid}
-                  className="hover:bg-slate-800/30 transition-colors text-slate-300"
+                  className="hover:bg-canvas transition-colors text-fg"
                 >
                   {/* Employee name + avatar */}
                   <td className="p-4">
                     <div className="flex items-center gap-2.5">
-                      <div className="w-7 h-7 rounded-lg bg-indigo-600/20 border border-indigo-500/20 text-indigo-400 flex items-center justify-center font-bold text-[11px] shrink-0">
+                      <div className="w-7 h-7 rounded-lg bg-accent-soft border border-accent/20 text-accent flex items-center justify-center font-bold text-[11px] shrink-0">
                         {row.displayName?.charAt(0)?.toUpperCase() || '?'}
                       </div>
-                      <span className="font-semibold text-slate-100">{row.displayName}</span>
+                      <span className="font-semibold text-fg">{row.displayName}</span>
                     </div>
                   </td>
 
-                  <td className="p-4 text-slate-400">{row.departmentName || '—'}</td>
+                  <td className="p-4 text-muted">{row.departmentName || '—'}</td>
 
                   {/* Clock In */}
                   <td className="p-4">
                     <div className="flex items-center gap-1.5">
                       <LogIn className="w-3.5 h-3.5 text-emerald-500 shrink-0" />
-                      <span className={row.clockInTime === '—' ? 'text-slate-600' : 'text-slate-200 font-mono'}>
+                      <span className={row.clockInTime === '—' ? 'text-muted' : 'text-slate-200 font-mono'}>
                         {row.clockInTime}
                       </span>
                     </div>
@@ -1006,7 +1006,7 @@ export const AttendancePage = () => {
                   <td className="p-4">
                     <div className="flex items-center gap-1.5">
                       <LogOut className="w-3.5 h-3.5 text-rose-500 shrink-0" />
-                      <span className={!row.clockOutTime ? 'text-slate-600 italic' : 'text-slate-200 font-mono'}>
+                      <span className={!row.clockOutTime ? 'text-muted italic' : 'text-slate-200 font-mono'}>
                         {row.clockOutTime || (row.clockedIn ? 'In office' : row.onDuty ? 'On Duty' : '—')}
                       </span>
                       {false && row.autoClockOut && (
@@ -1019,7 +1019,7 @@ export const AttendancePage = () => {
 
                   {/* Regular Hours */}
                   <td className="p-4">
-                    <span className={`font-semibold font-mono ${row.regularSeconds > 0 ? 'text-indigo-400' : 'text-slate-600'}`}>
+                    <span className={`font-semibold font-mono ${row.regularSeconds > 0 ? 'text-accent' : 'text-muted'}`}>
                       {row.regularHours}
                     </span>
                   </td>
@@ -1032,7 +1032,7 @@ export const AttendancePage = () => {
                         <span className="font-semibold font-mono text-violet-400">{row.extraHours}</span>
                       </div>
                     ) : (
-                      <span className="text-slate-600">—</span>
+                      <span className="text-muted">—</span>
                     )}
                   </td>
                   )}
@@ -1073,7 +1073,7 @@ export const AttendancePage = () => {
                               : 'In office'
                           )
                         }}
-                        className="p-1.5 bg-slate-100 hover:bg-slate-200 dark:bg-slate-800 dark:hover:bg-slate-700 text-indigo-600 dark:text-indigo-400 rounded-lg border border-slate-300 dark:border-slate-700 transition-colors inline-flex items-center gap-1 text-[11px] font-medium"
+                        className="p-1.5 bg-canvas hover:bg-surface text-accent rounded-lg border border-border transition-colors inline-flex items-center gap-1 text-[11px] font-medium"
                         title="Edit Employee Time"
                       >
                         <Edit className="w-3.5 h-3.5" /> Edit Time
@@ -1090,16 +1090,16 @@ export const AttendancePage = () => {
       {/* Shift Log detail cards (shown when Firestore data available) */}
       {attendanceLogs.length > 0 && (
         <div className="space-y-3">
-          <h3 className="text-xs font-bold text-slate-400 uppercase tracking-wider">
+          <h3 className="text-xs font-bold text-muted uppercase tracking-wider">
             Today's Shift Events
           </h3>
           <div className="grid grid-cols-1 md:grid-cols-2 xl:grid-cols-3 gap-3">
             {rows
               .filter((r) => r.shiftLogs && r.shiftLogs.length > 0)
               .map((row) => (
-                <Card key={row.uid} className="p-4 border-slate-800 bg-slate-900/40 space-y-3">
+                <Card key={row.uid} className="p-4 border-border bg-surface space-y-3">
                   <div className="flex items-center gap-2">
-                    <div className="w-6 h-6 rounded-lg bg-indigo-600/20 text-indigo-400 flex items-center justify-center font-bold text-[11px]">
+                    <div className="w-6 h-6 rounded-lg bg-accent-soft text-accent flex items-center justify-center font-bold text-[11px]">
                       {row.displayName?.charAt(0)?.toUpperCase()}
                     </div>
                     <span className="text-xs font-semibold text-slate-200">{row.displayName}</span>
@@ -1112,7 +1112,7 @@ export const AttendancePage = () => {
                       .map((log, i) => (
                         <div
                           key={log.id || i}
-                          className="flex items-center justify-between text-[11px] px-2 py-1.5 rounded-lg bg-slate-800/60 border border-slate-700/30"
+                          className="flex items-center justify-between text-[11px] px-2 py-1.5 rounded-lg bg-canvas border border-border"
                         >
                           <div className="flex items-center gap-1.5">
                             <span
@@ -1126,9 +1126,9 @@ export const AttendancePage = () => {
                                   : 'bg-amber-400'
                               }`}
                             />
-                            <span className="text-slate-300">{log.label}</span>
+                            <span className="text-fg">{log.label}</span>
                           </div>
-                          <span className="font-mono text-slate-500">{formatTimeStr(log.time)}</span>
+                          <span className="font-mono text-muted">{formatTimeStr(log.time)}</span>
                         </div>
                       ))}
                   </div>
@@ -1140,19 +1140,19 @@ export const AttendancePage = () => {
 
       {/* Employee-Wise Attendance Metrics Section */}
       <div className="space-y-3 pt-4">
-        <div className="flex flex-wrap items-center justify-between gap-2 border-b border-slate-800 pb-2">
-          <h3 className="text-sm font-bold text-slate-100 flex items-center gap-2">
-            <Clock className="w-4 h-4 text-indigo-400" /> Employee-Wise Attendance Averages & Metrics
+        <div className="flex flex-wrap items-center justify-between gap-2 border-b border-border pb-2">
+          <h3 className="text-sm font-bold text-fg flex items-center gap-2">
+            <Clock className="w-4 h-4 text-accent" /> Employee-Wise Attendance Averages & Metrics
           </h3>
-          <span className="text-xs text-slate-400 font-mono">
+          <span className="text-xs text-muted font-mono">
             Real calculated averages across all logged shifts
           </span>
         </div>
 
-        <Card className="overflow-x-auto p-0 border-slate-800">
+        <Card className="overflow-x-auto p-0 border-border">
           <table className="w-full text-left border-collapse text-xs">
             <thead>
-              <tr className="bg-slate-900/80 border-b border-slate-800 text-slate-400 font-semibold">
+              <tr className="bg-canvas border-b border-border text-muted font-semibold">
                 <th className="p-4 font-semibold">Employee</th>
                 <th className="p-4 font-semibold">Department</th>
                 <th className="p-4 font-semibold">Avg Hours / Day</th>
@@ -1163,20 +1163,20 @@ export const AttendancePage = () => {
             </thead>
             <tbody className="divide-y divide-slate-800/60">
               {employeeStatsList.map((emp) => (
-                <tr key={emp.uid} className="hover:bg-slate-800/30 transition-colors text-slate-300">
+                <tr key={emp.uid} className="hover:bg-canvas transition-colors text-fg">
                   <td className="p-4">
                     <div className="flex items-center gap-2.5">
-                      <div className="w-7 h-7 rounded-lg bg-indigo-600/20 border border-indigo-500/20 text-indigo-400 flex items-center justify-center font-bold text-[11px] shrink-0">
+                      <div className="w-7 h-7 rounded-lg bg-accent-soft border border-accent/20 text-accent flex items-center justify-center font-bold text-[11px] shrink-0">
                         {emp.displayName?.charAt(0)?.toUpperCase()}
                       </div>
-                      <span className="font-semibold text-slate-100">{emp.displayName}</span>
+                      <span className="font-semibold text-fg">{emp.displayName}</span>
                     </div>
                   </td>
-                  <td className="p-4 text-slate-400">{emp.departmentName}</td>
+                  <td className="p-4 text-muted">{emp.departmentName}</td>
                   <td className="p-4 font-semibold font-mono text-sky-400">{emp.avgHours}</td>
                   <td className="p-4 font-semibold font-mono text-emerald-400">{emp.avgCheckIn}</td>
                   <td className="p-4 font-semibold font-mono text-teal-400">{emp.avgArrival}</td>
-                  <td className="p-4 font-semibold font-mono text-purple-400">{emp.avgCheckOut}</td>
+                  <td className="p-4 font-semibold font-mono text-accent">{emp.avgCheckOut}</td>
                 </tr>
               ))}
             </tbody>
@@ -1187,17 +1187,17 @@ export const AttendancePage = () => {
       {/* Edit Attendance Modal */}
       {editingRow && (
         <div className="fixed inset-0 z-50 bg-black/70 backdrop-blur-sm flex items-center justify-center p-4">
-          <Card className="w-full max-w-md p-6 space-y-4 border-slate-200 dark:border-slate-800 shadow-2xl relative rounded-2xl bg-white dark:bg-[#181C27] text-slate-900 dark:text-slate-100">
-            <div className="flex items-center justify-between pb-3 border-b border-slate-200 dark:border-slate-800">
+          <Card className="w-full max-w-md p-6 space-y-4 border-border shadow-2xl relative rounded-2xl bg-surface text-fg">
+            <div className="flex items-center justify-between pb-3 border-b border-border">
               <div>
                 <h3 className="font-bold text-sm">Edit Attendance Record</h3>
-                <p className="text-xs text-slate-500 dark:text-slate-400">
+                <p className="text-xs text-muted">
                   {editingRow.displayName} ({formatDate(selectedDate)})
                 </p>
               </div>
               <button
                 onClick={() => setEditingRow(null)}
-                className="text-slate-400 hover:text-slate-600 dark:hover:text-white p-1 rounded-lg hover:bg-slate-100 dark:hover:bg-slate-800"
+                className="text-muted hover:text-fg p-1 rounded-lg hover:bg-slate-100 dark:hover:bg-slate-800"
               >
                 <X className="w-4 h-4" />
               </button>
@@ -1205,24 +1205,24 @@ export const AttendancePage = () => {
 
             <form onSubmit={handleSaveEdit} className="space-y-4">
               <div className="space-y-2 text-left">
-                <label className="block text-xs font-medium text-slate-700 dark:text-slate-300">
+                <label className="block text-xs font-medium text-fg">
                   Clock In
                 </label>
                 <AttendanceTimer value={editClockIn} onChange={setEditClockIn} />
               </div>
 
               <div className="space-y-2 text-left">
-                <label className="block text-xs font-medium text-slate-700 dark:text-slate-300">
+                <label className="block text-xs font-medium text-fg">
                   Clock Out
                 </label>
-                <div className="flex rounded-xl border border-slate-300 dark:border-slate-700 overflow-hidden">
+                <div className="flex rounded-xl border border-border overflow-hidden">
                   <button
                     type="button"
                     onClick={() => setEditClockOut('In office')}
                     className={`flex-1 py-1.5 text-[11px] font-semibold transition-colors ${
                       editClockOut === 'In office'
                         ? 'bg-emerald-500/20 text-emerald-400'
-                        : 'bg-transparent text-slate-400 hover:text-slate-200'
+                        : 'bg-transparent text-muted hover:text-fg'
                     }`}
                   >
                     In office
@@ -1236,15 +1236,15 @@ export const AttendancePage = () => {
                     }}
                     className={`flex-1 py-1.5 text-[11px] font-semibold transition-colors ${
                       editClockOut !== 'In office'
-                        ? 'bg-indigo-600 text-white'
-                        : 'bg-transparent text-slate-400 hover:text-slate-200'
+                        ? 'bg-accent text-white'
+                        : 'bg-transparent text-muted hover:text-fg'
                     }`}
                   >
                     Clock out time
                   </button>
                 </div>
                 {editClockOut === 'In office' ? (
-                  <p className="text-[11px] text-slate-500 dark:text-slate-400 text-center py-3 rounded-xl border border-dashed border-slate-700">
+                  <p className="text-[11px] text-muted text-center py-3 rounded-xl border border-dashed border-border">
                     Still in office — hours count up to now
                   </p>
                 ) : (
@@ -1252,16 +1252,16 @@ export const AttendancePage = () => {
                 )}
               </div>
 
-              <div className="rounded-xl border border-indigo-500/20 bg-indigo-500/10 px-3 py-2.5 flex items-center justify-between gap-3">
+              <div className="rounded-xl border border-accent/20 bg-accent-soft px-3 py-2.5 flex items-center justify-between gap-3">
                 <div className="text-left">
-                  <div className="text-[10px] uppercase tracking-wider font-semibold text-indigo-400">
+                  <div className="text-[10px] uppercase tracking-wider font-semibold text-accent">
                     Regular Hours (auto)
                   </div>
-                  <p className="text-[11px] text-slate-500 dark:text-slate-400 mt-0.5">
+                  <p className="text-[11px] text-muted mt-0.5">
                     Recalculated from clock-in → clock-out (max 8h)
                   </p>
                 </div>
-                <div className="font-mono text-sm font-bold text-indigo-400 shrink-0">
+                <div className="font-mono text-sm font-bold text-accent shrink-0">
                   {editPreviewRegularHours}
                 </div>
               </div>
@@ -1270,14 +1270,14 @@ export const AttendancePage = () => {
                 <button
                   type="button"
                   onClick={() => setEditingRow(null)}
-                  className="w-1/3 py-2 px-3 bg-slate-100 dark:bg-slate-800 hover:bg-slate-200 dark:hover:bg-slate-700 text-slate-700 dark:text-slate-300 font-semibold rounded-xl text-xs"
+                  className="w-1/3 py-2 px-3 bg-canvas hover:bg-surface text-fg font-semibold rounded-xl text-xs"
                 >
                   Cancel
                 </button>
                 <button
                   type="submit"
                   disabled={savingEdit}
-                  className="w-2/3 py-2 px-3 bg-indigo-600 hover:bg-indigo-500 text-white font-semibold rounded-xl text-xs flex items-center justify-center gap-1.5 text-white"
+                  className="w-2/3 py-2 px-3 bg-accent hover:bg-accent-hover text-white font-semibold rounded-xl text-xs flex items-center justify-center gap-1.5 text-white"
                 >
                   {savingEdit ? (
                     <RefreshCw className="w-3.5 h-3.5 animate-spin" />

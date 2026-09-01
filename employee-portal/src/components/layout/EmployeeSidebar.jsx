@@ -127,22 +127,22 @@ export const EmployeeSidebar = () => {
 
   return (
     <aside
-      className={`fixed top-0 left-0 bottom-0 z-40 bg-white dark:bg-[#12151E] border-r border-slate-200 dark:border-purple-900/40 transition-all duration-300 flex flex-col ${
+      className={`fixed top-0 left-0 bottom-0 z-40 bg-chrome border-r border-border transition-all duration-300 flex flex-col ${
         sidebarOpen ? 'w-64' : 'w-20'
       }`}
     >
       {/* Brand Header */}
-      <div className="h-16 flex items-center justify-between px-3 border-b border-slate-200 dark:border-purple-900/40">
+      <div className="h-16 flex items-center justify-between px-3 border-b border-border">
         <div className="flex items-center gap-2 overflow-hidden">
-          <div className="w-11 h-11 bg-white p-1 rounded-full border border-slate-200 dark:border-purple-800/50 shadow-sm flex items-center justify-center shrink-0">
+          <div className="w-11 h-11 bg-surface p-1 rounded-full border border-border shadow-sm flex items-center justify-center shrink-0">
             <img src={haloLogo} alt="The Halo Effect Consulting" className="w-full h-full object-contain rounded-full" />
           </div>
           {sidebarOpen && (
             <div className="flex flex-col leading-tight overflow-hidden">
-              <span className="font-bold text-slate-900 dark:text-slate-100 text-xs tracking-wide whitespace-nowrap">
+              <span className="font-bold text-fg text-xs tracking-wide whitespace-nowrap">
                 EMPLOYEE PORTAL
               </span>
-              <span className="text-[10px] text-purple-600 dark:text-purple-400 font-semibold tracking-wider mt-1 uppercase whitespace-nowrap">
+              <span className="text-[10px] text-accent font-semibold tracking-wider mt-1 uppercase whitespace-nowrap">
                 EMPLOYEE MODE
               </span>
             </div>
@@ -151,7 +151,7 @@ export const EmployeeSidebar = () => {
 
         <button
           onClick={toggleSidebar}
-          className="w-8 h-8 rounded-lg bg-slate-100 dark:bg-purple-900/30 hover:bg-slate-200 dark:hover:bg-purple-900/60 text-slate-500 dark:text-purple-400 hover:text-slate-900 dark:hover:text-white flex items-center justify-center transition-colors cursor-pointer shrink-0"
+          className="w-8 h-8 rounded-lg bg-surface hover:bg-border text-muted hover:text-fg flex items-center justify-center transition-colors cursor-pointer shrink-0 border border-border"
         >
           {sidebarOpen ? <ChevronLeft className="w-4 h-4" /> : <ChevronRight className="w-4 h-4" />}
         </button>
@@ -176,8 +176,8 @@ export const EmployeeSidebar = () => {
                 className={({ isActive }) =>
                   `flex items-center gap-3 px-3 py-2.5 rounded-xl text-sm font-medium transition-all mx-1 ${
                     isActive
-                      ? 'bg-purple-50 dark:bg-purple-600/15 text-purple-600 dark:text-purple-400 border border-purple-200 dark:border-purple-500/30 shadow-sm'
-                      : 'text-slate-600 dark:text-slate-400 hover:text-slate-900 dark:hover:text-slate-200 hover:bg-slate-100 dark:hover:bg-slate-800/50'
+                      ? 'bg-accent-soft text-accent border border-accent/30 shadow-sm'
+                      : 'text-muted hover:text-slate-900 dark:hover:text-slate-200 hover:bg-chrome/50'
                   }`
                 }
                 title={!sidebarOpen ? item.name : undefined}
@@ -196,10 +196,10 @@ export const EmployeeSidebar = () => {
                 title={!sidebarOpen ? group.label : undefined}
                 className={`w-full flex items-center gap-3 px-3 py-2.5 rounded-xl text-sm font-medium transition-all cursor-pointer ${
                   groupActive && !isExpanded
-                    ? 'bg-purple-50 dark:bg-purple-600/15 text-purple-600 dark:text-purple-400 border border-purple-200 dark:border-purple-500/30 shadow-sm'
+                    ? 'bg-accent-soft text-accent border border-accent/30 shadow-sm'
                     : groupActive && isExpanded
-                    ? 'text-purple-600 dark:text-purple-400'
-                    : 'text-slate-600 dark:text-slate-400 hover:text-slate-900 dark:hover:text-slate-200 hover:bg-slate-100 dark:hover:bg-slate-800/50'
+                    ? 'text-accent'
+                    : 'text-muted hover:text-slate-900 dark:hover:text-slate-200 hover:bg-chrome/50'
                 }`}
               >
                 <GroupIcon className="w-5 h-5 shrink-0" />
@@ -217,7 +217,7 @@ export const EmployeeSidebar = () => {
 
               {/* Group Children */}
               {sidebarOpen && isExpanded && (
-                <div className="ml-3 mt-0.5 pl-3 border-l border-slate-200 dark:border-purple-900/30 space-y-0.5 pb-1">
+                <div className="ml-3 mt-0.5 pl-3 border-l border-border space-y-0.5 pb-1">
                   {group.items.map((item) => {
                     const Icon = item.icon
                     const sessionNotes = /\/projects\/[^/]+\/notes\/?$/.test(location.pathname)
@@ -243,8 +243,8 @@ export const EmployeeSidebar = () => {
                           const active = isActive || sessionActive
                           return `flex items-center gap-2.5 px-2.5 py-2 rounded-lg text-xs font-medium transition-all ${
                             active
-                              ? 'bg-purple-50 dark:bg-purple-600/15 text-purple-600 dark:text-purple-400 border border-purple-200 dark:border-purple-500/30 shadow-sm'
-                              : 'text-slate-500 dark:text-slate-400 hover:text-slate-900 dark:hover:text-slate-200 hover:bg-slate-100 dark:hover:bg-slate-800/50'
+                              ? 'bg-accent-soft text-accent border border-accent/30 shadow-sm'
+                              : 'text-muted hover:text-slate-900 dark:hover:text-slate-200 hover:bg-chrome/50'
                           }`
                         }}
                       >
@@ -261,18 +261,18 @@ export const EmployeeSidebar = () => {
       </nav>
 
       {/* Footer — User Info + Logout */}
-      <div className="p-3 border-t border-slate-200 dark:border-purple-900/40 space-y-2">
+      <div className="p-3 border-t border-border space-y-2">
         {/* User badge */}
-        <div className={`flex items-center gap-3 p-2 rounded-xl bg-slate-50 dark:bg-purple-900/20 border border-slate-200 dark:border-purple-900/40 ${!sidebarOpen && 'justify-center'}`}>
-          <div className="w-8 h-8 rounded-lg bg-purple-100 dark:bg-purple-600/30 text-purple-600 dark:text-purple-400 flex items-center justify-center font-bold text-xs shrink-0 border border-purple-200 dark:border-purple-500/30">
+        <div className={`flex items-center gap-3 p-2 rounded-xl bg-surface border border-border ${!sidebarOpen && 'justify-center'}`}>
+          <div className="w-8 h-8 rounded-lg bg-accent-soft text-accent flex items-center justify-center font-bold text-xs shrink-0 border border-accent/30">
             {displayName?.charAt(0)?.toUpperCase() || 'E'}
           </div>
           {sidebarOpen && (
             <div className="flex flex-col min-w-0">
-              <span className="text-xs font-semibold text-slate-800 dark:text-slate-200 truncate">
+              <span className="text-xs font-semibold text-fg truncate">
                 {displayName}
               </span>
-              <span className="text-[10px] font-bold px-1.5 py-0.5 rounded-md border mt-0.5 text-purple-600 dark:text-purple-400 bg-purple-50 dark:bg-purple-500/10 border-purple-200 dark:border-purple-500/20 truncate">
+              <span className="text-[10px] font-bold px-1.5 py-0.5 rounded-md border mt-0.5 text-accent bg-accent-soft border-accent/30 truncate">
                 {roleLabel}
               </span>
             </div>

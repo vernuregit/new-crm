@@ -161,14 +161,14 @@ export const ContentCalendar = () => {
           }
         />
 
-        <div className="flex items-center gap-2 border-b border-slate-200 dark:border-slate-800 pb-3">
+        <div className="flex items-center gap-2 border-b border-border pb-3">
           <NavLink
             to="/marketing/campaigns"
             className={({ isActive }) =>
               `flex items-center gap-2 px-3.5 py-2 rounded-xl text-xs font-semibold transition-colors ${
                 isActive
-                  ? 'bg-indigo-50 dark:bg-indigo-600/20 text-indigo-600 dark:text-indigo-400 border border-indigo-200 dark:border-indigo-500/30'
-                  : 'text-slate-600 dark:text-slate-400 hover:text-slate-900 dark:hover:text-slate-200 hover:bg-slate-100 dark:hover:bg-slate-800'
+                  ? 'bg-accent-soft text-accent border border-accent/30'
+                  : 'text-muted hover:text-fg hover:bg-slate-100 dark:hover:bg-slate-800'
               }`
             }
           >
@@ -179,8 +179,8 @@ export const ContentCalendar = () => {
             className={({ isActive }) =>
               `flex items-center gap-2 px-3.5 py-2 rounded-xl text-xs font-semibold transition-colors ${
                 isActive
-                  ? 'bg-indigo-50 dark:bg-indigo-600/20 text-indigo-600 dark:text-indigo-400 border border-indigo-200 dark:border-indigo-500/30'
-                  : 'text-slate-600 dark:text-slate-400 hover:text-slate-900 dark:hover:text-slate-200 hover:bg-slate-100 dark:hover:bg-slate-800'
+                  ? 'bg-accent-soft text-accent border border-accent/30'
+                  : 'text-muted hover:text-fg hover:bg-slate-100 dark:hover:bg-slate-800'
               }`
             }
           >
@@ -191,8 +191,8 @@ export const ContentCalendar = () => {
             className={({ isActive }) =>
               `flex items-center gap-2 px-3.5 py-2 rounded-xl text-xs font-semibold transition-colors ${
                 isActive
-                  ? 'bg-indigo-50 dark:bg-indigo-600/20 text-indigo-600 dark:text-indigo-400 border border-indigo-200 dark:border-indigo-500/30'
-                  : 'text-slate-600 dark:text-slate-400 hover:text-slate-900 dark:hover:text-slate-200 hover:bg-slate-100 dark:hover:bg-slate-800'
+                  ? 'bg-accent-soft text-accent border border-accent/30'
+                  : 'text-muted hover:text-fg hover:bg-slate-100 dark:hover:bg-slate-800'
               }`
             }
           >
@@ -202,7 +202,7 @@ export const ContentCalendar = () => {
       </div>
 
       {/* Filter Strip & Tabs */}
-      <Card className="p-3 space-y-3 border-slate-200 dark:border-slate-800 bg-white dark:bg-[#181C27]">
+      <Card className="p-3 space-y-3 border-border bg-surface">
         <div className="flex flex-col sm:flex-row items-center justify-between gap-3">
           {/* Status Tabs */}
           <div className="flex items-center gap-1.5 overflow-x-auto w-full sm:w-auto">
@@ -212,8 +212,8 @@ export const ContentCalendar = () => {
                 onClick={() => setStatusTab(tab)}
                 className={`px-3 py-1.5 rounded-xl text-xs font-semibold capitalize transition-all whitespace-nowrap ${
                   statusTab === tab
-                    ? 'bg-indigo-600 text-white shadow-sm'
-                    : 'text-slate-600 dark:text-slate-400 hover:bg-slate-100 dark:hover:bg-slate-800'
+                    ? 'bg-accent text-white shadow-sm'
+                    : 'text-muted hover:bg-slate-100 dark:hover:bg-slate-800'
                 }`}
               >
                 {tab} ({tab === 'all' ? contentItems.length : contentItems.filter((i) => i.status === tab).length})
@@ -229,14 +229,14 @@ export const ContentCalendar = () => {
                 placeholder="Search content..."
                 value={searchQuery}
                 onChange={(e) => setSearchQuery(e.target.value)}
-                className="w-full bg-slate-50 dark:bg-[#11141E] border border-slate-200 dark:border-slate-800 text-slate-900 dark:text-slate-100 text-xs rounded-xl pl-8 pr-3 py-1.5 focus:outline-none focus:border-indigo-500"
+                className="w-full bg-canvas border border-border text-fg text-xs rounded-xl pl-8 pr-3 py-1.5 focus:outline-none focus:border-accent"
               />
             </div>
 
             <select
               value={platformFilter}
               onChange={(e) => setPlatformFilter(e.target.value)}
-              className="bg-slate-50 dark:bg-[#11141E] border border-slate-200 dark:border-slate-800 text-slate-900 dark:text-slate-100 text-xs rounded-xl px-3 py-1.5 focus:outline-none cursor-pointer"
+              className="bg-canvas border border-border text-fg text-xs rounded-xl px-3 py-1.5 focus:outline-none cursor-pointer"
             >
               <option value="all">All Platforms</option>
               <option value="LinkedIn Article">LinkedIn Article</option>
@@ -251,16 +251,16 @@ export const ContentCalendar = () => {
       {/* Content Items Grid */}
       <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
         {filtered.map((item) => (
-          <Card key={item.contentId} hover className="space-y-3 border-slate-200 dark:border-slate-800 bg-white dark:bg-[#181C27] flex flex-col justify-between">
+          <Card key={item.contentId} hover className="space-y-3 border-border bg-surface flex flex-col justify-between">
             <div className="space-y-2.5">
               <div className="flex items-center justify-between">
-                <span className="text-xs font-bold text-indigo-600 dark:text-indigo-400">{item.platform}</span>
+                <span className="text-xs font-bold text-accent">{item.platform}</span>
                 <div className="flex items-center gap-2">
                   {/* Status Dropdown */}
                   <select
                     value={item.status}
                     onChange={(e) => handleStatusChange(item, e.target.value)}
-                    className="bg-slate-100 dark:bg-[#11141E] border border-slate-200 dark:border-slate-800 text-[11px] font-semibold rounded-lg px-2 py-1 text-slate-700 dark:text-slate-300 focus:outline-none cursor-pointer capitalize"
+                    className="bg-canvas border border-border text-[11px] font-semibold rounded-lg px-2 py-1 text-fg focus:outline-none cursor-pointer capitalize"
                   >
                     <option value="draft">Draft</option>
                     <option value="scheduled">Scheduled</option>
@@ -269,7 +269,7 @@ export const ContentCalendar = () => {
 
                   <button
                     onClick={() => openEditModal(item)}
-                    className="p-1 text-slate-400 hover:text-indigo-600 dark:hover:text-indigo-400 rounded hover:bg-slate-100 dark:hover:bg-slate-800 transition-colors"
+                    className="p-1 text-slate-400 hover:text-accent dark:hover:text-accent rounded hover:bg-slate-100 dark:hover:bg-slate-800 transition-colors"
                     title="Edit Content Item"
                   >
                     <Edit2 className="w-3.5 h-3.5" />
@@ -285,13 +285,13 @@ export const ContentCalendar = () => {
                 </div>
               </div>
 
-              <h4 className="font-bold text-slate-900 dark:text-slate-100 text-sm leading-snug">{item.title}</h4>
+              <h4 className="font-bold text-fg text-sm leading-snug">{item.title}</h4>
             </div>
 
-            <div className="flex justify-between items-center text-xs text-slate-500 dark:text-slate-400 pt-2.5 border-t border-slate-100 dark:border-slate-800">
+            <div className="flex justify-between items-center text-xs text-muted pt-2.5 border-t border-slate-100 dark:border-border">
               <span className="font-medium">Author: {item.author || 'Team'}</span>
               <span className="flex items-center gap-1 font-mono text-[11px]">
-                <Clock className="w-3 h-3 text-indigo-500" />
+                <Clock className="w-3 h-3 text-accent" />
                 {item.scheduledDate}
               </span>
             </div>
@@ -299,7 +299,7 @@ export const ContentCalendar = () => {
         ))}
 
         {filtered.length === 0 && (
-          <div className="col-span-full p-8 text-center text-slate-500 dark:text-slate-400 bg-slate-50 dark:bg-[#181C27] rounded-2xl border border-slate-200 dark:border-slate-800">
+          <div className="col-span-full p-8 text-center text-muted bg-surface rounded-2xl border border-border">
             No content scheduled matching your filters. Click "Schedule Post" to create one.
           </div>
         )}
@@ -308,9 +308,9 @@ export const ContentCalendar = () => {
       {/* Schedule Modal */}
       {showAddModal && (
         <div className="fixed inset-0 z-50 bg-black/70 backdrop-blur-sm flex items-center justify-center p-4">
-          <Card className="w-full max-w-lg p-6 space-y-4 border-slate-200 dark:border-slate-800 shadow-2xl relative bg-white dark:bg-[#181C27]">
-            <div className="flex items-center justify-between pb-3 border-b border-slate-200 dark:border-slate-800">
-              <h3 className="font-bold text-slate-900 dark:text-slate-100 text-sm">Schedule Content Item</h3>
+          <Card className="w-full max-w-lg p-6 space-y-4 border-border shadow-2xl relative bg-surface">
+            <div className="flex items-center justify-between pb-3 border-b border-border">
+              <h3 className="font-bold text-fg text-sm">Schedule Content Item</h3>
               <button
                 onClick={() => setShowAddModal(false)}
                 className="text-slate-400 hover:text-slate-600 dark:hover:text-white p-1 rounded-lg hover:bg-slate-100 dark:hover:bg-slate-800 transition-colors"
@@ -330,11 +330,11 @@ export const ContentCalendar = () => {
 
               <div className="grid grid-cols-2 gap-3">
                 <div className="space-y-1.5 text-left">
-                  <label className="block text-xs font-medium text-slate-700 dark:text-slate-300">Platform</label>
+                  <label className="block text-xs font-medium text-fg">Platform</label>
                   <select
                     value={platform}
                     onChange={(e) => setPlatform(e.target.value)}
-                    className="w-full bg-slate-50 dark:bg-[#11141E] border border-slate-300 dark:border-slate-800 text-slate-900 dark:text-slate-100 text-xs rounded-xl py-2.5 px-3.5 focus:outline-none cursor-pointer"
+                    className="w-full bg-canvas border border-border text-fg text-xs rounded-xl py-2.5 px-3.5 focus:outline-none cursor-pointer"
                   >
                     <option value="LinkedIn Article">LinkedIn Article</option>
                     <option value="Engineering Blog">Engineering Blog</option>
@@ -374,9 +374,9 @@ export const ContentCalendar = () => {
       {/* Edit Modal */}
       {editingItem && (
         <div className="fixed inset-0 z-50 bg-black/70 backdrop-blur-sm flex items-center justify-center p-4">
-          <Card className="w-full max-w-lg p-6 space-y-4 border-slate-200 dark:border-slate-800 shadow-2xl relative bg-white dark:bg-[#181C27]">
-            <div className="flex items-center justify-between pb-3 border-b border-slate-200 dark:border-slate-800">
-              <h3 className="font-bold text-slate-900 dark:text-slate-100 text-sm">Edit Scheduled Content</h3>
+          <Card className="w-full max-w-lg p-6 space-y-4 border-border shadow-2xl relative bg-surface">
+            <div className="flex items-center justify-between pb-3 border-b border-border">
+              <h3 className="font-bold text-fg text-sm">Edit Scheduled Content</h3>
               <button
                 onClick={() => setEditingItem(null)}
                 className="text-slate-400 hover:text-slate-600 dark:hover:text-white p-1 rounded-lg hover:bg-slate-100 dark:hover:bg-slate-800 transition-colors"
@@ -395,11 +395,11 @@ export const ContentCalendar = () => {
 
               <div className="grid grid-cols-2 gap-3">
                 <div className="space-y-1.5 text-left">
-                  <label className="block text-xs font-medium text-slate-700 dark:text-slate-300">Platform</label>
+                  <label className="block text-xs font-medium text-fg">Platform</label>
                   <select
                     value={editPlatform}
                     onChange={(e) => setEditPlatform(e.target.value)}
-                    className="w-full bg-slate-50 dark:bg-[#11141E] border border-slate-300 dark:border-slate-800 text-slate-900 dark:text-slate-100 text-xs rounded-xl py-2.5 px-3.5 focus:outline-none cursor-pointer"
+                    className="w-full bg-canvas border border-border text-fg text-xs rounded-xl py-2.5 px-3.5 focus:outline-none cursor-pointer"
                   >
                     <option value="LinkedIn Article">LinkedIn Article</option>
                     <option value="Engineering Blog">Engineering Blog</option>
@@ -409,11 +409,11 @@ export const ContentCalendar = () => {
                 </div>
 
                 <div className="space-y-1.5 text-left">
-                  <label className="block text-xs font-medium text-slate-700 dark:text-slate-300">Status</label>
+                  <label className="block text-xs font-medium text-fg">Status</label>
                   <select
                     value={editStatus}
                     onChange={(e) => setEditStatus(e.target.value)}
-                    className="w-full bg-slate-50 dark:bg-[#11141E] border border-slate-300 dark:border-slate-800 text-slate-900 dark:text-slate-100 text-xs rounded-xl py-2.5 px-3.5 focus:outline-none cursor-pointer"
+                    className="w-full bg-canvas border border-border text-fg text-xs rounded-xl py-2.5 px-3.5 focus:outline-none cursor-pointer"
                   >
                     <option value="draft">Draft</option>
                     <option value="scheduled">Scheduled</option>
@@ -453,13 +453,13 @@ export const ContentCalendar = () => {
       {/* Delete Confirmation Modal */}
       {deletingId && (
         <div className="fixed inset-0 z-50 bg-black/70 backdrop-blur-sm flex items-center justify-center p-4">
-          <Card className="w-full max-w-sm p-6 space-y-4 border-slate-200 dark:border-slate-800 shadow-2xl relative bg-white dark:bg-[#181C27] text-center">
+          <Card className="w-full max-w-sm p-6 space-y-4 border-border shadow-2xl relative bg-surface text-center">
             <div className="w-12 h-12 rounded-full bg-rose-50 dark:bg-rose-500/10 text-rose-600 dark:text-rose-400 mx-auto flex items-center justify-center">
               <AlertTriangle className="w-6 h-6" />
             </div>
             <div>
-              <h3 className="font-bold text-slate-900 dark:text-slate-100 text-sm">Delete Content Post?</h3>
-              <p className="text-xs text-slate-500 dark:text-slate-400 mt-1">
+              <h3 className="font-bold text-fg text-sm">Delete Content Post?</h3>
+              <p className="text-xs text-muted mt-1">
                 Are you sure you want to delete this scheduled post? This action cannot be undone.
               </p>
             </div>

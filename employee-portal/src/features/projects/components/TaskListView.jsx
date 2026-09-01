@@ -75,29 +75,29 @@ export const TaskListView = ({
     <button
       type="button"
       onClick={() => toggleSort(column)}
-      className="inline-flex items-center gap-1 hover:text-indigo-600 dark:hover:text-indigo-400 transition-colors"
+      className="inline-flex items-center gap-1 hover:text-accent transition-colors"
     >
       {label}
       <ArrowUpDown
-        className={`w-3 h-3 ${sortKey === column ? 'text-indigo-500' : 'text-slate-400'}`}
+        className={`w-3 h-3 ${sortKey === column ? 'text-accent' : 'text-slate-400'}`}
       />
     </button>
   )
 
   if (tasks.length === 0) {
     return (
-      <Card className="p-10 text-center border-slate-200 dark:border-slate-800 bg-white dark:bg-[#181C27]">
-        <p className="text-sm text-slate-500 dark:text-slate-400">No tasks match the current filters.</p>
+      <Card className="p-10 text-center border-border bg-surface">
+        <p className="text-sm text-muted">No tasks match the current filters.</p>
       </Card>
     )
   }
 
   return (
-    <Card className="overflow-hidden border-slate-200 dark:border-slate-800 bg-white dark:bg-[#181C27] p-0">
+    <Card className="overflow-hidden border-border bg-surface p-0">
       <div className="overflow-x-auto">
         <table className="w-full text-left min-w-[820px]">
           <thead>
-            <tr className="border-b border-slate-200 dark:border-slate-800 bg-slate-50/80 dark:bg-slate-900/40 text-[11px] uppercase tracking-wide text-slate-500 dark:text-slate-400">
+            <tr className="border-b border-border bg-slate-50/80 dark:bg-slate-900/40 text-[11px] uppercase tracking-wide text-muted">
               <th className="px-4 py-3 font-semibold">
                 <SortHeader label="Task" column="title" />
               </th>
@@ -124,15 +124,15 @@ export const TaskListView = ({
               <tr
                 key={task.taskId || task.id}
                 onClick={() => onTaskClick?.(task)}
-                className="hover:bg-indigo-50/50 dark:hover:bg-indigo-950/20 cursor-pointer transition-colors group"
+                className="hover:bg-accent-soft/50 cursor-pointer transition-colors group"
               >
                 <td className="px-4 py-3">
-                  <span className="text-xs font-bold text-slate-900 dark:text-slate-100 group-hover:text-indigo-600 dark:group-hover:text-indigo-400 transition-colors">
+                  <span className="text-xs font-bold text-fg group-hover:text-accent transition-colors">
                     {task.title}
                   </span>
                 </td>
                 <td className="px-4 py-3">
-                  <span className="text-xs text-indigo-600 dark:text-indigo-400 font-medium">
+                  <span className="text-xs text-accent font-medium">
                     {task.projectName || '—'}
                   </span>
                 </td>
@@ -141,7 +141,7 @@ export const TaskListView = ({
                     <select
                       value={task.status}
                       onChange={(e) => onStatusChange(task.taskId || task.id, e.target.value)}
-                      className="bg-slate-100 dark:bg-slate-900 border border-slate-300 dark:border-slate-800 text-[11px] text-slate-800 dark:text-slate-300 rounded-lg px-2 py-1 focus:outline-none cursor-pointer"
+                      className="bg-chrome border border-border text-[11px] text-fg rounded-lg px-2 py-1 focus:outline-none cursor-pointer"
                     >
                       {statuses.map((s) => (
                         <option key={s.id} value={s.id}>
@@ -163,20 +163,20 @@ export const TaskListView = ({
                   </Badge>
                 </td>
                 <td className="px-4 py-3">
-                  <span className="inline-flex items-center gap-1 text-[11px] text-slate-600 dark:text-slate-400">
+                  <span className="inline-flex items-center gap-1 text-[11px] text-muted">
                     <User className="w-3 h-3 text-slate-400" />
                     {task.createdByName || task.assigneeName || 'Unassigned'}
                   </span>
                 </td>
                 <td className="px-4 py-3">
-                  <span className="inline-flex items-center gap-1 text-[11px] text-slate-600 dark:text-slate-400">
-                    <Calendar className="w-3 h-3 text-indigo-500" />
+                  <span className="inline-flex items-center gap-1 text-[11px] text-muted">
+                    <Calendar className="w-3 h-3 text-accent" />
                     {task.dueDate || '—'}
                   </span>
                 </td>
                 <td className="px-4 py-3">
-                  <span className="inline-flex items-center gap-1 text-[11px] text-slate-600 dark:text-slate-400">
-                    <Clock className="w-3 h-3 text-indigo-500" />
+                  <span className="inline-flex items-center gap-1 text-[11px] text-muted">
+                    <Clock className="w-3 h-3 text-accent" />
                     {getMetaValue
                       ? getMetaValue(task)
                       : `${task.loggedHours || 0} / ${task.estimatedHours || 0}h`}

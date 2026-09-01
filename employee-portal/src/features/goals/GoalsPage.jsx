@@ -81,14 +81,14 @@ export const GoalsPage = () => {
   const inProgressGoals = goals.filter(g => g.status === 'active').length;
 
   const categoryColors = {
-    career: 'bg-blue-100 text-blue-700 dark:bg-blue-900/30 dark:text-blue-400',
-    skill: 'bg-purple-100 text-purple-700 dark:bg-purple-900/30 dark:text-purple-400',
+    career: 'bg-accent-soft text-accent',
+    skill: 'bg-accent-soft text-accent',
     health: 'bg-green-100 text-green-700 dark:bg-green-900/30 dark:text-green-400',
     other: 'bg-slate-100 text-slate-700 dark:bg-slate-800 dark:text-slate-400'
   };
 
   const statusColors = {
-    active: 'bg-indigo-100 text-indigo-700 dark:bg-indigo-900/30 dark:text-indigo-400',
+    active: 'bg-accent-soft text-accent',
     completed: 'bg-emerald-100 text-emerald-700 dark:bg-emerald-900/30 dark:text-emerald-400',
     paused: 'bg-amber-100 text-amber-700 dark:bg-amber-900/30 dark:text-amber-400'
   };
@@ -98,28 +98,28 @@ export const GoalsPage = () => {
       <PageHeader 
         title="My Goals" 
         description="Track your personal and professional growth"
-        actions={<Button onClick={() => setIsFormOpen(true)} className="bg-purple-600 hover:bg-purple-700 text-white"><Plus className="w-4 h-4 mr-2"/> Add Goal</Button>}
+        actions={<Button onClick={() => setIsFormOpen(true)} className="bg-accent hover:bg-accent-hover text-white"><Plus className="w-4 h-4 mr-2"/> Add Goal</Button>}
       />
 
       <div className="p-6 flex-1 overflow-auto">
         <div className="grid grid-cols-3 gap-4 mb-8">
           <Card className="p-4 flex flex-col justify-center items-center">
-            <span className="text-sm text-slate-500 dark:text-slate-400">Total Goals</span>
-            <span className="text-2xl font-bold text-slate-900 dark:text-white">{totalGoals}</span>
+            <span className="text-sm text-muted">Total Goals</span>
+            <span className="text-2xl font-bold text-fg">{totalGoals}</span>
           </Card>
           <Card className="p-4 flex flex-col justify-center items-center">
-            <span className="text-sm text-slate-500 dark:text-slate-400">In Progress</span>
-            <span className="text-2xl font-bold text-indigo-600 dark:text-indigo-400">{inProgressGoals}</span>
+            <span className="text-sm text-muted">In Progress</span>
+            <span className="text-2xl font-bold text-accent">{inProgressGoals}</span>
           </Card>
           <Card className="p-4 flex flex-col justify-center items-center">
-            <span className="text-sm text-slate-500 dark:text-slate-400">Completed</span>
+            <span className="text-sm text-muted">Completed</span>
             <span className="text-2xl font-bold text-emerald-600 dark:text-emerald-400">{completedGoals}</span>
           </Card>
         </div>
 
         <div className="flex gap-4 mb-6">
           <select 
-            className="bg-white dark:bg-[#12151E] border border-slate-200 dark:border-slate-800 rounded-md px-3 py-1.5 text-sm outline-none"
+            className="bg-surface border border-border rounded-md px-3 py-1.5 text-sm outline-none"
             value={filter}
             onChange={e => setFilter(e.target.value)}
           >
@@ -129,7 +129,7 @@ export const GoalsPage = () => {
             <option value="Paused">Paused</option>
           </select>
           <select 
-            className="bg-white dark:bg-[#12151E] border border-slate-200 dark:border-slate-800 rounded-md px-3 py-1.5 text-sm outline-none"
+            className="bg-surface border border-border rounded-md px-3 py-1.5 text-sm outline-none"
             value={categoryFilter}
             onChange={e => setCategoryFilter(e.target.value)}
           >
@@ -143,16 +143,16 @@ export const GoalsPage = () => {
 
         {loading ? (
           <div className="flex justify-center items-center py-12">
-            <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-purple-600"></div>
+            <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-accent"></div>
           </div>
         ) : filteredGoals.length === 0 ? (
            <div className="flex flex-col items-center justify-center py-24 text-center">
-             <div className="bg-purple-50 dark:bg-purple-900/20 p-4 rounded-full mb-4">
-               <Target className="w-8 h-8 text-purple-600 dark:text-purple-400" />
+             <div className="bg-accent-soft p-4 rounded-full mb-4">
+               <Target className="w-8 h-8 text-accent" />
              </div>
-             <h3 className="text-lg font-medium text-slate-900 dark:text-white mb-1">No goals found</h3>
-             <p className="text-slate-500 dark:text-slate-400 mb-4">Set your first goal to track your growth.</p>
-             <Button onClick={() => setIsFormOpen(true)} className="bg-purple-600 hover:bg-purple-700 text-white text-xs px-4 py-2 flex items-center gap-1.5">
+             <h3 className="text-lg font-medium text-fg mb-1">No goals found</h3>
+             <p className="text-muted mb-4">Set your first goal to track your growth.</p>
+             <Button onClick={() => setIsFormOpen(true)} className="bg-accent hover:bg-accent-hover text-white text-xs px-4 py-2 flex items-center gap-1.5">
                <Plus className="w-3.5 h-3.5" /> Add Goal
              </Button>
            </div>
@@ -174,22 +174,22 @@ export const GoalsPage = () => {
 
       {isFormOpen && (
         <div className="absolute inset-0 z-50 flex justify-end bg-black/20 dark:bg-black/40 backdrop-blur-sm">
-           <div className="w-full max-w-md bg-white dark:bg-[#12151E] h-full shadow-2xl flex flex-col border-l border-slate-200 dark:border-slate-800 transform transition-transform">
-             <div className="p-6 flex justify-between items-center border-b border-slate-200 dark:border-slate-800">
-               <h2 className="text-lg font-semibold text-slate-900 dark:text-white">Add New Goal</h2>
+           <div className="w-full max-w-md bg-surface h-full shadow-2xl flex flex-col border-l border-border transform transition-transform">
+             <div className="p-6 flex justify-between items-center border-b border-border">
+               <h2 className="text-lg font-semibold text-fg">Add New Goal</h2>
                <button onClick={() => setIsFormOpen(false)} className="text-slate-500 hover:text-slate-700 dark:hover:text-slate-300">
                  <X className="w-5 h-5" />
                </button>
              </div>
              <form onSubmit={handleSubmit} className="p-6 flex-1 overflow-y-auto flex flex-col gap-4">
                <div>
-                 <label className="block text-sm font-medium text-slate-700 dark:text-slate-300 mb-1">Title <span className="text-red-500">*</span></label>
+                 <label className="block text-sm font-medium text-fg mb-1">Title <span className="text-red-500">*</span></label>
                  <Input required value={title} onChange={e => setTitle(e.target.value)} placeholder="e.g. Learn React Native" />
                </div>
                <div>
-                 <label className="block text-sm font-medium text-slate-700 dark:text-slate-300 mb-1">Description</label>
+                 <label className="block text-sm font-medium text-fg mb-1">Description</label>
                  <textarea 
-                    className="w-full bg-white dark:bg-[#0F1117] border border-slate-200 dark:border-slate-800 rounded-lg px-3 py-2 text-sm text-slate-900 dark:text-white placeholder-slate-400 focus:outline-none focus:ring-2 focus:ring-purple-500 min-h-[100px]"
+                    className="w-full bg-surface border border-border rounded-lg px-3 py-2 text-sm text-fg placeholder-slate-400 focus:outline-none focus:ring-2 focus:ring-accent min-h-[100px]"
                     value={description} 
                     onChange={e => setDescription(e.target.value)}
                     placeholder="Brief details about your goal..."
@@ -197,9 +197,9 @@ export const GoalsPage = () => {
                </div>
                <div className="grid grid-cols-2 gap-4">
                  <div>
-                   <label className="block text-sm font-medium text-slate-700 dark:text-slate-300 mb-1">Category</label>
+                   <label className="block text-sm font-medium text-fg mb-1">Category</label>
                    <select 
-                     className="w-full bg-white dark:bg-[#0F1117] border border-slate-200 dark:border-slate-800 rounded-lg px-3 py-2 text-sm text-slate-900 dark:text-white focus:outline-none focus:ring-2 focus:ring-purple-500"
+                     className="w-full bg-surface border border-border rounded-lg px-3 py-2 text-sm text-fg focus:outline-none focus:ring-2 focus:ring-accent"
                      value={category}
                      onChange={e => setCategory(e.target.value)}
                    >
@@ -210,7 +210,7 @@ export const GoalsPage = () => {
                    </select>
                  </div>
                  <div>
-                   <label className="block text-sm font-medium text-slate-700 dark:text-slate-300 mb-1">Target Date</label>
+                   <label className="block text-sm font-medium text-fg mb-1">Target Date</label>
                    <Input type="date" value={targetDate} onChange={e => setTargetDate(e.target.value)} />
                  </div>
                </div>
@@ -254,16 +254,16 @@ const GoalCard = ({ goal, onUpdateProgress, onDelete, categoryColors, statusColo
          <Badge className={`${categoryColors[goal.category] || categoryColors.other} border-none capitalize`}>{goal.category}</Badge>
          <Badge className={`${statusColors[goal.status] || statusColors.active} border-none capitalize`}>{goal.status}</Badge>
        </div>
-       <h4 className="font-semibold text-slate-900 dark:text-white mb-1 truncate pr-6">{goal.title}</h4>
-       <p className="text-sm text-slate-500 dark:text-slate-400 line-clamp-2 mb-4 flex-1">{goal.description}</p>
+       <h4 className="font-semibold text-fg mb-1 truncate pr-6">{goal.title}</h4>
+       <p className="text-sm text-muted line-clamp-2 mb-4 flex-1">{goal.description}</p>
        
-       <div className="flex items-center gap-1.5 text-xs text-slate-500 dark:text-slate-400 mb-4">
+       <div className="flex items-center gap-1.5 text-xs text-muted mb-4">
          <Calendar className="w-3.5 h-3.5" />
          <span>{goal.targetDate || 'No date set'}</span>
        </div>
 
        <div>
-         <div className="flex justify-between text-xs font-medium text-slate-700 dark:text-slate-300 mb-2">
+         <div className="flex justify-between text-xs font-medium text-fg mb-2">
            <span>Progress</span>
            <span>{progress}%</span>
          </div>
@@ -273,7 +273,7 @@ const GoalCard = ({ goal, onUpdateProgress, onDelete, categoryColors, statusColo
            max="100" 
            value={progress}
            onChange={handleSliderChange}
-           className="w-full accent-purple-600 h-1.5 bg-slate-200 dark:bg-slate-700 rounded-lg appearance-none cursor-pointer"
+           className="w-full accent-accent h-1.5 bg-slate-200 dark:bg-slate-700 rounded-lg appearance-none cursor-pointer"
          />
        </div>
     </Card>

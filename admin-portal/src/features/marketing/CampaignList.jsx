@@ -189,14 +189,14 @@ export const CampaignList = () => {
           }
         />
 
-        <div className="flex items-center gap-2 border-b border-slate-200 dark:border-slate-800 pb-3">
+        <div className="flex items-center gap-2 border-b border-border pb-3">
           <NavLink
             to="/marketing/campaigns"
             className={({ isActive }) =>
               `flex items-center gap-2 px-3.5 py-2 rounded-xl text-xs font-semibold transition-colors ${
                 isActive
-                  ? 'bg-indigo-50 dark:bg-indigo-600/20 text-indigo-600 dark:text-indigo-400 border border-indigo-200 dark:border-indigo-500/30'
-                  : 'text-slate-600 dark:text-slate-400 hover:text-slate-900 dark:hover:text-slate-200 hover:bg-slate-100 dark:hover:bg-slate-800'
+                  ? 'bg-accent-soft text-accent border border-accent/30'
+                  : 'text-muted hover:text-fg hover:bg-slate-100 dark:hover:bg-slate-800'
               }`
             }
           >
@@ -207,8 +207,8 @@ export const CampaignList = () => {
             className={({ isActive }) =>
               `flex items-center gap-2 px-3.5 py-2 rounded-xl text-xs font-semibold transition-colors ${
                 isActive
-                  ? 'bg-indigo-50 dark:bg-indigo-600/20 text-indigo-600 dark:text-indigo-400 border border-indigo-200 dark:border-indigo-500/30'
-                  : 'text-slate-600 dark:text-slate-400 hover:text-slate-900 dark:hover:text-slate-200 hover:bg-slate-100 dark:hover:bg-slate-800'
+                  ? 'bg-accent-soft text-accent border border-accent/30'
+                  : 'text-muted hover:text-fg hover:bg-slate-100 dark:hover:bg-slate-800'
               }`
             }
           >
@@ -219,8 +219,8 @@ export const CampaignList = () => {
             className={({ isActive }) =>
               `flex items-center gap-2 px-3.5 py-2 rounded-xl text-xs font-semibold transition-colors ${
                 isActive
-                  ? 'bg-indigo-50 dark:bg-indigo-600/20 text-indigo-600 dark:text-indigo-400 border border-indigo-200 dark:border-indigo-500/30'
-                  : 'text-slate-600 dark:text-slate-400 hover:text-slate-900 dark:hover:text-slate-200 hover:bg-slate-100 dark:hover:bg-slate-800'
+                  ? 'bg-accent-soft text-accent border border-accent/30'
+                  : 'text-muted hover:text-fg hover:bg-slate-100 dark:hover:bg-slate-800'
               }`
             }
           >
@@ -231,23 +231,23 @@ export const CampaignList = () => {
 
       {/* Metrics Summary Cards */}
       <div className="grid grid-cols-1 sm:grid-cols-3 gap-4">
-        <Card className="p-4 flex items-center justify-between border-slate-200 dark:border-slate-800 bg-white dark:bg-[#181C27]">
+        <Card className="p-4 flex items-center justify-between border-border bg-surface">
           <div>
-            <span className="text-[11px] font-medium text-slate-500 dark:text-slate-400 uppercase tracking-wider">
+            <span className="text-[11px] font-medium text-muted uppercase tracking-wider">
               Total Marketing Spend
             </span>
-            <p className="text-2xl font-bold text-slate-900 dark:text-slate-100 mt-1">
+            <p className="text-2xl font-bold text-fg mt-1">
               ₹{totalSpend.toLocaleString('en-IN')}
             </p>
           </div>
-          <div className="w-10 h-10 rounded-xl bg-indigo-50 dark:bg-indigo-500/10 text-indigo-600 dark:text-indigo-400 flex items-center justify-center">
+          <div className="w-10 h-10 rounded-xl bg-accent-soft text-accent flex items-center justify-center">
             <IndianRupee className="w-5 h-5" />
           </div>
         </Card>
 
-        <Card className="p-4 flex items-center justify-between border-slate-200 dark:border-slate-800 bg-white dark:bg-[#181C27]">
+        <Card className="p-4 flex items-center justify-between border-border bg-surface">
           <div>
-            <span className="text-[11px] font-medium text-slate-500 dark:text-slate-400 uppercase tracking-wider">
+            <span className="text-[11px] font-medium text-muted uppercase tracking-wider">
               Leads Acquired
             </span>
             <p className="text-2xl font-bold text-emerald-600 dark:text-emerald-400 mt-1">{totalLeads} Leads</p>
@@ -257,13 +257,13 @@ export const CampaignList = () => {
           </div>
         </Card>
 
-        <Card className="p-4 flex items-center justify-between border-slate-200 dark:border-slate-800 bg-white dark:bg-[#181C27]">
+        <Card className="p-4 flex items-center justify-between border-border bg-surface">
           <div>
-            <span className="text-[11px] font-medium text-slate-500 dark:text-slate-400 uppercase tracking-wider">
+            <span className="text-[11px] font-medium text-muted uppercase tracking-wider">
               Avg Cost Per Lead
             </span>
             <p className="text-2xl font-bold text-purple-600 dark:text-purple-400 mt-1">
-              ₹{avgCostPerLead.toLocaleString('en-IN')} <span className="text-xs font-normal text-slate-500">/ lead</span>
+              ₹{avgCostPerLead.toLocaleString('en-IN')} <span className="text-xs font-normal text-muted">/ lead</span>
             </p>
           </div>
           <div className="w-10 h-10 rounded-xl bg-purple-50 dark:bg-purple-500/10 text-purple-600 dark:text-purple-400 flex items-center justify-center">
@@ -273,7 +273,7 @@ export const CampaignList = () => {
       </div>
 
       {/* Search & Filter Bar */}
-      <Card className="p-3 border-slate-200 dark:border-slate-800 bg-white dark:bg-[#181C27]">
+      <Card className="p-3 border-border bg-surface">
         <div className="flex flex-col sm:flex-row items-center gap-3">
           <div className="relative flex-1 w-full">
             <Search className="w-4 h-4 absolute left-3 top-1/2 -translate-y-1/2 text-slate-400" />
@@ -282,7 +282,7 @@ export const CampaignList = () => {
               placeholder="Search campaigns by name, channel, or UTM parameter..."
               value={searchQuery}
               onChange={(e) => setSearchQuery(e.target.value)}
-              className="w-full bg-slate-50 dark:bg-[#11141E] border border-slate-200 dark:border-slate-800 text-slate-900 dark:text-slate-100 text-xs rounded-xl pl-9 pr-3.5 py-2.5 focus:outline-none focus:border-indigo-500"
+              className="w-full bg-canvas border border-border text-fg text-xs rounded-xl pl-9 pr-3.5 py-2.5 focus:outline-none focus:border-accent"
             />
           </div>
 
@@ -290,7 +290,7 @@ export const CampaignList = () => {
             <select
               value={channelFilter}
               onChange={(e) => setChannelFilter(e.target.value)}
-              className="bg-slate-50 dark:bg-[#11141E] border border-slate-200 dark:border-slate-800 text-slate-900 dark:text-slate-100 text-xs rounded-xl px-3 py-2.5 focus:outline-none cursor-pointer"
+              className="bg-canvas border border-border text-fg text-xs rounded-xl px-3 py-2.5 focus:outline-none cursor-pointer"
             >
               <option value="all">All Channels</option>
               <option value="LinkedIn Ads">LinkedIn Ads</option>
@@ -303,7 +303,7 @@ export const CampaignList = () => {
             <select
               value={statusFilter}
               onChange={(e) => setStatusFilter(e.target.value)}
-              className="bg-slate-50 dark:bg-[#11141E] border border-slate-200 dark:border-slate-800 text-slate-900 dark:text-slate-100 text-xs rounded-xl px-3 py-2.5 focus:outline-none cursor-pointer"
+              className="bg-canvas border border-border text-fg text-xs rounded-xl px-3 py-2.5 focus:outline-none cursor-pointer"
             >
               <option value="all">All Statuses</option>
               <option value="active">Active</option>
@@ -322,54 +322,54 @@ export const CampaignList = () => {
           const pct = Math.min(100, Math.round((spent / budget) * 100))
 
           return (
-            <Card key={c.campaignId} hover className="space-y-3.5 border-slate-200 dark:border-slate-800 bg-white dark:bg-[#181C27] flex flex-col justify-between">
+            <Card key={c.campaignId} hover className="space-y-3.5 border-border bg-surface flex flex-col justify-between">
               <div className="space-y-3">
                 <div className="flex items-start justify-between">
                   <div>
-                    <h4 className="font-bold text-slate-900 dark:text-slate-100 text-sm leading-snug">{c.name}</h4>
-                    <p className="text-xs font-medium text-indigo-600 dark:text-indigo-400 mt-0.5">{c.channel}</p>
+                    <h4 className="font-bold text-fg text-sm leading-snug">{c.name}</h4>
+                    <p className="text-xs font-medium text-accent mt-0.5">{c.channel}</p>
                   </div>
                   <Badge variant={getStatusBadgeVariant(c.status)}>{c.status}</Badge>
                 </div>
 
                 {/* Budget Progress */}
-                <div className="space-y-1.5 text-xs text-slate-500 dark:text-slate-400">
+                <div className="space-y-1.5 text-xs text-muted">
                   <div className="flex justify-between items-center text-[11px]">
                     <span>Spend vs Budget</span>
-                    <span className="font-semibold text-slate-800 dark:text-slate-200">
+                    <span className="font-semibold text-fg">
                       ₹{spent.toLocaleString('en-IN')} / ₹{budget.toLocaleString('en-IN')}
                     </span>
                   </div>
-                  <div className="w-full bg-slate-100 dark:bg-slate-900 h-2 rounded-full overflow-hidden border border-slate-200 dark:border-slate-800">
+                  <div className="w-full bg-canvas h-2 rounded-full overflow-hidden border border-border">
                     <div
                       className={`h-full transition-all duration-300 ${
-                        pct > 90 ? 'bg-rose-500' : pct > 70 ? 'bg-amber-500' : 'bg-indigo-600 dark:bg-indigo-500'
+                        pct > 90 ? 'bg-rose-500' : pct > 70 ? 'bg-amber-500' : 'bg-accent dark:bg-accent'
                       }`}
                       style={{ width: `${pct}%` }}
                     />
                   </div>
                 </div>
 
-                <div className="grid grid-cols-2 gap-2 pt-2 border-t border-slate-100 dark:border-slate-800 text-xs">
-                  <div className="p-2.5 rounded-xl bg-slate-50 dark:bg-[#11141E] border border-slate-200/60 dark:border-slate-800">
-                    <span className="text-[10px] text-slate-500 dark:text-slate-400 block font-medium">Leads</span>
+                <div className="grid grid-cols-2 gap-2 pt-2 border-t border-slate-100 dark:border-border text-xs">
+                  <div className="p-2.5 rounded-xl bg-canvas border border-slate-200/60 dark:border-border">
+                    <span className="text-[10px] text-muted block font-medium">Leads</span>
                     <span className="font-bold text-emerald-600 dark:text-emerald-400 text-base">{c.leadsGenerated || 0}</span>
                   </div>
-                  <div className="p-2.5 rounded-xl bg-slate-50 dark:bg-[#11141E] border border-slate-200/60 dark:border-slate-800">
-                    <span className="text-[10px] text-slate-500 dark:text-slate-400 block font-medium">Conversion Rate</span>
+                  <div className="p-2.5 rounded-xl bg-canvas border border-slate-200/60 dark:border-border">
+                    <span className="text-[10px] text-muted block font-medium">Conversion Rate</span>
                     <span className="font-bold text-purple-600 dark:text-purple-400 text-base">{c.conversionRate || 0}%</span>
                   </div>
                 </div>
               </div>
 
-              <div className="pt-2 flex items-center justify-between text-[11px] text-slate-500 dark:text-slate-400 border-t border-slate-100 dark:border-slate-800">
-                <span className="font-mono text-slate-600 dark:text-slate-400 truncate max-w-[170px]" title={c.utmCampaign}>
+              <div className="pt-2 flex items-center justify-between text-[11px] text-muted border-t border-slate-100 dark:border-border">
+                <span className="font-mono text-muted truncate max-w-[170px]" title={c.utmCampaign}>
                   utm_campaign={c.utmCampaign || 'n/a'}
                 </span>
                 <div className="flex items-center gap-1">
                   <button
                     onClick={() => openEditModal(c)}
-                    className="p-1.5 text-slate-400 hover:text-indigo-600 dark:hover:text-indigo-400 rounded-lg hover:bg-slate-100 dark:hover:bg-slate-800 transition-colors"
+                    className="p-1.5 text-slate-400 hover:text-accent dark:hover:text-accent rounded-lg hover:bg-slate-100 dark:hover:bg-slate-800 transition-colors"
                     title="Edit Campaign"
                   >
                     <Edit2 className="w-3.5 h-3.5" />
@@ -388,7 +388,7 @@ export const CampaignList = () => {
         })}
 
         {filtered.length === 0 && (
-          <div className="col-span-full p-8 text-center text-slate-500 dark:text-slate-400 bg-slate-50 dark:bg-[#181C27] rounded-2xl border border-slate-200 dark:border-slate-800">
+          <div className="col-span-full p-8 text-center text-muted bg-surface rounded-2xl border border-border">
             No marketing campaigns match your criteria. Click "New Campaign" to create one.
           </div>
         )}
@@ -397,9 +397,9 @@ export const CampaignList = () => {
       {/* Create Campaign Modal */}
       {showAddModal && (
         <div className="fixed inset-0 z-50 bg-black/70 backdrop-blur-sm flex items-center justify-center p-4">
-          <Card className="w-full max-w-lg p-6 space-y-4 border-slate-200 dark:border-slate-800 shadow-2xl relative bg-white dark:bg-[#181C27]">
-            <div className="flex items-center justify-between pb-3 border-b border-slate-200 dark:border-slate-800">
-              <h3 className="font-bold text-slate-900 dark:text-slate-100 text-sm">Create Marketing Campaign</h3>
+          <Card className="w-full max-w-lg p-6 space-y-4 border-border shadow-2xl relative bg-surface">
+            <div className="flex items-center justify-between pb-3 border-b border-border">
+              <h3 className="font-bold text-fg text-sm">Create Marketing Campaign</h3>
               <button
                 onClick={() => setShowAddModal(false)}
                 className="text-slate-400 hover:text-slate-600 dark:hover:text-white p-1 rounded-lg hover:bg-slate-100 dark:hover:bg-slate-800 transition-colors"
@@ -419,11 +419,11 @@ export const CampaignList = () => {
 
               <div className="grid grid-cols-2 gap-3">
                 <div className="space-y-1.5 text-left">
-                  <label className="block text-xs font-medium text-slate-700 dark:text-slate-300">Channel</label>
+                  <label className="block text-xs font-medium text-fg">Channel</label>
                   <select
                     value={channel}
                     onChange={(e) => setChannel(e.target.value)}
-                    className="w-full bg-slate-50 dark:bg-[#11141E] border border-slate-300 dark:border-slate-800 text-slate-900 dark:text-slate-100 text-xs rounded-xl py-2.5 px-3.5 focus:outline-none focus:border-indigo-500 cursor-pointer"
+                    className="w-full bg-canvas border border-border text-fg text-xs rounded-xl py-2.5 px-3.5 focus:outline-none focus:border-accent cursor-pointer"
                   >
                     <option value="LinkedIn Ads">LinkedIn Ads</option>
                     <option value="Google Search Ads">Google Search Ads</option>
@@ -479,9 +479,9 @@ export const CampaignList = () => {
       {/* Edit Campaign Modal */}
       {editingCampaign && (
         <div className="fixed inset-0 z-50 bg-black/70 backdrop-blur-sm flex items-center justify-center p-4">
-          <Card className="w-full max-w-lg p-6 space-y-4 border-slate-200 dark:border-slate-800 shadow-2xl relative bg-white dark:bg-[#181C27]">
-            <div className="flex items-center justify-between pb-3 border-b border-slate-200 dark:border-slate-800">
-              <h3 className="font-bold text-slate-900 dark:text-slate-100 text-sm">Edit Marketing Campaign</h3>
+          <Card className="w-full max-w-lg p-6 space-y-4 border-border shadow-2xl relative bg-surface">
+            <div className="flex items-center justify-between pb-3 border-b border-border">
+              <h3 className="font-bold text-fg text-sm">Edit Marketing Campaign</h3>
               <button
                 onClick={() => setEditingCampaign(null)}
                 className="text-slate-400 hover:text-slate-600 dark:hover:text-white p-1 rounded-lg hover:bg-slate-100 dark:hover:bg-slate-800 transition-colors"
@@ -500,11 +500,11 @@ export const CampaignList = () => {
 
               <div className="grid grid-cols-2 gap-3">
                 <div className="space-y-1.5 text-left">
-                  <label className="block text-xs font-medium text-slate-700 dark:text-slate-300">Channel</label>
+                  <label className="block text-xs font-medium text-fg">Channel</label>
                   <select
                     value={editChannel}
                     onChange={(e) => setEditChannel(e.target.value)}
-                    className="w-full bg-slate-50 dark:bg-[#11141E] border border-slate-300 dark:border-slate-800 text-slate-900 dark:text-slate-100 text-xs rounded-xl py-2.5 px-3.5 focus:outline-none cursor-pointer"
+                    className="w-full bg-canvas border border-border text-fg text-xs rounded-xl py-2.5 px-3.5 focus:outline-none cursor-pointer"
                   >
                     <option value="LinkedIn Ads">LinkedIn Ads</option>
                     <option value="Google Search Ads">Google Search Ads</option>
@@ -515,11 +515,11 @@ export const CampaignList = () => {
                 </div>
 
                 <div className="space-y-1.5 text-left">
-                  <label className="block text-xs font-medium text-slate-700 dark:text-slate-300">Status</label>
+                  <label className="block text-xs font-medium text-fg">Status</label>
                   <select
                     value={editStatus}
                     onChange={(e) => setEditStatus(e.target.value)}
-                    className="w-full bg-slate-50 dark:bg-[#11141E] border border-slate-300 dark:border-slate-800 text-slate-900 dark:text-slate-100 text-xs rounded-xl py-2.5 px-3.5 focus:outline-none cursor-pointer"
+                    className="w-full bg-canvas border border-border text-fg text-xs rounded-xl py-2.5 px-3.5 focus:outline-none cursor-pointer"
                   >
                     <option value="active">Active</option>
                     <option value="paused">Paused</option>
@@ -593,13 +593,13 @@ export const CampaignList = () => {
       {/* Delete Confirmation Modal */}
       {deletingId && (
         <div className="fixed inset-0 z-50 bg-black/70 backdrop-blur-sm flex items-center justify-center p-4">
-          <Card className="w-full max-w-sm p-6 space-y-4 border-slate-200 dark:border-slate-800 shadow-2xl relative bg-white dark:bg-[#181C27] text-center">
+          <Card className="w-full max-w-sm p-6 space-y-4 border-border shadow-2xl relative bg-surface text-center">
             <div className="w-12 h-12 rounded-full bg-rose-50 dark:bg-rose-500/10 text-rose-600 dark:text-rose-400 mx-auto flex items-center justify-center">
               <AlertTriangle className="w-6 h-6" />
             </div>
             <div>
-              <h3 className="font-bold text-slate-900 dark:text-slate-100 text-sm">Delete Campaign?</h3>
-              <p className="text-xs text-slate-500 dark:text-slate-400 mt-1">
+              <h3 className="font-bold text-fg text-sm">Delete Campaign?</h3>
+              <p className="text-xs text-muted mt-1">
                 Are you sure you want to delete this campaign? This action cannot be undone.
               </p>
             </div>

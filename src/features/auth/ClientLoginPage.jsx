@@ -68,7 +68,7 @@ export const ClientLoginPage = () => {
   }
 
   return (
-    <div className="min-h-screen bg-slate-50 dark:bg-[#0F1117] flex items-center justify-center p-4 relative overflow-hidden text-slate-900 dark:text-slate-100 transition-colors duration-200">
+    <div className="min-h-screen bg-canvas text-fg flex items-center justify-center p-4 relative overflow-hidden transition-colors duration-200">
       <div className="absolute top-1/4 left-1/2 -translate-x-1/2 w-96 h-96 bg-emerald-500/10 dark:bg-emerald-600/15 blur-[120px] rounded-full pointer-events-none" />
 
       <Card className="w-full max-w-md p-8 relative z-10 border-emerald-200/80 dark:border-emerald-500/30 shadow-xl dark:shadow-2xl space-y-6">
@@ -76,8 +76,8 @@ export const ClientLoginPage = () => {
           <div className="inline-flex w-12 h-12 rounded-2xl bg-emerald-50 dark:bg-emerald-600/20 text-emerald-600 dark:text-emerald-400 items-center justify-center border border-emerald-200 dark:border-emerald-500/30 mb-1">
             <Layers className="w-6 h-6" />
           </div>
-          <h2 className="text-2xl font-bold text-slate-900 dark:text-slate-100 tracking-tight">Client Portal Sign In</h2>
-          <p className="text-xs text-slate-500 dark:text-slate-400">Isolated Deliverables, Invoices & Sign-off Approvals</p>
+          <h2 className="text-2xl font-bold text-fg tracking-tight">Client Portal Sign In</h2>
+          <p className="text-xs text-muted">Isolated Deliverables, Invoices & Sign-off Approvals</p>
         </div>
 
         {error && (
@@ -114,9 +114,9 @@ export const ClientLoginPage = () => {
 
         <div className="relative text-center">
           <div className="absolute inset-0 flex items-center">
-            <div className="w-full border-t border-slate-200 dark:border-slate-800" />
+            <div className="w-full border-t border-border" />
           </div>
-          <span className="relative bg-white dark:bg-[#181C27] px-3 text-[11px] text-slate-500 dark:text-slate-400 uppercase tracking-wider">
+          <span className="relative bg-surface px-3 text-[11px] text-muted uppercase tracking-wider">
             Or Client SSO
           </span>
         </div>
@@ -130,8 +130,8 @@ export const ClientLoginPage = () => {
           Sign In with Client Google SSO
         </Button>
 
-        <div className="pt-2 text-center text-xs text-slate-500 dark:text-slate-400 flex justify-between">
-          <Link to="/login/admin" className="hover:text-indigo-600 dark:hover:text-indigo-400 font-medium">Admin Login →</Link>
+        <div className="pt-2 text-center text-xs text-muted flex justify-between">
+          <Link to="/login/admin" className="hover:text-accent dark:hover:text-accent font-medium">Admin Login →</Link>
           <Link to="/login/employee" className="hover:text-purple-600 dark:hover:text-purple-400 font-medium">Employee Login →</Link>
         </div>
       </Card>

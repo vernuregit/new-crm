@@ -34,11 +34,11 @@ export const NotificationCenter = () => {
       case 'crm':
         return <Users className="w-4 h-4 text-violet-600 dark:text-violet-400" />
       case 'project':
-        return <Briefcase className="w-4 h-4 text-purple-600 dark:text-purple-400" />
+        return <Briefcase className="w-4 h-4 text-accent" />
       case 'wellness':
         return <Heart className="w-4 h-4 text-rose-600 dark:text-rose-400" />
       default:
-        return <Info className="w-4 h-4 text-blue-600 dark:text-blue-400" />
+        return <Info className="w-4 h-4 text-accent" />
     }
   }
 

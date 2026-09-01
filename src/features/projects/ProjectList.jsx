@@ -241,15 +241,15 @@ export const ProjectList = () => {
           }
         />
 
-        <div className="flex items-center justify-between border-b border-slate-200 dark:border-slate-800 pb-3">
+        <div className="flex items-center justify-between border-b border-border pb-3">
           <div className="flex items-center gap-2">
             <NavLink
               to="/projects/list"
               className={({ isActive }) =>
                 `flex items-center gap-2 px-3 py-1.5 rounded-xl text-xs font-semibold transition-colors ${
                   isActive
-                    ? 'bg-indigo-50 dark:bg-indigo-600/20 text-indigo-600 dark:text-indigo-400 border border-indigo-200 dark:border-indigo-500/30'
-                    : 'text-slate-600 dark:text-slate-400 hover:text-slate-900 dark:hover:text-slate-200 hover:bg-slate-100 dark:hover:bg-slate-800'
+                    ? 'bg-accent-soft text-accent border border-accent/30'
+                    : 'text-muted hover:text-fg hover:bg-slate-100 dark:hover:bg-slate-800'
                 }`
               }
             >
@@ -260,8 +260,8 @@ export const ProjectList = () => {
               className={({ isActive }) =>
                 `flex items-center gap-2 px-3 py-1.5 rounded-xl text-xs font-semibold transition-colors ${
                   isActive
-                    ? 'bg-indigo-50 dark:bg-indigo-600/20 text-indigo-600 dark:text-indigo-400 border border-indigo-200 dark:border-indigo-500/30'
-                    : 'text-slate-600 dark:text-slate-400 hover:text-slate-900 dark:hover:text-slate-200 hover:bg-slate-100 dark:hover:bg-slate-800'
+                    ? 'bg-accent-soft text-accent border border-accent/30'
+                    : 'text-muted hover:text-fg hover:bg-slate-100 dark:hover:bg-slate-800'
                 }`
               }
             >
@@ -272,8 +272,8 @@ export const ProjectList = () => {
               className={({ isActive }) =>
                 `flex items-center gap-2 px-3 py-1.5 rounded-xl text-xs font-semibold transition-colors ${
                   isActive
-                    ? 'bg-indigo-50 dark:bg-indigo-600/20 text-indigo-600 dark:text-indigo-400 border border-indigo-200 dark:border-indigo-500/30'
-                    : 'text-slate-600 dark:text-slate-400 hover:text-slate-900 dark:hover:text-slate-200 hover:bg-slate-100 dark:hover:bg-slate-800'
+                    ? 'bg-accent-soft text-accent border border-accent/30'
+                    : 'text-muted hover:text-fg hover:bg-slate-100 dark:hover:bg-slate-800'
                 }`
               }
             >
@@ -285,7 +285,7 @@ export const ProjectList = () => {
             <select
               value={statusFilter}
               onChange={(e) => setStatusFilter(e.target.value)}
-              className="bg-slate-100 dark:bg-[#181C27] border border-slate-300 dark:border-slate-800 text-xs text-slate-800 dark:text-slate-200 rounded-xl px-3 py-1.5 focus:outline-none cursor-pointer"
+              className="bg-canvas border border-border text-xs text-fg rounded-xl px-3 py-1.5 focus:outline-none cursor-pointer"
             >
               <option value="all">All Statuses</option>
               <option value="active">Active</option>
@@ -294,13 +294,13 @@ export const ProjectList = () => {
             </select>
 
             <div className="relative w-64">
-              <Search className="w-3.5 h-3.5 absolute left-3 top-1/2 -translate-y-1/2 text-slate-400 dark:text-slate-500" />
+              <Search className="w-3.5 h-3.5 absolute left-3 top-1/2 -translate-y-1/2 text-muted" />
               <input
                 type="text"
                 placeholder="Search projects..."
                 value={searchQuery}
                 onChange={(e) => setSearchQuery(e.target.value)}
-                className="w-full bg-slate-100 dark:bg-[#181C27] border border-slate-300 dark:border-slate-800 text-xs text-slate-800 dark:text-slate-200 placeholder-slate-400 dark:placeholder-slate-500 rounded-xl pl-8 pr-3 py-1.5 focus:outline-none transition-colors"
+                className="w-full bg-canvas border border-border text-xs text-fg placeholder:text-muted rounded-xl pl-8 pr-3 py-1.5 focus:outline-none transition-colors"
               />
             </div>
           </div>
@@ -309,21 +309,21 @@ export const ProjectList = () => {
 
       {/* Metrics Summary Strip */}
       <div className="grid grid-cols-1 sm:grid-cols-3 gap-4">
-        <Card className="p-4 flex items-center justify-between border-slate-200 dark:border-slate-800/80">
+        <Card className="p-4 flex items-center justify-between border-border">
           <div>
-            <span className="text-[11px] font-medium text-slate-500 dark:text-slate-400 uppercase tracking-wider">
+            <span className="text-[11px] font-medium text-muted uppercase tracking-wider">
               Active Projects
             </span>
-            <p className="text-xl font-bold text-slate-900 dark:text-slate-100 mt-1">{activeCount}</p>
+            <p className="text-xl font-bold text-fg mt-1">{activeCount}</p>
           </div>
-          <div className="w-9 h-9 rounded-xl bg-indigo-50 dark:bg-indigo-500/10 text-indigo-600 dark:text-indigo-400 flex items-center justify-center">
+          <div className="w-9 h-9 rounded-xl bg-accent-soft text-accent flex items-center justify-center">
             <Briefcase className="w-5 h-5" />
           </div>
         </Card>
 
-        <Card className="p-4 flex items-center justify-between border-slate-200 dark:border-slate-800/80">
+        <Card className="p-4 flex items-center justify-between border-border">
           <div>
-            <span className="text-[11px] font-medium text-slate-500 dark:text-slate-400 uppercase tracking-wider">
+            <span className="text-[11px] font-medium text-muted uppercase tracking-wider">
               Avg Completion Rate
             </span>
             <p className="text-xl font-bold text-emerald-600 dark:text-emerald-400 mt-1">{avgCompletion}%</p>
@@ -333,9 +333,9 @@ export const ProjectList = () => {
           </div>
         </Card>
 
-        <Card className="p-4 flex items-center justify-between border-slate-200 dark:border-slate-800/80">
+        <Card className="p-4 flex items-center justify-between border-border">
           <div>
-            <span className="text-[11px] font-medium text-slate-500 dark:text-slate-400 uppercase tracking-wider">
+            <span className="text-[11px] font-medium text-muted uppercase tracking-wider">
               Total Logged Hours
             </span>
             <p className="text-xl font-bold text-purple-600 dark:text-purple-400 mt-1">{totalLoggedHours} hrs</p>
@@ -352,16 +352,16 @@ export const ProjectList = () => {
           <Card
             key={proj.projectId || proj.id}
             hover
-            className="space-y-4 border-slate-200 dark:border-slate-800 cursor-pointer group"
+            className="space-y-4 border-border cursor-pointer group"
             onClick={() => handleProjectClick(proj)}
           >
             <div className="flex items-start justify-between">
               <div>
-                <h3 className="font-bold text-slate-900 dark:text-slate-100 text-sm group-hover:text-indigo-600 dark:group-hover:text-indigo-400 transition-colors flex items-center gap-1.5">
+                <h3 className="font-bold text-fg text-sm group-hover:text-accent dark:group-hover:text-accent transition-colors flex items-center gap-1.5">
                   {proj.name}
                 </h3>
-                <p className="text-xs text-slate-500 dark:text-slate-400 flex items-center gap-1 mt-0.5">
-                  <Building className="w-3 h-3 text-slate-400 dark:text-slate-500" /> {proj.clientName}
+                <p className="text-xs text-muted flex items-center gap-1 mt-0.5">
+                  <Building className="w-3 h-3 text-muted" /> {proj.clientName}
                 </p>
               </div>
               <div className="flex items-center gap-1.5" onClick={(e) => e.stopPropagation()}>
@@ -382,25 +382,25 @@ export const ProjectList = () => {
                     handleOpenEditModal(proj)
                   }}
                   title="Edit project name & details"
-                  className="text-slate-400 dark:text-slate-500 hover:text-indigo-600 dark:hover:text-indigo-400 p-1 rounded hover:bg-slate-100 dark:hover:bg-slate-800 transition-colors"
+                  className="text-muted hover:text-accent dark:hover:text-accent p-1 rounded hover:bg-slate-100 dark:hover:bg-slate-800 transition-colors"
                 >
                   <Pencil className="w-3.5 h-3.5" />
                 </button>
                 <button
                   onClick={(e) => handleDeleteProject(proj.projectId || proj.id, e)}
                   title="Delete project"
-                  className="text-slate-400 dark:text-slate-500 hover:text-rose-600 dark:hover:text-rose-400 p-1 rounded hover:bg-slate-100 dark:hover:bg-slate-800 transition-colors"
+                  className="text-muted hover:text-rose-600 dark:hover:text-rose-400 p-1 rounded hover:bg-slate-100 dark:hover:bg-slate-800 transition-colors"
                 >
                   <Trash2 className="w-3.5 h-3.5" />
                 </button>
               </div>
             </div>
 
-            <p className="text-xs text-slate-600 dark:text-slate-400 line-clamp-2">{proj.description}</p>
+            <p className="text-xs text-muted line-clamp-2">{proj.description}</p>
 
             {/* Progress Bar - Emerald Green Progress Fill */}
             <div className="space-y-1.5 pt-1">
-              <div className="flex justify-between text-xs text-slate-600 dark:text-slate-400">
+              <div className="flex justify-between text-xs text-muted">
                 <span>Completion Velocity</span>
                 <span className="font-bold text-emerald-600 dark:text-emerald-400">{proj.completionPercent}%</span>
               </div>
@@ -412,8 +412,8 @@ export const ProjectList = () => {
               </div>
             </div>
 
-            <div className="flex items-center justify-between text-xs text-slate-500 dark:text-slate-400 pt-3 border-t border-slate-200 dark:border-slate-800/60">
-              <span className="flex items-center gap-1 text-slate-700 dark:text-slate-300 font-semibold">
+            <div className="flex items-center justify-between text-xs text-muted pt-3 border-t border-border/60">
+              <span className="flex items-center gap-1 text-fg font-semibold">
                 <CheckCircle2 className="w-3.5 h-3.5 text-emerald-600 dark:text-emerald-400" /> {proj.completedTaskCount} / {proj.totalTaskCount} tasks
               </span>
               <button
@@ -421,7 +421,7 @@ export const ProjectList = () => {
                   e.stopPropagation()
                   handleProjectClick(proj)
                 }}
-                className="flex items-center gap-1 text-xs font-semibold text-indigo-600 dark:text-indigo-400 hover:underline"
+                className="flex items-center gap-1 text-xs font-semibold text-accent hover:underline"
               >
                 View Tasks <ArrowRight className="w-3 h-3" />
               </button>
@@ -433,9 +433,9 @@ export const ProjectList = () => {
       {/* Create Project Modal */}
       {showAddModal && (
         <div className="fixed inset-0 z-50 bg-black/70 backdrop-blur-sm flex items-center justify-center p-4">
-          <Card className="w-full max-w-lg p-6 space-y-4 border-slate-800 shadow-2xl relative">
-            <div className="flex items-center justify-between pb-3 border-b border-slate-800">
-              <h3 className="font-bold text-slate-100 text-sm">Initialize New Project</h3>
+          <Card className="w-full max-w-lg p-6 space-y-4 border-border shadow-2xl relative">
+            <div className="flex items-center justify-between pb-3 border-b border-border">
+              <h3 className="font-bold text-fg text-sm">Initialize New Project</h3>
               <button
                 onClick={() => setShowAddModal(false)}
                 className="text-slate-400 hover:text-white p-1 rounded-lg hover:bg-slate-800"
@@ -464,14 +464,14 @@ export const ProjectList = () => {
                       <Loader2 className="w-3.5 h-3.5 animate-spin" /> Loading clients...
                     </div>
                   ) : clients.length === 0 ? (
-                    <p className="text-xs text-slate-500 py-2.5 px-3.5 border border-slate-800 rounded-xl">
+                    <p className="text-xs text-muted py-2.5 px-3.5 border border-border rounded-xl">
                       No clients in Firestore yet
                     </p>
                   ) : (
                     <select
                       value={selectedClientId}
                       onChange={(e) => setSelectedClientId(e.target.value)}
-                      className="w-full bg-[#11141E] border border-slate-800 text-slate-100 text-xs rounded-xl py-2.5 px-3.5 focus:outline-none focus:border-indigo-500"
+                      className="w-full bg-canvas border border-border text-fg text-xs rounded-xl py-2.5 px-3.5 focus:outline-none focus:border-accent"
                     >
                       {clients.map((c) => (
                         <option key={c.id} value={c.id}>{c.name}</option>
@@ -495,7 +495,7 @@ export const ProjectList = () => {
                   placeholder="Outline project deliverables and scope..."
                   value={description}
                   onChange={(e) => setDescription(e.target.value)}
-                  className="w-full bg-[#11141E] border border-slate-800 text-slate-100 text-xs rounded-xl p-3 h-20 focus:outline-none focus:border-indigo-500"
+                  className="w-full bg-canvas border border-border text-fg text-xs rounded-xl p-3 h-20 focus:outline-none focus:border-accent"
                 />
               </div>
 
@@ -509,14 +509,14 @@ export const ProjectList = () => {
                     <Loader2 className="w-3.5 h-3.5 animate-spin" /> Loading employees...
                   </div>
                 ) : employees.length === 0 ? (
-                  <p className="text-xs text-slate-500 py-2.5 px-3.5 border border-slate-800 rounded-xl">
+                  <p className="text-xs text-muted py-2.5 px-3.5 border border-border rounded-xl">
                     No employees in Firestore yet
                   </p>
                 ) : (
                   <select
                     value={selectedEmployeeId}
                     onChange={(e) => setSelectedEmployeeId(e.target.value)}
-                    className="w-full bg-[#11141E] border border-slate-800 text-slate-100 text-sm rounded-xl py-2.5 px-3.5 focus:outline-none focus:border-indigo-500"
+                    className="w-full bg-canvas border border-border text-fg text-sm rounded-xl py-2.5 px-3.5 focus:outline-none focus:border-accent"
                   >
                     {employees.map((emp) => (
                       <option key={emp.id} value={emp.id}>
@@ -543,13 +543,13 @@ export const ProjectList = () => {
       {/* Edit Project Modal */}
       {editModalProj && (
         <div className="fixed inset-0 z-50 bg-black/70 backdrop-blur-sm flex items-center justify-center p-4">
-          <Card className="w-full max-w-lg p-6 space-y-4 border-slate-200 dark:border-slate-800 shadow-2xl relative bg-white dark:bg-[#181C27]">
-            <div className="flex items-center justify-between pb-3 border-b border-slate-200 dark:border-slate-800">
+          <Card className="w-full max-w-lg p-6 space-y-4 border-border shadow-2xl relative bg-surface">
+            <div className="flex items-center justify-between pb-3 border-b border-border">
               <div className="flex items-center gap-2">
-                <div className="w-7 h-7 rounded-lg bg-indigo-50 dark:bg-indigo-500/10 text-indigo-600 dark:text-indigo-400 flex items-center justify-center">
+                <div className="w-7 h-7 rounded-lg bg-accent-soft text-accent flex items-center justify-center">
                   <Pencil className="w-4 h-4" />
                 </div>
-                <h3 className="font-bold text-slate-900 dark:text-slate-100 text-sm">Edit Project</h3>
+                <h3 className="font-bold text-fg text-sm">Edit Project</h3>
               </div>
               <button
                 onClick={() => setEditModalProj(null)}
@@ -572,8 +572,8 @@ export const ProjectList = () => {
               <div className="grid grid-cols-2 gap-3">
                 {/* Client dropdown */}
                 <div className="space-y-1.5 text-left">
-                  <label className="block text-xs font-medium text-slate-700 dark:text-slate-300 flex items-center gap-1.5">
-                    <Building className="w-3 h-3 text-indigo-500" /> Client
+                  <label className="block text-xs font-medium text-fg flex items-center gap-1.5">
+                    <Building className="w-3 h-3 text-accent" /> Client
                   </label>
                   <select
                     value={editSelectedClientId}
@@ -582,7 +582,7 @@ export const ProjectList = () => {
                       const found = clients.find((c) => c.id === e.target.value)
                       if (found) setEditClientName(found.name)
                     }}
-                    className="w-full bg-slate-100/80 dark:bg-[#11141E] border border-slate-300 dark:border-slate-800 text-slate-900 dark:text-slate-100 text-sm rounded-xl py-2.5 px-3.5 focus:outline-none focus:border-indigo-500"
+                    className="w-full bg-canvas border border-border text-fg text-sm rounded-xl py-2.5 px-3.5 focus:outline-none focus:border-accent"
                   >
                     <option value="">{editClientName || 'Select Client'}</option>
                     {clients.map((c) => (
@@ -595,13 +595,13 @@ export const ProjectList = () => {
 
                 {/* Status Dropdown */}
                 <div className="space-y-1.5 text-left">
-                  <label className="block text-xs font-medium text-slate-700 dark:text-slate-300">
+                  <label className="block text-xs font-medium text-fg">
                     Project Status
                   </label>
                   <select
                     value={editStatus}
                     onChange={(e) => setEditStatus(e.target.value)}
-                    className="w-full bg-slate-100/80 dark:bg-[#11141E] border border-slate-300 dark:border-slate-800 text-slate-900 dark:text-slate-100 text-sm rounded-xl py-2.5 px-3.5 focus:outline-none focus:border-indigo-500"
+                    className="w-full bg-canvas border border-border text-fg text-sm rounded-xl py-2.5 px-3.5 focus:outline-none focus:border-accent"
                   >
                     <option value="active">Active</option>
                     <option value="completed">Completed</option>
@@ -619,12 +619,12 @@ export const ProjectList = () => {
               />
 
               <div className="space-y-1.5 text-left">
-                <label className="block text-xs font-medium text-slate-700 dark:text-slate-300">Description</label>
+                <label className="block text-xs font-medium text-fg">Description</label>
                 <textarea
                   placeholder="Outline project deliverables and scope..."
                   value={editDescription}
                   onChange={(e) => setEditDescription(e.target.value)}
-                  className="w-full bg-slate-100/80 dark:bg-[#11141E] border border-slate-300 dark:border-slate-800 text-slate-900 dark:text-slate-100 placeholder-slate-400 dark:placeholder-slate-500 text-xs rounded-xl p-3 h-20 focus:outline-none focus:border-indigo-500"
+                  className="w-full bg-canvas border border-border text-fg placeholder:text-muted text-xs rounded-xl p-3 h-20 focus:outline-none focus:border-accent"
                 />
               </div>
 

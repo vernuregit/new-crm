@@ -33,10 +33,10 @@ export const ClientTopBar = () => {
     'Client User'
 
   return (
-    <header className="h-20 bg-white/90 dark:bg-[#111827]/90 backdrop-blur-md border-b border-slate-100 dark:border-slate-800/80 px-8 flex items-center justify-between sticky top-0 z-30 transition-colors">
+    <header className="h-20 bg-surface/90 backdrop-blur-md border-b border-border px-8 flex items-center justify-between sticky top-0 z-30 transition-colors">
       {/* Page Title */}
       <div>
-        <h1 className="text-base font-bold text-slate-900 dark:text-white tracking-tight">
+        <h1 className="text-base font-bold text-fg tracking-tight">
           {getPageTitle()}
         </h1>
       </div>
@@ -47,7 +47,7 @@ export const ClientTopBar = () => {
         <button
           onClick={toggleTheme}
           title={theme === 'dark' ? 'Switch to Light Mode' : 'Switch to Dark Mode'}
-          className="w-9 h-9 rounded-xl bg-slate-50 dark:bg-slate-800 hover:bg-slate-100 dark:hover:bg-slate-700 text-slate-500 dark:text-slate-400 hover:text-slate-900 dark:hover:text-white flex items-center justify-center transition-all cursor-pointer border border-slate-200/60 dark:border-slate-700/60"
+          className="w-9 h-9 rounded-xl bg-chrome hover:bg-border text-muted hover:text-fg flex items-center justify-center transition-all cursor-pointer border border-border"
         >
           {theme === 'dark' ? (
             <Sun className="w-4 h-4 text-amber-400" />
@@ -61,11 +61,11 @@ export const ClientTopBar = () => {
           <button
             onClick={toggleOpen}
             aria-label="Notifications"
-            className="w-9 h-9 rounded-xl bg-slate-50 dark:bg-slate-800 hover:bg-slate-100 dark:hover:bg-slate-700 text-slate-500 dark:text-slate-400 hover:text-slate-900 dark:hover:text-white flex items-center justify-center transition-colors border border-slate-200/60 dark:border-slate-700/60 cursor-pointer"
+            className="w-9 h-9 rounded-xl bg-chrome hover:bg-border text-muted hover:text-fg flex items-center justify-center transition-colors border border-border cursor-pointer"
           >
             <Bell className="w-4 h-4" />
             {unreadCount > 0 && (
-              <span className="absolute top-2 right-2 w-2 h-2 rounded-full bg-blue-500 ring-2 ring-white dark:ring-[#111827]" />
+              <span className="absolute top-2 right-2 w-2 h-2 rounded-full bg-accent ring-2 ring-surface" />
             )}
           </button>
           <NotificationCenter />
@@ -74,12 +74,12 @@ export const ClientTopBar = () => {
         {/* User Profile Pill - Icon & Username only */}
         <Link
           to="/portal/profile"
-          className="flex items-center gap-2.5 pl-2 pr-3 py-1.5 rounded-full hover:bg-slate-50 dark:hover:bg-slate-800/60 transition-colors cursor-pointer group"
+          className="flex items-center gap-2.5 pl-2 pr-3 py-1.5 rounded-full hover:bg-chrome transition-colors cursor-pointer group"
         >
-          <div className="w-8 h-8 rounded-full bg-blue-100 dark:bg-blue-500/20 text-blue-600 dark:text-blue-400 flex items-center justify-center font-semibold text-xs shrink-0">
+          <div className="w-8 h-8 rounded-full bg-accent-soft text-accent flex items-center justify-center font-semibold text-xs shrink-0">
             <User className="w-4 h-4" />
           </div>
-          <span className="text-xs font-semibold text-slate-800 dark:text-slate-200 group-hover:text-blue-600 dark:group-hover:text-blue-400 transition-colors">
+          <span className="text-xs font-semibold text-fg group-hover:text-accent transition-colors">
             {displayName}
           </span>
         </Link>

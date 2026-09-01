@@ -241,12 +241,12 @@ export const ClientDocumentsPage = ({ embedded = false, lockedProjectId = null }
     if (lower.includes('.pdf') || lower.includes('pdf'))
       return <FileText className="w-6 h-6 text-red-500" />
     if (lower.includes('.png') || lower.includes('.jpg') || lower.includes('.jpeg') || lower.includes('image'))
-      return <FileImage className="w-6 h-6 text-blue-500" />
+      return <FileImage className="w-6 h-6 text-accent" />
     if (lower.includes('.xls') || lower.includes('.xlsx') || lower.includes('.csv'))
       return <FileSpreadsheet className="w-6 h-6 text-emerald-500" />
     if (lower.includes('.js') || lower.includes('.json') || lower.includes('.html') || lower.includes('.zip'))
       return <FileCode className="w-6 h-6 text-amber-500" />
-    return <File className="w-6 h-6 text-purple-500" />
+    return <File className="w-6 h-6 text-accent" />
   }
 
   const filteredDeliverables = deliverables.filter((d) => {
@@ -283,9 +283,9 @@ export const ClientDocumentsPage = ({ embedded = false, lockedProjectId = null }
       )}
 
       {/* Upload Section */}
-      <Card className="p-6 bg-white dark:bg-[#12151E] border-slate-200 dark:border-purple-900/40 rounded-2xl shadow-sm">
-        <div className="flex items-center gap-2 mb-4 text-slate-900 dark:text-white font-bold text-base">
-          <Send className="w-5 h-5 text-blue-600 dark:text-blue-400" />
+      <Card className="p-6 bg-surface border-border rounded-2xl shadow-sm">
+        <div className="flex items-center gap-2 mb-4 text-fg font-bold text-base">
+          <Send className="w-5 h-5 text-accent" />
           <h3>Send Document to Client Portal</h3>
         </div>
 
@@ -299,14 +299,14 @@ export const ClientDocumentsPage = ({ embedded = false, lockedProjectId = null }
         <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
           {/* Target Client */}
           <div>
-            <label className="block text-xs font-semibold text-slate-700 dark:text-slate-300 mb-1">
+            <label className="block text-xs font-semibold text-fg mb-1">
               Select Client <span className="text-red-500">*</span>
             </label>
             <select
               value={selectedClientId}
               onChange={(e) => setSelectedClientId(e.target.value)}
               disabled={Boolean(lockedProjectId)}
-              className="w-full h-10 px-3 rounded-xl border border-slate-200 dark:border-slate-700 bg-white dark:bg-slate-800 text-xs text-slate-900 dark:text-white focus:outline-none focus:ring-2 focus:ring-blue-500 disabled:opacity-70 disabled:cursor-not-allowed"
+              className="w-full h-10 px-3 rounded-xl border border-border bg-surface text-xs text-fg focus:outline-none focus:ring-2 focus:ring-accent disabled:opacity-70 disabled:cursor-not-allowed"
             >
               {clients.length === 0 ? (
                 <option value="">No clients registered</option>
@@ -322,14 +322,14 @@ export const ClientDocumentsPage = ({ embedded = false, lockedProjectId = null }
 
           {/* Associated Project */}
           <div>
-            <label className="block text-xs font-semibold text-slate-700 dark:text-slate-300 mb-1">
+            <label className="block text-xs font-semibold text-fg mb-1">
               Associated Project (Optional)
             </label>
             <select
               value={selectedProjectId}
               onChange={(e) => setSelectedProjectId(e.target.value)}
               disabled={Boolean(lockedProjectId)}
-              className="w-full h-10 px-3 rounded-xl border border-slate-200 dark:border-slate-700 bg-white dark:bg-slate-800 text-xs text-slate-900 dark:text-white focus:outline-none focus:ring-2 focus:ring-blue-500 disabled:opacity-70 disabled:cursor-not-allowed"
+              className="w-full h-10 px-3 rounded-xl border border-border bg-surface text-xs text-fg focus:outline-none focus:ring-2 focus:ring-accent disabled:opacity-70 disabled:cursor-not-allowed"
             >
               <option value="">-- General Deliverable --</option>
               {projectSelectOptions.map((p) => (
@@ -342,13 +342,13 @@ export const ClientDocumentsPage = ({ embedded = false, lockedProjectId = null }
 
           {/* Deliverable Category */}
           <div>
-            <label className="block text-xs font-semibold text-slate-700 dark:text-slate-300 mb-1">
+            <label className="block text-xs font-semibold text-fg mb-1">
               Document Category
             </label>
             <select
               value={category}
               onChange={(e) => setCategory(e.target.value)}
-              className="w-full h-10 px-3 rounded-xl border border-slate-200 dark:border-slate-700 bg-white dark:bg-slate-800 text-xs text-slate-900 dark:text-white focus:outline-none focus:ring-2 focus:ring-blue-500"
+              className="w-full h-10 px-3 rounded-xl border border-border bg-surface text-xs text-fg focus:outline-none focus:ring-2 focus:ring-accent"
             >
               <option value="Deliverable">Project Deliverable</option>
               <option value="Contract">Contract / Agreement</option>
@@ -362,20 +362,20 @@ export const ClientDocumentsPage = ({ embedded = false, lockedProjectId = null }
 
           {/* File Input */}
           <div className="md:col-span-2">
-            <label className="block text-xs font-semibold text-slate-700 dark:text-slate-300 mb-1">
+            <label className="block text-xs font-semibold text-fg mb-1">
               Choose File <span className="text-red-500">*</span>
             </label>
             <input
               type="file"
               onChange={handleFileChange}
               ref={fileInputRef}
-              className="block w-full text-xs text-slate-500 file:mr-3 file:py-2 file:px-4 file:rounded-xl file:border-0 file:text-xs file:font-semibold file:bg-blue-50 file:text-blue-700 hover:file:bg-blue-100 dark:file:bg-blue-900/30 dark:file:text-blue-400 cursor-pointer"
+              className="block w-full text-xs text-slate-500 file:mr-3 file:py-2 file:px-4 file:rounded-xl file:border-0 file:text-xs file:font-semibold file:bg-accent-soft file:text-accent hover:file:bg-accent-soft dark:file:text-accent cursor-pointer"
             />
           </div>
 
           {/* Note / Description */}
           <div>
-            <label className="block text-xs font-semibold text-slate-700 dark:text-slate-300 mb-1">
+            <label className="block text-xs font-semibold text-fg mb-1">
               Note / Description
             </label>
             <Input
@@ -391,7 +391,7 @@ export const ClientDocumentsPage = ({ embedded = false, lockedProjectId = null }
             <Button
               onClick={handleUploadDeliverable}
               disabled={!file || !selectedClientId || uploading}
-              className="bg-blue-600 hover:bg-blue-700 text-white flex items-center gap-2 px-5 py-2.5 rounded-xl text-xs font-semibold cursor-pointer"
+              className="bg-accent hover:bg-accent-hover text-white flex items-center gap-2 px-5 py-2.5 rounded-xl text-xs font-semibold cursor-pointer"
             >
               {uploading ? (
                 <>
@@ -409,9 +409,9 @@ export const ClientDocumentsPage = ({ embedded = false, lockedProjectId = null }
         </div>
 
         {uploading && (
-          <div className="mt-4 w-full bg-slate-100 dark:bg-slate-800 rounded-full h-2 overflow-hidden">
+          <div className="mt-4 w-full bg-chrome rounded-full h-2 overflow-hidden">
             <div
-              className="bg-blue-600 h-full rounded-full transition-all duration-300"
+              className="bg-accent h-full rounded-full transition-all duration-300"
               style={{ width: `${progress}%` }}
             />
           </div>
@@ -421,7 +421,7 @@ export const ClientDocumentsPage = ({ embedded = false, lockedProjectId = null }
       {/* Filter and List Section */}
       <div className="space-y-4">
         <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3">
-          <h3 className="font-bold text-slate-900 dark:text-white text-base">
+          <h3 className="font-bold text-fg text-base">
             Shared Client Deliverables ({filteredDeliverables.length})
           </h3>
 
@@ -430,7 +430,7 @@ export const ClientDocumentsPage = ({ embedded = false, lockedProjectId = null }
               <select
                 value={clientFilter}
                 onChange={(e) => setClientFilter(e.target.value)}
-                className="h-9 px-3 rounded-xl border border-slate-200 dark:border-slate-700 bg-white dark:bg-slate-800 text-xs text-slate-900 dark:text-white focus:outline-none"
+                className="h-9 px-3 rounded-xl border border-border bg-surface text-xs text-fg focus:outline-none"
               >
                 <option value="All">All Clients</option>
                 {clients.map((c) => (
@@ -445,7 +445,7 @@ export const ClientDocumentsPage = ({ embedded = false, lockedProjectId = null }
             <select
               value={categoryFilter}
               onChange={(e) => setCategoryFilter(e.target.value)}
-              className="h-9 px-3 rounded-xl border border-slate-200 dark:border-slate-700 bg-white dark:bg-slate-800 text-xs text-slate-900 dark:text-white focus:outline-none"
+              className="h-9 px-3 rounded-xl border border-border bg-surface text-xs text-fg focus:outline-none"
             >
               <option value="All">All Categories</option>
               <option value="Deliverable">Deliverable</option>
@@ -460,13 +460,13 @@ export const ClientDocumentsPage = ({ embedded = false, lockedProjectId = null }
 
         {loading ? (
           <div className="py-16 text-center text-slate-500">
-            <Loader2 className="w-6 h-6 animate-spin mx-auto text-blue-600 mb-2" />
+            <Loader2 className="w-6 h-6 animate-spin mx-auto text-accent mb-2" />
             <span className="text-xs">Loading client deliverables...</span>
           </div>
         ) : filteredDeliverables.length === 0 ? (
-          <Card className="p-12 text-center text-slate-500 dark:text-slate-400 border-dashed space-y-2">
+          <Card className="p-12 text-center text-muted border-dashed space-y-2">
             <FolderOpen className="w-10 h-10 mx-auto text-slate-400" />
-            <p className="text-sm font-semibold text-slate-800 dark:text-slate-200">
+            <p className="text-sm font-semibold text-fg">
               No client documents found
             </p>
             <p className="text-xs text-slate-400">
@@ -483,29 +483,29 @@ export const ClientDocumentsPage = ({ embedded = false, lockedProjectId = null }
               return (
                 <Card
                   key={docItem.id}
-                  className="p-4 bg-white dark:bg-[#12151E] border-slate-200 dark:border-purple-900/30 rounded-2xl shadow-2xs hover:shadow-xs transition-all flex flex-col justify-between"
+                  className="p-4 bg-surface border-border rounded-2xl shadow-2xs hover:shadow-xs transition-all flex flex-col justify-between"
                 >
                   <div className="space-y-3">
                     <div className="flex items-start gap-3">
-                      <div className="p-2.5 rounded-xl bg-slate-50 dark:bg-slate-800 shrink-0">
+                      <div className="p-2.5 rounded-xl bg-chrome shrink-0">
                         {getFileIcon(fileName, docItem.fileType)}
                       </div>
                       <div className="min-w-0 flex-1">
                         <h4
-                          className="font-bold text-xs text-slate-900 dark:text-white truncate"
+                          className="font-bold text-xs text-fg truncate"
                           title={fileName}
                         >
                           {fileName}
                         </h4>
-                        <div className="flex items-center gap-1.5 mt-1 text-[11px] text-blue-600 dark:text-blue-400 font-semibold truncate">
+                        <div className="flex items-center gap-1.5 mt-1 text-[11px] text-accent font-semibold truncate">
                           <Building2 className="w-3 h-3 shrink-0" />
                           <span className="truncate">{clientLabel}</span>
                         </div>
                       </div>
                     </div>
 
-                    <div className="flex flex-wrap items-center gap-1.5 text-[10px] text-slate-500 dark:text-slate-400">
-                      <span className="px-2 py-0.5 rounded-md bg-slate-100 dark:bg-slate-800 font-medium">
+                    <div className="flex flex-wrap items-center gap-1.5 text-[10px] text-muted">
+                      <span className="px-2 py-0.5 rounded-md bg-chrome font-medium">
                         {docItem.category || 'Deliverable'}
                       </span>
                       <span>{docItem.size || '1 MB'}</span>
@@ -513,13 +513,13 @@ export const ClientDocumentsPage = ({ embedded = false, lockedProjectId = null }
                     </div>
 
                     {docItem.projectName && (
-                      <p className="text-[11px] text-slate-500 dark:text-slate-400 truncate">
-                        Project: <strong className="text-slate-700 dark:text-slate-300 font-medium">{docItem.projectName}</strong>
+                      <p className="text-[11px] text-muted truncate">
+                        Project: <strong className="text-fg font-medium">{docItem.projectName}</strong>
                       </p>
                     )}
 
                     {docItem.description && (
-                      <p className="text-[11px] text-slate-500 dark:text-slate-400 line-clamp-2">
+                      <p className="text-[11px] text-muted line-clamp-2">
                         {docItem.description}
                       </p>
                     )}
@@ -538,7 +538,7 @@ export const ClientDocumentsPage = ({ embedded = false, lockedProjectId = null }
                       {fileUrl && (
                         <button
                           onClick={() => window.open(fileUrl, '_blank', 'noopener,noreferrer')}
-                          className="inline-flex items-center gap-1 px-2.5 py-1 bg-slate-50 dark:bg-slate-800 hover:bg-slate-100 dark:hover:bg-slate-700 text-slate-700 dark:text-slate-200 rounded-lg text-xs font-semibold cursor-pointer border border-slate-200 dark:border-slate-700"
+                          className="inline-flex items-center gap-1 px-2.5 py-1 bg-chrome hover:bg-slate-100 dark:hover:bg-slate-700 text-slate-700 dark:text-slate-200 rounded-lg text-xs font-semibold cursor-pointer border border-border"
                         >
                           <Eye className="w-3.5 h-3.5" />
                           <span>View</span>

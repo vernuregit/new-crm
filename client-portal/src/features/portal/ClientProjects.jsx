@@ -131,7 +131,7 @@ export const ClientProjects = () => {
           <button
             type="button"
             onClick={handleBackToList}
-            className="inline-flex items-center gap-2 text-xs font-semibold text-slate-600 dark:text-slate-400 hover:text-blue-600 dark:hover:text-blue-400 transition-colors py-1.5 px-3 rounded-lg hover:bg-slate-100 dark:hover:bg-slate-800"
+            className="inline-flex items-center gap-2 text-xs font-semibold text-muted hover:text-accent transition-colors py-1.5 px-3 rounded-lg hover:bg-chrome"
           >
             <ArrowLeft className="w-4 h-4" /> Back to My Projects
           </button>
@@ -140,7 +140,7 @@ export const ClientProjects = () => {
             className={`inline-flex items-center px-3 py-1 rounded-full text-xs font-bold uppercase tracking-wider ${
               isCompleted
                 ? 'bg-emerald-50 text-emerald-600 dark:bg-emerald-500/15 dark:text-emerald-400 border border-emerald-500/20'
-                : 'bg-blue-50 text-blue-600 dark:bg-blue-500/15 dark:text-blue-400 border border-blue-500/20'
+                : 'bg-accent-soft text-accent border border-accent/20'
             }`}
           >
             {status}
@@ -148,17 +148,17 @@ export const ClientProjects = () => {
         </div>
 
         {/* Project Header Overview Card */}
-        <Card className="p-6 bg-white dark:bg-[#111827] border-slate-200/80 dark:border-slate-800 rounded-2xl shadow-sm space-y-5">
+        <Card className="p-6 bg-surface border-border rounded-2xl shadow-sm space-y-5">
           <div className="flex flex-col md:flex-row md:items-center justify-between gap-4">
             <div className="flex items-start gap-4">
-              <div className="w-12 h-12 rounded-2xl bg-blue-50 dark:bg-blue-500/15 text-blue-600 dark:text-blue-400 flex items-center justify-center shrink-0">
+              <div className="w-12 h-12 rounded-2xl bg-accent-soft text-accent flex items-center justify-center shrink-0">
                 <Folder className="w-6 h-6" />
               </div>
               <div>
-                <h1 className="text-xl sm:text-2xl font-bold text-slate-900 dark:text-white tracking-tight">
+                <h1 className="text-xl sm:text-2xl font-bold text-fg tracking-tight">
                   {p.name || p.title || 'Website Redesign'}
                 </h1>
-                <p className="text-xs sm:text-sm text-slate-500 dark:text-slate-400 mt-1 max-w-2xl">
+                <p className="text-xs sm:text-sm text-muted mt-1 max-w-2xl">
                   {p.description || 'Custom client project deliverables and roadmap.'}
                 </p>
               </div>
@@ -167,19 +167,19 @@ export const ClientProjects = () => {
             {/* Quick Metrics */}
             <div className="flex items-center gap-4 border-t md:border-t-0 md:border-l border-slate-100 dark:border-slate-800 pt-3 md:pt-0 md:pl-6">
               <div>
-                <span className="text-[11px] font-medium text-slate-500 dark:text-slate-400 uppercase tracking-wider block">
+                <span className="text-[11px] font-medium text-muted uppercase tracking-wider block">
                   Progress
                 </span>
-                <span className="text-lg font-bold text-blue-600 dark:text-blue-400">
+                <span className="text-lg font-bold text-accent">
                   {liveCompletion}%
                 </span>
               </div>
               {p.estimatedDate || p.dueDate ? (
                 <div>
-                  <span className="text-[11px] font-medium text-slate-500 dark:text-slate-400 uppercase tracking-wider block">
+                  <span className="text-[11px] font-medium text-muted uppercase tracking-wider block">
                     Target Date
                   </span>
-                  <span className="text-xs font-semibold text-slate-800 dark:text-slate-200 flex items-center gap-1 mt-1">
+                  <span className="text-xs font-semibold text-fg flex items-center gap-1 mt-1">
                     <Calendar className="w-3.5 h-3.5 text-amber-500" />
                     {p.estimatedDate || p.dueDate}
                   </span>
@@ -190,21 +190,21 @@ export const ClientProjects = () => {
 
           {/* Progress Bar & Milestone Status (Derived directly from Admin Process Messages) */}
           <div className="pt-4 border-t border-slate-100 dark:border-slate-800/80 space-y-2">
-            <div className="flex justify-between text-xs font-medium text-slate-600 dark:text-slate-400">
+            <div className="flex justify-between text-xs font-medium text-muted">
               <span className="flex items-center gap-1.5 truncate max-w-[70%]">
-                <CheckCircle2 className="w-3.5 h-3.5 text-blue-600 dark:text-blue-400 shrink-0" />
+                <CheckCircle2 className="w-3.5 h-3.5 text-accent shrink-0" />
                 Current Milestone:{' '}
-                <strong className="text-slate-800 dark:text-slate-200 truncate">
+                <strong className="text-fg truncate">
                   {liveMilestone}
                 </strong>
               </span>
-              <span className="font-semibold text-slate-700 dark:text-slate-300 shrink-0">
+              <span className="font-semibold text-fg shrink-0">
                 {totalSteps > 0 ? `${completedSteps} of ${totalSteps} (${liveCompletion}%)` : `${liveCompletion}% Completed`}
               </span>
             </div>
-            <div className="w-full bg-slate-100 dark:bg-slate-800 h-2 rounded-full overflow-hidden">
+            <div className="w-full bg-chrome h-2 rounded-full overflow-hidden">
               <div
-                className="bg-blue-600 dark:bg-blue-500 h-full rounded-full transition-all duration-500"
+                className="bg-accent h-full rounded-full transition-all duration-500"
                 style={{ width: `${Math.min(100, Math.max(0, liveCompletion))}%` }}
               />
             </div>
@@ -223,21 +223,21 @@ export const ClientProjects = () => {
   return (
     <div className="space-y-7 max-w-7xl mx-auto pb-10">
       <div>
-        <h2 className="text-2xl font-bold text-slate-900 dark:text-white tracking-tight">
+        <h2 className="text-2xl font-bold text-fg tracking-tight">
           My Projects
         </h2>
-        <p className="text-sm text-slate-500 dark:text-slate-400 mt-1">
+        <p className="text-sm text-muted mt-1">
           Click on any project to view its real-time activity timeline, milestones, and deliverables.
         </p>
       </div>
 
       {isLoading ? (
-        <div className="py-16 text-center text-slate-500 dark:text-slate-400">
-          <Loader2 className="w-6 h-6 animate-spin mx-auto text-blue-600 dark:text-blue-400 mb-2" />
+        <div className="py-16 text-center text-muted">
+          <Loader2 className="w-6 h-6 animate-spin mx-auto text-accent mb-2" />
           <span className="text-xs">Loading projects...</span>
         </div>
       ) : projects.length === 0 ? (
-        <Card className="p-12 text-center text-xs text-slate-500 dark:text-slate-400 border-dashed">
+        <Card className="p-12 text-center text-xs text-muted border-dashed">
           No active projects assigned to your portal yet.
         </Card>
       ) : (
@@ -252,19 +252,19 @@ export const ClientProjects = () => {
               <Card
                 key={pId}
                 onClick={() => handleSelectProject(pId)}
-                className="p-5 bg-white dark:bg-[#111827] border-slate-200/80 dark:border-slate-800 rounded-2xl shadow-2xs hover:shadow-md hover:border-blue-500/40 transition-all flex flex-col justify-between cursor-pointer group"
+                className="p-5 bg-surface border-border rounded-2xl shadow-2xs hover:shadow-md hover:border-accent/40 transition-all flex flex-col justify-between cursor-pointer group"
               >
                 <div className="space-y-3">
                   {/* Top: Icon & Status Badge */}
                   <div className="flex items-center justify-between">
-                    <div className="w-10 h-10 rounded-xl bg-blue-50 dark:bg-blue-500/15 text-blue-600 dark:text-blue-400 flex items-center justify-center shrink-0 group-hover:scale-105 transition-transform">
+                    <div className="w-10 h-10 rounded-xl bg-accent-soft text-accent flex items-center justify-center shrink-0 group-hover:scale-105 transition-transform">
                       <Folder className="w-5 h-5" />
                     </div>
                     <span
                       className={`inline-flex items-center px-2.5 py-0.5 rounded-full text-[11px] font-semibold ${
                         isCompleted
                           ? 'bg-emerald-50 text-emerald-600 dark:bg-emerald-500/15 dark:text-emerald-400'
-                          : 'bg-blue-50 text-blue-600 dark:bg-blue-500/15 dark:text-blue-400'
+                          : 'bg-accent-soft text-accent'
                       }`}
                     >
                       {status}
@@ -273,10 +273,10 @@ export const ClientProjects = () => {
 
                   {/* Title & Description */}
                   <div>
-                    <h3 className="font-bold text-slate-900 dark:text-white text-sm truncate group-hover:text-blue-600 dark:group-hover:text-blue-400 transition-colors">
+                    <h3 className="font-bold text-fg text-sm truncate group-hover:text-accent transition-colors">
                       {p.name || p.title || 'Untitled Project'}
                     </h3>
-                    <p className="text-xs text-slate-500 dark:text-slate-400 mt-1 line-clamp-2 min-h-[32px]">
+                    <p className="text-xs text-muted mt-1 line-clamp-2 min-h-[32px]">
                       {p.description || 'Custom client project deliverables and roadmap.'}
                     </p>
                   </div>
@@ -286,27 +286,27 @@ export const ClientProjects = () => {
                 <div className="mt-5 pt-4 border-t border-slate-100 dark:border-slate-800/80 space-y-3">
                   {/* Progress Bar */}
                   <div className="space-y-1.5">
-                    <div className="flex justify-between text-xs font-medium text-slate-600 dark:text-slate-400">
+                    <div className="flex justify-between text-xs font-medium text-muted">
                       <span>Progress</span>
-                      <span className="font-bold text-slate-900 dark:text-white">
+                      <span className="font-bold text-fg">
                         {completion}%
                       </span>
                     </div>
-                    <div className="w-full bg-slate-100 dark:bg-slate-800 h-1.5 rounded-full overflow-hidden">
+                    <div className="w-full bg-chrome h-1.5 rounded-full overflow-hidden">
                       <div
-                        className="bg-blue-600 dark:bg-blue-500 h-full rounded-full transition-all duration-500"
+                        className="bg-accent h-full rounded-full transition-all duration-500"
                         style={{ width: `${Math.min(100, Math.max(0, completion))}%` }}
                       />
                     </div>
                   </div>
 
                   {/* Milestone & Target Date */}
-                  <div className="space-y-1.5 text-[11px] text-slate-500 dark:text-slate-400 pt-1">
+                  <div className="space-y-1.5 text-[11px] text-muted pt-1">
                     <div className="flex items-center gap-1.5 truncate">
-                      <CheckCircle2 className="w-3.5 h-3.5 text-blue-600 dark:text-blue-400 shrink-0" />
+                      <CheckCircle2 className="w-3.5 h-3.5 text-accent shrink-0" />
                       <span className="truncate">
                         Milestone:{' '}
-                        <strong className="text-slate-700 dark:text-slate-300 font-semibold">
+                        <strong className="text-fg font-semibold">
                           {p.nextMilestone || p.milestone || 'In Progress'}
                         </strong>
                       </span>
@@ -320,7 +320,7 @@ export const ClientProjects = () => {
                   </div>
 
                   {/* View Timeline Action Indicator */}
-                  <div className="pt-2 flex items-center justify-between text-[11px] text-blue-600 dark:text-blue-400 font-semibold group-hover:underline">
+                  <div className="pt-2 flex items-center justify-between text-[11px] text-accent font-semibold group-hover:underline">
                     <span>View Project Timeline</span>
                     <span>&rarr;</span>
                   </div>

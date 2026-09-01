@@ -241,9 +241,9 @@ export const ClientOnboardingGate = () => {
 
   if (loading) {
     return (
-      <div className="min-h-screen bg-slate-50 dark:bg-[#0A0D14] flex flex-col items-center justify-center p-4 text-slate-900 dark:text-slate-100 transition-colors">
+      <div className="min-h-screen bg-canvas flex flex-col items-center justify-center p-4 text-fg transition-colors">
         <Spinner size="lg" />
-        <p className="text-xs text-slate-500 dark:text-slate-400 mt-4">Verifying client workspace authorization...</p>
+        <p className="text-xs text-muted mt-4">Verifying client workspace authorization...</p>
       </div>
     )
   }
@@ -251,18 +251,18 @@ export const ClientOnboardingGate = () => {
   // ─── RENDER: PENDING APPROVAL SCREEN (UNDER ADMIN REVIEW) ───────────────────────
   if (onboardingStatus === ONBOARDING_STATUS.PENDING_APPROVAL) {
     return (
-      <div className="min-h-screen bg-slate-50 dark:bg-[#0A0D14] text-slate-900 dark:text-slate-100 flex items-center justify-center p-4 relative overflow-hidden transition-colors">
+      <div className="min-h-screen bg-canvas text-fg flex items-center justify-center p-4 relative overflow-hidden transition-colors">
         <div className="absolute top-1/4 left-1/2 -translate-x-1/2 w-[500px] h-[500px] bg-amber-500/10 dark:bg-amber-500/10 blur-[140px] rounded-full pointer-events-none" />
 
-        <Card className="w-full max-w-2xl p-8 relative z-10 border-slate-200 dark:border-slate-800 shadow-xl dark:shadow-2xl space-y-6">
-          <div className="flex items-center justify-between border-b border-slate-200 dark:border-slate-800 pb-5">
+        <Card className="w-full max-w-2xl p-8 relative z-10 border-border shadow-xl dark:shadow-2xl space-y-6">
+          <div className="flex items-center justify-between border-b border-border pb-5">
             <div className="flex items-center gap-3">
-              <div className="w-10 h-10 rounded-full bg-slate-100 dark:bg-slate-800 p-1 border border-slate-200 dark:border-slate-700 flex items-center justify-center shrink-0">
+              <div className="w-10 h-10 rounded-full bg-chrome p-1 border border-border flex items-center justify-center shrink-0">
                 <img src={haloLogo} alt="Logo" className="w-full h-full object-contain rounded-full" />
               </div>
               <div>
-                <h2 className="text-lg font-bold text-slate-900 dark:text-slate-100">Client Agreement Verification</h2>
-                <p className="text-xs text-slate-500 dark:text-slate-400">Account: {user?.email}</p>
+                <h2 className="text-lg font-bold text-fg">Client Agreement Verification</h2>
+                <p className="text-xs text-muted">Account: {user?.email}</p>
               </div>
             </div>
 
@@ -270,7 +270,7 @@ export const ClientOnboardingGate = () => {
               <button
                 onClick={toggleTheme}
                 title={theme === 'dark' ? 'Switch to Light Mode' : 'Switch to Dark Mode'}
-                className="w-8 h-8 rounded-lg bg-slate-100 dark:bg-slate-800 hover:bg-slate-200 dark:hover:bg-slate-700 text-slate-600 dark:text-amber-400 flex items-center justify-center transition-all cursor-pointer border border-slate-200 dark:border-slate-700"
+                className="w-8 h-8 rounded-lg bg-chrome hover:bg-slate-200 dark:hover:bg-slate-700 text-slate-600 dark:text-amber-400 flex items-center justify-center transition-all cursor-pointer border border-border"
               >
                 {theme === 'dark' ? <Sun className="w-4 h-4 text-amber-400" /> : <Moon className="w-4 h-4 text-slate-700" />}
               </button>
@@ -284,52 +284,52 @@ export const ClientOnboardingGate = () => {
             <div className="w-16 h-16 rounded-2xl bg-amber-500/10 border border-amber-500/30 text-amber-500 dark:text-amber-400 flex items-center justify-center mx-auto shadow-inner">
               <Shield className="w-8 h-8" />
             </div>
-            <h3 className="text-xl font-bold text-slate-900 dark:text-slate-100">Signed Agreements Under Review</h3>
-            <p className="text-xs text-slate-600 dark:text-slate-300 max-w-lg mx-auto leading-relaxed">
+            <h3 className="text-xl font-bold text-fg">Signed Agreements Under Review</h3>
+            <p className="text-xs text-muted max-w-lg mx-auto leading-relaxed">
               Thank you for signing your legal agreements. Our operations team has been notified and is completing the
               final activation of your workspace.
             </p>
           </div>
 
           {/* Audit Verification Checklist */}
-          <div className="bg-slate-50 dark:bg-slate-950/70 border border-slate-200 dark:border-slate-800 rounded-xl p-5 space-y-3">
-            <h4 className="text-xs font-bold uppercase tracking-wider text-slate-500 dark:text-slate-400">Submission Summary</h4>
+          <div className="bg-slate-50 dark:bg-slate-950/70 border border-border rounded-xl p-5 space-y-3">
+            <h4 className="text-xs font-bold uppercase tracking-wider text-muted">Submission Summary</h4>
 
             <div className="grid grid-cols-1 sm:grid-cols-2 gap-3 text-xs">
-              <div className="p-3 rounded-lg bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800 flex items-center gap-2.5 shadow-sm dark:shadow-none">
+              <div className="p-3 rounded-lg bg-surface border border-border flex items-center gap-2.5 shadow-sm dark:shadow-none">
                 <CheckCircle2 className="w-4 h-4 text-emerald-500 dark:text-emerald-400 shrink-0" />
                 <div>
-                  <p className="font-semibold text-slate-800 dark:text-slate-200">Legal Agreements (3/3)</p>
-                  <p className="text-[11px] text-slate-500 dark:text-slate-400">MSA, NDA &amp; SOW Digitally Signed</p>
+                  <p className="font-semibold text-fg">Legal Agreements (3/3)</p>
+                  <p className="text-[11px] text-muted">MSA, NDA &amp; SOW Digitally Signed</p>
                 </div>
               </div>
 
-              <div className="p-3 rounded-lg bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800 flex items-center gap-2.5 shadow-sm dark:shadow-none">
+              <div className="p-3 rounded-lg bg-surface border border-border flex items-center gap-2.5 shadow-sm dark:shadow-none">
                 <CheckCircle2 className="w-4 h-4 text-emerald-500 dark:text-emerald-400 shrink-0" />
                 <div>
-                  <p className="font-semibold text-slate-800 dark:text-slate-200">Account Profile</p>
-                  <p className="text-[11px] text-slate-500 dark:text-slate-400">Confirmed for {companyName || 'your entity'}</p>
+                  <p className="font-semibold text-fg">Account Profile</p>
+                  <p className="text-[11px] text-muted">Confirmed for {companyName || 'your entity'}</p>
                 </div>
               </div>
 
-              <div className="p-3 rounded-lg bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800 flex items-center gap-2.5 shadow-sm dark:shadow-none sm:col-span-2">
+              <div className="p-3 rounded-lg bg-surface border border-border flex items-center gap-2.5 shadow-sm dark:shadow-none sm:col-span-2">
                 <Clock className="w-4 h-4 text-amber-500 dark:text-amber-400 shrink-0" />
                 <div>
-                  <p className="font-semibold text-slate-800 dark:text-slate-200">Admin Approval</p>
+                  <p className="font-semibold text-fg">Admin Approval</p>
                   <p className="text-[11px] text-amber-600 dark:text-amber-400 font-medium">Pending Executive Sign-off</p>
                 </div>
               </div>
             </div>
           </div>
 
-          <div className="p-4 rounded-xl bg-indigo-50 dark:bg-indigo-950/20 border border-indigo-200 dark:border-indigo-500/20 text-xs text-indigo-700 dark:text-indigo-300 flex items-start gap-2.5">
-            <Lock className="w-4 h-4 shrink-0 mt-0.5 text-indigo-600 dark:text-indigo-400" />
+          <div className="p-4 rounded-xl bg-accent-soft border border-accent/20 dark:border-accent/20 text-xs text-accent flex items-start gap-2.5">
+            <Lock className="w-4 h-4 shrink-0 mt-0.5 text-accent" />
             <span>
               Deliverables, invoices, code repositories, and project timelines will automatically unlock on this portal as soon as an administrator grants approval.
             </span>
           </div>
 
-          <div className="flex items-center justify-between pt-2 border-t border-slate-200 dark:border-slate-800">
+          <div className="flex items-center justify-between pt-2 border-t border-border">
             <Button variant="secondary" size="sm" onClick={handleLogout} icon={LogOut}>
               Sign Out
             </Button>
@@ -338,7 +338,7 @@ export const ClientOnboardingGate = () => {
               variant="primary"
               size="sm"
               onClick={loadStatus}
-              className="bg-indigo-600 hover:bg-indigo-500"
+              className="bg-accent hover:bg-accent-hover"
               icon={RefreshCw}
             >
               Check Approval Status
@@ -351,18 +351,18 @@ export const ClientOnboardingGate = () => {
 
   // ─── RENDER: TWO-STEP SIGNATURE WIZARD ─────────────────────────────────────────
   return (
-    <div className="min-h-screen bg-slate-50 dark:bg-[#0A0D14] text-slate-900 dark:text-slate-100 flex flex-col p-4 sm:p-8 relative overflow-hidden transition-colors">
-      <div className="absolute top-10 left-1/2 -translate-x-1/2 w-[700px] h-[350px] bg-indigo-500/10 dark:bg-indigo-600/10 blur-[150px] rounded-full pointer-events-none" />
+    <div className="min-h-screen bg-canvas text-fg flex flex-col p-4 sm:p-8 relative overflow-hidden transition-colors">
+      <div className="absolute top-10 left-1/2 -translate-x-1/2 w-[700px] h-[350px] bg-accent-soft blur-[150px] rounded-full pointer-events-none" />
 
       {/* Top Header */}
-      <div className="max-w-4xl w-full mx-auto flex items-center justify-between mb-8 pb-4 border-b border-slate-200 dark:border-slate-800">
+      <div className="max-w-4xl w-full mx-auto flex items-center justify-between mb-8 pb-4 border-b border-border">
         <div className="flex items-center gap-3">
-          <div className="w-10 h-10 rounded-full bg-slate-100 dark:bg-slate-800 p-1 border border-slate-200 dark:border-slate-700 flex items-center justify-center shrink-0">
+          <div className="w-10 h-10 rounded-full bg-chrome p-1 border border-border flex items-center justify-center shrink-0">
             <img src={haloLogo} alt="Logo" className="w-full h-full object-contain rounded-full" />
           </div>
           <div>
-            <h1 className="text-base sm:text-lg font-bold text-slate-900 dark:text-slate-100">Client Agreement Signing</h1>
-            <p className="text-xs text-slate-500 dark:text-slate-400">Sign your agreements to activate your portal</p>
+            <h1 className="text-base sm:text-lg font-bold text-fg">Client Agreement Signing</h1>
+            <p className="text-xs text-muted">Sign your agreements to activate your portal</p>
           </div>
         </div>
 
@@ -372,7 +372,7 @@ export const ClientOnboardingGate = () => {
             type="button"
             onClick={toggleTheme}
             title={theme === 'dark' ? 'Switch to Light Mode' : 'Switch to Dark Mode'}
-            className="w-9 h-9 rounded-xl bg-slate-100 dark:bg-slate-800 hover:bg-slate-200 dark:hover:bg-slate-700 text-slate-600 dark:text-amber-400 flex items-center justify-center transition-all cursor-pointer border border-slate-200 dark:border-slate-700 shadow-sm"
+            className="w-9 h-9 rounded-xl bg-chrome hover:bg-slate-200 dark:hover:bg-slate-700 text-slate-600 dark:text-amber-400 flex items-center justify-center transition-all cursor-pointer border border-border shadow-sm"
           >
             {theme === 'dark' ? (
               <Sun className="w-4 h-4 text-amber-400 transition-transform duration-300 rotate-0 hover:rotate-45" />
@@ -383,7 +383,7 @@ export const ClientOnboardingGate = () => {
 
           <button
             onClick={handleLogout}
-            className="flex items-center gap-1.5 text-xs text-slate-600 dark:text-slate-400 hover:text-slate-900 dark:hover:text-slate-200 transition-colors cursor-pointer px-2.5 py-1.5 rounded-lg border border-slate-200 dark:border-slate-800 bg-white dark:bg-slate-900/50 shadow-sm"
+            className="flex items-center gap-1.5 text-xs text-muted hover:text-slate-900 dark:hover:text-slate-200 transition-colors cursor-pointer px-2.5 py-1.5 rounded-lg border border-border bg-surface/50 shadow-sm"
           >
             <LogOut className="w-4 h-4" /> Sign Out
           </button>
@@ -413,10 +413,10 @@ export const ClientOnboardingGate = () => {
                   }}
                   className={`p-3 rounded-xl border text-left transition-all cursor-pointer ${
                     isCurrent
-                      ? 'bg-indigo-50 dark:bg-indigo-600/15 border-indigo-500 dark:border-indigo-500/60 shadow-md shadow-indigo-500/10'
+                      ? 'bg-accent-soft dark:bg-accent/15 border-accent dark:border-accent/60 shadow-md shadow-accent/10'
                       : isDone
                       ? 'bg-emerald-50 dark:bg-emerald-950/20 border-emerald-300 dark:border-emerald-500/30 text-emerald-900 dark:text-slate-300'
-                      : 'bg-white dark:bg-slate-900/40 border-slate-200 dark:border-slate-800/80 text-slate-600 dark:text-slate-400 hover:border-slate-300 dark:hover:border-slate-700 shadow-sm dark:shadow-none'
+                      : 'bg-surface/40 border-border text-muted hover:border-slate-300 dark:hover:border-slate-700 shadow-sm dark:shadow-none'
                   }`}
                 >
                   <div className="flex items-center justify-between mb-1.5">
@@ -425,8 +425,8 @@ export const ClientOnboardingGate = () => {
                         isDone
                           ? 'bg-emerald-500 text-white'
                           : isCurrent
-                          ? 'bg-indigo-600 text-white'
-                          : 'bg-slate-100 dark:bg-slate-800 text-slate-600 dark:text-slate-400'
+                          ? 'bg-accent text-white'
+                          : 'bg-chrome text-muted'
                       }`}
                     >
                       {isDone ? <Check className="w-3.5 h-3.5 stroke-[3]" /> : s.num}
@@ -436,7 +436,7 @@ export const ClientOnboardingGate = () => {
                         isDone
                           ? 'text-emerald-500 dark:text-emerald-400'
                           : isCurrent
-                          ? 'text-indigo-600 dark:text-indigo-400'
+                          ? 'text-accent'
                           : 'text-slate-400 dark:text-slate-600'
                       }`}
                     />
@@ -447,15 +447,15 @@ export const ClientOnboardingGate = () => {
             })}
           </div>
         ) : (
-          <div className="p-3 rounded-xl border bg-indigo-50 dark:bg-indigo-600/15 border-indigo-500 dark:border-indigo-500/60 shadow-md shadow-indigo-500/10">
+          <div className="p-3 rounded-xl border bg-accent-soft dark:bg-accent/15 border-accent dark:border-accent/60 shadow-md shadow-accent/10">
             <div className="flex items-center justify-between mb-1.5">
-              <div className="w-6 h-6 rounded-lg flex items-center justify-center text-xs font-bold bg-indigo-600 text-white">
+              <div className="w-6 h-6 rounded-lg flex items-center justify-center text-xs font-bold bg-accent text-white">
                 1
               </div>
-              <FileCheck2 className="w-4 h-4 text-indigo-600 dark:text-indigo-400" />
+              <FileCheck2 className="w-4 h-4 text-accent" />
             </div>
             <p className="text-xs font-semibold text-slate-900 dark:text-slate-200">Sign Agreements</p>
-            <p className="text-[11px] text-slate-500 dark:text-slate-400 mt-0.5">
+            <p className="text-[11px] text-muted mt-0.5">
               Complete each document in order. Payment details and Review &amp; Submit unlock after all signatures.
             </p>
           </div>
@@ -470,7 +470,7 @@ export const ClientOnboardingGate = () => {
             <AlertTriangle className="w-5 h-5 text-rose-500 dark:text-rose-400 shrink-0 mt-0.5" />
             <div>
               <p className="font-bold text-rose-800 dark:text-rose-200">Re-signature Requested by Compliance Admin</p>
-              <p className="mt-1 text-slate-700 dark:text-slate-300">
+              <p className="mt-1 text-fg">
                 {rejectionReason || 'Please review your signatures and re-submit for approval.'}
               </p>
             </div>
@@ -493,24 +493,24 @@ export const ClientOnboardingGate = () => {
 
           return (
             <div className="space-y-6">
-              <div className="bg-white dark:bg-slate-900/40 p-5 rounded-2xl border border-slate-200 dark:border-slate-800 shadow-sm dark:shadow-none space-y-5">
+              <div className="bg-surface/40 p-5 rounded-2xl border border-border shadow-sm dark:shadow-none space-y-5">
                 <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-2">
                   <div>
-                    <h2 className="text-base font-bold text-slate-900 dark:text-slate-100">
+                    <h2 className="text-base font-bold text-fg">
                       Agreement {agreementIndex + 1} of {contracts.length}
                     </h2>
-                    <p className="text-xs text-slate-500 dark:text-slate-400 mt-0.5">
+                    <p className="text-xs text-muted mt-0.5">
                       Sign this document to unlock the next one. You can go back to review a signed agreement.
                     </p>
                   </div>
-                  <span className="inline-flex items-center gap-1.5 px-3 py-1 rounded-full text-xs font-semibold bg-indigo-50 dark:bg-indigo-500/10 text-indigo-700 dark:text-indigo-300 border border-indigo-200 dark:border-indigo-500/20">
+                  <span className="inline-flex items-center gap-1.5 px-3 py-1 rounded-full text-xs font-semibold bg-accent-soft text-accent border border-accent/20 dark:border-accent/20">
                     Progress: {signedAgreementsCount} of {contracts.length} Signed
                   </span>
                 </div>
 
-                <div className="h-1.5 rounded-full bg-slate-100 dark:bg-slate-800 overflow-hidden">
+                <div className="h-1.5 rounded-full bg-chrome overflow-hidden">
                   <div
-                    className="h-full rounded-full bg-indigo-500 transition-all duration-300"
+                    className="h-full rounded-full bg-accent transition-all duration-300"
                     style={{ width: `${progressPct}%` }}
                   />
                 </div>
@@ -542,12 +542,12 @@ export const ClientOnboardingGate = () => {
                           }
                           className={`flex items-center gap-2 min-w-0 px-2.5 py-2 rounded-xl border text-left transition-all ${
                             !unlocked
-                              ? 'opacity-50 cursor-not-allowed bg-slate-50 dark:bg-slate-950/40 border-slate-200 dark:border-slate-800'
+                              ? 'opacity-50 cursor-not-allowed bg-slate-50 dark:bg-slate-950/40 border-border'
                               : isSelected
-                              ? 'cursor-pointer bg-indigo-50/80 dark:bg-indigo-950/40 border-indigo-500 shadow-sm'
+                              ? 'cursor-pointer bg-accent-soft border-accent shadow-sm'
                               : isSigned
                               ? 'cursor-pointer bg-emerald-50/50 dark:bg-emerald-950/20 border-emerald-200 dark:border-emerald-500/30 hover:border-emerald-400'
-                              : 'cursor-pointer bg-slate-50/70 dark:bg-slate-950/40 border-slate-200 dark:border-slate-800'
+                              : 'cursor-pointer bg-slate-50/70 dark:bg-slate-950/40 border-border'
                           }`}
                         >
                           <div
@@ -555,8 +555,8 @@ export const ClientOnboardingGate = () => {
                               isSigned
                                 ? 'bg-emerald-500 text-white'
                                 : isSelected
-                                ? 'bg-indigo-600 text-white'
-                                : 'bg-slate-200 dark:bg-slate-800 text-slate-500 dark:text-slate-400'
+                                ? 'bg-accent text-white'
+                                : 'bg-slate-200 dark:bg-slate-800 text-muted'
                             }`}
                           >
                             {isSigned ? (
@@ -567,7 +567,7 @@ export const ClientOnboardingGate = () => {
                               <Lock className="w-3 h-3" />
                             )}
                           </div>
-                          <span className="hidden sm:block text-[11px] font-semibold truncate text-slate-800 dark:text-slate-200">
+                          <span className="hidden sm:block text-[11px] font-semibold truncate text-fg">
                             {ag.id.toUpperCase()}
                           </span>
                         </button>
@@ -577,16 +577,16 @@ export const ClientOnboardingGate = () => {
                 </div>
 
                 {/* Only the current agreement is shown as the active card */}
-                <div className="p-4 rounded-xl border border-indigo-200 dark:border-indigo-500/30 bg-indigo-50/60 dark:bg-indigo-950/20">
+                <div className="p-4 rounded-xl border border-accent/20 dark:border-accent/30 bg-accent-soft/60">
                   <div className="flex items-start justify-between gap-3">
                     <div className="min-w-0">
-                      <p className="text-[10px] uppercase tracking-wider font-semibold text-indigo-600 dark:text-indigo-400">
+                      <p className="text-[10px] uppercase tracking-wider font-semibold text-accent">
                         Now signing
                       </p>
-                      <p className="text-sm font-bold text-slate-900 dark:text-slate-100 truncate mt-0.5">
+                      <p className="text-sm font-bold text-fg truncate mt-0.5">
                         {currentAgreement?.title}
                       </p>
-                      <p className="text-xs text-slate-500 dark:text-slate-400 mt-0.5">
+                      <p className="text-xs text-muted mt-0.5">
                         {agreementKindLabel(agreementIndex)}
                       </p>
                     </div>
@@ -644,7 +644,7 @@ export const ClientOnboardingGate = () => {
                         goToAgreement(agreementIndex + 1)
                       }}
                       disabled={!isCurrentAgreementSigned}
-                      className="bg-indigo-600 hover:bg-indigo-500"
+                      className="bg-accent hover:bg-accent-hover"
                       icon={ArrowRight}
                     >
                       Next: {contracts[agreementIndex + 1]?.title.split('(')[0]}
@@ -662,7 +662,7 @@ export const ClientOnboardingGate = () => {
                         setStep(2)
                       }}
                       disabled={!areSignaturesComplete()}
-                      className="bg-indigo-600 hover:bg-indigo-500 shadow-md shadow-indigo-600/20"
+                      className="bg-accent hover:bg-accent-hover shadow-md shadow-accent/20"
                       icon={ArrowRight}
                     >
                       Continue to Payment Details
@@ -677,9 +677,9 @@ export const ClientOnboardingGate = () => {
         {/* STEP 2: COMPANY PAYMENT DETAILS */}
         {step === 2 && areSignaturesComplete() && (
           <div className="space-y-6">
-            <div className="bg-white dark:bg-slate-900/40 p-4 rounded-xl border border-slate-200 dark:border-slate-800 shadow-sm dark:shadow-none">
-              <h2 className="text-base font-bold text-slate-900 dark:text-slate-100">Step 2: Payment Details</h2>
-              <p className="text-xs text-slate-500 dark:text-slate-400 mt-1">
+            <div className="bg-surface/40 p-4 rounded-xl border border-border shadow-sm dark:shadow-none">
+              <h2 className="text-base font-bold text-fg">Step 2: Payment Details</h2>
+              <p className="text-xs text-muted mt-1">
                 Use these company account details to pay invoices. Copy the account number and include your invoice
                 number in the transfer reference.
               </p>
@@ -701,7 +701,7 @@ export const ClientOnboardingGate = () => {
                   setErrorMsg('')
                   setStep(3)
                 }}
-                className="bg-indigo-600 hover:bg-indigo-500 shadow-md shadow-indigo-600/20"
+                className="bg-accent hover:bg-accent-hover shadow-md shadow-accent/20"
                 icon={ArrowRight}
               >
                 Continue to Review &amp; Submit
@@ -713,9 +713,9 @@ export const ClientOnboardingGate = () => {
         {/* STEP 3: REVIEW & SUBMIT */}
         {step === 3 && areSignaturesComplete() && (
           <div className="space-y-6">
-            <div className="bg-white dark:bg-slate-900/40 p-4 rounded-xl border border-slate-200 dark:border-slate-800 shadow-sm dark:shadow-none">
-              <h2 className="text-base font-bold text-slate-900 dark:text-slate-100">Step 3: Review &amp; Submit</h2>
-              <p className="text-xs text-slate-500 dark:text-slate-400 mt-1">
+            <div className="bg-surface/40 p-4 rounded-xl border border-border shadow-sm dark:shadow-none">
+              <h2 className="text-base font-bold text-fg">Step 3: Review &amp; Submit</h2>
+              <p className="text-xs text-muted mt-1">
                 Please confirm the details below. Your account profile was prepared by our team — if anything is
                 incorrect, contact your account manager before submitting.
               </p>
@@ -724,19 +724,19 @@ export const ClientOnboardingGate = () => {
             <div className="grid grid-cols-1 md:grid-cols-2 gap-5">
               {/* Signed Contracts Summary */}
               <Card className="p-5 space-y-3">
-                <div className="flex items-center gap-2 pb-2 border-b border-slate-200 dark:border-slate-800">
-                  <FileText className="w-4 h-4 text-indigo-600 dark:text-indigo-400" />
-                  <h3 className="font-bold text-xs uppercase tracking-wider text-slate-800 dark:text-slate-200">Executed Contracts</h3>
+                <div className="flex items-center gap-2 pb-2 border-b border-border">
+                  <FileText className="w-4 h-4 text-accent" />
+                  <h3 className="font-bold text-xs uppercase tracking-wider text-fg">Executed Contracts</h3>
                 </div>
 
                 <div className="space-y-2">
                   {contracts.map((ag) => {
                     const sig = agreements[ag.id]
                     return (
-                      <div key={ag.id} className="p-2.5 rounded-lg bg-slate-50 dark:bg-slate-950 border border-slate-200 dark:border-slate-800/80 flex items-center justify-between gap-2 text-xs">
+                      <div key={ag.id} className="p-2.5 rounded-lg bg-slate-50 dark:bg-slate-950 border border-border flex items-center justify-between gap-2 text-xs">
                         <div className="min-w-0">
-                          <p className="font-semibold text-slate-800 dark:text-slate-200">{ag.title}</p>
-                          <p className="text-[11px] text-slate-500 dark:text-slate-400">Signatory: {sig?.signatoryName || 'Pending'}</p>
+                          <p className="font-semibold text-fg">{ag.title}</p>
+                          <p className="text-[11px] text-muted">Signatory: {sig?.signatoryName || 'Pending'}</p>
                         </div>
                         <div className="flex items-center gap-2 shrink-0">
                           {sig?.signed ? (
@@ -747,7 +747,7 @@ export const ClientOnboardingGate = () => {
                           <button
                             type="button"
                             onClick={() => handleDownloadAgreement(ag)}
-                            className="px-2 py-1 rounded-lg border border-slate-200 dark:border-slate-700 text-indigo-600 dark:text-indigo-400 font-semibold inline-flex items-center gap-1 hover:bg-indigo-50 dark:hover:bg-indigo-950/40"
+                            className="px-2 py-1 rounded-lg border border-border text-accent font-semibold inline-flex items-center gap-1 hover:bg-accent-soft"
                           >
                             <Download className="w-3.5 h-3.5" /> PDF
                           </button>
@@ -760,10 +760,10 @@ export const ClientOnboardingGate = () => {
 
               {/* Account Profile Summary (read-only, prepared by admin) */}
               <Card className="p-5 space-y-3">
-                <div className="flex items-center justify-between pb-2 border-b border-slate-200 dark:border-slate-800">
+                <div className="flex items-center justify-between pb-2 border-b border-border">
                   <div className="flex items-center gap-2">
                     <CreditCard className="w-4 h-4 text-emerald-600 dark:text-emerald-400" />
-                    <h3 className="font-bold text-xs uppercase tracking-wider text-slate-800 dark:text-slate-200">Account &amp; Billing</h3>
+                    <h3 className="font-bold text-xs uppercase tracking-wider text-fg">Account &amp; Billing</h3>
                   </div>
                   <Badge variant="neutral" className="text-[10px]">Prepared for you</Badge>
                 </div>
@@ -779,17 +779,17 @@ export const ClientOnboardingGate = () => {
                     ].map((row) => (
                       <div
                         key={row.label}
-                        className="p-2.5 rounded-lg bg-slate-50 dark:bg-slate-950 border border-slate-200 dark:border-slate-800/80 flex items-start justify-between gap-3 text-xs"
+                        className="p-2.5 rounded-lg bg-slate-50 dark:bg-slate-950 border border-border flex items-start justify-between gap-3 text-xs"
                       >
-                        <span className="text-slate-500 dark:text-slate-400 shrink-0">{row.label}</span>
-                        <span className="font-semibold text-slate-800 dark:text-slate-200 text-right break-words">
+                        <span className="text-muted shrink-0">{row.label}</span>
+                        <span className="font-semibold text-fg text-right break-words">
                           {row.value || <span className="text-slate-400 italic font-normal">Not provided</span>}
                         </span>
                       </div>
                     ))}
                   </div>
                 ) : (
-                  <p className="text-xs text-slate-500 dark:text-slate-400 italic py-2">
+                  <p className="text-xs text-muted italic py-2">
                     Your account manager has not added billing details yet. You can still submit your signatures.
                   </p>
                 )}

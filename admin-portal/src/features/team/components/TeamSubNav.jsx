@@ -16,15 +16,15 @@ import {
 const linkClass = ({ isActive }) =>
   `flex items-center gap-2 px-3 py-1.5 rounded-xl text-xs font-semibold transition-colors ${
     isActive
-      ? 'bg-indigo-50 dark:bg-indigo-600/20 text-indigo-600 dark:text-indigo-400 border border-indigo-200 dark:border-indigo-500/30'
-      : 'text-slate-600 dark:text-slate-400 hover:text-slate-900 dark:hover:text-slate-200 hover:bg-slate-100 dark:hover:bg-slate-800'
+      ? 'bg-accent-soft text-accent border border-accent/30'
+      : 'text-muted hover:text-fg hover:bg-slate-100 dark:hover:bg-slate-800'
   }`
 
 const wfhClass = ({ isActive }) =>
   `flex items-center gap-2 px-3 py-1.5 rounded-xl text-xs font-semibold transition-colors ${
     isActive
       ? 'bg-emerald-50 dark:bg-emerald-500/20 text-emerald-600 dark:text-emerald-400 border border-emerald-200 dark:border-emerald-500/30'
-      : 'text-slate-600 dark:text-slate-400 hover:text-slate-900 dark:hover:text-slate-200 hover:bg-slate-100 dark:hover:bg-slate-800'
+      : 'text-muted hover:text-fg hover:bg-slate-100 dark:hover:bg-slate-800'
   }`
 
 /**
@@ -33,7 +33,7 @@ const wfhClass = ({ isActive }) =>
 export function TeamSubNav({ className = '' }) {
   return (
     <div
-      className={`flex items-center gap-2 border-b border-slate-200 dark:border-slate-800 pb-3 flex-wrap ${className}`}
+      className={`flex items-center gap-2 border-b border-border pb-3 flex-wrap ${className}`}
     >
       <NavLink to="/team/employees" className={linkClass}>
         <Users className="w-3.5 h-3.5" /> Employee Directory

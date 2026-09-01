@@ -92,19 +92,19 @@ export const WellnessWidget = () => {
     : Bell
 
   return (
-    <Card className="p-0 overflow-hidden border-slate-200 dark:border-slate-800/80">
+    <Card className="p-0 overflow-hidden border-border">
       {/* Gradient Header */}
-      <div className="px-5 py-4 bg-gradient-to-r from-rose-50 via-pink-50 to-purple-50 dark:from-rose-500/10 dark:via-pink-500/5 dark:to-purple-500/10 border-b border-slate-200 dark:border-slate-800/50">
+      <div className="px-5 py-4 bg-gradient-to-r from-rose-50 via-pink-50 to-purple-50 dark:from-rose-500/10 dark:via-pink-500/5 dark:to-purple-500/10 border-b border-border">
         <div className="flex items-center justify-between">
           <div className="flex items-center gap-2.5">
             <div className="w-8 h-8 rounded-xl bg-gradient-to-br from-rose-500/20 to-pink-500/20 dark:from-rose-500/30 dark:to-pink-500/30 border border-rose-500/20 dark:border-rose-500/30 flex items-center justify-center">
               <Heart className="w-4 h-4 text-rose-500 dark:text-rose-400" />
             </div>
             <div>
-              <h3 className="text-sm font-bold text-slate-900 dark:text-slate-100">
+              <h3 className="text-sm font-bold text-fg">
                 Wellness Hub
               </h3>
-              <p className="text-[10px] text-slate-500 dark:text-slate-400">
+              <p className="text-[10px] text-muted">
                 {enabledCount} reminders active
               </p>
             </div>
@@ -129,7 +129,7 @@ export const WellnessWidget = () => {
               className={`w-8 h-8 rounded-xl flex items-center justify-center transition-all cursor-pointer border ${
                 snoozed
                   ? 'bg-amber-500/15 border-amber-500/30 text-amber-600 dark:text-amber-400 hover:bg-amber-500/25'
-                  : 'bg-slate-100 dark:bg-slate-800 border-slate-200 dark:border-slate-700 text-slate-500 dark:text-slate-400 hover:bg-slate-200 dark:hover:bg-slate-700'
+                  : 'bg-chrome border-border text-muted hover:bg-slate-200 dark:hover:bg-slate-700'
               }`}
             >
               {snoozed ? (
@@ -149,7 +149,7 @@ export const WellnessWidget = () => {
           <div className="space-y-2.5">
             <div className="flex items-center gap-1.5">
               <Droplets className="w-3.5 h-3.5 text-sky-500 dark:text-sky-400" />
-              <span className="text-[11px] font-semibold text-slate-700 dark:text-slate-300 uppercase tracking-wider">
+              <span className="text-[11px] font-semibold text-fg uppercase tracking-wider">
                 Hydration
               </span>
             </div>
@@ -158,7 +158,7 @@ export const WellnessWidget = () => {
               <button
                 onClick={decrementHydration}
                 disabled={hydrationCount === 0}
-                className="w-7 h-7 rounded-lg bg-slate-100 dark:bg-slate-800 hover:bg-slate-200 dark:hover:bg-slate-700 text-slate-500 dark:text-slate-400 flex items-center justify-center transition-colors disabled:opacity-30 cursor-pointer disabled:cursor-not-allowed border border-slate-200 dark:border-slate-700"
+                className="w-7 h-7 rounded-lg bg-chrome hover:bg-slate-200 dark:hover:bg-slate-700 text-muted flex items-center justify-center transition-colors disabled:opacity-30 cursor-pointer disabled:cursor-not-allowed border border-border"
               >
                 <Minus className="w-3 h-3" />
               </button>
@@ -203,24 +203,24 @@ export const WellnessWidget = () => {
           {/* Next Reminder Countdown */}
           <div className="space-y-2.5">
             <div className="flex items-center gap-1.5">
-              <Timer className="w-3.5 h-3.5 text-indigo-500 dark:text-indigo-400" />
-              <span className="text-[11px] font-semibold text-slate-700 dark:text-slate-300 uppercase tracking-wider">
+              <Timer className="w-3.5 h-3.5 text-accent" />
+              <span className="text-[11px] font-semibold text-fg uppercase tracking-wider">
                 Next Reminder
               </span>
             </div>
 
             {nextReminder && globalEnabled && !snoozed ? (
-              <div className="flex flex-col items-center gap-1 p-2 rounded-xl bg-indigo-50/50 dark:bg-indigo-500/5 border border-indigo-200/50 dark:border-indigo-500/10">
-                <NextReminderIcon className="w-6 h-6 text-indigo-500 dark:text-indigo-400" />
-                <span className="text-[11px] font-semibold text-slate-700 dark:text-slate-300 text-center truncate w-full">
+              <div className="flex flex-col items-center gap-1 p-2 rounded-xl bg-accent-soft border border-accent/20 dark:border-accent/10">
+                <NextReminderIcon className="w-6 h-6 text-accent" />
+                <span className="text-[11px] font-semibold text-fg text-center truncate w-full">
                   {nextReminder.name}
                 </span>
-                <span className="text-xs font-mono text-indigo-600 dark:text-indigo-400 font-bold">
+                <span className="text-xs font-mono text-accent font-bold">
                   {countdown}
                 </span>
               </div>
             ) : (
-              <div className="flex flex-col items-center justify-center gap-1 p-2 rounded-xl bg-slate-50 dark:bg-slate-800/50 border border-slate-200 dark:border-slate-700/50 h-[88px]">
+              <div className="flex flex-col items-center justify-center gap-1 p-2 rounded-xl bg-chrome/50 border border-border/50 h-[88px]">
                 <BellOff className="w-5 h-5 text-slate-400 dark:text-slate-600" />
                 <span className="text-[10px] text-slate-400 dark:text-slate-500">
                   {snoozed ? 'Snoozed' : !globalEnabled ? 'Disabled' : 'No reminders'}
@@ -233,15 +233,15 @@ export const WellnessWidget = () => {
         {/* Link to Settings */}
         <NavLink
           to="/wellness"
-          className="flex items-center justify-between p-3 rounded-xl bg-slate-50 dark:bg-slate-900/40 border border-slate-200 dark:border-slate-800 hover:border-indigo-300 dark:hover:border-indigo-500/30 transition-all group cursor-pointer"
+          className="flex items-center justify-between p-3 rounded-xl bg-chrome border border-border hover:border-accent/40 dark:hover:border-accent/30 transition-all group cursor-pointer"
         >
           <div className="flex items-center gap-2">
-            <Sparkles className="w-3.5 h-3.5 text-indigo-500 dark:text-indigo-400" />
-            <span className="text-xs font-medium text-slate-700 dark:text-slate-300 group-hover:text-indigo-600 dark:group-hover:text-indigo-400 transition-colors">
+            <Sparkles className="w-3.5 h-3.5 text-accent" />
+            <span className="text-xs font-medium text-fg group-hover:text-accent transition-colors">
               Manage Wellness Reminders
             </span>
           </div>
-          <ArrowRight className="w-3.5 h-3.5 text-slate-400 dark:text-slate-600 group-hover:text-indigo-500 dark:group-hover:text-indigo-400 transition-colors" />
+          <ArrowRight className="w-3.5 h-3.5 text-slate-400 dark:text-slate-600 group-hover:text-accent transition-colors" />
         </NavLink>
       </div>
     </Card>

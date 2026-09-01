@@ -81,9 +81,9 @@ function TimelineEntryCard({ entry, interactive = false, onEdit }) {
             }
           : undefined
       }
-      className={`rounded-xl bg-slate-50 dark:bg-[#1a1f2e] border border-slate-200 dark:border-slate-700/70 p-2.5 ${
+      className={`rounded-xl bg-chrome border border-border p-2.5 ${
         interactive
-          ? 'hover:border-indigo-300 dark:hover:border-indigo-500/40 transition-colors cursor-pointer'
+          ? 'hover:border-accent/40 dark:hover:border-accent/40 transition-colors cursor-pointer'
           : ''
       }`}
     >
@@ -100,7 +100,7 @@ function TimelineEntryCard({ entry, interactive = false, onEdit }) {
         >
           {entryTypeLabel(type)}
         </p>
-        <span className="shrink-0 text-[10px] font-semibold text-slate-600 dark:text-slate-300 bg-slate-200/80 dark:bg-slate-700/80 rounded-md px-1.5 py-0.5 font-mono">
+        <span className="shrink-0 text-[10px] font-semibold text-muted bg-slate-200/80 dark:bg-slate-700/80 rounded-md px-1.5 py-0.5 font-mono">
           {formatHours(entry.hours)}
         </span>
       </div>
@@ -346,8 +346,8 @@ export const WorkTimelinePage = ({ embedded = false }) => {
             onClick={() => shiftWeek(-1)}
             aria-label="Previous week"
           />
-          <div className="flex items-center gap-2 px-3 py-1.5 rounded-xl bg-slate-100 dark:bg-slate-800/60 border border-slate-200 dark:border-slate-700">
-            <CalendarDays className="w-4 h-4 text-indigo-500" />
+          <div className="flex items-center gap-2 px-3 py-1.5 rounded-xl bg-chrome/60 border border-border">
+            <CalendarDays className="w-4 h-4 text-accent" />
             <span className="text-sm font-semibold text-slate-800 dark:text-slate-100">
               {weekRangeLabel(weekDays)}
             </span>
@@ -368,11 +368,11 @@ export const WorkTimelinePage = ({ embedded = false }) => {
           </Button>
         </div>
 
-        <div className="flex items-center gap-2 text-sm text-slate-600 dark:text-slate-300">
-          <Clock className="w-4 h-4 text-indigo-500" />
+        <div className="flex items-center gap-2 text-sm text-muted">
+          <Clock className="w-4 h-4 text-accent" />
           <span>
             Week total:{' '}
-            <strong className="text-slate-900 dark:text-slate-100 font-mono">
+            <strong className="text-fg font-mono">
               {formatHours(weekTotal)}
             </strong>
           </span>
@@ -396,8 +396,8 @@ export const WorkTimelinePage = ({ embedded = false }) => {
               key={dateStr}
               className={`flex flex-col min-h-[260px] !p-3 border transition-colors ${
                 isToday
-                  ? 'border-indigo-400 dark:border-indigo-500/50 ring-1 ring-indigo-500/20'
-                  : 'border-slate-200 dark:border-slate-800'
+                  ? 'border-accent ring-1 ring-accent/20'
+                  : 'border-border'
               }`}
             >
               <div className="w-full text-left mb-3">
@@ -406,21 +406,21 @@ export const WorkTimelinePage = ({ embedded = false }) => {
                     <div
                       className={`text-xs font-bold uppercase tracking-wide ${
                         isToday
-                          ? 'text-indigo-600 dark:text-indigo-400'
+                          ? 'text-accent'
                           : 'text-slate-700 dark:text-slate-200'
                       }`}
                     >
                       {DAY_LABELS[idx]} {day.getDate()}
                     </div>
                     {isToday ? (
-                      <p className="text-[10px] text-indigo-500/80 mt-0.5">Today</p>
+                      <p className="text-[10px] text-accent/80 mt-0.5">Today</p>
                     ) : null}
                   </div>
                   <span
                     className={`shrink-0 text-[10px] font-semibold font-mono rounded-full px-2 py-0.5 border ${
                       isFullDay
                         ? 'text-emerald-600 dark:text-emerald-400 border-emerald-400/60 bg-emerald-50 dark:bg-emerald-500/10'
-                        : 'text-slate-500 dark:text-slate-400 border-slate-300 dark:border-slate-600'
+                        : 'text-muted border-slate-300 dark:border-slate-600'
                     }`}
                   >
                     {formatHours(dayTotal)} of {targetLabel}
@@ -434,7 +434,7 @@ export const WorkTimelinePage = ({ embedded = false }) => {
                     Loading…
                   </p>
                 ) : dayEntries.length === 0 ? (
-                  <div className="rounded-xl border border-dashed border-slate-300 dark:border-slate-700 py-6 text-[11px] text-slate-400 text-center">
+                  <div className="rounded-xl border border-dashed border-border py-6 text-[11px] text-slate-400 text-center">
                     No entries yet
                   </div>
                 ) : (
@@ -449,7 +449,7 @@ export const WorkTimelinePage = ({ embedded = false }) => {
                 )}
               </div>
 
-              <div className="mt-3 pt-2 border-t border-slate-200 dark:border-slate-800">
+              <div className="mt-3 pt-2 border-t border-border">
                 <Button
                   type="button"
                   variant="ghost"
@@ -473,21 +473,21 @@ export const WorkTimelinePage = ({ embedded = false }) => {
             className="absolute inset-0 bg-slate-900/50 backdrop-blur-sm"
             onClick={closeModal}
           />
-          <div className="relative w-full max-w-md bg-white dark:bg-[#161A24] rounded-2xl border border-slate-200 dark:border-slate-700 shadow-xl p-5 space-y-4">
+          <div className="relative w-full max-w-md bg-surface rounded-2xl border border-border shadow-xl p-5 space-y-4">
             <div className="flex items-center justify-between">
-              <h3 className="text-sm font-bold text-slate-900 dark:text-slate-100">
+              <h3 className="text-sm font-bold text-fg">
                 {editingEntry ? 'Edit entry' : 'Add entry'}
               </h3>
               <button
                 type="button"
                 onClick={closeModal}
-                className="w-8 h-8 rounded-lg flex items-center justify-center text-slate-400 hover:text-slate-700 dark:hover:text-slate-200 hover:bg-slate-100 dark:hover:bg-slate-800 cursor-pointer"
+                className="w-8 h-8 rounded-lg flex items-center justify-center text-slate-400 hover:text-slate-700 dark:hover:text-slate-200 hover:bg-chrome cursor-pointer"
               >
                 <X className="w-4 h-4" />
               </button>
             </div>
 
-            <p className="text-xs text-slate-500 dark:text-slate-400">
+            <p className="text-xs text-muted">
               {selectedDate &&
                 new Date(selectedDate + 'T12:00:00').toLocaleDateString([], {
                   weekday: 'long',
@@ -500,7 +500,7 @@ export const WorkTimelinePage = ({ embedded = false }) => {
             <div
               role="tablist"
               aria-label="Entry type"
-              className="grid grid-cols-2 gap-1 p-1 rounded-xl bg-slate-100 dark:bg-[#11141E] border border-slate-200 dark:border-slate-800"
+              className="grid grid-cols-2 gap-1 p-1 rounded-xl bg-chrome border border-border"
             >
               {ENTRY_TYPES.map((tab) => {
                 const selected = entryType === tab.id
@@ -513,8 +513,8 @@ export const WorkTimelinePage = ({ embedded = false }) => {
                     onClick={() => setEntryType(tab.id)}
                     className={`px-3 py-2 rounded-lg text-xs font-semibold transition-colors cursor-pointer ${
                       selected
-                        ? 'bg-white dark:bg-slate-800 text-indigo-600 dark:text-indigo-400 shadow-sm'
-                        : 'text-slate-500 dark:text-slate-400 hover:text-slate-800 dark:hover:text-slate-200'
+                        ? 'bg-surface text-accent shadow-sm'
+                        : 'text-muted hover:text-slate-800 dark:hover:text-slate-200'
                     }`}
                   >
                     {tab.label}
@@ -525,7 +525,7 @@ export const WorkTimelinePage = ({ embedded = false }) => {
 
             <form onSubmit={handleSave} className="space-y-4">
               <div className="space-y-1.5">
-                <label className="block text-xs font-medium text-slate-700 dark:text-slate-300">
+                <label className="block text-xs font-medium text-fg">
                   {entryType === 'upskilling'
                     ? 'What are you upskilling on?'
                     : 'What are you working on?'}
@@ -539,19 +539,19 @@ export const WorkTimelinePage = ({ embedded = false }) => {
                       ? 'e.g. React advanced patterns course'
                       : 'e.g. API integration for client portal'
                   }
-                  className="w-full bg-slate-100/80 dark:bg-[#11141E] border border-slate-300 dark:border-slate-800 text-slate-900 dark:text-slate-100 placeholder-slate-400 text-sm rounded-xl py-2.5 px-3.5 focus:outline-none focus:ring-2 focus:ring-indigo-500/20 focus:border-indigo-500 resize-none"
+                  className="w-full bg-chrome border border-border text-fg placeholder-slate-400 text-sm rounded-xl py-2.5 px-3.5 focus:outline-none focus:ring-2 focus:ring-accent/20 focus:border-accent resize-none"
                 />
               </div>
 
               <div className="space-y-1.5">
-                <p className="block text-xs font-medium text-slate-700 dark:text-slate-300">
+                <p className="block text-xs font-medium text-fg">
                   Duration
                 </p>
                 <div className="grid grid-cols-2 gap-3">
                   <div className="space-y-1">
                     <label
                       htmlFor="timeline-hours"
-                      className="block text-[10px] font-medium text-slate-500 dark:text-slate-400"
+                      className="block text-[10px] font-medium text-muted"
                     >
                       Hours
                     </label>
@@ -565,13 +565,13 @@ export const WorkTimelinePage = ({ embedded = false }) => {
                       value={hoursPart}
                       onChange={(e) => setHoursPart(e.target.value)}
                       placeholder="0"
-                      className="w-full bg-slate-100/80 dark:bg-[#11141E] border border-slate-300 dark:border-slate-800 text-slate-900 dark:text-slate-100 placeholder-slate-400 text-sm rounded-xl py-2.5 px-3.5 focus:outline-none focus:ring-2 focus:ring-indigo-500/20 focus:border-indigo-500"
+                      className="w-full bg-chrome border border-border text-fg placeholder-slate-400 text-sm rounded-xl py-2.5 px-3.5 focus:outline-none focus:ring-2 focus:ring-accent/20 focus:border-accent"
                     />
                   </div>
                   <div className="space-y-1">
                     <label
                       htmlFor="timeline-minutes"
-                      className="block text-[10px] font-medium text-slate-500 dark:text-slate-400"
+                      className="block text-[10px] font-medium text-muted"
                     >
                       Minutes
                     </label>
@@ -579,7 +579,7 @@ export const WorkTimelinePage = ({ embedded = false }) => {
                       id="timeline-minutes"
                       value={minutesPart}
                       onChange={(e) => setMinutesPart(e.target.value)}
-                      className="w-full bg-slate-100/80 dark:bg-[#11141E] border border-slate-300 dark:border-slate-800 text-slate-900 dark:text-slate-100 text-sm rounded-xl py-2.5 px-3.5 focus:outline-none focus:ring-2 focus:ring-indigo-500/20 focus:border-indigo-500 cursor-pointer"
+                      className="w-full bg-chrome border border-border text-fg text-sm rounded-xl py-2.5 px-3.5 focus:outline-none focus:ring-2 focus:ring-accent/20 focus:border-accent cursor-pointer"
                     >
                       {MINUTE_OPTIONS.map((opt) => (
                         <option key={opt} value={opt}>
@@ -589,9 +589,9 @@ export const WorkTimelinePage = ({ embedded = false }) => {
                     </select>
                   </div>
                 </div>
-                <p className="text-xs text-slate-500 dark:text-slate-400">
+                <p className="text-xs text-muted">
                   Selected:{' '}
-                  <span className="font-mono font-semibold text-slate-800 dark:text-slate-200">
+                  <span className="font-mono font-semibold text-fg">
                     {durationPreview}
                   </span>
                 </p>

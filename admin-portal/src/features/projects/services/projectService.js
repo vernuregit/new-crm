@@ -165,6 +165,13 @@ export const updateProjectMembersInDb = async (projectId, members) => {
 /**
  * Process Steps & Workflow Operations
  */
+export const getClientVisibility = (step) => {
+  if (!step?.clientVisibility) return 'approved'
+  return step.clientVisibility
+}
+
+export const isClientVisible = (step) => getClientVisibility(step) === 'approved'
+
 export const getProjectProcessSteps = async (projectId) => {
   try {
     if (!projectId) return []
@@ -229,6 +236,11 @@ export const addProcessStep = async (projectId, stepData) => {
     const existing = await getProjectProcessSteps(projectId)
     const nextStepNum = existing.length > 0 ? Math.max(...existing.map((s) => s.stepNumber || 0)) + 1 : 1
 
+    const createdByRole = stepData.createdByRole || 'admin'
+    const clientVisibility =
+      stepData.clientVisibility || (createdByRole === 'employee' ? 'pending' : 'approved')
+    const now = new Date().toISOString()
+
     const payload = {
       projectId,
       stepNumber: stepData.stepNumber || nextStepNum,
@@ -238,9 +250,15 @@ export const addProcessStep = async (projectId, stepData) => {
       type: stepData.type || 'message',
       author: stepData.author || 'From Admin',
       meta: stepData.meta || '',
-      completedAt: stepData.status === 'completed' ? new Date().toISOString() : null,
-      createdAt: new Date().toISOString(),
-      updatedAt: new Date().toISOString(),
+      clientVisibility,
+      createdByRole,
+      createdByUid: stepData.createdByUid || null,
+      createdByName: stepData.createdByName || '',
+      clientApprovedAt: clientVisibility === 'approved' ? now : null,
+      clientApprovedBy: clientVisibility === 'approved' ? stepData.createdByUid || stepData.createdByName || 'admin' : null,
+      completedAt: stepData.status === 'completed' ? now : null,
+      createdAt: now,
+      updatedAt: now,
     }
 
     const docRef = await addDoc(collection(db, 'projects', projectId, 'processSteps'), payload)
@@ -269,6 +287,25 @@ export const updateProcessStep = async (projectId, stepId, updates) => {
     await syncProjectProcessProgress(projectId)
   } catch (err) {
     console.error('Error updating process step:', err)
+    throw err
+  }
+}
+
+export const setProcessStepClientVisibility = async (projectId, stepId, visibility, actor = {}) => {
+  try {
+    if (!projectId || !stepId) return
+    const now = new Date().toISOString()
+    const payload = {
+      clientVisibility: visibility,
+      updatedAt: now,
+    }
+    if (visibility === 'approved') {
+      payload.clientApprovedAt = now
+      payload.clientApprovedBy = actor.uid || actor.name || 'admin'
+    }
+    await updateDoc(doc(db, 'projects', projectId, 'processSteps', stepId), payload)
+  } catch (err) {
+    console.error('Error setting process step client visibility:', err)
     throw err
   }
 }

@@ -40,15 +40,15 @@ export const WorkflowList = () => {
           }
         />
 
-        <div className="flex items-center gap-2 border-b border-slate-200 dark:border-slate-800 pb-3">
+        <div className="flex items-center gap-2 border-b border-border pb-3">
           <NavLink
             to="/workflows"
             end
             className={({ isActive }) =>
               `flex items-center gap-2 px-3 py-1.5 rounded-xl text-xs font-semibold transition-colors ${
                 isActive
-                  ? 'bg-indigo-50 dark:bg-indigo-600/20 text-indigo-600 dark:text-indigo-400 border border-indigo-200 dark:border-indigo-500/30'
-                  : 'text-slate-600 dark:text-slate-400 hover:text-slate-900 dark:hover:text-slate-200 hover:bg-slate-100 dark:hover:bg-slate-800'
+                  ? 'bg-accent-soft text-accent border border-accent/30'
+                  : 'text-muted hover:text-fg hover:bg-slate-100 dark:hover:bg-slate-800'
               }`
             }
           >
@@ -59,8 +59,8 @@ export const WorkflowList = () => {
             className={({ isActive }) =>
               `flex items-center gap-2 px-3 py-1.5 rounded-xl text-xs font-semibold transition-colors ${
                 isActive
-                  ? 'bg-indigo-50 dark:bg-indigo-600/20 text-indigo-600 dark:text-indigo-400 border border-indigo-200 dark:border-indigo-500/30'
-                  : 'text-slate-600 dark:text-slate-400 hover:text-slate-900 dark:hover:text-slate-200 hover:bg-slate-100 dark:hover:bg-slate-800'
+                  ? 'bg-accent-soft text-accent border border-accent/30'
+                  : 'text-muted hover:text-fg hover:bg-slate-100 dark:hover:bg-slate-800'
               }`
             }
           >
@@ -71,8 +71,8 @@ export const WorkflowList = () => {
             className={({ isActive }) =>
               `flex items-center gap-2 px-3 py-1.5 rounded-xl text-xs font-semibold transition-colors ${
                 isActive
-                  ? 'bg-indigo-50 dark:bg-indigo-600/20 text-indigo-600 dark:text-indigo-400 border border-indigo-200 dark:border-indigo-500/30'
-                  : 'text-slate-600 dark:text-slate-400 hover:text-slate-900 dark:hover:text-slate-200 hover:bg-slate-100 dark:hover:bg-slate-800'
+                  ? 'bg-accent-soft text-accent border border-accent/30'
+                  : 'text-muted hover:text-fg hover:bg-slate-100 dark:hover:bg-slate-800'
               }`
             }
           >
@@ -83,19 +83,19 @@ export const WorkflowList = () => {
 
       {/* Metrics Summary Strip */}
       <div className="grid grid-cols-1 sm:grid-cols-3 gap-4">
-        <Card className="p-4 flex items-center justify-between border-slate-800/80">
+        <Card className="p-4 flex items-center justify-between border-border/80">
           <div>
             <span className="text-[11px] font-medium text-slate-400 uppercase tracking-wider">
               Active Workflow Rules
             </span>
-            <p className="text-xl font-bold text-slate-100 mt-1">{activeCount} Rules</p>
+            <p className="text-xl font-bold text-fg mt-1">{activeCount} Rules</p>
           </div>
-          <div className="w-9 h-9 rounded-xl bg-indigo-500/10 text-indigo-400 flex items-center justify-center">
+          <div className="w-9 h-9 rounded-xl bg-accent-soft text-accent flex items-center justify-center">
             <Zap className="w-5 h-5" />
           </div>
         </Card>
 
-        <Card className="p-4 flex items-center justify-between border-slate-800/80">
+        <Card className="p-4 flex items-center justify-between border-border/80">
           <div>
             <span className="text-[11px] font-medium text-slate-400 uppercase tracking-wider">
               Total Executed Runs
@@ -107,7 +107,7 @@ export const WorkflowList = () => {
           </div>
         </Card>
 
-        <Card className="p-4 flex items-center justify-between border-slate-800/80">
+        <Card className="p-4 flex items-center justify-between border-border/80">
           <div>
             <span className="text-[11px] font-medium text-slate-400 uppercase tracking-wider">
               Failed Executions
@@ -123,15 +123,15 @@ export const WorkflowList = () => {
       {/* Workflows List */}
       <div className="space-y-3">
         {workflows.map((w) => (
-          <Card key={w.workflowId} hover className="p-4 border-slate-800 space-y-3">
+          <Card key={w.workflowId} hover className="p-4 border-border space-y-3">
             <div className="flex items-start justify-between">
               <div className="flex items-center gap-3">
                 <div className="w-10 h-10 rounded-xl bg-purple-500/10 text-purple-400 flex items-center justify-center border border-purple-500/20 shrink-0">
                   <GitBranch className="w-5 h-5" />
                 </div>
                 <div>
-                  <h4 className="font-bold text-slate-100 text-sm">{w.name}</h4>
-                  <p className="text-xs text-indigo-400 font-mono mt-0.5">
+                  <h4 className="font-bold text-fg text-sm">{w.name}</h4>
+                  <p className="text-xs text-accent font-mono mt-0.5">
                     Trigger: <span className="text-slate-300">{w.triggerEvent}</span>
                   </p>
                 </div>
@@ -142,14 +142,14 @@ export const WorkflowList = () => {
                 </Badge>
                 <button
                   onClick={() => toggleWorkflowStatus(w.workflowId)}
-                  className="p-1.5 rounded-lg bg-slate-900 border border-slate-800 text-slate-400 hover:text-white"
+                  className="p-1.5 rounded-lg bg-slate-900 border border-border text-slate-400 hover:text-white"
                   title={w.status === 'active' ? 'Pause Rule' : 'Activate Rule'}
                 >
                   {w.status === 'active' ? <Pause className="w-4 h-4" /> : <Play className="w-4 h-4" />}
                 </button>
                 <button
                   onClick={() => deleteWorkflow(w.workflowId)}
-                  className="p-1.5 rounded-lg bg-slate-900 border border-slate-800 text-slate-400 hover:text-rose-400"
+                  className="p-1.5 rounded-lg bg-slate-900 border border-border text-slate-400 hover:text-rose-400"
                   title="Delete Rule"
                 >
                   <Trash2 className="w-4 h-4" />
@@ -157,14 +157,14 @@ export const WorkflowList = () => {
               </div>
             </div>
 
-            <div className="p-3 rounded-xl bg-slate-900 border border-slate-800 text-xs font-mono space-y-1 text-slate-300">
-              <span className="text-[10px] text-slate-500 uppercase font-sans font-bold block">
+            <div className="p-3 rounded-xl bg-slate-900 border border-border text-xs font-mono space-y-1 text-slate-300">
+              <span className="text-[10px] text-muted uppercase font-sans font-bold block">
                 Condition Logic
               </span>
               <span>IF ({w.condition}) THEN DO {w.actions?.length || 1} ACTIONS</span>
             </div>
 
-            <div className="flex justify-between items-center text-[11px] text-slate-500 pt-1">
+            <div className="flex justify-between items-center text-[11px] text-muted pt-1">
               <span>Total Executed Runs: <strong className="text-slate-300">{w.runCount}</strong></span>
               <span>Last Run: {w.lastRunAt ? new Date(w.lastRunAt).toLocaleTimeString() : 'Never'}</span>
             </div>

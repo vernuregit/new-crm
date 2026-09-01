@@ -194,9 +194,9 @@ export function EmployeeAttendanceCalendar({
   const is6Rows = totalSlotsNeeded > 35
 
   return (
-    <Card className="p-4 border-slate-200 dark:border-slate-800 bg-white dark:bg-[#181C27] select-none">
-      <div className="flex items-center justify-between pb-2 border-b border-slate-100 dark:border-slate-800/80">
-        <h4 className="font-bold text-slate-900 dark:text-slate-100 text-xs sm:text-sm tracking-tight">
+    <Card className="p-4 border-border bg-surface select-none">
+      <div className="flex items-center justify-between pb-2 border-b border-slate-100 dark:border-border/80">
+        <h4 className="font-bold text-fg text-xs sm:text-sm tracking-tight">
           Attendance Calendar
         </h4>
         {loading && (
@@ -208,18 +208,18 @@ export function EmployeeAttendanceCalendar({
         <button
           type="button"
           onClick={handlePrevMonth}
-          className="p-0.5 rounded hover:bg-slate-100 dark:hover:bg-slate-800 text-indigo-600 dark:text-indigo-400 transition-colors"
+          className="p-0.5 rounded hover:bg-slate-100 dark:hover:bg-slate-800 text-accent transition-colors"
           title="Previous Month"
         >
           <ChevronLeft className="w-3.5 h-3.5 stroke-[2.5]" />
         </button>
-        <span className="font-bold text-slate-900 dark:text-slate-100 text-xs tracking-tight min-w-[100px] text-center">
+        <span className="font-bold text-fg text-xs tracking-tight min-w-[100px] text-center">
           {monthName}
         </span>
         <button
           type="button"
           onClick={handleNextMonth}
-          className="p-0.5 rounded hover:bg-slate-100 dark:hover:bg-slate-800 text-indigo-600 dark:text-indigo-400 transition-colors"
+          className="p-0.5 rounded hover:bg-slate-100 dark:hover:bg-slate-800 text-accent transition-colors"
           title="Next Month"
         >
           <ChevronRight className="w-3.5 h-3.5 stroke-[2.5]" />
@@ -230,7 +230,7 @@ export function EmployeeAttendanceCalendar({
         {weekHeader.map((d) => (
           <span
             key={d}
-            className="text-[9px] font-bold text-slate-400 dark:text-slate-500 tracking-wider"
+            className="text-[9px] font-bold text-muted tracking-wider"
           >
             {d}
           </span>
@@ -253,7 +253,7 @@ export function EmployeeAttendanceCalendar({
                   is6Rows ? 'w-4.5 h-4.5 text-[10px]' : 'w-5 h-5 text-[11px]'
                 } ${
                   cell.isCurrentMonth
-                    ? attendanceStatusDayClass(status) || 'text-slate-800 dark:text-slate-200'
+                    ? attendanceStatusDayClass(status) || 'text-fg'
                     : 'text-slate-300 dark:text-slate-600 font-normal'
                 }`}
               >
@@ -288,7 +288,7 @@ export function EmployeeAttendanceCalendar({
         })}
       </div>
 
-      <div className="pt-2 mt-1 border-t border-slate-100 dark:border-slate-800/80 flex items-center justify-center gap-3 text-[10px] font-medium text-slate-600 dark:text-slate-400 flex-wrap">
+      <div className="pt-2 mt-1 border-t border-slate-100 dark:border-border/80 flex items-center justify-center gap-3 text-[10px] font-medium text-muted flex-wrap">
         <div className="flex items-center gap-1.5">
           <span className="w-1.5 h-1.5 rounded-full bg-[#22C55E]" />
           <span>Present</span>

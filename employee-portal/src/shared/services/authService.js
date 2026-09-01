@@ -119,6 +119,20 @@ export const getUserDoc = async (uid) => {
       merged.departmentName = empData.departmentName
     }
     if (!merged.role) merged.role = 'employee'
+
+    const userQuoteAt = Date.parse(userData?.quoteUpdatedAt || '') || 0
+    const empQuoteAt = Date.parse(empData?.quoteUpdatedAt || '') || 0
+    const userHasQuote = !!(userData && ('quote' in userData || 'proverb' in userData))
+    const empHasQuote = !!(empData && ('quote' in empData || 'proverb' in empData))
+    const useEmpQuote = empHasQuote && (!userHasQuote || empQuoteAt > userQuoteAt)
+    const quoteSource = useEmpQuote ? empData : userData
+    if (quoteSource && ('quote' in quoteSource || 'proverb' in quoteSource)) {
+      const text = quoteSource.quote || quoteSource.proverb || ''
+      merged.quote = text
+      merged.proverb = text
+      merged.quoteUpdatedAt = quoteSource.quoteUpdatedAt || userData?.quoteUpdatedAt || empData?.quoteUpdatedAt
+    }
+
     return merged
   } catch (err) {
     console.warn('Error fetching user document:', err.message)

@@ -286,14 +286,14 @@ export const AttendancePage = () => {
           description="Your clock-in/out status, shift log, and daily presence"
         />
 
-        <div className="flex items-center gap-2 border-b border-slate-200 dark:border-slate-800 pb-3">
+        <div className="flex items-center gap-2 border-b border-border pb-3">
           <NavLink
             to="/directory"
             className={({ isActive }) =>
               `flex items-center gap-2 px-3 py-1.5 rounded-xl text-xs font-semibold transition-colors ${
                 isActive
-                  ? 'bg-indigo-50 dark:bg-indigo-600/20 text-indigo-600 dark:text-indigo-400 border border-indigo-200 dark:border-indigo-500/30'
-                  : 'text-slate-600 dark:text-slate-400 hover:text-slate-900 dark:hover:text-slate-200 hover:bg-slate-100 dark:hover:bg-slate-800'
+                  ? 'bg-accent-soft text-accent border border-accent/20 dark:border-accent/30'
+                  : 'text-muted hover:text-slate-900 dark:hover:text-slate-200 hover:bg-chrome'
               }`
             }
           >
@@ -304,8 +304,8 @@ export const AttendancePage = () => {
             className={({ isActive }) =>
               `flex items-center gap-2 px-3 py-1.5 rounded-xl text-xs font-semibold transition-colors ${
                 isActive
-                  ? 'bg-indigo-50 dark:bg-indigo-600/20 text-indigo-600 dark:text-indigo-400 border border-indigo-200 dark:border-indigo-500/30'
-                  : 'text-slate-600 dark:text-slate-400 hover:text-slate-900 dark:hover:text-slate-200 hover:bg-slate-100 dark:hover:bg-slate-800'
+                  ? 'bg-accent-soft text-accent border border-accent/20 dark:border-accent/30'
+                  : 'text-muted hover:text-slate-900 dark:hover:text-slate-200 hover:bg-chrome'
               }`
             }
           >
@@ -316,8 +316,8 @@ export const AttendancePage = () => {
             className={({ isActive }) =>
               `flex items-center gap-2 px-3 py-1.5 rounded-xl text-xs font-semibold transition-colors ${
                 isActive
-                  ? 'bg-indigo-50 dark:bg-indigo-600/20 text-indigo-600 dark:text-indigo-400 border border-indigo-200 dark:border-indigo-500/30'
-                  : 'text-slate-600 dark:text-slate-400 hover:text-slate-900 dark:hover:text-slate-200 hover:bg-slate-100 dark:hover:bg-slate-800'
+                  ? 'bg-accent-soft text-accent border border-accent/20 dark:border-accent/30'
+                  : 'text-muted hover:text-slate-900 dark:hover:text-slate-200 hover:bg-chrome'
               }`
             }
           >
@@ -327,19 +327,19 @@ export const AttendancePage = () => {
       </div>
 
       {/* Clock Status Banner */}
-      <Card className="p-5 bg-gradient-to-r from-slate-100 via-indigo-50/50 to-slate-100 dark:from-slate-900 dark:via-[#141824] dark:to-indigo-950/40 border-slate-200 dark:border-slate-800 flex flex-wrap items-center justify-between gap-4">
+      <Card className="p-5 bg-gradient-to-r from-chrome via-accent-soft to-chrome dark:from-surface dark:via-surface dark:to-accent-soft border-border flex flex-wrap items-center justify-between gap-4">
         <div className="flex items-center gap-4">
           <div className={`w-12 h-12 rounded-2xl flex items-center justify-center font-bold shadow-lg ${clockedIn ? 'bg-emerald-50 dark:bg-emerald-500/20 text-emerald-600 dark:text-emerald-400 border border-emerald-200 dark:border-emerald-500/40' : 'bg-slate-200 dark:bg-slate-800 text-slate-700 dark:text-slate-400'}`}>
             <Clock className="w-6 h-6" />
           </div>
           <div>
-            <h3 className="font-bold text-slate-900 dark:text-slate-100 text-sm">
+            <h3 className="font-bold text-fg text-sm">
               Your Current Status:{' '}
               <span className={clockedIn ? 'text-emerald-600 dark:text-emerald-400' : 'text-amber-600 dark:text-amber-400'}>
                 {clockedIn ? `Clocked In since ${formatTo12HourTime(clockInTime)}` : 'Clocked Out'}
               </span>
             </h3>
-            <p className="text-xs text-slate-500 dark:text-slate-400 mt-0.5">
+            <p className="text-xs text-muted mt-0.5">
               Shift duration automatically calculated and synced with your attendance records.
             </p>
           </div>
@@ -370,13 +370,13 @@ export const AttendancePage = () => {
       {/* Weekly WFH vs Office choice — used when LOCATION_GATE_ENABLED */}
       {LOCATION_GATE_ENABLED && wfhChoiceOpen && (
         <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-slate-950/50 backdrop-blur-[2px]">
-          <Card className="w-full max-w-md p-5 border-slate-200 dark:border-slate-700 shadow-xl space-y-4">
+          <Card className="w-full max-w-md p-5 border-border shadow-xl space-y-4">
             <div className="flex items-start justify-between gap-3">
               <div>
-                <h3 className="text-sm font-bold text-slate-900 dark:text-slate-100">
+                <h3 className="text-sm font-bold text-fg">
                   How are you working today?
                 </h3>
-                <p className="text-xs text-slate-500 dark:text-slate-400 mt-1">
+                <p className="text-xs text-muted mt-1">
                   Weekly WFH remaining: {wfhChoiceMeta.remaining} of {wfhChoiceMeta.limit} day(s).
                   Choosing WFH uses 1 day and skips office location.
                 </p>
@@ -384,7 +384,7 @@ export const AttendancePage = () => {
               <button
                 type="button"
                 onClick={() => setWfhChoiceOpen(false)}
-                className="p-1.5 rounded-lg text-slate-500 hover:bg-slate-100 dark:hover:bg-slate-800"
+                className="p-1.5 rounded-lg text-slate-500 hover:bg-chrome"
                 aria-label="Close"
               >
                 <X className="w-4 h-4" />
@@ -395,11 +395,11 @@ export const AttendancePage = () => {
                 type="button"
                 disabled={clockBusy}
                 onClick={handleChooseWfh}
-                className="flex flex-col items-start gap-2 p-4 rounded-xl border border-indigo-200 dark:border-indigo-500/40 bg-indigo-50/70 dark:bg-indigo-500/10 hover:border-indigo-400 transition-colors text-left disabled:opacity-60"
+                className="flex flex-col items-start gap-2 p-4 rounded-xl border border-accent/20 dark:border-accent/40 bg-accent-soft hover:border-accent transition-colors text-left disabled:opacity-60"
               >
-                <Home className="w-5 h-5 text-indigo-600 dark:text-indigo-400" />
-                <span className="text-sm font-semibold text-slate-900 dark:text-slate-100">WFH mode</span>
-                <span className="text-[11px] text-slate-500 dark:text-slate-400">
+                <Home className="w-5 h-5 text-accent" />
+                <span className="text-sm font-semibold text-fg">WFH mode</span>
+                <span className="text-[11px] text-muted">
                   Work from home — no office GPS required
                 </span>
               </button>
@@ -407,17 +407,17 @@ export const AttendancePage = () => {
                 type="button"
                 disabled={clockBusy}
                 onClick={handleChooseOffice}
-                className="flex flex-col items-start gap-2 p-4 rounded-xl border border-slate-200 dark:border-slate-700 bg-slate-50 dark:bg-slate-900/60 hover:border-slate-400 dark:hover:border-slate-500 transition-colors text-left disabled:opacity-60"
+                className="flex flex-col items-start gap-2 p-4 rounded-xl border border-border bg-slate-50 dark:bg-slate-900/60 hover:border-slate-400 dark:hover:border-slate-500 transition-colors text-left disabled:opacity-60"
               >
-                <Building2 className="w-5 h-5 text-slate-700 dark:text-slate-300" />
-                <span className="text-sm font-semibold text-slate-900 dark:text-slate-100">Office mode</span>
-                <span className="text-[11px] text-slate-500 dark:text-slate-400">
+                <Building2 className="w-5 h-5 text-fg" />
+                <span className="text-sm font-semibold text-fg">Office mode</span>
+                <span className="text-[11px] text-muted">
                   Must be at the office location to check in
                 </span>
               </button>
             </div>
             {clockBusy && (
-              <p className="text-xs text-slate-500 dark:text-slate-400 flex items-center gap-2">
+              <p className="text-xs text-muted flex items-center gap-2">
                 <Loader2 className="w-3.5 h-3.5 animate-spin" /> Processing…
               </p>
             )}
@@ -429,10 +429,10 @@ export const AttendancePage = () => {
       <AttendanceMetricsBar />
 
       {/* My Attendance Record */}
-      <Card className="overflow-x-auto p-0 border-slate-200 dark:border-slate-800">
+      <Card className="overflow-x-auto p-0 border-border">
         <table className="w-full text-left border-collapse text-xs">
           <thead>
-            <tr className="bg-slate-100 dark:bg-slate-900/80 border-b border-slate-200 dark:border-slate-800 text-slate-700 dark:text-slate-400 font-semibold">
+            <tr className="bg-chrome/80 border-b border-border text-slate-700 dark:text-slate-400 font-semibold">
               <th className="p-4 font-semibold">Employee</th>
               <th className="p-4 font-semibold">Department</th>
               <th className="p-4 font-semibold">Clock In Time</th>
@@ -442,11 +442,11 @@ export const AttendancePage = () => {
           </thead>
           <tbody className="divide-y divide-slate-200 dark:divide-slate-800/60">
             {myRecord ? (
-              <tr className="hover:bg-slate-50 dark:hover:bg-slate-800/30 transition-colors text-slate-700 dark:text-slate-300">
+              <tr className="hover:bg-chrome/30 transition-colors text-fg">
                 <td className="p-4 font-bold text-slate-900 dark:text-slate-200">{myRecord.displayName}</td>
-                <td className="p-4 text-slate-800 dark:text-slate-300">{myRecord.departmentName || '—'}</td>
-                <td className="p-4 text-slate-600 dark:text-slate-400">{clockedIn ? formatTo12HourTime(clockInTime) : '—'}</td>
-                <td className="p-4 font-semibold text-indigo-600 dark:text-indigo-400">
+                <td className="p-4 text-fg">{myRecord.departmentName || '—'}</td>
+                <td className="p-4 text-muted">{clockedIn ? formatTo12HourTime(clockInTime) : '—'}</td>
+                <td className="p-4 font-semibold text-accent">
                   {clockedIn ? '8.0 hrs' : '—'}
                 </td>
                 <td className="p-4">
@@ -457,7 +457,7 @@ export const AttendancePage = () => {
               </tr>
             ) : (
               <tr>
-                <td colSpan="5" className="p-6 text-center text-slate-500 dark:text-slate-400 text-xs">
+                <td colSpan="5" className="p-6 text-center text-muted text-xs">
                   No attendance record found. Clock in to start your shift.
                 </td>
               </tr>

@@ -109,13 +109,13 @@ export const RecurringBilling = () => {
           }
         />
 
-        <div className="flex items-center gap-2 border-b border-slate-200 dark:border-slate-800 pb-3">
+        <div className="flex items-center gap-2 border-b border-border pb-3">
           <NavLink
             to="/finance/invoices"
             className={({ isActive }) =>
               `flex items-center gap-2 px-3 py-1.5 rounded-xl text-xs font-semibold transition-colors ${
                 isActive
-                  ? 'bg-indigo-600/20 text-indigo-400 border border-indigo-500/30'
+                  ? 'bg-accent-soft text-accent border border-accent/30'
                   : 'text-slate-400 hover:text-slate-200 hover:bg-slate-800'
               }`
             }
@@ -127,7 +127,7 @@ export const RecurringBilling = () => {
             className={({ isActive }) =>
               `flex items-center gap-2 px-3 py-1.5 rounded-xl text-xs font-semibold transition-colors ${
                 isActive
-                  ? 'bg-indigo-600/20 text-indigo-400 border border-indigo-500/30'
+                  ? 'bg-accent-soft text-accent border border-accent/30'
                   : 'text-slate-400 hover:text-slate-200 hover:bg-slate-800'
               }`
             }
@@ -139,7 +139,7 @@ export const RecurringBilling = () => {
             className={({ isActive }) =>
               `flex items-center gap-2 px-3 py-1.5 rounded-xl text-xs font-semibold transition-colors ${
                 isActive
-                  ? 'bg-indigo-600/20 text-indigo-400 border border-indigo-500/30'
+                  ? 'bg-accent-soft text-accent border border-accent/30'
                   : 'text-slate-400 hover:text-slate-200 hover:bg-slate-800'
               }`
             }
@@ -152,13 +152,13 @@ export const RecurringBilling = () => {
       {/* Retainers List */}
       {isLoading ? (
         <div className="flex items-center justify-center py-16 text-xs text-slate-400">
-          <Loader2 className="w-5 h-5 animate-spin mr-2 text-indigo-500" /> Loading retainer profiles...
+          <Loader2 className="w-5 h-5 animate-spin mr-2 text-accent" /> Loading retainer profiles...
         </div>
       ) : retainers.length === 0 ? (
-        <Card className="p-8 text-center border-dashed border-slate-300 dark:border-slate-800 space-y-3">
+        <Card className="p-8 text-center border-dashed border-border space-y-3">
           <RefreshCw className="w-8 h-8 text-slate-400 dark:text-slate-600 mx-auto" />
-          <h4 className="font-bold text-slate-700 dark:text-slate-300 text-sm">No Retainer Profiles Found</h4>
-          <p className="text-xs text-slate-500 max-w-sm mx-auto">
+          <h4 className="font-bold text-fg text-sm">No Retainer Profiles Found</h4>
+          <p className="text-xs text-muted max-w-sm mx-auto">
             You have not configured any recurring client retainers or billing schedules yet.
           </p>
           <Button size="sm" icon={Plus} variant="primary" onClick={() => setShowAddModal(true)}>
@@ -170,9 +170,9 @@ export const RecurringBilling = () => {
           {retainers.map((ret, i) => {
             const rId = ret.retainerId || ret.id || i
             return (
-              <Card key={rId} hover className="space-y-3 border-slate-200 dark:border-slate-800 relative group">
+              <Card key={rId} hover className="space-y-3 border-border relative group">
                 <div className="flex items-center justify-between">
-                  <h4 className="font-bold text-slate-900 dark:text-slate-100 text-sm">{ret.client}</h4>
+                  <h4 className="font-bold text-fg text-sm">{ret.client}</h4>
                   <div className="flex items-center gap-2">
                     <button
                       onClick={() => handleToggleStatus(ret)}
@@ -190,10 +190,10 @@ export const RecurringBilling = () => {
                     </button>
                   </div>
                 </div>
-                <p className="text-xs text-indigo-600 dark:text-indigo-400 font-medium">{ret.profile}</p>
-                <div className="flex justify-between items-center text-xs text-slate-600 dark:text-slate-300 pt-2 border-t border-slate-200 dark:border-slate-800">
-                  <span className="flex items-center gap-1 text-slate-500 dark:text-slate-400">
-                    <RefreshCw className="w-3 h-3 text-indigo-500" /> {ret.interval}
+                <p className="text-xs text-accent font-medium">{ret.profile}</p>
+                <div className="flex justify-between items-center text-xs text-muted pt-2 border-t border-border">
+                  <span className="flex items-center gap-1 text-muted">
+                    <RefreshCw className="w-3 h-3 text-accent" /> {ret.interval}
                   </span>
                   <span className="font-bold text-emerald-600 dark:text-emerald-400 text-sm">{ret.amount}</span>
                 </div>
@@ -206,9 +206,9 @@ export const RecurringBilling = () => {
       {/* Add Retainer Profile Modal */}
       {showAddModal && (
         <div className="fixed inset-0 z-50 bg-black/70 backdrop-blur-sm flex items-center justify-center p-4">
-          <Card className="w-full max-w-lg p-6 space-y-4 border-slate-200 dark:border-slate-800 shadow-2xl relative bg-white dark:bg-[#181C27]">
-            <div className="flex items-center justify-between pb-3 border-b border-slate-200 dark:border-slate-800">
-              <h3 className="font-bold text-slate-900 dark:text-slate-100 text-sm">Add Retainer Profile</h3>
+          <Card className="w-full max-w-lg p-6 space-y-4 border-border shadow-2xl relative bg-surface">
+            <div className="flex items-center justify-between pb-3 border-b border-border">
+              <h3 className="font-bold text-fg text-sm">Add Retainer Profile</h3>
               <button
                 onClick={() => setShowAddModal(false)}
                 className="text-slate-400 hover:text-slate-600 dark:hover:text-white p-1 rounded-lg hover:bg-slate-100 dark:hover:bg-slate-800 transition-colors"
@@ -219,12 +219,12 @@ export const RecurringBilling = () => {
 
             <form onSubmit={handleCreateRetainer} className="space-y-4">
               <div className="space-y-1.5 text-left">
-                <label className="block text-xs font-medium text-slate-700 dark:text-slate-300">Client Name</label>
+                <label className="block text-xs font-medium text-fg">Client Name</label>
                 {clients.length > 0 ? (
                   <select
                     value={client}
                     onChange={(e) => setClient(e.target.value)}
-                    className="w-full bg-slate-100 dark:bg-slate-900 border border-slate-300 dark:border-slate-800 text-slate-900 dark:text-slate-100 text-sm rounded-xl py-2.5 px-3.5 focus:outline-none focus:border-indigo-500"
+                    className="w-full bg-canvas border border-border text-fg text-sm rounded-xl py-2.5 px-3.5 focus:outline-none focus:border-accent"
                   >
                     {clients.map((c) => (
                       <option key={c.id} value={c.name}>
@@ -252,11 +252,11 @@ export const RecurringBilling = () => {
 
               <div className="grid grid-cols-2 gap-3">
                 <div className="space-y-1.5 text-left">
-                  <label className="block text-xs font-medium text-slate-700 dark:text-slate-300">Billing Interval</label>
+                  <label className="block text-xs font-medium text-fg">Billing Interval</label>
                   <select
                     value={interval}
                     onChange={(e) => setInterval(e.target.value)}
-                    className="w-full bg-slate-100 dark:bg-slate-900 border border-slate-300 dark:border-slate-800 text-slate-900 dark:text-slate-100 text-sm rounded-xl py-2.5 px-3.5 focus:outline-none focus:border-indigo-500 cursor-pointer"
+                    className="w-full bg-canvas border border-border text-fg text-sm rounded-xl py-2.5 px-3.5 focus:outline-none focus:border-accent cursor-pointer"
                   >
                     <option value="Weekly">Weekly</option>
                     <option value="Bi-Weekly">Bi-Weekly</option>
@@ -277,11 +277,11 @@ export const RecurringBilling = () => {
               </div>
 
               <div className="space-y-1.5 text-left">
-                <label className="block text-xs font-medium text-slate-700 dark:text-slate-300">Initial Status</label>
+                <label className="block text-xs font-medium text-fg">Initial Status</label>
                 <select
                   value={status}
                   onChange={(e) => setStatus(e.target.value)}
-                  className="w-full bg-slate-100 dark:bg-slate-900 border border-slate-300 dark:border-slate-800 text-slate-900 dark:text-slate-100 text-sm rounded-xl py-2.5 px-3.5 focus:outline-none focus:border-indigo-500 cursor-pointer"
+                  className="w-full bg-canvas border border-border text-fg text-sm rounded-xl py-2.5 px-3.5 focus:outline-none focus:border-accent cursor-pointer"
                 >
                   <option value="Active">Active</option>
                   <option value="Paused">Paused</option>
@@ -304,10 +304,10 @@ export const RecurringBilling = () => {
       {/* Delete Confirmation Modal */}
       {deleteConfirmRetainer && (
         <div className="fixed inset-0 z-50 bg-black/70 backdrop-blur-sm flex items-center justify-center p-4">
-          <Card className="w-full max-w-sm p-6 space-y-4 border-slate-200 dark:border-slate-800 shadow-2xl relative bg-white dark:bg-[#181C27] text-center">
-            <h4 className="font-bold text-slate-900 dark:text-slate-100 text-sm">Delete Retainer Profile?</h4>
-            <p className="text-xs text-slate-500">
-              Are you sure you want to delete <strong className="text-indigo-600">{deleteConfirmRetainer.profile}</strong> for {deleteConfirmRetainer.client}?
+          <Card className="w-full max-w-sm p-6 space-y-4 border-border shadow-2xl relative bg-surface text-center">
+            <h4 className="font-bold text-fg text-sm">Delete Retainer Profile?</h4>
+            <p className="text-xs text-muted">
+              Are you sure you want to delete <strong className="text-accent">{deleteConfirmRetainer.profile}</strong> for {deleteConfirmRetainer.client}?
             </p>
             <div className="flex gap-3 pt-2">
               <Button variant="secondary" onClick={() => setDeleteConfirmRetainer(null)} className="w-1/2">

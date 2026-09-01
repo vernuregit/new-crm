@@ -19,14 +19,14 @@ export const IntegrationsPage = () => {
           description="Manage third-party search extensions, payment gateways, and automated webhook connections"
         />
 
-        <div className="flex items-center gap-2 border-b border-slate-200 dark:border-slate-800 pb-3">
+        <div className="flex items-center gap-2 border-b border-border pb-3">
           <NavLink
             to="/settings/org"
             className={({ isActive }) =>
               `flex items-center gap-2 px-3 py-1.5 rounded-xl text-xs font-semibold transition-colors ${
                 isActive
-                  ? 'bg-indigo-50 dark:bg-indigo-600/20 text-indigo-600 dark:text-indigo-400 border border-indigo-200 dark:border-indigo-500/30'
-                  : 'text-slate-600 dark:text-slate-400 hover:text-slate-900 dark:hover:text-slate-200 hover:bg-slate-100 dark:hover:bg-slate-800'
+                  ? 'bg-accent-soft text-accent border border-accent/30'
+                  : 'text-muted hover:text-fg hover:bg-slate-100 dark:hover:bg-slate-800'
               }`
             }
           >
@@ -37,8 +37,8 @@ export const IntegrationsPage = () => {
             className={({ isActive }) =>
               `flex items-center gap-2 px-3 py-1.5 rounded-xl text-xs font-semibold transition-colors ${
                 isActive
-                  ? 'bg-indigo-50 dark:bg-indigo-600/20 text-indigo-600 dark:text-indigo-400 border border-indigo-200 dark:border-indigo-500/30'
-                  : 'text-slate-600 dark:text-slate-400 hover:text-slate-900 dark:hover:text-slate-200 hover:bg-slate-100 dark:hover:bg-slate-800'
+                  ? 'bg-accent-soft text-accent border border-accent/30'
+                  : 'text-muted hover:text-fg hover:bg-slate-100 dark:hover:bg-slate-800'
               }`
             }
           >
@@ -49,8 +49,8 @@ export const IntegrationsPage = () => {
             className={({ isActive }) =>
               `flex items-center gap-2 px-3 py-1.5 rounded-xl text-xs font-semibold transition-colors ${
                 isActive
-                  ? 'bg-indigo-50 dark:bg-indigo-600/20 text-indigo-600 dark:text-indigo-400 border border-indigo-200 dark:border-indigo-500/30'
-                  : 'text-slate-600 dark:text-slate-400 hover:text-slate-900 dark:hover:text-slate-200 hover:bg-slate-100 dark:hover:bg-slate-800'
+                  ? 'bg-accent-soft text-accent border border-accent/30'
+                  : 'text-muted hover:text-fg hover:bg-slate-100 dark:hover:bg-slate-800'
               }`
             }
           >
@@ -61,23 +61,23 @@ export const IntegrationsPage = () => {
 
       <div className="grid grid-cols-1 md:grid-cols-2 gap-5">
         {integrations.map((item) => (
-          <Card key={item.id} hover className="p-5 border-slate-200 dark:border-slate-800 bg-white dark:bg-[#181C27] space-y-3 flex flex-col justify-between">
+          <Card key={item.id} hover className="p-5 border-border bg-surface space-y-3 flex flex-col justify-between">
             <div className="space-y-2">
               <div className="flex items-center justify-between">
                 <div className="flex items-center gap-2.5">
-                  <div className="w-9 h-9 rounded-xl bg-indigo-50 dark:bg-indigo-500/10 text-indigo-600 dark:text-indigo-400 flex items-center justify-center shrink-0 border border-indigo-200 dark:border-indigo-500/20">
+                  <div className="w-9 h-9 rounded-xl bg-accent-soft text-accent flex items-center justify-center shrink-0 border border-accent/20">
                     <Plug className="w-4 h-4" />
                   </div>
-                  <h4 className="font-bold text-slate-900 dark:text-slate-100 text-sm">{item.name}</h4>
+                  <h4 className="font-bold text-fg text-sm">{item.name}</h4>
                 </div>
                 <Badge variant={item.status === 'connected' ? 'success' : 'neutral'}>
                   {item.status}
                 </Badge>
               </div>
-              <p className="text-xs text-slate-600 dark:text-slate-400 leading-relaxed">{item.description}</p>
+              <p className="text-xs text-muted leading-relaxed">{item.description}</p>
             </div>
 
-            <div className="pt-3 border-t border-slate-200 dark:border-slate-800/80 flex justify-end">
+            <div className="pt-3 border-t border-border flex justify-end">
               <Button
                 size="sm"
                 variant={item.status === 'connected' ? 'outline' : 'primary'}

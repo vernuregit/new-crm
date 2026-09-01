@@ -24,7 +24,7 @@ export const RequirePermission = ({ perm }) => {
           <div className="w-12 h-12 rounded-2xl bg-rose-500/20 text-rose-400 flex items-center justify-center mx-auto">
             <ShieldAlert className="w-6 h-6" />
           </div>
-          <h3 className="font-bold text-slate-100 text-lg">Access Restricted</h3>
+          <h3 className="font-bold text-fg text-lg">Access Restricted</h3>
           <p className="text-xs text-slate-400">
             Your role does not have the required <code className="text-rose-400">{perm}</code> permission to access this module. Contact your organization administrator.
           </p>

@@ -46,7 +46,7 @@ export const SalesReport = () => {
               <select
                 value={dateRange}
                 onChange={(e) => setDateRange(e.target.value)}
-                className="bg-slate-100 dark:bg-[#181C27] border border-slate-300 dark:border-slate-800 text-xs text-slate-800 dark:text-slate-200 rounded-xl px-3 py-2 focus:outline-none"
+                className="bg-canvas border border-border text-xs text-fg rounded-xl px-3 py-2 focus:outline-none"
               >
                 <option value="this_month">This Month</option>
                 <option value="this_quarter">This Quarter</option>
@@ -61,13 +61,13 @@ export const SalesReport = () => {
           }
         />
 
-        <div className="flex items-center gap-2 border-b border-slate-200 dark:border-slate-800 pb-3">
+        <div className="flex items-center gap-2 border-b border-border pb-3">
           <NavLink
             to="/reports/sales"
             className={({ isActive }) =>
               `flex items-center gap-2 px-3 py-1.5 rounded-xl text-xs font-semibold transition-colors ${
                 isActive
-                  ? 'bg-indigo-600/20 text-indigo-400 border border-indigo-500/30'
+                  ? 'bg-accent-soft text-accent border border-accent/30'
                   : 'text-slate-400 hover:text-slate-200 hover:bg-slate-800'
               }`
             }
@@ -79,7 +79,7 @@ export const SalesReport = () => {
             className={({ isActive }) =>
               `flex items-center gap-2 px-3 py-1.5 rounded-xl text-xs font-semibold transition-colors ${
                 isActive
-                  ? 'bg-indigo-600/20 text-indigo-400 border border-indigo-500/30'
+                  ? 'bg-accent-soft text-accent border border-accent/30'
                   : 'text-slate-400 hover:text-slate-200 hover:bg-slate-800'
               }`
             }
@@ -91,7 +91,7 @@ export const SalesReport = () => {
             className={({ isActive }) =>
               `flex items-center gap-2 px-3 py-1.5 rounded-xl text-xs font-semibold transition-colors ${
                 isActive
-                  ? 'bg-indigo-600/20 text-indigo-400 border border-indigo-500/30'
+                  ? 'bg-accent-soft text-accent border border-accent/30'
                   : 'text-slate-400 hover:text-slate-200 hover:bg-slate-800'
               }`
             }
@@ -103,23 +103,23 @@ export const SalesReport = () => {
 
       {/* Metrics Summary Strip */}
       <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4">
-        <Card className="p-4 flex items-center justify-between border-slate-200 dark:border-slate-800/80">
+        <Card className="p-4 flex items-center justify-between border-border">
           <div>
-            <span className="text-[11px] font-medium text-slate-500 dark:text-slate-400 uppercase tracking-wider">
+            <span className="text-[11px] font-medium text-muted uppercase tracking-wider">
               Total Pipeline Value
             </span>
-            <p className="text-xl font-bold text-slate-900 dark:text-slate-100 mt-1">
+            <p className="text-xl font-bold text-fg mt-1">
               ${sales.totalPipelineValue.toLocaleString()}
             </p>
           </div>
-          <div className="w-9 h-9 rounded-xl bg-indigo-50 dark:bg-indigo-500/10 text-indigo-600 dark:text-indigo-400 flex items-center justify-center">
+          <div className="w-9 h-9 rounded-xl bg-accent-soft text-accent flex items-center justify-center">
             <DollarSign className="w-5 h-5" />
           </div>
         </Card>
 
-        <Card className="p-4 flex items-center justify-between border-slate-200 dark:border-slate-800/80">
+        <Card className="p-4 flex items-center justify-between border-border">
           <div>
-            <span className="text-[11px] font-medium text-slate-500 dark:text-slate-400 uppercase tracking-wider">
+            <span className="text-[11px] font-medium text-muted uppercase tracking-wider">
               Win Rate
             </span>
             <p className="text-xl font-bold text-emerald-600 dark:text-emerald-400 mt-1">{sales.winRate}%</p>
@@ -129,9 +129,9 @@ export const SalesReport = () => {
           </div>
         </Card>
 
-        <Card className="p-4 flex items-center justify-between border-slate-200 dark:border-slate-800/80">
+        <Card className="p-4 flex items-center justify-between border-border">
           <div>
-            <span className="text-[11px] font-medium text-slate-500 dark:text-slate-400 uppercase tracking-wider">
+            <span className="text-[11px] font-medium text-muted uppercase tracking-wider">
               Avg Sales Cycle
             </span>
             <p className="text-xl font-bold text-purple-600 dark:text-purple-400 mt-1">
@@ -143,16 +143,16 @@ export const SalesReport = () => {
           </div>
         </Card>
 
-        <Card className="p-4 flex items-center justify-between border-slate-200 dark:border-slate-800/80">
+        <Card className="p-4 flex items-center justify-between border-border">
           <div>
-            <span className="text-[11px] font-medium text-slate-500 dark:text-slate-400 uppercase tracking-wider">
+            <span className="text-[11px] font-medium text-muted uppercase tracking-wider">
               Deals Won vs Lost
             </span>
-            <p className="text-xl font-bold text-slate-900 dark:text-slate-100 mt-1">
-              {sales.wonDeals} <span className="text-xs font-normal text-slate-500">Won</span> / {sales.lostDeals} <span className="text-xs font-normal text-slate-500">Lost</span>
+            <p className="text-xl font-bold text-fg mt-1">
+              {sales.wonDeals} <span className="text-xs font-normal text-muted">Won</span> / {sales.lostDeals} <span className="text-xs font-normal text-muted">Lost</span>
             </p>
           </div>
-          <div className="w-9 h-9 rounded-xl bg-blue-50 dark:bg-blue-500/10 text-blue-600 dark:text-blue-400 flex items-center justify-center">
+          <div className="w-9 h-9 rounded-xl bg-info-soft text-info flex items-center justify-center">
             <Users className="w-5 h-5" />
           </div>
         </Card>
@@ -160,28 +160,28 @@ export const SalesReport = () => {
 
       {/* Grid: Acquisition Source & Lost Reason Analysis */}
       <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
-        <Card className="lg:col-span-2 space-y-4 border-slate-200 dark:border-slate-800">
-          <div className="flex items-center justify-between pb-3 border-b border-slate-200 dark:border-slate-800">
-            <h3 className="text-sm font-bold text-slate-900 dark:text-slate-100">Acquisition Channel Revenue Breakdown</h3>
+        <Card className="lg:col-span-2 space-y-4 border-border">
+          <div className="flex items-center justify-between pb-3 border-b border-border">
+            <h3 className="text-sm font-bold text-fg">Acquisition Channel Revenue Breakdown</h3>
             <Badge variant="brand">Attribution Data</Badge>
           </div>
 
           <div className="space-y-3">
             {sales.leadsBySource.map((src, i) => (
-              <div key={i} className="p-3 rounded-xl bg-slate-50 dark:bg-slate-900 border border-slate-200 dark:border-slate-800 space-y-2 text-xs">
+              <div key={i} className="p-3 rounded-xl bg-canvas border border-border space-y-2 text-xs">
                 <div className="flex justify-between items-center">
-                  <span className="font-bold text-slate-800 dark:text-slate-200">{src.source}</span>
+                  <span className="font-bold text-fg">{src.source}</span>
                   <span className="font-bold text-emerald-600 dark:text-emerald-400">${src.value.toLocaleString()}</span>
                 </div>
-                <div className="w-full bg-slate-100 dark:bg-slate-800 h-2 rounded-full overflow-hidden border border-slate-200/60 dark:border-none">
+                <div className="w-full bg-canvas h-2 rounded-full overflow-hidden border border-slate-200/60 dark:border-none">
                   <div
-                    className="bg-indigo-600 dark:bg-indigo-500 h-full"
+                    className="bg-accent dark:bg-accent h-full"
                     style={{
                       width: `${Math.round((src.value / sales.totalPipelineValue) * 100)}%`,
                     }}
                   />
                 </div>
-                <div className="flex justify-between text-[11px] text-slate-500 dark:text-slate-400">
+                <div className="flex justify-between text-[11px] text-muted">
                   <span>{src.count} Total Leads</span>
                   <span>{Math.round((src.value / sales.totalPipelineValue) * 100)}% Contribution</span>
                 </div>
@@ -191,14 +191,14 @@ export const SalesReport = () => {
         </Card>
 
         {/* Lost Deal Reasons Card */}
-        <Card className="space-y-4 border-slate-200 dark:border-slate-800">
-          <h3 className="text-sm font-bold text-slate-900 dark:text-slate-100 pb-3 border-b border-slate-200 dark:border-slate-800">
+        <Card className="space-y-4 border-border">
+          <h3 className="text-sm font-bold text-fg pb-3 border-b border-border">
             Lost Deal Reason Analysis
           </h3>
           <div className="space-y-3">
             {sales.lostReasons.map((r, i) => (
-              <div key={i} className="flex items-center justify-between p-3 rounded-xl bg-slate-50 dark:bg-slate-900 border border-slate-200 dark:border-slate-800 text-xs">
-                <span className="text-slate-700 dark:text-slate-300">{r.reason}</span>
+              <div key={i} className="flex items-center justify-between p-3 rounded-xl bg-canvas border border-border text-xs">
+                <span className="text-fg">{r.reason}</span>
                 <Badge variant="danger">{r.count} Deals</Badge>
               </div>
             ))}

@@ -31,7 +31,7 @@ export const AnnouncementsPage = () => {
   const getBadgeColor = (priority) => {
     switch((priority || '').toLowerCase()) {
       case 'urgent': return 'bg-red-100 text-red-800 dark:bg-red-900/30 dark:text-red-400';
-      case 'info': return 'bg-blue-100 text-blue-800 dark:bg-blue-900/30 dark:text-blue-400';
+      case 'info': return 'bg-accent-soft text-accent';
       case 'event': return 'bg-green-100 text-green-800 dark:bg-green-900/30 dark:text-green-400';
       default: return 'bg-gray-100 text-gray-800 dark:bg-gray-800 dark:text-gray-400';
     }
@@ -53,15 +53,15 @@ export const AnnouncementsPage = () => {
     <div className="space-y-6">
       <PageHeader title="Announcements" description="Stay up to date with company news and events." />
       
-      <div className="flex gap-2 border-b border-slate-200 dark:border-slate-800/80 pb-4">
+      <div className="flex gap-2 border-b border-border pb-4">
         {['all', 'urgent', 'info', 'event'].map(f => (
           <button
             key={f}
             onClick={() => setFilter(f)}
             className={`px-4 py-2 rounded-full text-sm font-medium transition-colors ${
               filter === f 
-                ? 'bg-purple-600 text-white' 
-                : 'bg-slate-100 text-slate-600 hover:bg-slate-200 dark:bg-[#12151E] dark:text-slate-400 dark:hover:bg-slate-800'
+                ? 'bg-accent text-white' 
+                : 'bg-chrome text-muted hover:bg-border dark:hover:bg-chrome'
             }`}
           >
             {f.charAt(0).toUpperCase() + f.slice(1)}
@@ -80,7 +80,7 @@ export const AnnouncementsPage = () => {
           ))}
         </div>
       ) : displayAnnouncements.length === 0 ? (
-        <div className="flex flex-col items-center justify-center py-16 text-slate-500 dark:text-slate-400">
+        <div className="flex flex-col items-center justify-center py-16 text-muted">
           <Megaphone className="w-12 h-12 mb-4 opacity-50" />
           <p className="text-lg font-medium">No announcements yet. Check back later.</p>
         </div>
@@ -89,28 +89,28 @@ export const AnnouncementsPage = () => {
           {displayAnnouncements.map(announcement => (
             <Card key={announcement.id} className="p-6 relative">
               {announcement.pinned && (
-                <Pin className="absolute top-6 right-6 w-5 h-5 text-purple-600 dark:text-purple-400" />
+                <Pin className="absolute top-6 right-6 w-5 h-5 text-accent" />
               )}
               <div className="flex items-center gap-3 mb-3">
                 <Badge className={getBadgeColor(announcement.priority)}>
                   {(announcement.priority || 'info').toUpperCase()}
                 </Badge>
                 {announcement.createdAt && (
-                  <span className="text-sm text-slate-500 dark:text-slate-400">
+                  <span className="text-sm text-muted">
                     {formatDate(announcement.createdAt)}
                   </span>
                 )}
                 {announcement.author && (
-                  <span className="text-sm text-slate-500 dark:text-slate-400">
+                  <span className="text-sm text-muted">
                     by {announcement.author}
                   </span>
                 )}
               </div>
-              <h3 className="text-xl font-bold text-slate-900 dark:text-white mb-2 pr-8">
+              <h3 className="text-xl font-bold text-fg mb-2 pr-8">
                 {announcement.title || 'Untitled Announcement'}
               </h3>
               {announcement.body && (
-                <p className="text-slate-600 dark:text-slate-300">
+                <p className="text-muted">
                   {announcement.body}
                 </p>
               )}

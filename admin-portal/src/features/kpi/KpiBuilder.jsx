@@ -106,15 +106,15 @@ export const KpiBuilder = () => {
           description="Adjust pillar weights, metric targets, and health bands. Scores recompute from live CRM data."
         />
 
-        <div className="flex items-center gap-2 border-b border-slate-200 dark:border-slate-800 pb-3">
+        <div className="flex items-center gap-2 border-b border-border pb-3">
           <NavLink
             to="/kpi"
             end
             className={({ isActive }) =>
               `flex items-center gap-2 px-3 py-1.5 rounded-xl text-xs font-semibold transition-colors ${
                 isActive
-                  ? 'bg-indigo-50 dark:bg-indigo-600/20 text-indigo-600 dark:text-indigo-400 border border-indigo-200 dark:border-indigo-500/30'
-                  : 'text-slate-600 dark:text-slate-400 hover:text-slate-900 dark:hover:text-slate-200 hover:bg-slate-100 dark:hover:bg-slate-800'
+                  ? 'bg-accent-soft text-accent border border-accent/30'
+                  : 'text-muted hover:text-fg hover:bg-slate-100 dark:hover:bg-slate-800'
               }`
             }
           >
@@ -125,8 +125,8 @@ export const KpiBuilder = () => {
             className={({ isActive }) =>
               `flex items-center gap-2 px-3 py-1.5 rounded-xl text-xs font-semibold transition-colors ${
                 isActive
-                  ? 'bg-indigo-50 dark:bg-indigo-600/20 text-indigo-600 dark:text-indigo-400 border border-indigo-200 dark:border-indigo-500/30'
-                  : 'text-slate-600 dark:text-slate-400 hover:text-slate-900 dark:hover:text-slate-200 hover:bg-slate-100 dark:hover:bg-slate-800'
+                  ? 'bg-accent-soft text-accent border border-accent/30'
+                  : 'text-muted hover:text-fg hover:bg-slate-100 dark:hover:bg-slate-800'
               }`
             }
           >
@@ -143,26 +143,26 @@ export const KpiBuilder = () => {
 
       {isLoading ? (
         <div className="flex items-center justify-center py-16">
-          <Loader2 className="w-8 h-8 text-indigo-400 animate-spin" />
+          <Loader2 className="w-8 h-8 text-accent animate-spin" />
           <span className="ml-3 text-slate-400 text-sm">Loading settings…</span>
         </div>
       ) : (
         <form onSubmit={handleSave} className="space-y-6 max-w-3xl">
           {/* Pillar weights */}
-          <Card className="space-y-4 border-slate-200 dark:border-slate-800">
+          <Card className="space-y-4 border-border">
             <div>
-              <h3 className="font-bold text-slate-900 dark:text-slate-100 text-sm">
+              <h3 className="font-bold text-fg text-sm">
                 Pillar Weights
               </h3>
-              <p className="text-xs text-slate-500 dark:text-slate-400 mt-1">
+              <p className="text-xs text-muted mt-1">
                 Relative importance of each pillar. Values are auto-normalized to 100%.
               </p>
             </div>
 
-            <div className="h-3 rounded-full overflow-hidden flex bg-slate-100 dark:bg-slate-800">
+            <div className="h-3 rounded-full overflow-hidden flex bg-canvas">
               {['crm', 'finance', 'projects', 'team'].map((key, i) => {
                 const colors = [
-                  'bg-indigo-500',
+                  'bg-accent',
                   'bg-emerald-500',
                   'bg-amber-500',
                   'bg-sky-500',
@@ -180,11 +180,11 @@ export const KpiBuilder = () => {
               })}
             </div>
 
-            <div className="grid grid-cols-2 sm:grid-cols-4 gap-3 text-[10px] text-slate-500">
+            <div className="grid grid-cols-2 sm:grid-cols-4 gap-3 text-[10px] text-muted">
               {['crm', 'finance', 'projects', 'team'].map((key) => (
                 <span key={key}>
                   {PILLAR_LABELS[key]}:{' '}
-                  <strong className="text-slate-800 dark:text-slate-200">
+                  <strong className="text-fg">
                     {normalizedPillarWeights[key].toFixed(0)}%
                   </strong>
                 </span>
@@ -208,12 +208,12 @@ export const KpiBuilder = () => {
           </Card>
 
           {/* Bands */}
-          <Card className="space-y-4 border-slate-200 dark:border-slate-800">
+          <Card className="space-y-4 border-border">
             <div>
-              <h3 className="font-bold text-slate-900 dark:text-slate-100 text-sm">
+              <h3 className="font-bold text-fg text-sm">
                 Health Bands
               </h3>
-              <p className="text-xs text-slate-500 dark:text-slate-400 mt-1">
+              <p className="text-xs text-muted mt-1">
                 Score thresholds for Healthy / Watch / At risk.
               </p>
             </div>
@@ -238,12 +238,12 @@ export const KpiBuilder = () => {
           </Card>
 
           {/* Targets */}
-          <Card className="space-y-4 border-slate-200 dark:border-slate-800">
+          <Card className="space-y-4 border-border">
             <div>
-              <h3 className="font-bold text-slate-900 dark:text-slate-100 text-sm">
+              <h3 className="font-bold text-fg text-sm">
                 Metric Targets
               </h3>
-              <p className="text-xs text-slate-500 dark:text-slate-400 mt-1">
+              <p className="text-xs text-muted mt-1">
                 Each live metric is scored 0–100 against these targets.
               </p>
             </div>

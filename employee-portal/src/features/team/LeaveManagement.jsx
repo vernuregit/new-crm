@@ -130,7 +130,7 @@ const NumberDropdownField = ({ value, onChange, options, placeholder, min, max, 
         <ChevronDown className="w-3 h-3" />
       </button>
       {open && (
-        <div className="absolute z-30 mt-1 left-0 right-0 max-h-36 overflow-y-auto rounded-xl border border-border bg-white dark:bg-[#181C27] shadow-lg">
+        <div className="absolute z-30 mt-1 left-0 right-0 max-h-36 overflow-y-auto rounded-xl border border-border bg-surface shadow-lg">
           {options.map((opt) => (
             <button
               key={opt}
@@ -140,7 +140,7 @@ const NumberDropdownField = ({ value, onChange, options, placeholder, min, max, 
                 commit(opt)
                 setOpen(false)
               }}
-              className={`w-full text-left px-2.5 py-1.5 text-xs hover:bg-slate-100 dark:hover:bg-slate-800 ${
+              className={`w-full text-left px-2.5 py-1.5 text-xs hover:bg-chrome ${
                 String(value) === String(opt) ? 'text-accent font-semibold' : 'text-fg'
               }`}
             >
@@ -172,7 +172,7 @@ const PermissionTimeSelect = ({ label, value, onChange }) => {
 
   return (
     <div className="space-y-1.5 text-left">
-      <label className="block text-xs font-medium text-slate-700 dark:text-slate-300">{label}</label>
+      <label className="block text-xs font-medium text-fg">{label}</label>
       <div className="grid grid-cols-[1fr_1fr_auto] gap-1.5 items-center">
         <NumberDropdownField
           value={hour}
@@ -209,7 +209,7 @@ const PermissionTimeSelect = ({ label, value, onChange }) => {
               className={`px-2.5 py-2.5 ${
                 period === p
                   ? 'bg-accent text-white'
-                  : 'bg-surface text-slate-500 dark:text-slate-400 hover:text-fg'
+                  : 'bg-surface text-muted hover:text-fg'
               }`}
             >
               {p}
@@ -390,14 +390,14 @@ const InteractiveCalendarPicker = ({ startDate, setStartDate, endDate, setEndDat
               <button
                 type="button"
                 onClick={handlePrevMonth}
-                className="p-1 text-slate-500 dark:text-slate-400 hover:text-slate-900 dark:hover:text-white rounded-lg hover:bg-slate-100 dark:hover:bg-slate-800 transition-colors"
+                className="p-1 text-muted hover:text-slate-900 dark:hover:text-white rounded-lg hover:bg-chrome transition-colors"
               >
                 <ChevronLeft className="w-4 h-4" />
               </button>
               <button
                 type="button"
                 onClick={handleNextMonth}
-                className="p-1 text-slate-500 dark:text-slate-400 hover:text-slate-900 dark:hover:text-white rounded-lg hover:bg-slate-100 dark:hover:bg-slate-800 transition-colors"
+                className="p-1 text-muted hover:text-slate-900 dark:hover:text-white rounded-lg hover:bg-chrome transition-colors"
               >
                 <ChevronRight className="w-4 h-4" />
               </button>
@@ -909,14 +909,14 @@ export const LeaveManagement = () => {
           }
         />
 
-        <div className="flex items-center gap-2 border-b border-slate-200 dark:border-slate-800 pb-3">
+        <div className="flex items-center gap-2 border-b border-border pb-3">
           <NavLink
             to="/directory"
             className={({ isActive }) =>
               `flex items-center gap-2 px-3 py-1.5 rounded-xl text-xs font-semibold transition-colors ${
                 isActive
-                  ? 'bg-indigo-50 dark:bg-indigo-600/20 text-indigo-600 dark:text-indigo-400 border border-indigo-200 dark:border-indigo-500/30'
-                  : 'text-slate-600 dark:text-slate-400 hover:text-slate-900 dark:hover:text-slate-200 hover:bg-slate-100 dark:hover:bg-slate-800'
+                  ? 'bg-accent-soft text-accent border border-accent/20 dark:border-accent/30'
+                  : 'text-muted hover:text-slate-900 dark:hover:text-slate-200 hover:bg-chrome'
               }`
             }
           >
@@ -927,8 +927,8 @@ export const LeaveManagement = () => {
             className={({ isActive }) =>
               `flex items-center gap-2 px-3 py-1.5 rounded-xl text-xs font-semibold transition-colors ${
                 isActive
-                  ? 'bg-indigo-50 dark:bg-indigo-600/20 text-indigo-600 dark:text-indigo-400 border border-indigo-200 dark:border-indigo-500/30'
-                  : 'text-slate-600 dark:text-slate-400 hover:text-slate-900 dark:hover:text-slate-200 hover:bg-slate-100 dark:hover:bg-slate-800'
+                  ? 'bg-accent-soft text-accent border border-accent/20 dark:border-accent/30'
+                  : 'text-muted hover:text-slate-900 dark:hover:text-slate-200 hover:bg-chrome'
               }`
             }
           >
@@ -939,8 +939,8 @@ export const LeaveManagement = () => {
             className={({ isActive }) =>
               `flex items-center gap-2 px-3 py-1.5 rounded-xl text-xs font-semibold transition-colors ${
                 isActive
-                  ? 'bg-indigo-50 dark:bg-indigo-600/20 text-indigo-600 dark:text-indigo-400 border border-indigo-200 dark:border-indigo-500/30'
-                  : 'text-slate-600 dark:text-slate-400 hover:text-slate-900 dark:hover:text-slate-200 hover:bg-slate-100 dark:hover:bg-slate-800'
+                  ? 'bg-accent-soft text-accent border border-accent/20 dark:border-accent/30'
+                  : 'text-muted hover:text-slate-900 dark:hover:text-slate-200 hover:bg-chrome'
               }`
             }
           >
@@ -992,17 +992,17 @@ export const LeaveManagement = () => {
       )}
 
       {/* Monthly Policy Banner */}
-      <div className="bg-indigo-50 dark:bg-indigo-600/10 border border-indigo-200 dark:border-indigo-500/20 rounded-2xl p-4 flex items-center justify-between shadow-sm">
+      <div className="bg-accent-soft dark:bg-accent/10 border border-accent/20 dark:border-accent/20 rounded-2xl p-4 flex items-center justify-between shadow-sm">
         <div className="flex items-center gap-3">
-          <div className="w-10 h-10 rounded-xl bg-indigo-100 dark:bg-indigo-600/20 text-indigo-600 dark:text-indigo-400 flex items-center justify-center border border-indigo-200 dark:border-indigo-500/30 shrink-0">
+          <div className="w-10 h-10 rounded-xl bg-accent-soft text-accent flex items-center justify-center border border-accent/20 dark:border-accent/30 shrink-0">
             <ShieldCheck className="w-5 h-5" />
           </div>
           <div>
-            <h4 className="font-bold text-slate-900 dark:text-slate-100 text-sm">
+            <h4 className="font-bold text-fg text-sm">
               Monthly Leave Allowance Policy ({currentMonthName})
             </h4>
-            <p className="text-xs text-slate-600 dark:text-slate-300 mt-0.5">
-              This month: <strong className="text-indigo-600 dark:text-indigo-400 font-semibold">{leaveLimits.casual} Casual</strong>, <strong className="text-indigo-600 dark:text-indigo-400 font-semibold">{leaveLimits.sick} Sick</strong>, <strong className="text-indigo-600 dark:text-indigo-400 font-semibold">{leaveLimits.wfh} WFH</strong>, and <strong className="text-indigo-600 dark:text-indigo-400 font-semibold">{formatHoursAsHrsMins(permissionHoursLimit)} Permission</strong> (auto-granted, no admin approval). Additional day leave is marked LOP (unpaid) even if approved.
+            <p className="text-xs text-muted mt-0.5">
+              This month: <strong className="text-accent font-semibold">{leaveLimits.casual} Casual</strong>, <strong className="text-accent font-semibold">{leaveLimits.sick} Sick</strong>, <strong className="text-accent font-semibold">{leaveLimits.wfh} WFH</strong>, and <strong className="text-accent font-semibold">{formatHoursAsHrsMins(permissionHoursLimit)} Permission</strong> (auto-granted, no admin approval). Additional day leave is marked LOP (unpaid) even if approved.
             </p>
           </div>
         </div>
@@ -1011,15 +1011,15 @@ export const LeaveManagement = () => {
 
       {/* Monthly PTO Balance Summary Metrics */}
       <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-5 gap-4">
-        <Card className="p-4 flex items-center justify-between border-slate-200 dark:border-slate-800/80">
+        <Card className="p-4 flex items-center justify-between border-border">
           <div>
-            <span className="text-[11px] font-medium text-slate-500 dark:text-slate-400 uppercase tracking-wider">
+            <span className="text-[11px] font-medium text-muted uppercase tracking-wider">
               Monthly Casual Leave
             </span>
             <p className="text-xl font-bold text-emerald-600 dark:text-emerald-400 mt-1">
               {remainingCasualDays} {remainingCasualDays === 1 ? 'Day' : 'Days'} Remaining
             </p>
-            <p className="text-[10px] text-slate-500 dark:text-slate-400 mt-0.5">
+            <p className="text-[10px] text-muted mt-0.5">
               {usedCasualDaysThisMonth} of {leaveLimits.casual} {leaveLimits.casual === 1 ? 'Day' : 'Days'} Used ({currentMonthName})
             </p>
           </div>
@@ -1028,32 +1028,32 @@ export const LeaveManagement = () => {
           </div>
         </Card>
 
-        <Card className="p-4 flex items-center justify-between border-slate-200 dark:border-slate-800/80">
+        <Card className="p-4 flex items-center justify-between border-border">
           <div>
-            <span className="text-[11px] font-medium text-slate-500 dark:text-slate-400 uppercase tracking-wider">
+            <span className="text-[11px] font-medium text-muted uppercase tracking-wider">
               Monthly Sick Leave
             </span>
-            <p className="text-xl font-bold text-blue-600 dark:text-blue-400 mt-1">
+            <p className="text-xl font-bold text-accent mt-1">
               {remainingSickDays} {remainingSickDays === 1 ? 'Day' : 'Days'} Remaining
             </p>
-            <p className="text-[10px] text-slate-500 dark:text-slate-400 mt-0.5">
+            <p className="text-[10px] text-muted mt-0.5">
               {usedSickDaysThisMonth} of {leaveLimits.sick} {leaveLimits.sick === 1 ? 'Day' : 'Days'} Used ({currentMonthName})
             </p>
           </div>
-          <div className="w-9 h-9 rounded-xl bg-blue-50 dark:bg-blue-500/10 text-blue-600 dark:text-blue-400 flex items-center justify-center shrink-0">
+          <div className="w-9 h-9 rounded-xl bg-accent-soft text-accent flex items-center justify-center shrink-0">
             <Clock className="w-5 h-5" />
           </div>
         </Card>
 
-        <Card className="p-4 flex items-center justify-between border-slate-200 dark:border-slate-800/80">
+        <Card className="p-4 flex items-center justify-between border-border">
           <div>
-            <span className="text-[11px] font-medium text-slate-500 dark:text-slate-400 uppercase tracking-wider">
+            <span className="text-[11px] font-medium text-muted uppercase tracking-wider">
               Monthly Permission
             </span>
             <p className="text-xl font-bold text-cyan-600 dark:text-cyan-400 mt-1">
               {formatHoursAsHrsMins(remainingPermissionHours)} Remaining
             </p>
-            <p className="text-[10px] text-slate-500 dark:text-slate-400 mt-0.5">
+            <p className="text-[10px] text-muted mt-0.5">
               {formatHoursAsHrsMins(usedPermissionHoursThisMonth)} of {formatHoursAsHrsMins(permissionHoursLimit)} Used ({currentMonthName})
             </p>
           </div>
@@ -1062,9 +1062,9 @@ export const LeaveManagement = () => {
           </div>
         </Card>
 
-        <Card className="p-4 flex items-center justify-between border-slate-200 dark:border-slate-800/80">
+        <Card className="p-4 flex items-center justify-between border-border">
           <div>
-            <span className="text-[11px] font-medium text-slate-500 dark:text-slate-400 uppercase tracking-wider">
+            <span className="text-[11px] font-medium text-muted uppercase tracking-wider">
               Pending Approvals
             </span>
             <p className="text-xl font-bold text-amber-600 dark:text-amber-400 mt-1">{pendingRequests} Requests</p>
@@ -1075,25 +1075,25 @@ export const LeaveManagement = () => {
           </div>
         </Card>
 
-        <Card className="p-4 flex items-center justify-between border-slate-200 dark:border-slate-800/80">
+        <Card className="p-4 flex items-center justify-between border-border">
           <div>
-            <span className="text-[11px] font-medium text-slate-500 dark:text-slate-400 uppercase tracking-wider">
+            <span className="text-[11px] font-medium text-muted uppercase tracking-wider">
               Approved ({currentMonthName})
             </span>
-            <p className="text-xl font-bold text-purple-600 dark:text-purple-400 mt-1">{currentMonthApproved.length} Granted</p>
+            <p className="text-xl font-bold text-accent mt-1">{currentMonthApproved.length} Granted</p>
             <p className="text-[10px] text-slate-400 mt-0.5">This month total</p>
           </div>
-          <div className="w-9 h-9 rounded-xl bg-purple-50 dark:bg-purple-500/10 text-purple-600 dark:text-purple-400 flex items-center justify-center">
+          <div className="w-9 h-9 rounded-xl bg-accent-soft text-accent flex items-center justify-center">
             <CheckCircle2 className="w-5 h-5" />
           </div>
         </Card>
       </div>
 
       {/* Leave Requests Table */}
-      <Card className="overflow-x-auto p-0 border-slate-200 dark:border-slate-800">
+      <Card className="overflow-x-auto p-0 border-border">
         <table className="w-full text-left border-collapse text-xs">
           <thead>
-            <tr className="bg-slate-100 dark:bg-slate-900/80 border-b border-slate-200 dark:border-slate-800 text-slate-700 dark:text-slate-400 font-semibold">
+            <tr className="bg-chrome/80 border-b border-border text-slate-700 dark:text-slate-400 font-semibold">
               <th className="p-4 font-semibold">Leave Type</th>
               <th className="p-4 font-semibold">Duration</th>
               <th className="p-4 font-semibold">Reason</th>
@@ -1104,7 +1104,7 @@ export const LeaveManagement = () => {
           <tbody className="divide-y divide-slate-200 dark:divide-slate-800/60">
             {myLeaveRequests.length === 0 ? (
               <tr>
-                <td colSpan="5" className="p-6 text-center text-slate-500 dark:text-slate-400 text-xs">
+                <td colSpan="5" className="p-6 text-center text-muted text-xs">
                   No leave requests submitted yet. Click "Request Leave" above to apply.
                 </td>
               </tr>
@@ -1114,26 +1114,26 @@ export const LeaveManagement = () => {
                 const canCancel = isOwnPendingRequest(req)
                 const canDelete = canDeleteOwnRequest(req)
                 return (
-                  <tr key={req.leaveId} className="hover:bg-slate-50 dark:hover:bg-slate-800/30 transition-colors text-slate-700 dark:text-slate-300">
-                    <td className="p-4 text-slate-800 dark:text-slate-300 font-medium">
+                  <tr key={req.leaveId} className="hover:bg-chrome/30 transition-colors text-fg">
+                    <td className="p-4 text-fg font-medium">
                       {formatLeaveTypeLabel(req)}
                     </td>
-                    <td className="p-4 text-slate-600 dark:text-slate-400">
+                    <td className="p-4 text-muted">
                       {formatLeaveDuration(req)}
                     </td>
-                    <td className="p-4 text-slate-600 dark:text-slate-400 max-w-xs truncate">{req.reason}</td>
+                    <td className="p-4 text-muted max-w-xs truncate">{req.reason}</td>
                     <td className="p-4">
                       <div className="flex flex-col gap-1">
                         <Badge variant={statusBadge.variant}>
                           {statusBadge.label}
                         </Badge>
                         {req.reviewedBy && req.status !== 'pending' && req.status !== 'cancelled' && (
-                          <span className="text-[10px] text-slate-500 dark:text-slate-400 font-medium">
+                          <span className="text-[10px] text-muted font-medium">
                             by {req.reviewedBy}
                           </span>
                         )}
                         {req.status === 'cancelled' && req.cancelledBy && (
-                          <span className="text-[10px] text-slate-500 dark:text-slate-400 font-medium">
+                          <span className="text-[10px] text-muted font-medium">
                             by {req.cancelledBy}
                           </span>
                         )}
@@ -1146,7 +1146,7 @@ export const LeaveManagement = () => {
                             <button
                               type="button"
                               onClick={() => setConfirmAction({ type: 'cancel', request: req })}
-                              className="inline-flex items-center gap-1 px-2.5 py-1.5 rounded-lg text-[11px] font-semibold bg-slate-100 dark:bg-slate-800 text-slate-700 dark:text-slate-300 border border-slate-200 dark:border-slate-700 hover:bg-slate-200 dark:hover:bg-slate-700 transition-colors"
+                              className="inline-flex items-center gap-1 px-2.5 py-1.5 rounded-lg text-[11px] font-semibold bg-chrome text-fg border border-border hover:bg-slate-200 dark:hover:bg-slate-700 transition-colors"
                               title="Cancel Request"
                             >
                               <Ban className="w-3.5 h-3.5" />
@@ -1180,22 +1180,22 @@ export const LeaveManagement = () => {
       {/* Cancel / Delete Confirmation Modal */}
       {confirmAction && (
         <div className="fixed inset-0 z-50 bg-black/70 backdrop-blur-sm flex items-center justify-center p-4">
-          <Card className="w-full max-w-md p-6 space-y-4 border-slate-200 dark:border-slate-800 shadow-2xl rounded-2xl bg-white dark:bg-[#181C27]">
+          <Card className="w-full max-w-md p-6 space-y-4 border-border shadow-2xl rounded-2xl bg-surface">
             <div className="flex items-start gap-3">
               <div
                 className={`w-10 h-10 rounded-xl flex items-center justify-center shrink-0 border ${
                   confirmAction.type === 'delete'
                     ? 'bg-rose-50 dark:bg-rose-500/10 text-rose-600 dark:text-rose-400 border-rose-200 dark:border-rose-500/30'
-                    : 'bg-slate-100 dark:bg-slate-800 text-slate-600 dark:text-slate-300 border-slate-200 dark:border-slate-700'
+                    : 'bg-chrome text-muted border-border'
                 }`}
               >
                 {confirmAction.type === 'delete' ? <Trash2 className="w-5 h-5" /> : <Ban className="w-5 h-5" />}
               </div>
               <div>
-                <h3 className="font-bold text-slate-900 dark:text-slate-100 text-sm">
+                <h3 className="font-bold text-fg text-sm">
                   {confirmAction.type === 'delete' ? 'Delete Leave Request?' : 'Cancel Leave Request?'}
                 </h3>
-                <p className="text-xs text-slate-600 dark:text-slate-400 mt-1.5 leading-relaxed">
+                <p className="text-xs text-muted mt-1.5 leading-relaxed">
                   {confirmAction.type === 'delete'
                     ? `This will permanently remove your ${confirmAction.request.leaveType} request for ${confirmAction.request.startDate}. This cannot be undone.`
                     : `Your ${confirmAction.request.leaveType} request for ${confirmAction.request.startDate} will be marked as Cancelled. It will not count against your leave balance.`}
@@ -1235,15 +1235,15 @@ export const LeaveManagement = () => {
       {/* Request Leave Modal */}
       {showAddModal && (
         <div className="fixed inset-0 z-50 bg-black/70 backdrop-blur-sm flex items-center justify-center p-4 overflow-y-auto">
-          <Card className="w-full max-w-lg max-h-[90vh] overflow-y-auto p-6 space-y-4 border-slate-200 dark:border-slate-800 shadow-2xl relative rounded-2xl bg-white dark:bg-[#181C27]">
-            <div className="flex items-center justify-between pb-3 border-b border-slate-200 dark:border-slate-800 sticky top-0 bg-white/95 dark:bg-[#181C27]/95 backdrop-blur-md z-10 py-1">
-              <h3 className="font-bold text-slate-900 dark:text-slate-100 text-sm">Submit Leave Request</h3>
+          <Card className="w-full max-w-lg max-h-[90vh] overflow-y-auto p-6 space-y-4 border-border shadow-2xl relative rounded-2xl bg-surface">
+            <div className="flex items-center justify-between pb-3 border-b border-border sticky top-0 bg-surface/95 backdrop-blur-md z-10 py-1">
+              <h3 className="font-bold text-fg text-sm">Submit Leave Request</h3>
               <button
                 onClick={() => {
                   setShowAddModal(false)
                   setValidationError('')
                 }}
-                className="text-slate-400 hover:text-slate-900 dark:hover:text-white p-1 rounded-lg hover:bg-slate-100 dark:hover:bg-slate-800 transition-colors"
+                className="text-slate-400 hover:text-slate-900 dark:hover:text-white p-1 rounded-lg hover:bg-chrome transition-colors"
               >
                 <X className="w-4 h-4" />
               </button>
@@ -1260,7 +1260,7 @@ export const LeaveManagement = () => {
 
 
               <div className="space-y-1.5 text-left">
-                <label className="block text-xs font-medium text-slate-700 dark:text-slate-300">Leave Type</label>
+                <label className="block text-xs font-medium text-fg">Leave Type</label>
                 <select
                   value={leaveType}
                   onChange={(e) => {
@@ -1304,12 +1304,12 @@ export const LeaveManagement = () => {
                   <option value="LOP (Loss of Pay)">LOP (Loss of Pay)</option>
                 </select>
                 {wfhPolicy.leaveFormEnabled && leaveType === 'Work From Home' && remainingWfhDays !== null && (
-                  <p className="text-[11px] text-slate-500 dark:text-slate-400 mt-1">
+                  <p className="text-[11px] text-muted mt-1">
                     Paid WFH remaining this month: {remainingPaidWfhDays} of {leaveLimits.wfh}. Extra days are LOP (unpaid). Admin approval required.
                   </p>
                 )}
                 {(leaveType === 'Casual Leave' || leaveType === 'Sick Leave') && (
-                  <p className="text-[11px] text-slate-500 dark:text-slate-400 mt-1">
+                  <p className="text-[11px] text-muted mt-1">
                     Remaining this month:{' '}
                     {leaveType === 'Casual Leave'
                       ? `${remainingCasualDays} of ${leaveLimits.casual} Casual`
@@ -1318,24 +1318,24 @@ export const LeaveManagement = () => {
                   </p>
                 )}
                 {leaveType === PERMISSION_LEAVE_TYPE && (
-                  <p className="text-[11px] text-slate-500 dark:text-slate-400 mt-1">
+                  <p className="text-[11px] text-muted mt-1">
                     Remaining this month: {formatHoursAsHrsMins(remainingPermissionHours)} of {formatHoursAsHrsMins(permissionHoursLimit)}. Granted immediately — no admin approval. Over-limit requests cannot be submitted.
                   </p>
                 )}
                 {wfhPolicy.clockInChoice && remainingWfhDays !== null && (
-                  <p className="text-[11px] text-slate-500 dark:text-slate-400 mt-1">
+                  <p className="text-[11px] text-muted mt-1">
                     Weekly WFH ({remainingWfhDays} of {wfhPolicy.limit} remaining this week) — choose WFH or Office when you Check In. No leave request needed.
                   </p>
                 )}
                 {wfhPolicy.mode === 'full' && (
-                  <p className="text-[11px] text-slate-500 dark:text-slate-400 mt-1">
+                  <p className="text-[11px] text-muted mt-1">
                     You are on Full WFH — no leave request is required.
                   </p>
                 )}
               </div>
 
               <div className="space-y-1.5 text-left">
-                <label className="block text-xs font-medium text-slate-700 dark:text-slate-300">
+                <label className="block text-xs font-medium text-fg">
                   {singleDayOnly ? 'Select Leave Date' : 'Select Date Range'}
                 </label>
                 <InteractiveCalendarPicker
@@ -1353,7 +1353,7 @@ export const LeaveManagement = () => {
                   <PermissionTimeSelect label="Start Time" value={startTime} onChange={setStartTime} />
                   <PermissionTimeSelect label="End Time" value={endTime} onChange={setEndTime} />
                   {startTime && endTime && hoursBetween(startTime, endTime) > 0 && (
-                    <p className="col-span-2 text-[11px] text-slate-500 dark:text-slate-400">
+                    <p className="col-span-2 text-[11px] text-muted">
                       Duration: {formatHoursAsHrsMins(hoursBetween(startTime, endTime))}
                     </p>
                   )}
@@ -1361,7 +1361,7 @@ export const LeaveManagement = () => {
               )}
 
               <div className="space-y-1.5 text-left">
-                <label className="block text-xs font-medium text-slate-700 dark:text-slate-300">Reason for Request</label>
+                <label className="block text-xs font-medium text-fg">Reason for Request</label>
                 <textarea
                   placeholder="State the purpose for leave..."
                   value={reason}

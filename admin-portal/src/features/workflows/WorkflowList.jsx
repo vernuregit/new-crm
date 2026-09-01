@@ -85,15 +85,15 @@ export const WorkflowList = () => {
           }
         />
 
-        <div className="flex items-center gap-2 border-b border-slate-200 dark:border-slate-800 pb-3">
+        <div className="flex items-center gap-2 border-b border-border pb-3">
           <NavLink
             to="/workflows"
             end
             className={({ isActive }) =>
               `flex items-center gap-2 px-3 py-1.5 rounded-xl text-xs font-semibold transition-colors ${
                 isActive
-                  ? 'bg-indigo-50 dark:bg-indigo-600/20 text-indigo-600 dark:text-indigo-400 border border-indigo-200 dark:border-indigo-500/30'
-                  : 'text-slate-600 dark:text-slate-400 hover:text-slate-900 dark:hover:text-slate-200 hover:bg-slate-100 dark:hover:bg-slate-800'
+                  ? 'bg-accent-soft text-accent border border-accent/30'
+                  : 'text-muted hover:text-fg hover:bg-slate-100 dark:hover:bg-slate-800'
               }`
             }
           >
@@ -104,8 +104,8 @@ export const WorkflowList = () => {
             className={({ isActive }) =>
               `flex items-center gap-2 px-3 py-1.5 rounded-xl text-xs font-semibold transition-colors ${
                 isActive
-                  ? 'bg-indigo-50 dark:bg-indigo-600/20 text-indigo-600 dark:text-indigo-400 border border-indigo-200 dark:border-indigo-500/30'
-                  : 'text-slate-600 dark:text-slate-400 hover:text-slate-900 dark:hover:text-slate-200 hover:bg-slate-100 dark:hover:bg-slate-800'
+                  ? 'bg-accent-soft text-accent border border-accent/30'
+                  : 'text-muted hover:text-fg hover:bg-slate-100 dark:hover:bg-slate-800'
               }`
             }
           >
@@ -116,8 +116,8 @@ export const WorkflowList = () => {
             className={({ isActive }) =>
               `flex items-center gap-2 px-3 py-1.5 rounded-xl text-xs font-semibold transition-colors ${
                 isActive
-                  ? 'bg-indigo-50 dark:bg-indigo-600/20 text-indigo-600 dark:text-indigo-400 border border-indigo-200 dark:border-indigo-500/30'
-                  : 'text-slate-600 dark:text-slate-400 hover:text-slate-900 dark:hover:text-slate-200 hover:bg-slate-100 dark:hover:bg-slate-800'
+                  ? 'bg-accent-soft text-accent border border-accent/30'
+                  : 'text-muted hover:text-fg hover:bg-slate-100 dark:hover:bg-slate-800'
               }`
             }
           >
@@ -129,7 +129,7 @@ export const WorkflowList = () => {
       {/* Loading State */}
       {isLoading && (
         <div className="flex items-center justify-center py-20">
-          <Loader2 className="w-7 h-7 text-indigo-400 animate-spin" />
+          <Loader2 className="w-7 h-7 text-accent animate-spin" />
           <span className="ml-3 text-slate-400 text-sm">Loading workflows...</span>
         </div>
       )}
@@ -138,21 +138,21 @@ export const WorkflowList = () => {
         <>
           {/* Metrics Summary Strip */}
           <div className="grid grid-cols-1 sm:grid-cols-3 gap-4">
-            <Card className="p-4 flex items-center justify-between border-slate-200 dark:border-slate-800/80 bg-white dark:bg-[#181C27]">
+            <Card className="p-4 flex items-center justify-between border-border bg-surface">
               <div>
-                <span className="text-[11px] font-medium text-slate-500 dark:text-slate-400 uppercase tracking-wider">
+                <span className="text-[11px] font-medium text-muted uppercase tracking-wider">
                   Active Workflow Rules
                 </span>
-                <p className="text-xl font-bold text-slate-900 dark:text-slate-100 mt-1">{activeCount} Rules</p>
+                <p className="text-xl font-bold text-fg mt-1">{activeCount} Rules</p>
               </div>
-              <div className="w-9 h-9 rounded-xl bg-indigo-50 dark:bg-indigo-500/10 text-indigo-600 dark:text-indigo-400 flex items-center justify-center">
+              <div className="w-9 h-9 rounded-xl bg-accent-soft text-accent flex items-center justify-center">
                 <Zap className="w-5 h-5" />
               </div>
             </Card>
 
-            <Card className="p-4 flex items-center justify-between border-slate-200 dark:border-slate-800/80 bg-white dark:bg-[#181C27]">
+            <Card className="p-4 flex items-center justify-between border-border bg-surface">
               <div>
-                <span className="text-[11px] font-medium text-slate-500 dark:text-slate-400 uppercase tracking-wider">
+                <span className="text-[11px] font-medium text-muted uppercase tracking-wider">
                   Total Executed Runs
                 </span>
                 <p className="text-xl font-bold text-emerald-600 dark:text-emerald-400 mt-1">{totalRuns} Executions</p>
@@ -162,9 +162,9 @@ export const WorkflowList = () => {
               </div>
             </Card>
 
-            <Card className="p-4 flex items-center justify-between border-slate-200 dark:border-slate-800/80 bg-white dark:bg-[#181C27]">
+            <Card className="p-4 flex items-center justify-between border-border bg-surface">
               <div>
-                <span className="text-[11px] font-medium text-slate-500 dark:text-slate-400 uppercase tracking-wider">
+                <span className="text-[11px] font-medium text-muted uppercase tracking-wider">
                   Paused Rules
                 </span>
                 <p className="text-xl font-bold text-amber-600 dark:text-amber-400 mt-1">
@@ -179,13 +179,13 @@ export const WorkflowList = () => {
 
           {/* Empty State */}
           {workflows.length === 0 && (
-            <Card className="py-20 text-center space-y-4 border-slate-200 dark:border-slate-800 bg-white dark:bg-[#181C27]">
-              <div className="w-14 h-14 rounded-2xl bg-slate-100 dark:bg-slate-800 flex items-center justify-center mx-auto">
-                <GitBranch className="w-7 h-7 text-slate-400 dark:text-slate-500" />
+            <Card className="py-20 text-center space-y-4 border-border bg-surface">
+              <div className="w-14 h-14 rounded-2xl bg-canvas flex items-center justify-center mx-auto">
+                <GitBranch className="w-7 h-7 text-muted" />
               </div>
               <div className="space-y-1">
                 <p className="text-slate-900 dark:text-slate-200 font-semibold text-sm">No automation rules yet</p>
-                <p className="text-slate-500 text-xs">
+                <p className="text-muted text-xs">
                   Create your first workflow rule to automate CRM, Finance, and Portal actions.
                 </p>
               </div>
@@ -201,16 +201,16 @@ export const WorkflowList = () => {
           {workflows.length > 0 && (
             <div className="space-y-3">
               {workflows.map((w) => (
-                <Card key={w.workflowId} hover className="p-4 border-slate-200 dark:border-slate-800 space-y-3 bg-white dark:bg-[#181C27]">
+                <Card key={w.workflowId} hover className="p-4 border-border space-y-3 bg-surface">
                   <div className="flex items-start justify-between">
                     <div className="flex items-center gap-3">
                       <div className="w-10 h-10 rounded-xl bg-purple-50 dark:bg-purple-500/10 text-purple-600 dark:text-purple-400 flex items-center justify-center border border-purple-200 dark:border-purple-500/20 shrink-0">
                         <GitBranch className="w-5 h-5" />
                       </div>
                       <div>
-                        <h4 className="font-bold text-slate-900 dark:text-slate-100 text-sm">{w.name}</h4>
-                        <p className="text-xs text-indigo-600 dark:text-indigo-400 font-mono mt-0.5">
-                          Trigger: <span className="text-slate-700 dark:text-slate-300">{w.triggerEvent}</span>
+                        <h4 className="font-bold text-fg text-sm">{w.name}</h4>
+                        <p className="text-xs text-accent font-mono mt-0.5">
+                          Trigger: <span className="text-fg">{w.triggerEvent}</span>
                         </p>
                       </div>
                     </div>
@@ -220,7 +220,7 @@ export const WorkflowList = () => {
                       </Badge>
                       <button
                         onClick={() => handleToggle(w.workflowId)}
-                        className="p-1.5 rounded-lg bg-slate-100 dark:bg-slate-900 border border-slate-200 dark:border-slate-800 text-slate-600 dark:text-slate-400 hover:text-slate-900 dark:hover:text-white transition-colors"
+                        className="p-1.5 rounded-lg bg-canvas border border-border text-muted hover:text-slate-900 dark:hover:text-white transition-colors"
                         title={w.status === 'active' ? 'Pause Rule' : 'Activate Rule'}
                       >
                         {w.status === 'active' ? (
@@ -231,7 +231,7 @@ export const WorkflowList = () => {
                       </button>
                       <button
                         onClick={() => handleDelete(w.workflowId)}
-                        className="p-1.5 rounded-lg bg-slate-100 dark:bg-slate-900 border border-slate-200 dark:border-slate-800 text-slate-600 dark:text-slate-400 hover:text-rose-500 transition-colors"
+                        className="p-1.5 rounded-lg bg-canvas border border-border text-muted hover:text-rose-500 transition-colors"
                         title="Delete Rule"
                       >
                         <Trash2 className="w-4 h-4" />
@@ -239,14 +239,14 @@ export const WorkflowList = () => {
                     </div>
                   </div>
 
-                  <div className="p-3 rounded-xl bg-slate-50 dark:bg-slate-900 border border-slate-200 dark:border-slate-800 text-xs font-mono space-y-1 text-slate-800 dark:text-slate-300">
-                    <span className="text-[10px] text-slate-500 dark:text-slate-400 uppercase font-sans font-bold block">
+                  <div className="p-3 rounded-xl bg-canvas border border-border text-xs font-mono space-y-1 text-slate-800 dark:text-slate-300">
+                    <span className="text-[10px] text-muted uppercase font-sans font-bold block">
                       Condition Logic
                     </span>
                     <span>IF ({w.condition}) THEN DO {w.actions?.length || 1} ACTIONS</span>
                   </div>
 
-                  <div className="flex justify-between items-center text-[11px] text-slate-500 pt-1">
+                  <div className="flex justify-between items-center text-[11px] text-muted pt-1">
                     <span>
                       Total Executed Runs:{' '}
                       <strong className="text-slate-800 dark:text-slate-300">{w.runCount || 0}</strong>
