@@ -26,23 +26,29 @@ export function timeStrToMinutes(timeStr) {
 }
 
 /**
- * Late minutes past office start (10:30 AM). Returns 0 if on time (before 10:40 AM grace cutoff) or missing clock-in.
+ * Late minutes past expected start (default 10:30 AM). Returns 0 if on time (grace cutoff) or missing clock-in.
  * @param {string|null} clockInTime
+ * @param {number} [expectedStartMinutes]
  * @returns {number}
  */
-export function getLateMinutes(clockInTime) {
+export function getLateMinutes(clockInTime, expectedStartMinutes = OFFICE_START_MINUTES) {
   const mins = timeStrToMinutes(clockInTime)
   if (mins === null) return 0
-  if (mins < LATE_CUTOFF_MINUTES) return 0
-  return mins - OFFICE_START_MINUTES
+  const start = Number.isFinite(Number(expectedStartMinutes))
+    ? Number(expectedStartMinutes)
+    : OFFICE_START_MINUTES
+  const graceCutoff = start + LATE_GRACE_MINUTES
+  if (mins < graceCutoff) return 0
+  return mins - start
 }
 
 /**
  * @param {string|null} clockInTime
+ * @param {number} [expectedStartMinutes]
  * @returns {{ isLate: boolean, lateMinutes: number }}
  */
-export function getLateInfo(clockInTime) {
-  const lateMinutes = getLateMinutes(clockInTime)
+export function getLateInfo(clockInTime, expectedStartMinutes = OFFICE_START_MINUTES) {
+  const lateMinutes = getLateMinutes(clockInTime, expectedStartMinutes)
   return { isLate: lateMinutes > 0, lateMinutes }
 }
 
@@ -228,17 +234,24 @@ export function isPlaceholderDisplayName(value) {
 
 /** Prefer directory name over a stale attendance-log placeholder like "Employee". */
 export function resolveEmployeeDisplayName(emp = {}, log = {}, fallback = '—') {
-  const emailLocal = String(emp.email || log.email || '').split('@')[0]
+  const employee = emp && typeof emp === 'object' ? emp : {}
+  const attendanceLog = log && typeof log === 'object' ? log : {}
+  const emailLocal = String(employee.email || attendanceLog.email || '').split('@')[0]
   const candidates = [
-    emp.displayName,
-    emp.name,
-    emp.fullName,
-    log.displayName,
-    log.name,
+    employee.displayName,
+    employee.name,
+    employee.fullName,
+    attendanceLog.displayName,
+    attendanceLog.name,
     emailLocal,
   ]
   for (const candidate of candidates) {
     if (!isPlaceholderDisplayName(candidate)) return String(candidate).trim()
   }
   return fallback
+}
+
+export function getNameInitial(name, fallback = 'U') {
+  const match = String(name || '').match(/[\p{L}\p{N}]/u)
+  return match ? match[0].toUpperCase() : fallback
 }

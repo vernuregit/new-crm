@@ -41,6 +41,7 @@ import { OrgSettings } from './features/settings/OrgSettings'
 import { RoleManager } from './features/settings/RoleManager'
 import { IntegrationsPage } from './features/settings/IntegrationsPage'
 import { AdminProfile } from './features/settings/AdminProfile'
+import { AdminAssistantPage } from './features/assistant/AdminAssistantPage'
 
 export const router = createBrowserRouter([
   {
@@ -53,6 +54,7 @@ export const router = createBrowserRouter([
     children: [
       { index: true, element: <Navigate to="/dashboard" replace /> },
       { path: 'dashboard', element: <FounderDashboard /> },
+      { path: 'assistant', element: <AdminAssistantPage /> },
 
       // CRM Module
       { path: 'crm', element: <Navigate to="/crm/pipeline" replace /> },

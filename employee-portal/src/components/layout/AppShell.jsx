@@ -1,5 +1,5 @@
 import React, { useEffect } from 'react'
-import { Navigate, Outlet } from 'react-router-dom'
+import { Navigate, Outlet, useRouteError } from 'react-router-dom'
 import { EmployeeSidebar } from './EmployeeSidebar'
 import { EmployeeTopBar } from './EmployeeTopBar'
 import { useUIStore } from '../../stores/uiStore'
@@ -64,6 +64,18 @@ export const AppShell = () => {
           <Outlet />
         </main>
       </div>
+    </div>
+  )
+}
+
+export const AppShellError = () => {
+  const error = useRouteError()
+  const user = useUserStore((s) => s.user)
+  console.error(error)
+  if (!user) return <Navigate to="/login" replace />
+  return (
+    <div className="min-h-screen bg-canvas text-fg flex items-center justify-center p-6">
+      <p className="text-sm text-muted">Something went wrong. Refresh the page to continue.</p>
     </div>
   )
 }

@@ -19,7 +19,7 @@ export const ProjectSessionTabs = () => {
             key={tab.id}
             to={tab.to}
             className={({ isActive }) =>
-              `flex items-center gap-2 px-3 py-1.5 rounded-xl text-xs font-semibold transition-colors ${
+              `flex items-center gap-2 px-3 py-1.5 rounded-xl text-xs font-semibold transition-colors cursor-pointer ${
                 isActive
                   ? 'bg-accent-soft text-accent border border-accent/20 dark:border-accent/30'
                   : 'text-muted hover:text-slate-900 dark:hover:text-slate-200 hover:bg-chrome border border-transparent'

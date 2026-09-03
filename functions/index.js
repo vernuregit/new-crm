@@ -3,6 +3,7 @@ const { onSchedule } = require('firebase-functions/v2/scheduler')
 const { auth } = require('firebase-functions/v1')
 const admin = require('firebase-admin')
 const nodemailer = require('nodemailer')
+const { createAskAdminAssistant } = require('./assistant/askAdminAssistant')
 
 admin.initializeApp()
 const db = admin.firestore()
@@ -427,4 +428,6 @@ async function sendAnnouncementDeletedWebPush({ usersSnap, employeeIds, announce
     await pruneStaleFcmTokens(tokens, response.responses, tokenToUserIds)
   }
 }
+
+exports.askAdminAssistant = createAskAdminAssistant(db)
 

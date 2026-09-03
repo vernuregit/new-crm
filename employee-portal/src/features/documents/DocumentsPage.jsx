@@ -144,13 +144,12 @@ export const DocumentsPage = () => {
       <div className="flex gap-2 overflow-x-auto pb-2">
         {['All', 'Certificate', 'Marksheet', 'ID', 'Other'].map(tab => (
           <button
-
             key={tab}
             onClick={() => setFilterTab(tab)}
-            className={`px-4 py-2 rounded-full text-sm font-medium transition-colors ${
-              filterTab === tab 
-                ? 'bg-accent-soft text-accent' 
-                : 'bg-white text-slate-600 hover:bg-chrome dark:text-slate-300 dark:hover:bg-slate-700 border border-border'
+            className={`px-4 py-2 rounded-full text-sm font-medium transition-colors cursor-pointer ${
+              filterTab === tab
+                ? 'bg-accent text-white'
+                : 'bg-chrome text-fg border border-border hover:bg-surface'
             }`}
           >
             {tab}

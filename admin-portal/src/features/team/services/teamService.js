@@ -300,11 +300,12 @@ export const updateLeaveStatusInDb = async (leaveId, newStatus, reviewedBy) => {
       const leaveSnap = await getDoc(doc(db, 'leaveRequests', leaveId))
       if (leaveSnap.exists()) {
         const leaveData = { leaveId, ...leaveSnap.data() }
-        const [empSnap, leavesSnap] = await Promise.all([
+        const [empSnap, leavesSnap, holidays] = await Promise.all([
           leaveData.employeeId
             ? getDoc(doc(db, 'employees', leaveData.employeeId))
             : Promise.resolve(null),
           getDocs(collection(db, 'leaveRequests')),
+          getCompanyHolidays(),
         ])
         const emp = empSnap?.exists() ? { uid: empSnap.id, ...empSnap.data() } : {}
         const conversion = applyLopConversion({
@@ -320,6 +321,7 @@ export const updateLeaveStatusInDb = async (leaveId, newStatus, reviewedBy) => {
           },
           limits: resolveLeaveLimits(emp),
           excludeLeaveId: leaveId,
+          holidays,
         })
         patch.leaveType = conversion.leaveType
         patch.requestedLeaveType = conversion.requestedLeaveType

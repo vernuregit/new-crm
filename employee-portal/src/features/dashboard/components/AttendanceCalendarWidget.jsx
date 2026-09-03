@@ -103,8 +103,8 @@ export const AttendanceCalendarWidget = () => {
 
   const approvedLeaveByDate = useMemo(() => {
     const emp = { employeeId: activeUid, uid: activeUid, employeeEmail: activeEmail, employeeName: activeName }
-    return classifyApprovedLeaveByDate(leaveRequests, emp, resolveLeaveLimits(employeeProfile))
-  }, [leaveRequests, activeUid, activeEmail, activeName, employeeProfile])
+    return classifyApprovedLeaveByDate(leaveRequests, emp, resolveLeaveLimits(employeeProfile), companyHolidays)
+  }, [leaveRequests, activeUid, activeEmail, activeName, employeeProfile, companyHolidays])
 
   // Month name formatting e.g. "July 2026"
   const monthName = currentViewDate.toLocaleDateString('en-US', {
@@ -243,6 +243,7 @@ export const AttendanceCalendarWidget = () => {
     if (approvedLeave?.status === 'wfh') return 'wfh'
     if (approvedLeave?.status === 'casual') return 'casual'
     if (approvedLeave?.status === 'sick') return 'sick'
+    if (approvedLeave?.status === 'emergency') return 'emergency'
     if (approvedLeave?.status === 'leave') return 'leave'
 
     const dayOfWeek = cellDate.getDay() // 0 = Sun (Sunday is the only weekend rest day; Saturday is a regular working day)
@@ -449,6 +450,10 @@ export const AttendanceCalendarWidget = () => {
           <div className="flex items-center gap-1.5">
             <span className="w-1.5 h-1.5 rounded-full bg-[#F97316]" />
             <span>Sick Leave</span>
+          </div>
+          <div className="flex items-center gap-1.5">
+            <span className="w-1.5 h-1.5 rounded-full bg-[#7F1D1D]" />
+            <span>Emergency</span>
           </div>
           <div className="flex items-center gap-1.5">
             <span className="w-1.5 h-1.5 rounded-full bg-[#EAB308]" />

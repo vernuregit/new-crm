@@ -97,9 +97,10 @@ export function EmployeeAttendanceCalendar({
         employeeEmail,
         employeeName,
       },
-      resolveLeaveLimits(employee)
+      resolveLeaveLimits(employee),
+      companyHolidays
     )
-  }, [leaveRequests, employeeUid, employeeEmail, employeeName, employee])
+  }, [leaveRequests, employeeUid, employeeEmail, employeeName, employee, companyHolidays])
 
   const [year, monthIndex] = useMemo(() => {
     if (!viewMonth || !/^\d{4}-\d{2}$/.test(viewMonth)) {
@@ -168,6 +169,7 @@ export function EmployeeAttendanceCalendar({
     if (approvedLeave?.status === 'wfh') return 'wfh'
     if (approvedLeave?.status === 'casual') return 'casual'
     if (approvedLeave?.status === 'sick') return 'sick'
+    if (approvedLeave?.status === 'emergency') return 'emergency'
     if (approvedLeave?.status === 'leave') return 'leave'
 
     // Future days: never show Absent
@@ -304,6 +306,10 @@ export function EmployeeAttendanceCalendar({
         <div className="flex items-center gap-1.5">
           <span className="w-1.5 h-1.5 rounded-full bg-[#F97316]" />
           <span>Sick Leave</span>
+        </div>
+        <div className="flex items-center gap-1.5">
+          <span className="w-1.5 h-1.5 rounded-full bg-[#7F1D1D]" />
+          <span>Emergency</span>
         </div>
         <div className="flex items-center gap-1.5">
           <span className="w-1.5 h-1.5 rounded-full bg-[#EAB308]" />

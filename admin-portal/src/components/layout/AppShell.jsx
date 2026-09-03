@@ -4,6 +4,7 @@ import { Sidebar } from './Sidebar'
 import { TopBar } from './TopBar'
 import { useUIStore } from '../../stores/uiStore'
 import { useUserStore } from '../../stores/userStore'
+import { AdminAssistantWidget } from '../../features/assistant/AdminAssistantWidget'
 
 export const AppShell = () => {
   const { sidebarOpen } = useUIStore()
@@ -27,6 +28,7 @@ export const AppShell = () => {
           <Outlet />
         </main>
       </div>
+      <AdminAssistantWidget />
     </div>
   )
 }

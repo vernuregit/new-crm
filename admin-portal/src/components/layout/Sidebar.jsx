@@ -28,6 +28,7 @@ import {
   IndianRupee,
   Shield,
   Sliders,
+  Bot,
 } from 'lucide-react'
 import haloLogo from '../../assets/halologo.png'
 import { useUIStore } from '../../stores/uiStore'
@@ -93,6 +94,7 @@ const ADMIN_GROUPS = [
     icon: LayoutDashboard,
     items: [
       { name: 'Dashboard', path: '/dashboard', icon: LayoutDashboard },
+      { name: 'Assistant', path: '/assistant', icon: Bot },
     ],
   },
   {

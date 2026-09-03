@@ -17,12 +17,14 @@ import {
 import {
   applyLopConversion,
   countUsedPaidDays,
+  expandLeaveWorkingDates,
   countUsedPermissionHours,
   formatHoursAsHrsMins,
   formatLeaveDuration,
   formatLeaveTypeLabel,
   hoursBetween,
   PERMISSION_LEAVE_TYPE,
+  EMERGENCY_LEAVE_TYPE,
   resolveLeaveLimits,
   resolvePermissionHours,
 } from './services/leaveEntitlementUtils'
@@ -269,6 +271,7 @@ const InteractiveCalendarPicker = ({ startDate, setStartDate, endDate, setEndDat
   const getMinAllowedDate = () => {
     if (
       leaveType === 'Sick Leave' ||
+      leaveType === EMERGENCY_LEAVE_TYPE ||
       leaveType === 'LOP (Loss of Pay)' ||
       leaveType === 'Work From Home' ||
       leaveType === 'On Duty' ||
@@ -299,6 +302,7 @@ const InteractiveCalendarPicker = ({ startDate, setStartDate, endDate, setEndDat
     if (clickedDate < minAllowedDate) {
       if (
         leaveType === 'Sick Leave' ||
+        leaveType === EMERGENCY_LEAVE_TYPE ||
         leaveType === 'LOP (Loss of Pay)' ||
         leaveType === 'Work From Home' ||
         leaveType === 'On Duty' ||
@@ -683,6 +687,7 @@ export const LeaveManagement = () => {
     // LOP, Sick Leave, Work From Home, and On Duty are exempt from the 3-day advance notice rule.
     const isUrgentLeave =
       leaveType === 'Sick Leave' ||
+      leaveType === EMERGENCY_LEAVE_TYPE ||
       leaveType === 'LOP (Loss of Pay)' ||
       leaveType === 'Work From Home' ||
       leaveType === 'On Duty' ||
@@ -690,7 +695,7 @@ export const LeaveManagement = () => {
 
     if (!isUrgentLeave && leaveType !== 'Casual Leave' && diffDays < 3) {
       setValidationError(
-        'Standard leave must be requested at least 3 days in advance. For urgent situations, please select "Sick Leave", "LOP (Loss of Pay)", "Work From Home", "On Duty", or "Permission".'
+        'Standard leave must be requested at least 3 days in advance. For urgent situations, please select "Sick Leave", "Emergency Leave", "LOP (Loss of Pay)", "Work From Home", "On Duty", or "Permission".'
       )
       return
     }
@@ -724,11 +729,12 @@ export const LeaveManagement = () => {
     const finalEndDate = singleDayOnly ? startDate : (endDate || startDate)
     const daysCount = isPermission
       ? 0
-      : singleDayOnly
-        ? 1
-        : startDate && endDate
-          ? Math.max(1, Math.round((new Date(endDate) - new Date(startDate)) / 86400000) + 1)
-          : 1
+      : expandLeaveWorkingDates(startDate, finalEndDate).length
+
+    if (!isPermission && daysCount === 0) {
+      setValidationError('Selected dates fall on Sunday or a company holiday. Pick working days only.')
+      return
+    }
 
     const conversion = applyLopConversion({
       requestedType: leaveType,
@@ -1294,6 +1300,7 @@ export const LeaveManagement = () => {
                 >
                   <option value="Casual Leave">Casual Leave ({leaveLimits.casual}/month · 3 days advance)</option>
                   <option value="Sick Leave">Sick Leave ({leaveLimits.sick}/month)</option>
+                  <option value="Emergency Leave">Emergency Leave (same day · needs approval)</option>
                   <option value="Permission">Permission ({formatHoursAsHrsMins(permissionHoursLimit)}/month · no admin approval)</option>
                   {wfhPolicy.leaveFormEnabled && (
                     <option value="Work From Home">
@@ -1315,6 +1322,11 @@ export const LeaveManagement = () => {
                       ? `${remainingCasualDays} of ${leaveLimits.casual} Casual`
                       : `${remainingSickDays} of ${leaveLimits.sick} Sick`}
                     . Extra days are marked LOP (unpaid).
+                  </p>
+                )}
+                {leaveType === EMERGENCY_LEAVE_TYPE && (
+                  <p className="text-[11px] text-muted mt-1">
+                    Same-day requests allowed. Needs admin approval. Shows as dark red on the attendance calendar. Does not use Casual/Sick quota.
                   </p>
                 )}
                 {leaveType === PERMISSION_LEAVE_TYPE && (

@@ -55,6 +55,9 @@ const requestStyle = (leaveType = '') => {
   if (t.includes('duty') || t.includes('permission')) {
     return { icon: Laptop, tile: 'bg-accent-soft text-accent' }
   }
+  if (t.includes('emergency')) {
+    return { icon: Umbrella, tile: 'bg-[#7F1D1D]/10 text-[#7F1D1D] dark:text-[#FECACA]' }
+  }
   if (t.includes('lop')) {
     return { icon: Umbrella, tile: 'bg-rose-50 dark:bg-rose-500/10 text-rose-600 dark:text-rose-400' }
   }

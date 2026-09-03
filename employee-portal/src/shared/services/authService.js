@@ -16,7 +16,11 @@ const googleProvider = new GoogleAuthProvider()
  * Sign in with email and password
  */
 export const loginWithEmail = async (email, password) => {
-  const userCredential = await signInWithEmailAndPassword(auth, email, password)
+  const userCredential = await signInWithEmailAndPassword(
+    auth,
+    String(email || '').trim(),
+    String(password || '')
+  )
   return userCredential.user
 }
 
@@ -155,7 +159,7 @@ export const ensureUserDocExists = async (user) => {
       await setDoc(userRef, {
         uid: user.uid,
         email: user.email,
-        displayName: user.displayName || user.email.split('@')[0],
+        displayName: user.displayName || user.email?.split('@')[0] || 'Employee',
         photoURL: user.photoURL || null,
         phoneNumber: user.phoneNumber || null,
         createdAt: serverTimestamp(),

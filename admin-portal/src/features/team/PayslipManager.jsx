@@ -5,12 +5,9 @@ import { Card } from '../../components/ui/Card';
 import { Button } from '../../components/ui/Button';
 import { Input } from '../../components/ui/Input';
 import { Badge } from '../../components/ui/Badge';
-import { getEmployees } from './services/teamService';
-import {
-  classifyApprovedLeaveByDate,
-  countClassifiedLopDays,
-  resolveLeaveLimits,
-} from './services/leaveEntitlementUtils';
+import { getEmployees, getAttendanceLogsForMonth, getMonthlyReport, subscribeToCompanyHolidays } from './services/teamService';
+import { buildEmployeeMonthlyReport, currentMonthStr } from './services/monthlyReportEngine';
+import { computeSalaryFromReport } from './services/salaryPayUtils';
 import { db, storage } from '../../shared/services/firebaseService';
 import { useUserStore } from '../../stores/userStore';
 import {
@@ -52,8 +49,9 @@ export const PayslipManager = () => {
   const [submitting, setSubmitting] = useState(false);
   const [successMsg, setSuccessMsg] = useState('');
   const [leaveRequests, setLeaveRequests] = useState([]);
-
-  const netSalary = (Number(grossSalary) || 0) - (Number(deductions) || 0);
+  const [holidays, setHolidays] = useState([]);
+  const [attendanceLogs, setAttendanceLogs] = useState([]);
+  const [storedReport, setStoredReport] = useState(null);
 
   useEffect(() => {
     const fetchEmployees = async () => {
@@ -82,6 +80,11 @@ export const PayslipManager = () => {
   }, []);
 
   useEffect(() => {
+    const unsub = subscribeToCompanyHolidays((list) => setHolidays(list || []));
+    return () => unsub();
+  }, []);
+
+  useEffect(() => {
     if (!selectedEmployeeUid) {
       setPayslips([]);
       return;
@@ -103,6 +106,60 @@ export const PayslipManager = () => {
     return () => unsubscribe();
   }, [selectedEmployeeUid]);
 
+  const monthStr = `${year}-${String(month).padStart(2, '0')}`;
+  const selectedEmployee = employees.find(e => e.uid === selectedEmployeeUid);
+
+  useEffect(() => {
+    if (!selectedEmployeeUid || !monthStr) {
+      setAttendanceLogs([]);
+      setStoredReport(null);
+      return;
+    }
+    let cancelled = false;
+    getAttendanceLogsForMonth(monthStr).then((logs) => {
+      if (cancelled) return;
+      setAttendanceLogs(
+        (logs || []).filter(
+          (log) => !log.uid || String(log.uid) === String(selectedEmployeeUid)
+        )
+      );
+    });
+    getMonthlyReport(selectedEmployeeUid, monthStr).then((report) => {
+      if (!cancelled) setStoredReport(report || null);
+    });
+    return () => {
+      cancelled = true;
+    };
+  }, [selectedEmployeeUid, monthStr]);
+
+  const payrollReport = useMemo(() => {
+    if (!selectedEmployee) return null;
+    const useStored =
+      storedReport &&
+      storedReport.month === monthStr &&
+      (storedReport.status === 'final' || monthStr !== currentMonthStr());
+    if (useStored) return storedReport;
+    return buildEmployeeMonthlyReport({
+      employee: selectedEmployee,
+      month: monthStr,
+      attendanceLogs,
+      leaveRequests,
+      holidays,
+    });
+  }, [selectedEmployee, monthStr, storedReport, attendanceLogs, leaveRequests, holidays]);
+
+  const salary = useMemo(
+    () => computeSalaryFromReport(payrollReport, grossSalary, deductions),
+    [payrollReport, grossSalary, deductions]
+  );
+
+  const lopDays = Number(payrollReport?.leave?.lopDays ?? payrollReport?.leave?.unpaidLeaveDays) || 0;
+  const absentDays = Number(payrollReport?.attendance?.absentDays) || 0;
+  const unpaidDays = salary.unpaidDays;
+  const eligibleWorkingDays = salary.eligibleWorkingDays;
+  const netSalary = salary.netSalary;
+  const unpaidDeduction = salary.unpaidDeduction;
+
   const handleFileChange = (e) => {
     if (e.target.files && e.target.files[0]) {
       setFile(e.target.files[0]);
@@ -123,14 +180,22 @@ export const PayslipManager = () => {
         pdfURL = await getDownloadURL(fileRef);
       }
 
+      const otherDeductions = Number(deductions) || 0;
+      const totalDeductions = Math.round((unpaidDeduction + otherDeductions) * 100) / 100;
+
       await addDoc(collection(db, `payslips/${selectedEmployeeUid}/records`), {
         month: Number(month),
         year: Number(year),
-        grossSalary: Number(grossSalary),
-        deductions: Number(deductions),
+        grossSalary: Number(grossSalary) || 0,
+        otherDeductions,
+        unpaidDeduction,
+        deductions: totalDeductions,
         netSalary,
         lopDays,
-        unpaidLeaveDays: lopDays,
+        absentDays,
+        unpaidDays,
+        unpaidLeaveDays: unpaidDays,
+        eligibleWorkingDays,
         currency: 'INR',
         pdfURL,
         generatedAt: serverTimestamp(),
@@ -165,24 +230,6 @@ export const PayslipManager = () => {
       }
     }
   };
-
-  const selectedEmployee = employees.find(e => e.uid === selectedEmployeeUid);
-
-  const monthStr = `${year}-${String(month).padStart(2, '0')}`;
-  const lopDays = useMemo(() => {
-    if (!selectedEmployee) return 0;
-    const classified = classifyApprovedLeaveByDate(
-      leaveRequests,
-      {
-        employeeId: selectedEmployee.uid,
-        uid: selectedEmployee.uid,
-        employeeEmail: selectedEmployee.email || '',
-        employeeName: selectedEmployee.displayName || selectedEmployee.name || '',
-      },
-      resolveLeaveLimits(selectedEmployee)
-    );
-    return countClassifiedLopDays(classified, monthStr);
-  }, [leaveRequests, selectedEmployee, monthStr]);
 
   return (
     <div className="space-y-6">
@@ -303,12 +350,11 @@ export const PayslipManager = () => {
                         </div>
                       </div>
                       <div className="space-y-2">
-                        <label className="text-sm font-medium text-fg">Deductions (₹)</label>
+                        <label className="text-sm font-medium text-fg">Other deductions (₹)</label>
                         <div className="relative">
                           <IndianRupee className="absolute left-3 top-2.5 h-4 w-4 text-slate-400" />
                           <Input 
                             type="number"
-                            required
                             min="0"
                             placeholder="0.00"
                             value={deductions}
@@ -324,15 +370,21 @@ export const PayslipManager = () => {
                           <Input 
                             type="text"
                             readOnly
-                            value={netSalary}
+                            value={Number.isFinite(netSalary) ? netSalary.toFixed(2) : '0.00'}
                             className="pl-9 bg-emerald-50 dark:bg-emerald-900/10 text-emerald-700 dark:text-emerald-400 font-semibold border-emerald-200 dark:border-emerald-800"
                           />
                         </div>
                       </div>
                     </div>
 
-                    <div className="p-3 rounded-xl bg-violet-50 dark:bg-violet-500/10 border border-violet-200 dark:border-violet-500/30 text-sm text-violet-800 dark:text-violet-200">
-                      Unpaid leave (LOP): <strong>{lopDays}</strong> day{lopDays === 1 ? '' : 's'} in {MONTHS[month - 1]} {year}. Display only — salary math is unchanged.
+                    <div className="p-3 rounded-xl bg-violet-50 dark:bg-violet-500/10 border border-violet-200 dark:border-violet-500/30 text-sm text-violet-800 dark:text-violet-200 space-y-1">
+                      <div>
+                        Unpaid days: <strong>{unpaidDays}</strong> ({lopDays} LOP + {absentDays} absent) of {eligibleWorkingDays} eligible working days in {MONTHS[month - 1]} {year}.
+                      </div>
+                      <div>
+                        Unpaid deduction: <strong>₹{unpaidDeduction.toLocaleString('en-IN', { maximumFractionDigits: 2 })}</strong>
+                        {' '}(gross ÷ eligible days × unpaid days). WFH counts as present.
+                      </div>
                     </div>
 
                     <div className="space-y-2">
@@ -379,7 +431,7 @@ export const PayslipManager = () => {
                             <th className="px-4 py-3">Gross</th>
                             <th className="px-4 py-3">Deductions</th>
                             <th className="px-4 py-3">Net</th>
-                            <th className="px-4 py-3">LOP</th>
+                            <th className="px-4 py-3">Unpaid</th>
                             <th className="px-4 py-3">PDF</th>
                             <th className="px-4 py-3">Created By</th>
                             <th className="px-4 py-3 rounded-tr-lg"></th>
@@ -401,7 +453,7 @@ export const PayslipManager = () => {
                                 ₹{payslip.netSalary?.toLocaleString()}
                               </td>
                               <td className="px-4 py-3 text-violet-700 dark:text-violet-300">
-                                {payslip.lopDays ?? payslip.unpaidLeaveDays ?? 0} unpaid
+                                {payslip.unpaidDays ?? payslip.lopDays ?? payslip.unpaidLeaveDays ?? 0} days
                               </td>
                               <td className="px-4 py-3">
                                 {payslip.pdfURL ? (

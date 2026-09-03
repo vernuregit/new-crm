@@ -235,7 +235,7 @@ export const EmployeeList = () => {
             <div className="flex items-start justify-between">
               <div className="flex items-center gap-3">
                 <div className="w-10 h-10 rounded-xl bg-gradient-to-tr from-accent to-accent-hover text-white font-bold flex items-center justify-center text-sm shadow-md shadow-accent/20">
-                  {emp.displayName.charAt(0)}
+                  {String(emp.displayName || emp.email || 'U').replace(/^[^\p{L}\p{N}]+/u, '').charAt(0).toUpperCase() || 'U'}
                 </div>
                 <div>
                   <h4 className="font-bold text-fg text-sm group-hover:text-accent dark:group-hover:text-accent transition-colors">

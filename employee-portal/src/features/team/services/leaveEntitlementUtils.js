@@ -1,4 +1,5 @@
 export const LOP_LEAVE_TYPE = 'LOP (Loss of Pay)'
+export const EMERGENCY_LEAVE_TYPE = 'Emergency Leave'
 export const PERMISSION_LEAVE_TYPE = 'Permission'
 export const DEFAULT_PERMISSION_HOURS = 4
 
@@ -36,6 +37,47 @@ export const expandLeaveDateRange = (startDate, endDate) => {
     cursor.setDate(cursor.getDate() + 1)
   }
   return dates
+}
+
+export const toHolidayDateSet = (holidays) => {
+  const set = new Set()
+  if (!holidays) return set
+  if (holidays instanceof Set) {
+    holidays.forEach((d) => {
+      if (d) set.add(String(d).slice(0, 10))
+    })
+    return set
+  }
+  if (Array.isArray(holidays)) {
+    holidays.forEach((item) => {
+      if (typeof item === 'string') set.add(item.slice(0, 10))
+      else if (item?.date) set.add(String(item.date).slice(0, 10))
+    })
+    return set
+  }
+  if (typeof holidays === 'object') {
+    Object.keys(holidays).forEach((key) => {
+      if (/^\d{4}-\d{2}-\d{2}/.test(key)) set.add(key.slice(0, 10))
+      else if (holidays[key]?.date) set.add(String(holidays[key].date).slice(0, 10))
+    })
+  }
+  return set
+}
+
+export const isLeaveCountableWorkingDate = (dateStr, holidaySet) => {
+  if (!dateStr) return false
+  const day = new Date(`${dateStr}T00:00:00`)
+  if (Number.isNaN(day.getTime())) return false
+  if (day.getDay() === 0) return false
+  if (holidaySet && holidaySet.has(dateStr)) return false
+  return true
+}
+
+export const expandLeaveWorkingDates = (startDate, endDate, holidays) => {
+  const holidaySet = toHolidayDateSet(holidays)
+  return expandLeaveDateRange(startDate, endDate).filter((date) =>
+    isLeaveCountableWorkingDate(date, holidaySet)
+  )
 }
 
 export const resolveLeaveLimits = (employeeDoc) => {
@@ -92,6 +134,33 @@ export const getPermissionHours = (leave) => {
   const stored = Number(leave?.hours)
   if (Number.isFinite(stored) && stored > 0) return stored
   return hoursBetween(leave?.startTime, leave?.endTime)
+}
+
+/** If approved Permission covers office start, expected arrival is the permission end (minutes from midnight). */
+export const getMorningPermissionExpectedStartMinutes = (
+  leaveRequests,
+  employeeFilter,
+  dateStr,
+  officeStartMinutes
+) => {
+  const fallback = Number(officeStartMinutes)
+  if (!dateStr || !Number.isFinite(fallback)) return fallback
+  let expected = fallback
+  const list = Array.isArray(leaveRequests) ? leaveRequests : []
+  list.forEach((leave) => {
+    if (leave?.status !== 'approved' && leave?.status !== 'pending') return
+    if (!isPermissionLeave(leave)) return
+    if (!leaveMatchesEmployeeFilter(leave, employeeFilter)) return
+    const date = leave.startDate || leave.endDate || ''
+    if (date !== dateStr) return
+    const start = parseTimeToMinutes(leave.startTime)
+    const end = parseTimeToMinutes(leave.endTime)
+    if (!Number.isFinite(start) || !Number.isFinite(end) || end <= start) return
+    if (start <= fallback && end > fallback) {
+      expected = Math.max(expected, end)
+    }
+  })
+  return expected
 }
 
 export const countUsedPermissionHours = (
@@ -166,7 +235,7 @@ export const countUsedPaidDays = (
   employeeFilter,
   bucket,
   monthStr,
-  { includePending = true, excludeLeaveId } = {}
+  { includePending = true, excludeLeaveId, holidays } = {}
 ) => {
   if (!bucket || !monthStr) return 0
   const list = Array.isArray(leaveRequests) ? leaveRequests : []
@@ -177,8 +246,8 @@ export const countUsedPaidDays = (
     if (leave.status !== 'approved' && leave.status !== 'pending') return sum
     if (!leaveMatchesEmployeeFilter(leave, employeeFilter)) return sum
     if (getLeaveBucket(getRequestedLeaveType(leave)) !== bucket) return sum
-    const days = expandLeaveDateRange(leave.startDate, leave.endDate || leave.startDate).filter((d) =>
-      d.startsWith(monthStr)
+    const days = expandLeaveWorkingDates(leave.startDate, leave.endDate || leave.startDate, holidays).filter(
+      (d) => d.startsWith(monthStr)
     )
     return sum + days.length
   }, 0)
@@ -193,6 +262,7 @@ export const applyLopConversion = ({
   employeeFilter,
   limits,
   excludeLeaveId,
+  holidays,
 } = {}) => {
   const requestedLeaveType = requestedType || 'Leave'
   const bucket = getLeaveBucket(requestedLeaveType)
@@ -203,12 +273,13 @@ export const applyLopConversion = ({
   const used = countUsedPaidDays(leaveRequests, employeeFilter, bucket, monthStr, {
     includePending: true,
     excludeLeaveId,
+    holidays,
   })
   const limit = Number(limits?.[bucket]) || 0
-  const rangeDays = expandLeaveDateRange(startDate, endDate || startDate).filter((d) =>
+  const rangeDays = expandLeaveWorkingDates(startDate, endDate || startDate, holidays).filter((d) =>
     d.startsWith(monthStr)
   )
-  const daysCount = rangeDays.length || Number(days) || 1
+  const daysCount = rangeDays.length
   if (used + daysCount > limit) {
     return {
       leaveType: LOP_LEAVE_TYPE,
@@ -223,7 +294,7 @@ export const applyLopConversion = ({
  * date → { status, leaveType, requestedLeaveType, convertedToLop }
  * status: wfh | casual | sick | lop | leave
  */
-export const classifyApprovedLeaveByDate = (leaveRequests, employeeFilter, limits) => {
+export const classifyApprovedLeaveByDate = (leaveRequests, employeeFilter, limits, holidays) => {
   const map = {}
   const list = (Array.isArray(leaveRequests) ? leaveRequests : []).filter(
     (leave) =>
@@ -233,7 +304,7 @@ export const classifyApprovedLeaveByDate = (leaveRequests, employeeFilter, limit
   const dayEntries = []
   list.forEach((leave) => {
     const requested = getRequestedLeaveType(leave)
-    expandLeaveDateRange(leave.startDate, leave.endDate || leave.startDate).forEach((date) => {
+    expandLeaveWorkingDates(leave.startDate, leave.endDate || leave.startDate, holidays).forEach((date) => {
       dayEntries.push({
         date,
         leave,
@@ -247,10 +318,14 @@ export const classifyApprovedLeaveByDate = (leaveRequests, employeeFilter, limit
   dayEntries.forEach((entry) => {
     if (getLeaveBucket(entry.requested)) return
     if (entry.requested === 'On Duty' || entry.leave.leaveType === 'On Duty') return
+    if (isPermissionLeave(entry.leave) || entry.requested === PERMISSION_LEAVE_TYPE) return
     const type = entry.leave.leaveType === LOP_LEAVE_TYPE || entry.requested === LOP_LEAVE_TYPE
       ? LOP_LEAVE_TYPE
-      : entry.requested
-    const status = type === LOP_LEAVE_TYPE ? 'lop' : 'leave'
+      : entry.requested === EMERGENCY_LEAVE_TYPE || entry.leave.leaveType === EMERGENCY_LEAVE_TYPE
+        ? EMERGENCY_LEAVE_TYPE
+        : entry.requested
+    const status =
+      type === LOP_LEAVE_TYPE ? 'lop' : type === EMERGENCY_LEAVE_TYPE ? 'emergency' : 'leave'
     if (map[entry.date]?.status === 'lop') return
     map[entry.date] = {
       status,
@@ -324,6 +399,7 @@ export const attendanceStatusDotClass = (status) => {
   if (status === 'sick') return 'bg-[#F97316]'
   if (status === 'holiday') return 'bg-[#EAB308]'
   if (status === 'lop') return 'bg-[#EC4899]'
+  if (status === 'emergency') return 'bg-[#7F1D1D]'
   if (status === 'leave') return 'bg-[#A855F7]'
   return 'bg-[#EF4444]'
 }
@@ -336,6 +412,7 @@ export const attendanceStatusDayClass = (status) => {
   if (status === 'wfh') return 'bg-[#06B6D4]/20 text-[#06B6D4] font-bold'
   if (status === 'casual') return 'bg-[#A855F7]/15 text-[#A855F7] font-bold'
   if (status === 'sick') return 'bg-[#F97316]/20 text-[#F97316] font-bold'
+  if (status === 'emergency') return 'bg-[#7F1D1D]/20 text-[#7F1D1D] font-bold'
   if (status === 'leave') return 'bg-[#A855F7]/15 text-[#A855F7] font-bold'
   if (status === 'present') return 'text-[#22C55E] font-bold'
   if (status === 'absent') return 'text-[#EF4444] font-bold'
@@ -348,6 +425,7 @@ export const attendanceStatusTooltip = (status, leaveType, holidayName) => {
   if (status === 'wfh') return 'Work From Home'
   if (status === 'casual') return 'Casual Leave'
   if (status === 'sick') return 'Sick Leave'
+  if (status === 'emergency') return 'Emergency Leave'
   if (status === 'leave') return leaveType || 'Leave'
   return null
 }

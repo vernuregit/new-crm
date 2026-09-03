@@ -1,5 +1,5 @@
 import React, { useState } from 'react'
-import { NavLink, useLocation } from 'react-router-dom'
+import { NavLink, useLocation, useNavigate } from 'react-router-dom'
 import {
   LayoutDashboard,
   FolderKanban,
@@ -27,6 +27,7 @@ import {
 import haloLogo from '../../assets/halologo.png'
 import { useUIStore } from '../../stores/uiStore'
 import { useUserStore } from '../../stores/userStore'
+import { logoutUser } from '../../shared/services/authService'
 
 const NAV_GROUPS = [
   {
@@ -95,6 +96,7 @@ export const EmployeeSidebar = () => {
   const { sidebarOpen, toggleSidebar } = useUIStore()
   const { user, userDoc, clearUser } = useUserStore()
   const location = useLocation()
+  const navigate = useNavigate()
 
   // Determine which group contains the active route (auto-expand it)
   const getInitialExpanded = () => {
@@ -120,6 +122,16 @@ export const EmployeeSidebar = () => {
     ? ''
     : String(rawRole).trim()
   const roleLabel = jobRole || 'Employee Portal'
+
+  const handleSignOut = async () => {
+    try {
+      await logoutUser()
+    } catch (err) {
+      console.error('Sign out failed:', err)
+    }
+    clearUser()
+    navigate('/login', { replace: true })
+  }
 
   const isGroupActive = (group) =>
     group.items.some((item) => location.pathname.startsWith(item.path)) ||
@@ -281,7 +293,7 @@ export const EmployeeSidebar = () => {
 
         {/* Logout button */}
         <button
-          onClick={() => clearUser()}
+          onClick={handleSignOut}
           className={`w-full flex items-center gap-3 px-3 py-2 rounded-xl text-xs font-medium text-slate-500 hover:text-rose-500 dark:hover:text-rose-400 hover:bg-rose-50 dark:hover:bg-rose-500/10 transition-colors cursor-pointer ${!sidebarOpen && 'justify-center'}`}
         >
           <LogOut className="w-4 h-4 shrink-0" />

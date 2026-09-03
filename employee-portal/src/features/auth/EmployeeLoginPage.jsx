@@ -33,7 +33,7 @@ export const EmployeeLoginPage = () => {
     setError('')
 
     try {
-      const firebaseUser = await loginWithEmail(email, password)
+      const firebaseUser = await loginWithEmail(email.trim(), password)
       const claims = await fetchCustomClaims(firebaseUser)
       const userDoc = await getUserDoc(firebaseUser.uid)
       setUser(

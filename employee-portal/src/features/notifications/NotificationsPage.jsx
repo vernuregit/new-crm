@@ -193,10 +193,10 @@ export const NotificationsPage = () => {
           <button
             key={tab.id}
             onClick={() => setActiveTab(tab.id)}
-            className={`px-4 py-2 rounded-full text-sm font-medium transition-colors whitespace-nowrap flex items-center gap-2 ${
+            className={`px-4 py-2 rounded-full text-sm font-medium transition-colors cursor-pointer whitespace-nowrap flex items-center gap-2 ${
               activeTab === tab.id
                 ? 'bg-accent text-white'
-                : 'bg-surface text-muted border border-border hover:bg-chrome'
+                : 'bg-chrome text-fg border border-border hover:bg-surface'
             }`}
           >
             {tab.label}

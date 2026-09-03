@@ -233,7 +233,7 @@ export const ClientFiles = () => {
             className={`px-3.5 py-1.5 rounded-full text-xs font-semibold transition-all cursor-pointer whitespace-nowrap ${
               filterCategory === tab
                 ? 'bg-accent text-white shadow-xs'
-                : 'bg-surface text-muted hover:text-slate-900 dark:hover:text-slate-100 hover:bg-chrome border border-border'
+                : 'bg-chrome text-fg hover:bg-surface border border-border'
             }`}
           >
             {tab}

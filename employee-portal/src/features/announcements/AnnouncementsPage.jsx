@@ -58,10 +58,10 @@ export const AnnouncementsPage = () => {
           <button
             key={f}
             onClick={() => setFilter(f)}
-            className={`px-4 py-2 rounded-full text-sm font-medium transition-colors ${
-              filter === f 
-                ? 'bg-accent text-white' 
-                : 'bg-chrome text-muted hover:bg-border dark:hover:bg-chrome'
+            className={`px-4 py-2 rounded-full text-sm font-medium transition-colors cursor-pointer ${
+              filter === f
+                ? 'bg-accent text-white'
+                : 'bg-chrome text-fg border border-border hover:bg-surface'
             }`}
           >
             {f.charAt(0).toUpperCase() + f.slice(1)}

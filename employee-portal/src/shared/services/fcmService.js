@@ -24,9 +24,10 @@ export const ensureNotificationPermission = async () => {
 }
 
 export const unlockAnnouncementAudio = () => {
+  if (typeof navigator !== 'undefined' && navigator.userActivation && !navigator.userActivation.isActive) {
+    return
+  }
   try {
-    const ctx = new (window.AudioContext || window.webkitAudioContext)()
-    if (ctx.state === 'suspended') void ctx.resume()
     const audio = new Audio(ANNOUNCEMENT_SOUND)
     audio.volume = 0
     void audio.play().then(() => {

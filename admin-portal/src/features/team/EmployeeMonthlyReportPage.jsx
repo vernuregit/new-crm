@@ -355,7 +355,7 @@ export function EmployeeMonthlyReportPage() {
             <StatCard
               label="Present"
               value={att.presentDays ?? 0}
-              sub={`of ${att.workingDays ?? 0} working days`}
+              sub={`of ${att.workingDays ?? 0} working days (WFH counts as present)`}
               icon={CheckCircle2}
               accent="emerald"
             />
@@ -383,7 +383,7 @@ export function EmployeeMonthlyReportPage() {
             <StatCard
               label="LOP (unpaid)"
               value={leave.lopDays ?? leave.unpaidLeaveDays ?? 0}
-              sub="Loss of pay days"
+              sub={`${leave.unpaidDays ?? 0} unpaid days for salary (LOP + absent)`}
               icon={AlertCircle}
               accent="violet"
             />

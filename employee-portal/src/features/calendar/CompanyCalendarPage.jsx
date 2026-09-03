@@ -103,10 +103,10 @@ export const CompanyCalendarPage = () => {
               {currentDate.toLocaleString('default', { month: 'long', year: 'numeric' })}
             </h2>
             <div className="flex gap-2">
-              <button onClick={prevMonth} className="p-2 rounded-lg hover:bg-chrome text-muted">
+              <button onClick={prevMonth} className="p-2 rounded-lg hover:bg-chrome text-muted cursor-pointer">
                 <ChevronLeft className="w-5 h-5" />
               </button>
-              <button onClick={nextMonth} className="p-2 rounded-lg hover:bg-chrome text-muted">
+              <button onClick={nextMonth} className="p-2 rounded-lg hover:bg-chrome text-muted cursor-pointer">
                 <ChevronRight className="w-5 h-5" />
               </button>
             </div>

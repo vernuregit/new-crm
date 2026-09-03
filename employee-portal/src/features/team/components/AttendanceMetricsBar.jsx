@@ -1,7 +1,9 @@
-import React, { useState, useEffect } from 'react'
+import React, { useState, useEffect, useMemo } from 'react'
 import { Card } from '../../../components/ui/Card'
 import { useTeamStore, OFFICE_START_HOUR, OFFICE_START_MINUTE, LATE_GRACE_MINUTES } from '../stores/teamStore'
 import { formatTo12HourTime, computeLiveWorkedSeconds } from '../services/attendanceStatsUtils'
+import { getMorningPermissionExpectedStartMinutes } from '../services/leaveEntitlementUtils'
+import { useUserStore } from '../../../stores/userStore'
 import { UserCheck, LogIn, LogOut, Timer, AlertCircle } from 'lucide-react'
 
 export const AttendanceMetricsBar = () => {
@@ -14,7 +16,30 @@ export const AttendanceMetricsBar = () => {
     breakStartTime,
     accumulatedBreakSeconds,
     accumulatedWorkSeconds,
+    leaveRequests,
   } = useTeamStore()
+  const { user, userDoc } = useUserStore()
+
+  const todayStr = useMemo(() => {
+    const d = new Date()
+    return `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, '0')}-${String(d.getDate()).padStart(2, '0')}`
+  }, [])
+
+  const officeStartMinutes = OFFICE_START_HOUR * 60 + OFFICE_START_MINUTE
+  const expectedStartMinutes = useMemo(() => {
+    const uid = userDoc?.uid || user?.uid
+    return getMorningPermissionExpectedStartMinutes(
+      leaveRequests,
+      {
+        employeeId: uid,
+        uid,
+        employeeEmail: userDoc?.email || user?.email || '',
+        employeeName: userDoc?.displayName || user?.displayName || '',
+      },
+      todayStr,
+      officeStartMinutes
+    )
+  }, [leaveRequests, userDoc, user, todayStr, officeStartMinutes])
 
   const [elapsedSeconds, setElapsedSeconds] = useState(0)
 
@@ -88,7 +113,7 @@ export const AttendanceMetricsBar = () => {
     if (!clockInDate) return { text: 'On time', isLate: false }
 
     const officeStart = new Date(clockInDate)
-    officeStart.setHours(OFFICE_START_HOUR, OFFICE_START_MINUTE, 0, 0)
+    officeStart.setHours(Math.floor(expectedStartMinutes / 60), expectedStartMinutes % 60, 0, 0)
     const graceCutoff = new Date(officeStart.getTime() + LATE_GRACE_MINUTES * 60 * 1000)
 
     if (clockInDate.getTime() < graceCutoff.getTime()) {

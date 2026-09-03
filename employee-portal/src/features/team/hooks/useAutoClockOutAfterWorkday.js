@@ -14,7 +14,7 @@ export const useAutoClockOutAfterWorkday = () => {
   const { user, userDoc } = useUserStore()
   const activeUid = userDoc?.uid || user?.uid
   const displayName = resolveEmployeeDisplayName(
-    userDoc,
+    userDoc || {},
     { displayName: user?.displayName, email: user?.email || userDoc?.email },
     user?.email || 'Employee'
   )

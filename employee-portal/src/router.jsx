@@ -1,6 +1,6 @@
 import React from 'react'
 import { createBrowserRouter, Navigate } from 'react-router-dom'
-import { AppShell } from './components/layout/AppShell'
+import { AppShell, AppShellError } from './components/layout/AppShell'
 import { EmployeeLoginPage } from './features/auth/EmployeeLoginPage'
 import { EmployeeDashboard } from './features/dashboard/EmployeeDashboard'
 import { ProjectList } from './features/projects/ProjectList'
@@ -39,6 +39,7 @@ export const router = createBrowserRouter([
   {
     path: '/',
     element: <AppShell />,
+    errorElement: <AppShellError />,
     children: [
       { index: true, element: <Navigate to="/dashboard" replace /> },
       { path: 'dashboard', element: <EmployeeDashboard /> },

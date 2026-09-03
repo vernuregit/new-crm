@@ -16,12 +16,14 @@ import {
 } from './services/wfhPolicyUtils'
 import {
   applyLopConversion,
+  expandLeaveWorkingDates,
   countUsedPermissionHours,
   formatHoursAsHrsMins,
   formatLeaveDuration,
   formatLeaveTypeLabel,
   hoursBetween,
   PERMISSION_LEAVE_TYPE,
+  EMERGENCY_LEAVE_TYPE,
   resolveLeaveLimits,
   resolvePermissionHours,
 } from './services/leaveEntitlementUtils'
@@ -46,6 +48,7 @@ const LEAVE_TYPE_OPTIONS = [
   'Annual Leave',
   'Sick Leave',
   'Casual Leave',
+  'Emergency Leave',
   'Permission',
   'Work From Home',
   'On Duty',
@@ -183,6 +186,7 @@ export const LeaveManagement = () => {
 
     const isUrgentLeave =
       leaveType === 'Sick Leave' ||
+      leaveType === EMERGENCY_LEAVE_TYPE ||
       leaveType === 'LOP (Loss of Pay)' ||
       leaveType === 'Work From Home' ||
       leaveType === 'On Duty' ||
@@ -197,7 +201,7 @@ export const LeaveManagement = () => {
     // Non-urgent types (except Casual, already checked) still need 3-day advance
     if (!isUrgentLeave && leaveType !== 'Casual Leave' && diffDays < 3) {
       setValidationError(
-        'Standard leave must be requested at least 3 days in advance. Select "Sick Leave", "LOP (Loss of Pay)", "Work From Home", "On Duty", or "Permission" for urgent requests.'
+        'Standard leave must be requested at least 3 days in advance. Select "Sick Leave", "Emergency Leave", "LOP (Loss of Pay)", "Work From Home", "On Duty", or "Permission" for urgent requests.'
       )
       return
     }
@@ -240,11 +244,12 @@ export const LeaveManagement = () => {
     const resolvedEnd = singleDayOnly ? resolvedStart : (endDate || resolvedStart)
     const daysCount = isPermission
       ? 0
-      : singleDayOnly
-        ? 1
-        : startDate && endDate
-          ? Math.max(1, Math.round((new Date(endDate) - new Date(startDate)) / 86400000) + 1)
-          : 1
+      : expandLeaveWorkingDates(resolvedStart, resolvedEnd).length
+
+    if (!isPermission && daysCount === 0) {
+      setValidationError('Selected dates fall on Sunday or a company holiday. Pick working days only.')
+      return
+    }
 
     const conversion = applyLopConversion({
       requestedType: leaveType,
@@ -827,6 +832,7 @@ export const LeaveManagement = () => {
                   <option value="Annual Leave" className="bg-surface text-fg">Annual Leave</option>
                   <option value="Sick Leave" className="bg-surface text-fg">Sick Leave</option>
                   <option value="Casual Leave" className="bg-surface text-fg">Casual Leave</option>
+                  <option value="Emergency Leave" className="bg-surface text-fg">Emergency Leave</option>
                   <option value="Permission" className="bg-surface text-fg">
                     Permission ({formatHoursAsHrsMins(resolvePermissionHours(selectedEmployee || {}))}/month · no approval)
                   </option>
@@ -844,6 +850,11 @@ export const LeaveManagement = () => {
                     {selectedWfhPolicy.mode === 'full' ? ' (no leave request needed)' : ''}
                     {selectedWfhPolicy.mode === 'monthly' ? ' (admin approval for employee requests)' : ''}
                     {selectedWfhPolicy.mode === 'weekly' ? ' (employee chooses WFH/Office at Check In)' : ''}
+                  </p>
+                )}
+                {leaveType === EMERGENCY_LEAVE_TYPE && (
+                  <p className="text-[11px] text-muted mt-1">
+                    Same-day allowed. Shows as dark red on the attendance calendar. Does not use Casual/Sick quota.
                   </p>
                 )}
                 {leaveType === PERMISSION_LEAVE_TYPE && selectedEmployee && (

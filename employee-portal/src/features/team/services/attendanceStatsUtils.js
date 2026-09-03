@@ -229,17 +229,24 @@ export function isPlaceholderDisplayName(value) {
 }
 
 export function resolveEmployeeDisplayName(emp = {}, log = {}, fallback = '—') {
-  const emailLocal = String(emp.email || log.email || '').split('@')[0]
+  const employee = emp && typeof emp === 'object' ? emp : {}
+  const attendanceLog = log && typeof log === 'object' ? log : {}
+  const emailLocal = String(employee.email || attendanceLog.email || '').split('@')[0]
   const candidates = [
-    emp.displayName,
-    emp.name,
-    emp.fullName,
-    log.displayName,
-    log.name,
+    employee.displayName,
+    employee.name,
+    employee.fullName,
+    attendanceLog.displayName,
+    attendanceLog.name,
     emailLocal,
   ]
   for (const candidate of candidates) {
     if (!isPlaceholderDisplayName(candidate)) return String(candidate).trim()
   }
   return fallback
+}
+
+export function getNameInitial(name, fallback = 'U') {
+  const match = String(name || '').match(/[\p{L}\p{N}]/u)
+  return match ? match[0].toUpperCase() : fallback
 }

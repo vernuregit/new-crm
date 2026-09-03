@@ -10,11 +10,15 @@ import {
   getCappedRegularSeconds,
   getLateInfo,
   isAttendancePresent,
+  OFFICE_START_MINUTES,
 } from './attendanceStatsUtils'
 import {
   classifyApprovedLeaveByDate,
   resolveLeaveLimits,
   formatLeaveTypeLabel,
+  getMorningPermissionExpectedStartMinutes,
+  isPermissionLeave,
+  expandLeaveWorkingDates,
 } from './leaveEntitlementUtils'
 
 /**
@@ -174,9 +178,9 @@ export function leaveMatchesEmployee(leave, employee) {
  * @param {string} month
  * @returns {string[]}
  */
-export function leaveDatesInMonth(leave, month) {
+export function leaveDatesInMonth(leave, month, holidays = []) {
   const { start, end } = getMonthDateBounds(month)
-  return expandDateRange(leave.startDate, leave.endDate || leave.startDate).filter(
+  return expandLeaveWorkingDates(leave.startDate, leave.endDate || leave.startDate, holidays).filter(
     (d) => d >= start && d <= end
   )
 }
@@ -225,11 +229,12 @@ export function buildEmployeeMonthlyReport({
       employeeEmail: employee?.email || '',
       employeeName: employee?.displayName || employee?.name || '',
     },
-    resolveLeaveLimits(employee)
+    resolveLeaveLimits(employee),
+    holidays
   )
   const leaveByDate = {}
   empLeaves.forEach((leave) => {
-    leaveDatesInMonth(leave, month).forEach((d) => {
+    leaveDatesInMonth(leave, month, holidays).forEach((d) => {
       if (!leaveByDate[d]) leaveByDate[d] = []
       leaveByDate[d].push(leave)
     })
@@ -264,7 +269,11 @@ export function buildEmployeeMonthlyReport({
 
   const daily = workingDaysList.map((date) => {
     const log = logsByDate[date]
-    const present = isAttendancePresent(log)
+    const classified = classifiedByDate[date]
+    const isPaidWfh = classified?.status === 'wfh'
+    const isLop = classified?.status === 'lop'
+    const presentFromLog = isAttendancePresent(log)
+    const present = !isLop && (presentFromLog || isPaidWfh)
     const onDuty = Boolean(log?.onDuty || log?.source === 'on_duty')
     const clockInTime = log?.clockInTime && log.clockInTime !== '—' ? log.clockInTime : null
     const clockOutTime =
@@ -273,36 +282,59 @@ export function buildEmployeeMonthlyReport({
         : log?.clockOutTime === 'In office'
           ? 'In office'
           : null
-    const { isLate, lateMinutes } = present && clockInTime
-      ? getLateInfo(clockInTime)
+    const empFilter = {
+      employeeId: uid,
+      uid,
+      employeeEmail: employee?.email || '',
+      employeeName: employee?.displayName || employee?.name || '',
+    }
+    const expectedStart = getMorningPermissionExpectedStartMinutes(
+      empLeaves,
+      empFilter,
+      date,
+      OFFICE_START_MINUTES
+    )
+    const { isLate, lateMinutes } = presentFromLog && clockInTime
+      ? getLateInfo(clockInTime, expectedStart)
       : { isLate: false, lateMinutes: 0 }
     const regularSeconds = getCappedRegularSeconds(log)
     const extraSeconds = Number(log?.extraSeconds) || Number(log?.accumulatedExtraSeconds) || 0
 
     const dayLeaves = leaveByDate[date] || []
     const approvedLeave = dayLeaves.find((l) => l.status === 'approved')
-    const classified = classifiedByDate[date]
     const leaveType = classified?.leaveType || approvedLeave?.leaveType || (dayLeaves[0]?.leaveType ?? null)
 
     const isFuture = date > todayStr
     const isBeforeJoin = Boolean(accountStart && date < accountStart)
-    // Eligible for absence: on/after account start, not future, no approved leave
-    const canBeAbsent = !isFuture && !isBeforeJoin && !approvedLeave
+    const fullDayApprovedLeave = dayLeaves.find(
+      (l) =>
+        l.status === 'approved' &&
+        !isPermissionLeave(l) &&
+        String(l.leaveType || '') !== 'On Duty' &&
+        String(l.requestedLeaveType || '') !== 'On Duty'
+    )
+    // Eligible for absence: on/after account start, not future, no full-day approved leave
+    const canBeAbsent = !isFuture && !isBeforeJoin && !fullDayApprovedLeave
 
     if (present && !isBeforeJoin) {
       presentDays += 1
       if (onDuty) onDutyDays += 1
-      if (isLate) lateDays += 1
-      else if (clockInTime) onTimeDays += 1
-      totalRegularSeconds += regularSeconds
-      totalExtraSeconds += extraSeconds
-    } else if (canBeAbsent && !present) {
+      if (presentFromLog && clockInTime) {
+        if (isLate) lateDays += 1
+        else onTimeDays += 1
+      }
+      if (presentFromLog) {
+        totalRegularSeconds += regularSeconds
+        totalExtraSeconds += extraSeconds
+      }
+    } else if (canBeAbsent && !present && !isPaidWfh) {
       absentDays += 1
     }
 
     return {
       date,
       present,
+      wfh: isPaidWfh,
       late: isLate,
       lateMinutes,
       clockInTime: clockInTime ? formatTo12HourTime(clockInTime) : null,
@@ -332,15 +364,18 @@ export function buildEmployeeMonthlyReport({
   const byType = {}
   const requestSummaries = []
   let lopDays = 0
+  const workingSet = new Set(workingDaysList)
   Object.entries(classifiedByDate).forEach(([date, info]) => {
     if (!date.startsWith(month)) return
+    if (!workingSet.has(date)) return
+    if (accountStart && date < accountStart) return
     const type = info.leaveType || 'Leave'
     byType[type] = (byType[type] || 0) + 1
     if (info.status === 'lop') lopDays += 1
   })
 
   empLeaves.forEach((leave) => {
-    const daysInMonth = leaveDatesInMonth(leave, month)
+    const daysInMonth = leaveDatesInMonth(leave, month, holidays)
     if (daysInMonth.length === 0) return
     const count = daysInMonth.length
     const type = formatLeaveTypeLabel(leave)
@@ -360,6 +395,7 @@ export function buildEmployeeMonthlyReport({
   })
 
   const isCurrentMonth = month === currentMonthStr()
+  const unpaidDays = lopDays + absentDays
 
   return {
     uid,
@@ -373,6 +409,7 @@ export function buildEmployeeMonthlyReport({
     status: isCurrentMonth ? 'draft' : 'final',
     attendance: {
       workingDays,
+      eligibleWorkingDays,
       presentDays,
       absentDays,
       onDutyDays,
@@ -392,6 +429,7 @@ export function buildEmployeeMonthlyReport({
       pendingDays,
       lopDays,
       unpaidLeaveDays: lopDays,
+      unpaidDays,
       byType,
       requests: requestSummaries,
     },
@@ -431,6 +469,7 @@ export function monthlyReportToCsv(report) {
   lines.push('Metric,Value')
   const a = report.attendance || {}
   lines.push(`Working Days,${a.workingDays ?? ''}`)
+  lines.push(`Eligible Working Days,${a.eligibleWorkingDays ?? ''}`)
   lines.push(`Present Days,${a.presentDays ?? ''}`)
   lines.push(`Absent Days,${a.absentDays ?? ''}`)
   lines.push(`Late Days,${a.lateDays ?? ''}`)
@@ -443,6 +482,7 @@ export function monthlyReportToCsv(report) {
   lines.push(`Total Extra Hours,${csvEscape(a.totalExtraHoursLabel)}`)
   lines.push(`Leave Approved Days,${report.leave?.approvedDays ?? ''}`)
   lines.push(`LOP Unpaid Days,${report.leave?.lopDays ?? report.leave?.unpaidLeaveDays ?? ''}`)
+  lines.push(`Unpaid Days (LOP + Absent),${report.leave?.unpaidDays ?? ''}`)
   lines.push(`Leave Pending Days,${report.leave?.pendingDays ?? ''}`)
   lines.push(`Timeline Hours,${report.timeline?.totalHours ?? ''}`)
   lines.push('')

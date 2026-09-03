@@ -8,6 +8,9 @@ export const Badge = ({ children, variant = 'info', className = '' }) => {
     danger: 'bg-danger-soft text-danger border-danger/20',
     neutral: 'bg-chrome text-muted border-border',
     brand: 'bg-accent-soft text-accent border-accent/20',
+    outline: 'bg-chrome text-fg border-border',
+    default: 'bg-chrome text-fg border-border',
+    primary: 'bg-accent-soft text-accent border-accent/20',
   }
 
   return (
