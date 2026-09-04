@@ -24,14 +24,24 @@ messaging.onBackgroundMessage((payload) => {
     })
   }
 
-  const title = payload.notification?.title || payload.data?.title || 'New Announcement'
+  const title =
+    payload.notification?.title ||
+    payload.data?.title ||
+    (type === 'payslip' ? 'Check your balance' : 'New Announcement')
   const body = payload.notification?.body || payload.data?.body || payload.data?.message || ''
-  const url = payload.data?.link || '/announcements'
+  const url = payload.data?.link || (type === 'payslip' ? '/payslips' : '/announcements')
+  const tag =
+    payload.data?.tag ||
+    (type === 'payslip'
+      ? `payslip-${payload.data?.itemId || title}`
+      : announcementId
+        ? `announcement-${announcementId}`
+        : 'announcement')
 
   return self.registration.showNotification(title, {
     body,
     icon: '/halologo.png',
-    tag: announcementId ? `announcement-${announcementId}` : 'announcement',
+    tag,
     silent: false,
     data: { url },
   })

@@ -8,12 +8,14 @@ import { getUserDoc } from '../../shared/services/authService'
 import { useWellnessNotifications } from '../../features/wellness/hooks/useWellnessNotifications'
 import { useAutoClockOutAfterWorkday } from '../../features/team/hooks/useAutoClockOutAfterWorkday'
 import { useAnnouncementBrowserAlerts } from '../../features/announcements/hooks/useAnnouncementBrowserAlerts'
+import { usePayslipBrowserAlerts } from '../../features/payslips/hooks/usePayslipBrowserAlerts'
 
 export const AppShell = () => {
   const { sidebarOpen } = useUIStore()
   const { user, claims, setUser } = useUserStore()
 
   useAnnouncementBrowserAlerts(user?.uid)
+  usePayslipBrowserAlerts(user?.uid)
 
   useEffect(() => {
     if (!user?.uid) return

@@ -29,7 +29,7 @@ export const useAnnouncementBrowserAlerts = (userId) => {
         closeAnnouncementNotification(payload?.data?.announcementId)
         return
       }
-      if (type && type !== 'announcement') return
+      if (type && type !== 'announcement' && type !== 'payslip') return
       void showForegroundAnnouncementNotification(payload)
     })
 

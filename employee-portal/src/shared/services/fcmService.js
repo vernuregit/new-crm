@@ -123,18 +123,25 @@ export const closeAnnouncementNotification = (announcementId) => {
     .catch(() => {})
 }
 
-export const showForegroundAnnouncementNotification = async (payload) => {
+export const showForegroundBrowserNotification = async (payload) => {
   const type = payload?.data?.type
   if (type === 'announcement_deleted') {
     closeAnnouncementNotification(payload?.data?.announcementId)
     return
   }
 
-  const title = payload?.notification?.title || payload?.data?.title || 'New Announcement'
+  const title =
+    payload?.notification?.title ||
+    payload?.data?.title ||
+    (type === 'payslip' ? 'Check your balance' : 'New Announcement')
   const body = payload?.notification?.body || payload?.data?.body || payload?.data?.message || ''
-  const link = payload?.data?.link || '/announcements'
+  const link =
+    payload?.data?.link ||
+    (type === 'payslip' ? '/payslips' : '/announcements')
   const announcementId = payload?.data?.announcementId ? String(payload.data.announcementId) : ''
-  const tag = announcementId ? `announcement-${announcementId}` : `announcement-${title}`
+  const tag =
+    payload?.data?.tag ||
+    (announcementId ? `announcement-${announcementId}` : `${type || 'announcement'}-${title}`)
 
   if (announcementId && suppressedAnnouncementIds.has(announcementId)) return
 
@@ -175,6 +182,9 @@ export const showForegroundAnnouncementNotification = async (payload) => {
     // Fallback: in-app bell still updates via Firestore.
   }
 }
+
+export const showForegroundAnnouncementNotification = (payload) =>
+  showForegroundBrowserNotification(payload)
 
 export const onForegroundMessage = (callback) => {
   if (!messaging) return () => {}

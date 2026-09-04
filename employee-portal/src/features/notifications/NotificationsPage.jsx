@@ -12,6 +12,8 @@ const getIconForType = (type) => {
   switch (type) {
     case 'announcement':
       return <Megaphone className="w-5 h-5 text-amber-500" />
+    case 'payslip':
+      return <DollarSign className="w-5 h-5 text-emerald-500" />
     case 'finance':
       return <DollarSign className="w-5 h-5 text-emerald-500" />
     case 'project':
@@ -30,6 +32,8 @@ const getBgForType = (type) => {
   switch (type) {
     case 'announcement':
       return 'bg-amber-50 dark:bg-amber-500/10'
+    case 'payslip':
+      return 'bg-emerald-50 dark:bg-emerald-500/10'
     case 'finance':
       return 'bg-emerald-50 dark:bg-emerald-500/10'
     case 'project':

@@ -29,6 +29,8 @@ export const NotificationCenter = () => {
     switch (type) {
       case 'announcement':
         return <Megaphone className="w-4 h-4 text-amber-500" />
+      case 'payslip':
+        return <DollarSign className="w-4 h-4 text-emerald-600 dark:text-emerald-400" />
       case 'finance':
         return <DollarSign className="w-4 h-4 text-emerald-600 dark:text-emerald-400" />
       case 'crm':

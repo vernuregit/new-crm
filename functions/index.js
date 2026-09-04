@@ -429,5 +429,81 @@ async function sendAnnouncementDeletedWebPush({ usersSnap, employeeIds, announce
   }
 }
 
+async function collectTokensForUserIds(userIds) {
+  const tokenToUserIds = new Map()
+  await Promise.all(
+    Array.from(userIds).map(async (uid) => {
+      if (!uid) return
+      const snap = await db.collection('users').doc(uid).get()
+      if (!snap.exists) return
+      const tokens = Array.isArray(snap.data()?.fcmTokens) ? snap.data().fcmTokens : []
+      tokens.forEach((token) => {
+        if (!token || typeof token !== 'string') return
+        if (!tokenToUserIds.has(token)) tokenToUserIds.set(token, new Set())
+        tokenToUserIds.get(token).add(uid)
+      })
+    })
+  )
+  return tokenToUserIds
+}
+
+exports.onPayslipInboxItemCreated = onDocumentCreated(
+  'notifications/{empId}/items/{itemId}',
+  async (event) => {
+    const item = event.data?.data()
+    if (!item || item.type !== 'payslip') return
+
+    const empId = event.params.empId
+    const itemId = event.params.itemId
+    const targetUid = item.targetUid || empId
+    if (empId !== targetUid) return
+
+    const title = item.title || 'Check your balance'
+    const body = item.message || 'Check your balance.'
+    const userIds = new Set([empId, targetUid, item.targetUid].filter(Boolean))
+
+    try {
+      const empSnap = await db.collection('employees').doc(empId).get()
+      if (empSnap.exists && empSnap.data()?.uid) userIds.add(empSnap.data().uid)
+
+      const tokenToUserIds = await collectTokensForUserIds(userIds)
+      const tokens = Array.from(tokenToUserIds.keys())
+      if (tokens.length === 0) {
+        console.log(`[Payslips] No FCM tokens for ${empId}. Inbox notification still written.`)
+        return
+      }
+
+      const portalBase = (process.env.EMPLOYEE_PORTAL_URL || 'http://localhost:3002').replace(/\/$/, '')
+      const link = `${portalBase}/payslips`
+      const tag = `payslip-${itemId}`
+
+      const response = await admin.messaging().sendEachForMulticast({
+        tokens,
+        notification: { title, body },
+        data: {
+          type: 'payslip',
+          itemId: String(itemId),
+          link: '/payslips',
+          tag,
+        },
+        webpush: {
+          notification: {
+            title,
+            body,
+            silent: false,
+            tag,
+          },
+          fcmOptions: { link },
+        },
+      })
+
+      await pruneStaleFcmTokens(tokens, response.responses, tokenToUserIds)
+      console.log(`[Payslips] FCM web push sent ${response.successCount}/${tokens.length} for ${empId}.`)
+    } catch (err) {
+      console.error('[Payslips] Error sending payslip web push:', err)
+    }
+  }
+)
+
 exports.askAdminAssistant = createAskAdminAssistant(db)
 
