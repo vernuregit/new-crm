@@ -62,7 +62,7 @@ export const EmployeeLoginPage = () => {
 
       <Card className="w-full max-w-md p-8 relative z-10 space-y-6">
         <div className="text-center space-y-2">
-          <div className="inline-flex w-20 h-20 rounded-full bg-surface p-2 items-center justify-center border border-border shadow-sm mb-2">
+          <div className="inline-flex w-20 h-20 rounded-full bg-white p-2 items-center justify-center border border-slate-200 dark:border-white/30 shadow-sm mb-2">
             <img src={haloLogo} alt="The Halo Effect Consulting" className="w-full h-full object-contain rounded-full" />
           </div>
           <h2 className="text-2xl font-bold text-fg tracking-tight">Employee portal</h2>

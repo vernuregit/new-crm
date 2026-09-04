@@ -98,7 +98,7 @@ export const Sidebar = () => {
       {/* Brand Header */}
       <div className="h-16 flex items-center justify-between px-3 border-b border-border">
         <div className="flex items-center gap-2 overflow-hidden">
-          <div className="w-11 h-11 bg-surface p-1 rounded-full border border-border shadow-sm flex items-center justify-center shrink-0">
+          <div className="w-11 h-11 bg-white p-1 rounded-full border border-slate-200 dark:border-white/30 shadow-sm flex items-center justify-center shrink-0">
             <img src={haloLogo} alt="The Halo Effect Consulting" className="w-full h-full object-contain rounded-full" />
           </div>
           {sidebarOpen && (

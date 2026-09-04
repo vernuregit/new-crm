@@ -15,6 +15,8 @@ import {
   toggleProcessStepStatus,
   deleteProcessStep,
   getClientVisibility,
+  getProjectDisplayStatus,
+  getProjectStartDate,
 } from './services/projectService'
 import {
   ArrowLeft,
@@ -32,6 +34,7 @@ import {
   Clock,
   Building,
   User,
+  Calendar,
   ChevronDown,
   X,
   Send,
@@ -261,6 +264,8 @@ export const ProjectManagePage = () => {
     )
   }
 
+  const displayStatus = getProjectDisplayStatus(project)
+
   return (
     <div className="space-y-7 max-w-6xl mx-auto pb-16">
       <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4">
@@ -277,8 +282,8 @@ export const ProjectManagePage = () => {
           </div>
           <h1 className="text-2xl font-bold text-fg tracking-tight flex items-center gap-3">
             {project.name}
-            <Badge variant={project.status === 'active' ? 'success' : project.status === 'completed' ? 'brand' : 'warning'}>
-              {project.status}
+            <Badge variant={displayStatus === 'active' ? 'success' : displayStatus === 'completed' ? 'brand' : 'warning'}>
+              {displayStatus === 'on_hold' ? 'on hold' : displayStatus}
             </Badge>
           </h1>
           <p className="text-xs text-muted">Stages you add stay hidden from the client until an admin approves them.</p>
@@ -303,6 +308,9 @@ export const ProjectManagePage = () => {
             </p>
             <p className="text-xs text-muted flex items-center gap-1">
               <User className="w-3 h-3" /> Lead: {project.ownerName || 'Unassigned'}
+            </p>
+            <p className="text-xs text-amber-600 dark:text-amber-400 font-semibold flex items-center gap-1">
+              <Calendar className="w-3 h-3" /> Start: {getProjectStartDate(project) || '—'}
             </p>
           </div>
         </div>

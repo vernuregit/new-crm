@@ -40,6 +40,7 @@ const SINGLE_DAY_LEAVE_TYPES = new Set([
 ])
 
 const isSingleDayLeaveType = (type) => SINGLE_DAY_LEAVE_TYPES.has(type)
+const ON_DUTY_BACKDATE_DAYS = 3
 
 const FILTER_SELECT_CLASS =
   'w-full bg-canvas border border-border text-fg text-xs rounded-xl py-2.5 px-3 focus:outline-none focus:border-accent focus:ring-1 focus:ring-accent transition-all cursor-pointer'
@@ -153,6 +154,16 @@ export const LeaveManagement = () => {
   )
   const selectedWfhPolicy = resolveEmployeeWfhPolicy(selectedEmployee || {})
   const singleDayOnly = isSingleDayLeaveType(leaveType)
+  const onDutyMinDate = useMemo(() => {
+    const cursor = new Date()
+    cursor.setHours(0, 0, 0, 0)
+    cursor.setDate(cursor.getDate() - ON_DUTY_BACKDATE_DAYS)
+    const y = cursor.getFullYear()
+    const m = String(cursor.getMonth() + 1).padStart(2, '0')
+    const d = String(cursor.getDate()).padStart(2, '0')
+    return `${y}-${m}-${d}`
+  }, [])
+  const dateMin = leaveType === 'On Duty' ? onDutyMinDate : undefined
 
   useEffect(() => {
     if (!selectedWfhPolicy.canRequest && leaveType === 'Work From Home') {
@@ -192,8 +203,15 @@ export const LeaveManagement = () => {
       leaveType === 'On Duty' ||
       leaveType === PERMISSION_LEAVE_TYPE
 
-    // LOP may be recorded for past dates; other types cannot use past dates
-    if (leaveType !== 'LOP (Loss of Pay)' && diffDays < 0) {
+    // LOP may be recorded for any past date; On Duty allows the previous 3 dates
+    if (leaveType === 'On Duty' && diffDays < -ON_DUTY_BACKDATE_DAYS) {
+      setValidationError(
+        `On Duty can be applied only up to the previous ${ON_DUTY_BACKDATE_DAYS} dates.`
+      )
+      return
+    }
+
+    if (leaveType !== 'LOP (Loss of Pay)' && leaveType !== 'On Duty' && diffDays < 0) {
       setValidationError('Past dates cannot be selected for this leave type.')
       return
     }
@@ -841,7 +859,7 @@ export const LeaveManagement = () => {
                       Work From Home ({getWfhAllowanceLabel(selectedWfhPolicy)})
                     </option>
                   )}
-                  <option value="On Duty" className="bg-surface text-fg">On Duty (outdoor / official work)</option>
+                  <option value="On Duty" className="bg-surface text-fg">On Duty (outdoor / official work · previous {ON_DUTY_BACKDATE_DAYS} dates)</option>
                   <option value="LOP (Loss of Pay)" className="bg-surface text-fg">LOP (Loss of Pay)</option>
                 </select>
                 {selectedEmployee && (
@@ -855,6 +873,11 @@ export const LeaveManagement = () => {
                 {leaveType === EMERGENCY_LEAVE_TYPE && (
                   <p className="text-[11px] text-muted mt-1">
                     Same-day allowed. Shows as dark red on the attendance calendar. Does not use Casual/Sick quota.
+                  </p>
+                )}
+                {leaveType === 'On Duty' && (
+                  <p className="text-[11px] text-muted mt-1">
+                    Can be applied for today and up to the previous {ON_DUTY_BACKDATE_DAYS} dates. Counts as present when approved.
                   </p>
                 )}
                 {leaveType === PERMISSION_LEAVE_TYPE && selectedEmployee && (
@@ -885,6 +908,7 @@ export const LeaveManagement = () => {
                   <Input
                     label="Leave Date"
                     type="date"
+                    min={dateMin}
                     value={startDate}
                     onChange={(e) => {
                       setStartDate(e.target.value)
@@ -904,12 +928,14 @@ export const LeaveManagement = () => {
                     <Input
                       label="Start Date"
                       type="date"
+                      min={dateMin}
                       value={startDate}
                       onChange={(e) => setStartDate(e.target.value)}
                     />
                     <Input
                       label="End Date"
                       type="date"
+                      min={dateMin}
                       value={endDate}
                       onChange={(e) => setEndDate(e.target.value)}
                     />

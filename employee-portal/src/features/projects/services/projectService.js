@@ -178,6 +178,19 @@ export const computeProjectMetrics = (projectId, tasks = []) => {
   }
 }
 
+export const getProjectDisplayStatus = (project) => {
+  const stored = String(project?.status || 'active').toLowerCase()
+  if (stored === 'on_hold') return 'on_hold'
+  const total = Number(project?.totalTaskCount) || 0
+  const done = Number(project?.completedTaskCount) || 0
+  const pct = Number(project?.completionPercent) || 0
+  if ((total > 0 && done >= total) || pct >= 100) return 'completed'
+  return stored || 'active'
+}
+
+export const getProjectStartDate = (project) =>
+  project?.startDate || project?.estimatedDate || project?.dueDate || ''
+
 // ─── Fetch Task Statuses ───────────────────────────────────────────────────────
 export const getTaskStatusesFromDb = async () => {
   try {
@@ -267,7 +280,8 @@ export const createProjectInDb = async (projData) => {
       totalTaskCount: projData.totalTaskCount || 0,
       completedTaskCount: projData.completedTaskCount || 0,
       totalHoursLogged: projData.totalHoursLogged || 0,
-      estimatedDate: projData.estimatedDate || null,
+      estimatedDate: projData.estimatedDate || projData.startDate || null,
+      startDate: projData.startDate || projData.estimatedDate || null,
       createdAt: serverTimestamp(),
     }
     await setDoc(doc(db, 'projects', projectId), payload)
@@ -324,13 +338,20 @@ export const updateProjectMembersInDb = async (projectId, members) => {
 export const updateProjectStatsInDb = async (projectId, stats) => {
   try {
     if (!projectId || !stats) return
-    await updateDoc(doc(db, 'projects', projectId), {
-      totalTaskCount: Number(stats.totalTaskCount) || 0,
-      completedTaskCount: Number(stats.completedTaskCount) || 0,
-      completionPercent: Number(stats.completionPercent) || 0,
+    const totalTaskCount = Number(stats.totalTaskCount) || 0
+    const completedTaskCount = Number(stats.completedTaskCount) || 0
+    const completionPercent = Number(stats.completionPercent) || 0
+    const payload = {
+      totalTaskCount,
+      completedTaskCount,
+      completionPercent,
       totalHoursLogged: Number(stats.totalHoursLogged) || 0,
       updatedAt: serverTimestamp(),
-    })
+    }
+    if (totalTaskCount > 0 && completedTaskCount >= totalTaskCount) {
+      payload.status = 'completed'
+    }
+    await updateDoc(doc(db, 'projects', projectId), payload)
   } catch (err) {
     console.error('Error updating project stats in Firestore:', err)
   }

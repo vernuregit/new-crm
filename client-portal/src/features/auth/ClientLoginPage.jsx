@@ -109,7 +109,7 @@ export const ClientLoginPage = () => {
 
       <Card className="w-full max-w-md p-8 relative z-10 border-emerald-200/80 dark:border-emerald-500/30 shadow-xl dark:shadow-2xl space-y-6">
         <div className="text-center space-y-2">
-          <div className="inline-flex w-20 h-20 rounded-full bg-chrome/90 p-2 items-center justify-center border border-border/80 shadow-md mb-2">
+          <div className="inline-flex w-20 h-20 rounded-full bg-white p-2 items-center justify-center border border-slate-200 dark:border-white/30 shadow-md mb-2">
             <img src={haloLogo} alt="The Halo Effect Consulting" className="w-full h-full object-contain rounded-full" />
           </div>
           <h2 className="text-2xl font-bold text-fg tracking-tight">Client Portal Sign In</h2>

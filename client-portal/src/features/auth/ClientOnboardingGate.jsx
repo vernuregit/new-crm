@@ -257,7 +257,7 @@ export const ClientOnboardingGate = () => {
         <Card className="w-full max-w-2xl p-8 relative z-10 border-border shadow-xl dark:shadow-2xl space-y-6">
           <div className="flex items-center justify-between border-b border-border pb-5">
             <div className="flex items-center gap-3">
-              <div className="w-10 h-10 rounded-full bg-chrome p-1 border border-border flex items-center justify-center shrink-0">
+              <div className="w-10 h-10 rounded-full bg-white p-1 border border-slate-200 dark:border-white/30 flex items-center justify-center shrink-0">
                 <img src={haloLogo} alt="Logo" className="w-full h-full object-contain rounded-full" />
               </div>
               <div>
@@ -357,7 +357,7 @@ export const ClientOnboardingGate = () => {
       {/* Top Header */}
       <div className="max-w-4xl w-full mx-auto flex items-center justify-between mb-8 pb-4 border-b border-border">
         <div className="flex items-center gap-3">
-          <div className="w-10 h-10 rounded-full bg-chrome p-1 border border-border flex items-center justify-center shrink-0">
+          <div className="w-10 h-10 rounded-full bg-white p-1 border border-slate-200 dark:border-white/30 flex items-center justify-center shrink-0">
             <img src={haloLogo} alt="Logo" className="w-full h-full object-contain rounded-full" />
           </div>
           <div>

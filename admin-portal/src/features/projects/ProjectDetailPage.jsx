@@ -17,6 +17,8 @@ import {
   deleteProcessStep,
   setProcessStepClientVisibility,
   getClientVisibility,
+  getProjectDisplayStatus,
+  getProjectStartDate,
 } from './services/projectService'
 import {
   ArrowLeft,
@@ -192,7 +194,7 @@ export const ProjectDetailPage = () => {
         setEditBudget(data.budget !== undefined ? String(data.budget) : '')
         setEditDescription(data.description || '')
         setEditStatus(data.status || 'active')
-        setEditEstimatedDate(data.estimatedDate || data.dueDate || '')
+        setEditEstimatedDate(data.startDate || data.estimatedDate || data.dueDate || '')
       }
       setLoading(false)
     }
@@ -364,6 +366,7 @@ export const ProjectDetailPage = () => {
         description: editDescription,
         status: editStatus,
         estimatedDate: editEstimatedDate || null,
+        startDate: editEstimatedDate || null,
       }
 
       await updateProjectInDb(projectId, updates)
@@ -433,14 +436,14 @@ export const ProjectDetailPage = () => {
             {project.name}
             <Badge
               variant={
-                project.status === 'active'
+                getProjectDisplayStatus(project) === 'active'
                   ? 'success'
-                  : project.status === 'completed'
+                  : getProjectDisplayStatus(project) === 'completed'
                   ? 'brand'
                   : 'warning'
               }
             >
-              {project.status}
+              {getProjectDisplayStatus(project) === 'on_hold' ? 'on hold' : getProjectDisplayStatus(project)}
             </Badge>
           </h1>
         </div>
@@ -499,17 +502,15 @@ export const ProjectDetailPage = () => {
 
           <div className="space-y-1">
             <span className="text-[11px] font-bold text-slate-400 uppercase tracking-wider">
-              Budget & Target Date
+              Budget & Start Date
             </span>
             <div className="text-xs text-fg space-y-0.5">
               <p className="font-semibold text-emerald-600 dark:text-emerald-400">
                 {project.budget ? `₹${Number(project.budget).toLocaleString()}` : 'Not Specified'}
               </p>
-              {project.estimatedDate && (
-                <p className="flex items-center gap-1 text-amber-600 dark:text-amber-400">
-                  <Calendar className="w-3 h-3" /> Due: {project.estimatedDate}
-                </p>
-              )}
+              <p className="flex items-center gap-1 text-amber-600 dark:text-amber-400">
+                <Calendar className="w-3 h-3" /> Start: {getProjectStartDate(project) || '—'}
+              </p>
             </div>
           </div>
         </div>
@@ -1138,7 +1139,7 @@ export const ProjectDetailPage = () => {
               </div>
 
               <Input
-                label="Target / Due Date"
+                label="Start Date"
                 type="date"
                 value={editEstimatedDate}
                 onChange={(e) => setEditEstimatedDate(e.target.value)}

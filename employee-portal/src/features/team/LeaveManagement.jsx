@@ -40,6 +40,7 @@ const SINGLE_DAY_LEAVE_TYPES = new Set([
 ])
 
 const isSingleDayLeaveType = (type) => SINGLE_DAY_LEAVE_TYPES.has(type)
+const ON_DUTY_BACKDATE_DAYS = 3
 
 const HOUR_OPTIONS = Array.from({ length: 12 }, (_, i) => String(i + 1))
 const MINUTE_OPTIONS = Array.from({ length: 60 }, (_, i) => String(i).padStart(2, '0'))
@@ -267,14 +268,20 @@ const InteractiveCalendarPicker = ({ startDate, setStartDate, endDate, setEndDat
 
   // Min selectable date by leave type.
   // Casual Leave: exactly 3 calendar days in advance (today + 3).
+  // On Duty: today minus 3 calendar days (backdated apply window).
   // Urgent types: today onwards.
   const getMinAllowedDate = () => {
+    if (leaveType === 'On Duty') {
+      const cursor = new Date(todayLocal)
+      cursor.setDate(cursor.getDate() - ON_DUTY_BACKDATE_DAYS)
+      return toLocalDateStr(cursor)
+    }
+
     if (
       leaveType === 'Sick Leave' ||
       leaveType === EMERGENCY_LEAVE_TYPE ||
       leaveType === 'LOP (Loss of Pay)' ||
       leaveType === 'Work From Home' ||
-      leaveType === 'On Duty' ||
       leaveType === 'Permission'
     ) {
       return todayStr
@@ -300,12 +307,15 @@ const InteractiveCalendarPicker = ({ startDate, setStartDate, endDate, setEndDat
     const clickedDate = `${currentYear}-${mStr}-${dStr}`
 
     if (clickedDate < minAllowedDate) {
-      if (
+      if (leaveType === 'On Duty') {
+        setValidationError(
+          `On Duty can be applied only up to the previous ${ON_DUTY_BACKDATE_DAYS} dates. Earliest available date is ${minAllowedDate}.`
+        )
+      } else if (
         leaveType === 'Sick Leave' ||
         leaveType === EMERGENCY_LEAVE_TYPE ||
         leaveType === 'LOP (Loss of Pay)' ||
         leaveType === 'Work From Home' ||
-        leaveType === 'On Duty' ||
         leaveType === 'Permission'
       ) {
         setValidationError('Past dates cannot be selected.')
@@ -459,6 +469,8 @@ const InteractiveCalendarPicker = ({ startDate, setStartDate, endDate, setEndDat
             <span className="text-muted font-medium">
               {leaveType === 'Casual Leave'
                 ? `Casual Leave: select a date from ${minAllowedDate} onwards (3 days advance)`
+                : leaveType === 'On Duty'
+                  ? `On Duty: from ${minAllowedDate} onwards (up to previous ${ON_DUTY_BACKDATE_DAYS} dates)`
                 : singleDayOnly
                   ? 'Select a single date (1 Day)'
                   : 'Click start and end dates to select leave range'}
@@ -692,6 +704,13 @@ export const LeaveManagement = () => {
       leaveType === 'Work From Home' ||
       leaveType === 'On Duty' ||
       leaveType === PERMISSION_LEAVE_TYPE
+
+    if (leaveType === 'On Duty' && diffDays < -ON_DUTY_BACKDATE_DAYS) {
+      setValidationError(
+        `On Duty can be applied only up to the previous ${ON_DUTY_BACKDATE_DAYS} dates.`
+      )
+      return
+    }
 
     if (!isUrgentLeave && leaveType !== 'Casual Leave' && diffDays < 3) {
       setValidationError(
@@ -1307,7 +1326,7 @@ export const LeaveManagement = () => {
                       Work From Home ({getWfhAllowanceLabel(wfhPolicy)}) — needs approval
                     </option>
                   )}
-                  <option value="On Duty">On Duty (outdoor / official work)</option>
+                  <option value="On Duty">On Duty (outdoor / official work · previous {ON_DUTY_BACKDATE_DAYS} dates)</option>
                   <option value="LOP (Loss of Pay)">LOP (Loss of Pay)</option>
                 </select>
                 {wfhPolicy.leaveFormEnabled && leaveType === 'Work From Home' && remainingWfhDays !== null && (
@@ -1327,6 +1346,11 @@ export const LeaveManagement = () => {
                 {leaveType === EMERGENCY_LEAVE_TYPE && (
                   <p className="text-[11px] text-muted mt-1">
                     Same-day requests allowed. Needs admin approval. Shows as dark red on the attendance calendar. Does not use Casual/Sick quota.
+                  </p>
+                )}
+                {leaveType === 'On Duty' && (
+                  <p className="text-[11px] text-muted mt-1">
+                    You can apply for today and up to the previous {ON_DUTY_BACKDATE_DAYS} dates. Needs admin approval. Counts as present when approved.
                   </p>
                 )}
                 {leaveType === PERMISSION_LEAVE_TYPE && (

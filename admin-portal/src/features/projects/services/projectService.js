@@ -22,6 +22,19 @@ export const DEFAULT_TASK_STATUSES = [
   { id: 'done', name: 'Done', color: 'emerald' },
 ]
 
+export const getProjectDisplayStatus = (project) => {
+  const stored = String(project?.status || 'active').toLowerCase()
+  if (stored === 'on_hold') return 'on_hold'
+  const total = Number(project?.totalTaskCount) || 0
+  const done = Number(project?.completedTaskCount) || 0
+  const pct = Number(project?.completionPercent) || 0
+  if ((total > 0 && done >= total) || pct >= 100) return 'completed'
+  return stored || 'active'
+}
+
+export const getProjectStartDate = (project) =>
+  project?.startDate || project?.estimatedDate || project?.dueDate || ''
+
 /**
  * Fetch task statuses from Firestore
  */
@@ -80,7 +93,8 @@ export const createProject = async (projectData) => {
   try {
     const docRef = await addDoc(collection(db, 'projects'), {
       ...projectData,
-      estimatedDate: projectData.estimatedDate || null,
+      estimatedDate: projectData.estimatedDate || projectData.startDate || null,
+      startDate: projectData.startDate || projectData.estimatedDate || null,
       createdAt: new Date().toISOString(),
     })
     const newProject = { projectId: docRef.id, id: docRef.id, ...projectData }

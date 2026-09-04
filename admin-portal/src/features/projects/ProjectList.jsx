@@ -8,7 +8,7 @@ import { Badge } from '../../components/ui/Badge'
 import { Button } from '../../components/ui/Button'
 import { Input } from '../../components/ui/Input'
 import { useProjectStore } from './stores/projectStore'
-import { getProjects, createProject, deleteProjectFromDb, updateProjectMembersInDb, updateProjectInDb } from './services/projectService'
+import { getProjects, createProject, deleteProjectFromDb, updateProjectMembersInDb, updateProjectInDb, getProjectDisplayStatus, getProjectStartDate } from './services/projectService'
 import {
   Plus,
   Search,
@@ -51,7 +51,6 @@ export const ProjectList = () => {
   const [projName, setProjName] = useState('')
   const [selectedClientId, setSelectedClientId] = useState('')
   const [selectedEmployeeId, setSelectedEmployeeId] = useState('')
-  const [budget, setBudget] = useState('')
   const [description, setDescription] = useState('')
   const [estimatedDate, setEstimatedDate] = useState('')
 
@@ -184,12 +183,12 @@ export const ProjectList = () => {
       !searchQuery ||
       (p.name && p.name.toLowerCase().includes(searchQuery.toLowerCase())) ||
       (p.clientName && p.clientName.toLowerCase().includes(searchQuery.toLowerCase()))
-    const matchesStatus = statusFilter === 'all' || p.status === statusFilter
+    const matchesStatus = statusFilter === 'all' || getProjectDisplayStatus(p) === statusFilter
     return matchesSearch && matchesStatus
   })
 
   // Summary Metrics
-  const activeCount = projects.filter((p) => p.status === 'active').length
+  const activeCount = projects.filter((p) => getProjectDisplayStatus(p) === 'active').length
   const avgCompletion =
     projects.length > 0
       ? Math.round(
@@ -219,9 +218,10 @@ export const ProjectList = () => {
       employeeId: selectedEmployeeId || '',
       ownerName: selectedEmployee?.name || '',
       ownerRole: selectedEmployee?.role || '',
-      budget: Number(budget) || 0,
+      budget: 0,
       description,
       estimatedDate: estimatedDate || null,
+      startDate: estimatedDate || null,
       status: 'active',
       completionPercent: 0,
       totalTaskCount: 0,
@@ -236,7 +236,6 @@ export const ProjectList = () => {
     setProjName('')
     setSelectedClientId('')
     setSelectedEmployeeId('')
-    setBudget('')
     setDescription('')
     setEstimatedDate('')
     setShowAddModal(false)
@@ -255,7 +254,7 @@ export const ProjectList = () => {
     setEditSelectedClientId(proj.clientId || '')
     setEditBudget(proj.budget !== undefined && proj.budget !== null ? String(proj.budget) : '')
     setEditDescription(proj.description || '')
-    setEditEstimatedDate(proj.estimatedDate || '')
+    setEditEstimatedDate(proj.startDate || proj.estimatedDate || '')
     setEditStatus(proj.status || 'active')
   }
 
@@ -276,6 +275,7 @@ export const ProjectList = () => {
         budget: editBudget ? Number(editBudget) : 0,
         description: editDescription,
         estimatedDate: editEstimatedDate || null,
+        startDate: editEstimatedDate || null,
         status: editStatus || 'active',
       }
 
@@ -461,6 +461,8 @@ export const ProjectList = () => {
           {filtered.map((proj) => {
             const pId = proj.projectId || proj.id
             const membersList = proj.members || []
+            const displayStatus = getProjectDisplayStatus(proj)
+            const startDate = getProjectStartDate(proj)
 
             return (
               <Card
@@ -481,14 +483,14 @@ export const ProjectList = () => {
                   <div className="flex items-center gap-1.5" onClick={(e) => e.stopPropagation()}>
                     <Badge
                       variant={
-                        proj.status === 'active'
+                        displayStatus === 'active'
                           ? 'success'
-                          : proj.status === 'completed'
+                          : displayStatus === 'completed'
                           ? 'brand'
                           : 'warning'
                       }
                     >
-                      {proj.status}
+                      {displayStatus === 'on_hold' ? 'on hold' : displayStatus}
                     </Badge>
                     <button
                       onClick={(e) => {
@@ -585,11 +587,9 @@ export const ProjectList = () => {
                       </span>
                     </div>
                     <div className="flex items-center gap-3">
-                      {proj.estimatedDate && (
-                        <span className="flex items-center gap-1 text-amber-600 dark:text-amber-400 font-semibold">
-                          <Calendar className="w-3 h-3" /> {proj.estimatedDate}
-                        </span>
-                      )}
+                      <span className="flex items-center gap-1 text-amber-600 dark:text-amber-400 font-semibold">
+                        <Calendar className="w-3 h-3" /> Start: {startDate || '—'}
+                      </span>
                       <div className="flex items-center gap-1">
                         <span className="font-medium text-fg">Lead: </span>
                         <span className="truncate max-w-[100px]">{proj.ownerName || 'Unassigned'}</span>
@@ -747,14 +747,6 @@ export const ProjectList = () => {
                 onChange={(e) => setDescription(e.target.value)}
               />
 
-              <Input
-                label="Total Budget (₹)"
-                type="number"
-                placeholder="e.g. 500000"
-                value={budget}
-                onChange={(e) => setBudget(e.target.value)}
-              />
-
               {/* Real Client Dropdown */}
               <div className="space-y-1.5 text-left">
                 <label className="block text-xs font-medium text-fg">Client Name</label>
@@ -798,7 +790,7 @@ export const ProjectList = () => {
               </div>
 
               <Input
-                label="Estimated Date"
+                label="Start Date"
                 type="date"
                 value={estimatedDate}
                 onChange={(e) => setEstimatedDate(e.target.value)}
@@ -896,7 +888,7 @@ export const ProjectList = () => {
                 />
 
                 <Input
-                  label="Estimated Date"
+                  label="Start Date"
                   type="date"
                   value={editEstimatedDate}
                   onChange={(e) => setEditEstimatedDate(e.target.value)}

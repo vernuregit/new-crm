@@ -8,7 +8,7 @@ import { Badge } from '../../components/ui/Badge'
 import { Button } from '../../components/ui/Button'
 import { Input } from '../../components/ui/Input'
 import { useProjectStore } from './stores/projectStore'
-import { isUserOnProject } from './services/projectService'
+import { isUserOnProject, getProjectDisplayStatus, getProjectStartDate } from './services/projectService'
 import { useUserStore } from '../../stores/userStore'
 import {
   Plus,
@@ -75,7 +75,6 @@ export const ProjectList = () => {
   const [projName, setProjName] = useState('')
   const [clientName, setClientName] = useState('')
   const [selectedClientId, setSelectedClientId] = useState('')
-  const [budget, setBudget] = useState('')
   const [description, setDescription] = useState('')
   const [estimatedDate, setEstimatedDate] = useState('')
 
@@ -223,12 +222,12 @@ export const ProjectList = () => {
       !searchQuery ||
       p.name.toLowerCase().includes(searchQuery.toLowerCase()) ||
       p.clientName?.toLowerCase().includes(searchQuery.toLowerCase())
-    const matchesStatus = statusFilter === 'all' || p.status === statusFilter
+    const matchesStatus = statusFilter === 'all' || getProjectDisplayStatus(p) === statusFilter
     return matchesSearch && matchesStatus
   })
 
   // Summary Metrics based on user visible projects
-  const activeCount = userVisibleProjects.filter((p) => p.status === 'active').length
+  const activeCount = userVisibleProjects.filter((p) => getProjectDisplayStatus(p) === 'active').length
   const avgCompletion =
     userVisibleProjects.length > 0
       ? Math.round(
@@ -260,9 +259,10 @@ export const ProjectList = () => {
       name: projName,
       clientId: selectedClientId,
       clientName: effectiveClientName,
-      budget: Number(budget) || 0,
+      budget: 0,
       description,
       estimatedDate: estimatedDate || null,
+      startDate: estimatedDate || null,
       ownerName: currentDisplayName,
       createdBy: currentUserId || null,
       createdByEmail: currentUserEmail || null,
@@ -274,7 +274,6 @@ export const ProjectList = () => {
     setProjName('')
     setClientName('')
     setSelectedClientId('')
-    setBudget('')
     setDescription('')
     setEstimatedDate('')
     setShowAddModal(false)
@@ -293,7 +292,7 @@ export const ProjectList = () => {
     setEditSelectedClientId(proj.clientId || '')
     setEditBudget(proj.budget !== undefined && proj.budget !== null ? String(proj.budget) : '')
     setEditDescription(proj.description || '')
-    setEditEstimatedDate(proj.estimatedDate || '')
+    setEditEstimatedDate(proj.startDate || proj.estimatedDate || '')
     setEditStatus(proj.status || 'active')
   }
 
@@ -314,6 +313,7 @@ export const ProjectList = () => {
         budget: editBudget ? Number(editBudget) : 0,
         description: editDescription,
         estimatedDate: editEstimatedDate || null,
+        startDate: editEstimatedDate || null,
         status: editStatus || 'active',
       })
 
@@ -502,6 +502,8 @@ export const ProjectList = () => {
             const membersList = proj.members || []
             const isCreator =
               proj.createdBy && currentUserId && String(proj.createdBy) === String(currentUserId)
+            const displayStatus = getProjectDisplayStatus(proj)
+            const startDate = getProjectStartDate(proj)
 
             return (
               <Card
@@ -522,14 +524,14 @@ export const ProjectList = () => {
                   <div className="flex items-center gap-1.5" onClick={(e) => e.stopPropagation()}>
                     <Badge
                       variant={
-                        proj.status === 'active'
+                        displayStatus === 'active'
                           ? 'success'
-                          : proj.status === 'completed'
+                          : displayStatus === 'completed'
                           ? 'brand'
                           : 'warning'
                       }
                     >
-                      {proj.status}
+                      {displayStatus === 'on_hold' ? 'on hold' : displayStatus}
                     </Badge>
                     <button
                       onClick={(e) => {
@@ -626,11 +628,9 @@ export const ProjectList = () => {
                     {proj.completedTaskCount || 0} / {proj.totalTaskCount || 0} tasks
                   </span>
                   <div className="flex items-center gap-3">
-                    {proj.estimatedDate && (
-                      <span className="flex items-center gap-1 text-amber-600 dark:text-amber-400 font-semibold">
-                        <Calendar className="w-3.5 h-3.5" /> {proj.estimatedDate}
-                      </span>
-                    )}
+                    <span className="flex items-center gap-1 text-amber-600 dark:text-amber-400 font-semibold">
+                      <Calendar className="w-3.5 h-3.5" /> Start: {startDate || '—'}
+                    </span>
                     <span className="flex items-center gap-1 text-accent font-semibold">
                       <Clock className="w-3.5 h-3.5" /> {proj.totalHoursLogged || 0} hrs
                     </span>
@@ -776,41 +776,31 @@ export const ProjectList = () => {
                 required
               />
 
-              <div className="grid grid-cols-2 gap-3">
-                {/* Client Dropdown */}
-                <div className="space-y-1.5 text-left">
-                  <label className="block text-xs font-medium text-fg flex items-center gap-1.5">
-                    <Building className="w-3 h-3 text-accent" /> Client Name
-                  </label>
-                  {dropdownLoading ? (
-                    <div className="flex items-center gap-2 py-2.5 px-3.5 text-xs text-slate-400">
-                      <Loader2 className="w-3.5 h-3.5 animate-spin" /> Loading clients...
-                    </div>
-                  ) : (
-                    <select
-                      value={selectedClientId}
-                      onChange={(e) => {
-                        setSelectedClientId(e.target.value)
-                        const found = clients.find((c) => c.id === e.target.value)
-                        if (found) setClientName(found.name)
-                      }}
-                      className="w-full bg-chrome border border-border text-fg text-xs rounded-xl py-2.5 px-3.5 focus:outline-none focus:border-accent focus:ring-1 focus:ring-accent transition-all cursor-pointer"
-                    >
-                      {clients.map((c) => (
-                        <option key={c.id} value={c.id} className="bg-surface">
-                          {c.name}
-                        </option>
-                      ))}
-                    </select>
-                  )}
-                </div>
-                <Input
-                  label="Project Budget"
-                  type="number"
-                  placeholder="45000"
-                  value={budget}
-                  onChange={(e) => setBudget(e.target.value)}
-                />
+              <div className="space-y-1.5 text-left">
+                <label className="block text-xs font-medium text-fg flex items-center gap-1.5">
+                  <Building className="w-3 h-3 text-accent" /> Client Name
+                </label>
+                {dropdownLoading ? (
+                  <div className="flex items-center gap-2 py-2.5 px-3.5 text-xs text-slate-400">
+                    <Loader2 className="w-3.5 h-3.5 animate-spin" /> Loading clients...
+                  </div>
+                ) : (
+                  <select
+                    value={selectedClientId}
+                    onChange={(e) => {
+                      setSelectedClientId(e.target.value)
+                      const found = clients.find((c) => c.id === e.target.value)
+                      if (found) setClientName(found.name)
+                    }}
+                    className="w-full bg-chrome border border-border text-fg text-xs rounded-xl py-2.5 px-3.5 focus:outline-none focus:border-accent focus:ring-1 focus:ring-accent transition-all cursor-pointer"
+                  >
+                    {clients.map((c) => (
+                      <option key={c.id} value={c.id} className="bg-surface">
+                        {c.name}
+                      </option>
+                    ))}
+                  </select>
+                )}
               </div>
 
               <div className="space-y-1.5 text-left">
@@ -824,7 +814,7 @@ export const ProjectList = () => {
               </div>
 
               <Input
-                label="Estimated Date"
+                label="Start Date"
                 type="date"
                 value={estimatedDate}
                 onChange={(e) => setEstimatedDate(e.target.value)}
@@ -924,7 +914,7 @@ export const ProjectList = () => {
                 />
 
                 <Input
-                  label="Estimated Date"
+                  label="Start Date"
                   type="date"
                   value={editEstimatedDate}
                   onChange={(e) => setEditEstimatedDate(e.target.value)}

@@ -24,7 +24,7 @@ import {
   Send,
   StickyNote,
 } from 'lucide-react'
-import haloLogo from '../../assets/halologo.png'
+import sidebarLogo from '../../assets/sidebarlogo.png'
 import { useUIStore } from '../../stores/uiStore'
 import { useUserStore } from '../../stores/userStore'
 import { logoutUser } from '../../shared/services/authService'
@@ -144,29 +144,48 @@ export const EmployeeSidebar = () => {
       }`}
     >
       {/* Brand Header */}
-      <div className="h-16 flex items-center justify-between px-3 border-b border-border">
-        <div className="flex items-center gap-2 overflow-hidden">
-          <div className="w-11 h-11 bg-surface p-1 rounded-full border border-border shadow-sm flex items-center justify-center shrink-0">
-            <img src={haloLogo} alt="The Halo Effect Consulting" className="w-full h-full object-contain rounded-full" />
-          </div>
-          {sidebarOpen && (
-            <div className="flex flex-col leading-tight overflow-hidden">
-              <span className="font-bold text-fg text-xs tracking-wide whitespace-nowrap">
+      <div
+        className={`border-b border-border px-3 ${
+          sidebarOpen ? 'py-3 space-y-2' : 'h-16 flex items-center justify-between'
+        }`}
+      >
+        <div
+          className={`${
+            sidebarOpen ? 'w-full h-[4.75rem]' : 'w-11 h-11'
+          } rounded-xl overflow-hidden border border-border shadow-sm shrink-0 bg-[#1f7a7a]`}
+        >
+          <img
+            src={sidebarLogo}
+            alt="The Halo Effect Consulting"
+            className="w-full h-full object-contain object-center"
+          />
+        </div>
+
+        {sidebarOpen ? (
+          <div className="flex items-center justify-between gap-2">
+            <div className="flex flex-col leading-tight min-w-0">
+              <span className="font-bold text-fg text-xs tracking-wide">
                 EMPLOYEE PORTAL
               </span>
-              <span className="text-[10px] text-accent font-semibold tracking-wider mt-1 uppercase whitespace-nowrap">
+              <span className="text-[10px] text-accent font-semibold tracking-wider mt-0.5 uppercase">
                 EMPLOYEE MODE
               </span>
             </div>
-          )}
-        </div>
-
-        <button
-          onClick={toggleSidebar}
-          className="w-8 h-8 rounded-lg bg-surface hover:bg-border text-muted hover:text-fg flex items-center justify-center transition-colors cursor-pointer shrink-0 border border-border"
-        >
-          {sidebarOpen ? <ChevronLeft className="w-4 h-4" /> : <ChevronRight className="w-4 h-4" />}
-        </button>
+            <button
+              onClick={toggleSidebar}
+              className="w-8 h-8 rounded-lg bg-surface hover:bg-border text-muted hover:text-fg flex items-center justify-center transition-colors cursor-pointer shrink-0 border border-border"
+            >
+              <ChevronLeft className="w-4 h-4" />
+            </button>
+          </div>
+        ) : (
+          <button
+            onClick={toggleSidebar}
+            className="w-8 h-8 rounded-lg bg-surface hover:bg-border text-muted hover:text-fg flex items-center justify-center transition-colors cursor-pointer shrink-0 border border-border"
+          >
+            <ChevronRight className="w-4 h-4" />
+          </button>
+        )}
       </div>
 
       {/* Nav Groups */}

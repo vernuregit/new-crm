@@ -174,14 +174,14 @@ export const ClientProjects = () => {
                   {liveCompletion}%
                 </span>
               </div>
-              {p.estimatedDate || p.dueDate ? (
+              {p.startDate || p.estimatedDate || p.dueDate ? (
                 <div>
                   <span className="text-[11px] font-medium text-muted uppercase tracking-wider block">
-                    Target Date
+                    Start Date
                   </span>
                   <span className="text-xs font-semibold text-fg flex items-center gap-1 mt-1">
                     <Calendar className="w-3.5 h-3.5 text-amber-500" />
-                    {p.estimatedDate || p.dueDate}
+                    {p.startDate || p.estimatedDate || p.dueDate}
                   </span>
                 </div>
               ) : null}
